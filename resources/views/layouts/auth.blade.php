@@ -62,15 +62,23 @@
             padding: 4px;
         }
         .nav-brand-text {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .nav-brand-name {
             font-size: 0.95rem;
-            font-weight: 700;
+            font-weight: 800;
             color: #fff;
-            line-height: 1.2;
+            letter-spacing: 0.3px;
+            line-height: 1.1;
         }
         .nav-brand-sub {
-            font-size: 0.7rem;
-            font-weight: 400;
+            font-size: 0.68rem;
+            font-weight: 500;
             color: var(--muted);
+            letter-spacing: 0.2px;
+            line-height: 1.1;
         }
         .nav-actions { display: flex; align-items: center; gap: 8px; }
         .btn-nav {
@@ -366,10 +374,10 @@
     <nav class="top-nav">
         <div class="nav-inner">
             <a href="{{ url('/') }}" class="nav-brand">
-                <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB" class="nav-brand-logo">
+                <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB Logo" class="nav-brand-logo">
                 <div class="nav-brand-text">
-                    Sistem Informasi Penjadwalan Sidang
-                    <div class="nav-brand-sub">FTTM Institut Teknologi Bandung</div>
+                    <span class="nav-brand-name">SI SIDANG</span>
+                    <span class="nav-brand-sub">FTTM ITB</span>
                 </div>
             </a>
             <div class="nav-actions">
