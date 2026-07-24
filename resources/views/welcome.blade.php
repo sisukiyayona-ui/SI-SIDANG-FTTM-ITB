@@ -14,20 +14,153 @@
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --bg:     #0d1117;
-            --bg2:    #161b22;
-            --bg3:    #1c2230;
-            --border: rgba(255,255,255,0.08);
-            --text:   #c9d1d9;
-            --muted:  rgba(201,209,217,0.5);
-            --accent: #3b82f6;
-            --indigo: #6366f1;
-            --green:  #22c55e;
-            --yellow: #eab308;
-            --purple: #a855f7;
-            --pink:   #ec4899;
-            --cyan:   #06b6d4;
-            --orange: #f97316;
+            --bg:     #f8fafc;
+            --bg2:    #ffffff;
+            --bg3:    #f1f5f9;
+            --border: #e2e8f0;
+            --text:   #1e293b;
+            --muted:  #64748b;
+            --accent: #2563eb;
+            --indigo: #4f46e5;
+            --green:  #16a34a;
+            --yellow: #ca8a04;
+            --purple: #9333ea;
+            --pink:   #db2777;
+            --cyan:   #0891b2;
+            --orange: #ea580c;
+            --link:   #2563eb;
+        }
+
+        html.dark-mode {
+            --bg:     #0f172a;
+            --bg2:    #1e293b;
+            --bg3:    #334155;
+            --border: #334155;
+            --text:   #e2e8f0;
+            --muted:  #94a3b8;
+            --accent: #60a5fa;
+            --indigo: #818cf8;
+            --green:  #4ade80;
+            --yellow: #facc15;
+            --purple: #c084fc;
+            --pink:   #f472b6;
+            --cyan:   #22d3ee;
+            --orange: #fb923c;
+            --link:   #60a5fa;
+        }
+        html.dark-mode body {
+            background: var(--bg) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .top-nav {
+            background: var(--bg2) !important;
+            border-bottom-color: var(--border) !important;
+        }
+        html.dark-mode .nav-brand-name {
+            color: var(--text) !important;
+        }
+        html.dark-mode .nav-brand img {
+            background: var(--accent) !important;
+        }
+        html.dark-mode .main-card {
+            background: var(--bg2) !important;
+            border-color: var(--border) !important;
+        }
+        html.dark-mode .card-topbar {
+            background: var(--bg3) !important;
+            border-bottom-color: var(--border) !important;
+        }
+        html.dark-mode .card-title {
+            color: var(--text) !important;
+        }
+        html.dark-mode thead tr.thead-labels {
+            background: var(--bg3) !important;
+        }
+        html.dark-mode thead tr.thead-filters {
+            background: #1e293b !important;
+        }
+        html.dark-mode tbody tr {
+            border-bottom-color: var(--border) !important;
+        }
+        html.dark-mode tbody tr:hover {
+            background: #1e293b !important;
+        }
+        html.dark-mode th {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .td-name {
+            color: var(--text) !important;
+        }
+        html.dark-mode .search-wrap input {
+            background: var(--bg2) !important;
+            border-color: var(--border) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .search-wrap input::placeholder {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .search-wrap input:focus {
+            border-color: var(--accent) !important;
+        }
+        html.dark-mode .col-filter-input {
+            background: var(--bg2) !important;
+            border-color: var(--border) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .col-filter-input::placeholder {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .col-filter-input:focus {
+            border-color: var(--accent) !important;
+            background: rgba(96,165,250,0.06) !important;
+        }
+        html.dark-mode .col-filter-select {
+            background: var(--bg2) !important;
+            border-color: var(--border) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .col-filter-select:focus {
+            border-color: var(--accent) !important;
+        }
+        html.dark-mode .col-filter-select option {
+            background: var(--bg2) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .filter-select {
+            background: var(--bg2) !important;
+            border-color: var(--border) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .col-filter-wrap .fi-icon {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .footer {
+            color: var(--muted) !important;
+            border-top-color: var(--border) !important;
+        }
+        html.dark-mode .cta-banner {
+            border-color: rgba(96,165,250,0.25) !important;
+        }
+        html.dark-mode .btn-ghost {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .btn-ghost:hover {
+            color: var(--text) !important;
+            background: rgba(255,255,255,0.06) !important;
+        }
+        html.dark-mode .td-prodi {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .td-no {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .col-filter-input.has-value,
+        html.dark-mode .col-filter-select.has-value {
+            border-color: var(--accent) !important;
+            background: rgba(96,165,250,0.08) !important;
+        }
+        html.dark-mode .col-filter-wrap .fi-icon.has-value {
+            color: var(--accent) !important;
         }
         html, body { height: 100%; }
         html { scroll-behavior: smooth; }
@@ -55,9 +188,9 @@
         }
         .nav-left { display: flex; align-items: center; gap: 14px; }
         .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-brand img { width: 34px; height: 34px; background:#fff; border-radius:50%; padding:4px; flex-shrink: 0; }
+        .nav-brand img { width: 34px; height: 34px; background:#1e3a8a; border-radius:50%; padding:4px; flex-shrink: 0; }
         .nav-brand-text { display: flex; flex-direction: column; gap: 1px; }
-        .nav-brand-name { font-size: 0.95rem; font-weight: 800; color: #fff; letter-spacing: 0.3px; line-height: 1.1; }
+        .nav-brand-name { font-size: 0.95rem; font-weight: 800; color: var(--text); letter-spacing: 0.3px; line-height: 1.1; }
         .nav-brand-sub  { font-size: 0.68rem; font-weight: 500; color: var(--muted); letter-spacing: 0.2px; line-height: 1.1; }
         .nav-divider { width: 1px; height: 18px; background: var(--border); }
         .nav-subtitle { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
@@ -68,9 +201,9 @@
             gap: 6px; border: 1px solid transparent; transition: all 0.15s;
         }
         .btn-ghost { color: var(--muted); background: transparent; }
-        .btn-ghost:hover { color: #fff; background: rgba(255,255,255,0.06); }
+        .btn-ghost:hover { color: var(--text); background: var(--bg3); }
         .btn-primary { color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 600; }
-        .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+        .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
 
         /* ── PAGE WRAP ── */
         .page-wrap { max-width: 1400px; width: 100%; margin: 0 auto; padding: 24px 24px 56px; display: flex; flex-direction: column; gap: 24px; flex: 1; }
@@ -90,6 +223,13 @@
             display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; transition: all 0.15s;
         }
         .cta-btn:hover { background: #2563eb; transform: translateY(-1px); }
+        .cta-btn-secondary {
+            padding: 9px 22px; border-radius: 9px; background: transparent;
+            color: #fff; font-weight: 600; font-size: 0.82rem; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; transition: all 0.15s;
+            border: 1px solid var(--accent);
+        }
+        .cta-btn-secondary:hover { background: rgba(59,130,246,0.1); }
 
         /* ── SINGLE BIG CARD ── */
         .main-card {
@@ -113,10 +253,10 @@
         .card-title-row { display: flex; align-items: center; gap: 10px; }
         .card-icon {
             width: 34px; height: 34px; border-radius: 9px;
-            background: rgba(59,130,246,0.15); color: var(--accent);
+            background: rgba(37,99,235,0.1); color: var(--accent);
             display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
         }
-        .card-title { font-size: 1rem; font-weight: 700; color: #fff; }
+        .card-title { font-size: 1rem; font-weight: 700; color: var(--text); }
         .card-subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
         .card-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
@@ -127,7 +267,7 @@
             color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.78rem;
             padding: 7px 12px 7px 30px; width: 200px; outline: none; transition: border-color 0.15s;
         }
-        .search-wrap input::placeholder { color: var(--muted); }
+        .search-wrap input::placeholder { color: #94a3b8; }
         .search-wrap input:focus { border-color: var(--accent); }
 
         .filter-select {
@@ -140,44 +280,11 @@
         }
         .filter-select:focus { border-color: var(--accent); }
 
-        /* Section Divider inside table */
-        .section-divider {
-            background: var(--bg3);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-        }
-        .section-divider td {
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .section-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-        }
-        .section-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-        }
-        .section-count {
-            background: rgba(255,255,255,0.07);
-            color: var(--muted);
-            border-radius: 20px;
-            padding: 2px 9px;
-            font-size: 0.68rem;
-            font-weight: 600;
-        }
-
         /* Table */
         .table-scroll { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
         thead tr.thead-labels { background: var(--bg3); border-bottom: 1px solid var(--border); }
-        thead tr.thead-filters { background: rgba(0,0,0,0.25); border-bottom: 2px solid var(--border); }
+        thead tr.thead-filters { background: #f1f5f9; border-bottom: 2px solid var(--border); }
         th {
             padding: 11px 14px;
             font-size: 0.7rem; font-weight: 700; color: var(--muted);
@@ -186,14 +293,14 @@
         }
         tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
         tbody tr:last-child { border-bottom: none; }
-        tbody tr:hover { background: rgba(255,255,255,0.02); }
+        tbody tr:hover { background: #f8fafc; }
 
         td { padding: 11px 14px; font-size: 0.82rem; color: var(--text); vertical-align: middle; }
         .td-no { color: var(--muted); font-size: 0.72rem; text-align: center; width: 42px; padding: 11px 8px; }
-        .td-name { font-weight: 600; color: #fff; font-size: 0.83rem; }
+        .td-name { font-weight: 600; color: var(--text); font-size: 0.83rem; }
         .nim-badge {
             display: inline-block;
-            background: rgba(99,102,241,0.15); color: var(--indigo);
+            background: rgba(79,70,229,0.1); color: var(--indigo);
             border-radius: 5px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700;
             margin-top: 3px;
         }
@@ -202,7 +309,7 @@
         .td-date { color: var(--accent); font-weight: 600; font-size: 0.79rem; white-space: nowrap; }
         .td-room { font-size: 0.79rem; white-space: nowrap; }
         .bab-chip {
-            background: rgba(234,179,8,0.1); color: var(--yellow);
+            background: rgba(202,138,4,0.1); color: var(--yellow);
             border-radius: 5px; padding: 3px 9px; font-size: 0.7rem; font-weight: 700;
         }
 
@@ -213,10 +320,10 @@
             white-space: nowrap;
         }
         .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
-        .badge-terjadwal { background: rgba(59,130,246,0.12); color: #60a5fa; }
-        .badge-terjadwal::before { background: #60a5fa; }
-        .badge-selesai { background: rgba(34,197,94,0.1); color: #4ade80; }
-        .badge-selesai::before { background: #4ade80; }
+        .badge-terjadwal { background: rgba(37,99,235,0.08); color: var(--accent); }
+        .badge-terjadwal::before { background: var(--accent); }
+        .badge-selesai { background: rgba(22,163,74,0.08); color: var(--green); }
+        .badge-selesai::before { background: var(--green); }
 
         /* Jenis sidang tag (right side) */
         .jenis-tag {
@@ -224,20 +331,20 @@
             padding: 3px 9px; border-radius: 20px; font-size: 0.68rem; font-weight: 600;
             white-space: nowrap;
         }
-        .j-uk      { background: rgba(59,130,246,0.1);  color: var(--accent); border: 1px solid rgba(59,130,246,0.2); }
-        .j-sp      { background: rgba(99,102,241,0.1);  color: var(--indigo); border: 1px solid rgba(99,102,241,0.2); }
-        .j-sk1     { background: rgba(34,197,94,0.08);  color: var(--green);  border: 1px solid rgba(34,197,94,0.2); }
-        .j-sk2     { background: rgba(234,179,8,0.1);   color: var(--yellow); border: 1px solid rgba(234,179,8,0.2); }
-        .j-sk3     { background: rgba(168,85,247,0.1);  color: var(--purple); border: 1px solid rgba(168,85,247,0.2); }
-        .j-sk4     { background: rgba(236,72,153,0.08); color: var(--pink);   border: 1px solid rgba(236,72,153,0.2); }
-        .j-sa      { background: rgba(6,182,212,0.08);  color: var(--cyan);   border: 1px solid rgba(6,182,212,0.2); }
+        .j-uk      { background: rgba(37,99,235,0.08);  color: var(--accent); border: 1px solid rgba(37,99,235,0.2); }
+        .j-sp      { background: rgba(79,70,229,0.08);  color: var(--indigo); border: 1px solid rgba(79,70,229,0.2); }
+        .j-sk1     { background: rgba(22,163,74,0.08);  color: var(--green);  border: 1px solid rgba(22,163,74,0.2); }
+        .j-sk2     { background: rgba(202,138,4,0.08);  color: var(--yellow); border: 1px solid rgba(202,138,4,0.2); }
+        .j-sk3     { background: rgba(147,51,234,0.08); color: var(--purple); border: 1px solid rgba(147,51,234,0.2); }
+        .j-sk4     { background: rgba(219,39,119,0.08); color: var(--pink);   border: 1px solid rgba(219,39,119,0.2); }
+        .j-sa      { background: rgba(8,145,178,0.08);  color: var(--cyan);   border: 1px solid rgba(8,145,178,0.2); }
 
         /* ── Inline column filter row ── */
         .col-filter-input {
             width: 100%;
             min-width: 70px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--bg2);
+            border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text);
             font-family: 'Inter', sans-serif;
@@ -246,16 +353,16 @@
             outline: none;
             transition: border-color 0.15s, background 0.15s;
         }
-        .col-filter-input::placeholder { color: rgba(201,209,217,0.3); }
+        .col-filter-input::placeholder { color: #94a3b8; }
         .col-filter-input:focus {
-            border-color: rgba(59,130,246,0.5);
-            background: rgba(59,130,246,0.06);
+            border-color: var(--accent);
+            background: rgba(37,99,235,0.04);
         }
         .col-filter-select {
             width: 100%;
             min-width: 80px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--bg2);
+            border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text);
             font-family: 'Inter', sans-serif;
@@ -265,13 +372,13 @@
             cursor: pointer;
             transition: border-color 0.15s, background 0.15s;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' fill='%23555' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 6px center;
             padding-right: 20px;
         }
-        .col-filter-select option { background: #1c2230; color: var(--text); }
-        .col-filter-select:focus { border-color: rgba(59,130,246,0.5); background-color: rgba(59,130,246,0.06); }
+        .col-filter-select option { background: #fff; color: var(--text); }
+        .col-filter-select:focus { border-color: var(--accent); background-color: rgba(37,99,235,0.04); }
         .col-filter-wrap {
             position: relative;
             display: flex;
@@ -280,7 +387,7 @@
         .col-filter-wrap .fi-icon {
             position: absolute;
             left: 7px;
-            color: rgba(201,209,217,0.3);
+            color: var(--muted);
             font-size: 0.62rem;
             pointer-events: none;
             z-index: 1;
@@ -288,22 +395,21 @@
         th.th-filter { padding: 6px 8px; vertical-align: middle; }
         .col-filter-input.has-value,
         .col-filter-select.has-value {
-            border-color: rgba(59,130,246,0.5);
-            background-color: rgba(59,130,246,0.08);
-            color: #fff;
+            border-color: var(--accent);
+            background-color: rgba(37,99,235,0.06);
+            color: var(--text);
         }
         .col-filter-wrap .fi-icon.has-value { color: var(--accent); }
-        /* clear badge shown when any col filter active */
         .clear-filters-btn {
             display: none;
             align-items: center; gap: 4px;
             padding: 4px 10px; border-radius: 6px;
-            background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);
-            color: #f87171; font-size: 0.72rem; font-weight: 600;
+            background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.2);
+            color: #dc2626; font-size: 0.72rem; font-weight: 600;
             cursor: pointer; transition: all 0.15s;
             white-space: nowrap;
         }
-        .clear-filters-btn:hover { background: rgba(239,68,68,0.2); }
+        .clear-filters-btn:hover { background: rgba(220,38,38,0.15); }
         .clear-filters-btn.visible { display: inline-flex; }
 
         /* Empty row */
@@ -343,6 +449,9 @@
                 </a>
             </div>
             <div class="nav-right">
+                <button class="btn-nav btn-ghost" id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="border:none; font-size:1rem; padding:6px 10px;">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
                 <a href="{{ url('/') }}" class="btn-nav btn-ghost"><i class="fas fa-home"></i> Beranda</a>
                 <a href="{{ route('login') }}" class="btn-nav btn-primary"><i class="fas fa-sign-in-alt"></i> Masuk</a>
             </div>
@@ -358,7 +467,9 @@
                 <h3><i class="fas fa-calendar-alt"></i> &nbsp;Jadwal Sidang Mahasiswa – FTTM ITB</h3>
                 <p>Halaman publik. Login untuk mengajukan sidang atau mengelola jadwal Anda.</p>
             </div>
-            <a href="{{ route('login') }}" class="cta-btn"><i class="fas fa-sign-in-alt"></i> Masuk / Login</a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('login') }}" class="cta-btn"><i class="fas fa-sign-in-alt"></i> Masuk / Login</a>
+            </div>
         </div>
 
         <!-- ══ ONE BIG CARD ══ -->
@@ -447,186 +558,54 @@
                             <th class="th-filter">
                                 <select class="col-filter-select" id="fJenis" onchange="doFilter()">
                                     <option value="">Semua</option>
-                                    <option value="Ujian Kualifikasi">Ujian Kualifikasi</option>
-                                    <option value="Sidang Proposal">Sidang Proposal</option>
-                                    <option value="Seminar Kemajuan I">Sem. Kemajuan I</option>
-                                    <option value="Seminar Kemajuan II">Sem. Kemajuan II</option>
-                                    <option value="Seminar Kemajuan III">Sem. Kemajuan III</option>
-                                    <option value="Seminar Kemajuan IV">Sem. Kemajuan IV</option>
-                                    <option value="Sidang Akhir">Sidang Akhir</option>
+                                    @foreach($jenisSidangList as $jenis)
+                                        <option value="{{ $jenis }}">{{ $jenis }}</option>
+                                    @endforeach
                                 </select>
                             </th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
+                        @php
+                            $jenisColors = [
+                                'tahap I'  => ['class' => 'j-uk',  'icon' => 'fas fa-file-signature'],
+                                'tahap II' => ['class' => 'j-sp',  'icon' => 'fas fa-file-export'],
+                                'SK I'     => ['class' => 'j-sk1', 'icon' => 'fas fa-chart-line'],
+                                'SK II'    => ['class' => 'j-sk2', 'icon' => 'fas fa-chart-line'],
+                                'SK III'   => ['class' => 'j-sk3', 'icon' => 'fas fa-chart-line'],
+                                'SK IV'    => ['class' => 'j-sk4', 'icon' => 'fas fa-chart-line'],
+                                'Sidang Akhir' => ['class' => 'j-sa', 'icon' => 'fas fa-graduation-cap'],
+                            ];
+                            $fallbackList = ['j-uk','j-sp','j-sk1','j-sk2','j-sk3','j-sk4','j-sa'];
+                        @endphp
+                        @forelse($jadwalSidang as $i => $item)
+                            @php
+                                $jc = $jenisColors[$item->tahapan_sidang]['class'] ?? $fallbackList[$i % count($fallbackList)];
+                                $ji = $jenisColors[$item->tahapan_sidang]['icon']  ?? 'fas fa-file-alt';
+                            @endphp
+                            <tr data-jenis="{{ $item->tahapan_sidang }}" data-status="Terjadwal">
+                                <td class="td-no">{{ $i + 1 }}</td>
+                                <td><div class="td-name">{{ $item->nama_mhs }}</div></td>
+                                <td><span class="nim-badge">{{ $item->Nim }}</span></td>
+                                <td class="td-prodi">{{ $item->nama_prodi }}</td>
+                                <td class="td-extra">{{ $item->Judul ?? '—' }}</td>
+                                <td class="td-date">{{ $item->tgl_sidang ? \Carbon\Carbon::parse($item->tgl_sidang)->format('Y-m-d') : '—' }}</td>
+                                <td class="td-room">{{ $item->ruang_sidang ?? '—' }}</td>
+                                <td><span class="badge badge-terjadwal">Terjadwal</span></td>
+                                <td><span class="jenis-tag {{ $jc }}"><i class="{{ $ji }}"></i> {{ $item->tahapan_sidang }}</span></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" style="text-align:center; padding:36px; color:var(--muted); font-size:0.82rem;">
+                                    <i class="fas fa-inbox" style="font-size:1.4rem; opacity:0.25; display:block; margin-bottom:8px;"></i>
+                                    Belum ada jadwal sidang yang terjadwal
+                                </td>
+                            </tr>
+                        @endforelse
 
-                        <!-- ── Ujian Kualifikasi ── -->
-                        <tr data-jenis="Ujian Kualifikasi" data-status="Terjadwal">
-                            <td class="td-no">1</td>
-                            <td><div class="td-name">Muhammad Rizky</div></td>
-                            <td><span class="nim-badge">12221001</span></td>
-                            <td class="td-prodi">Teknik Perminyakan</td>
-                            <td class="td-extra">—</td>
-                            <td class="td-date">2026-07-15</td>
-                            <td class="td-room">Ruang Sidang A</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-uk"><i class="fas fa-file-signature"></i> Ujian Kualifikasi</span></td>
-                        </tr>
-                        <tr data-jenis="Ujian Kualifikasi" data-status="Terjadwal">
-                            <td class="td-no">2</td>
-                            <td><div class="td-name">Aulia Rahman</div></td>
-                            <td><span class="nim-badge">12221002</span></td>
-                            <td class="td-prodi">Teknik Metalurgi</td>
-                            <td class="td-extra">—</td>
-                            <td class="td-date">2026-07-16</td>
-                            <td class="td-room">Ruang Sidang B</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-uk"><i class="fas fa-file-signature"></i> Ujian Kualifikasi</span></td>
-                        </tr>
-                        <tr data-jenis="Ujian Kualifikasi" data-status="Selesai">
-                            <td class="td-no">3</td>
-                            <td><div class="td-name">Rina Wijaya</div></td>
-                            <td><span class="nim-badge">12221003</span></td>
-                            <td class="td-prodi">Teknik Geologi</td>
-                            <td class="td-extra">—</td>
-                            <td class="td-date">2026-07-17</td>
-                            <td class="td-room">Ruang Sidang A</td>
-                            <td><span class="badge badge-selesai">Selesai</span></td>
-                            <td><span class="jenis-tag j-uk"><i class="fas fa-file-signature"></i> Ujian Kualifikasi</span></td>
-                        </tr>
-                        <tr data-jenis="Ujian Kualifikasi" data-status="Terjadwal">
-                            <td class="td-no">4</td>
-                            <td><div class="td-name">Bambang Susilo</div></td>
-                            <td><span class="nim-badge">12221004</span></td>
-                            <td class="td-prodi">Teknik Geofisika</td>
-                            <td class="td-extra">—</td>
-                            <td class="td-date">2026-07-18</td>
-                            <td class="td-room">Ruang Sidang C</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-uk"><i class="fas fa-file-signature"></i> Ujian Kualifikasi</span></td>
-                        </tr>
-
-                        <!-- ── Sidang Proposal ── -->
-                        <tr data-jenis="Sidang Proposal" data-status="Terjadwal">
-                            <td class="td-no">5</td>
-                            <td><div class="td-name">Muhammad Rizky</div></td>
-                            <td><span class="nim-badge">12221001</span></td>
-                            <td class="td-prodi">Teknik Perminyakan</td>
-                            <td class="td-extra">Optimasi Produksi Minyak Bumi</td>
-                            <td class="td-date">2026-08-10</td>
-                            <td class="td-room">Ruang Sidang A</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sp"><i class="fas fa-file-export"></i> Sidang Proposal</span></td>
-                        </tr>
-                        <tr data-jenis="Sidang Proposal" data-status="Terjadwal">
-                            <td class="td-no">6</td>
-                            <td><div class="td-name">Aulia Rahman</div></td>
-                            <td><span class="nim-badge">12221002</span></td>
-                            <td class="td-prodi">Teknik Metalurgi</td>
-                            <td class="td-extra">Karakterisasi Bahan Logam</td>
-                            <td class="td-date">2026-08-11</td>
-                            <td class="td-room">Ruang Sidang B</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sp"><i class="fas fa-file-export"></i> Sidang Proposal</span></td>
-                        </tr>
-                        <tr data-jenis="Sidang Proposal" data-status="Selesai">
-                            <td class="td-no">7</td>
-                            <td><div class="td-name">Rina Wijaya</div></td>
-                            <td><span class="nim-badge">12221003</span></td>
-                            <td class="td-prodi">Teknik Geologi</td>
-                            <td class="td-extra">Analisis Struktur Batuan</td>
-                            <td class="td-date">2026-08-12</td>
-                            <td class="td-room">Ruang Sidang A</td>
-                            <td><span class="badge badge-selesai">Selesai</span></td>
-                            <td><span class="jenis-tag j-sp"><i class="fas fa-file-export"></i> Sidang Proposal</span></td>
-                        </tr>
-                        <tr data-jenis="Sidang Proposal" data-status="Terjadwal">
-                            <td class="td-no">8</td>
-                            <td><div class="td-name">Bambang Susilo</div></td>
-                            <td><span class="nim-badge">12221004</span></td>
-                            <td class="td-prodi">Teknik Geofisika</td>
-                            <td class="td-extra">Interpretasi Data Seismik</td>
-                            <td class="td-date">2026-08-13</td>
-                            <td class="td-room">Ruang Sidang C</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sp"><i class="fas fa-file-export"></i> Sidang Proposal</span></td>
-                        </tr>
-
-                        <!-- ── Seminar Kemajuan I ── -->
-                        <tr data-jenis="Seminar Kemajuan I" data-status="Terjadwal">
-                            <td class="td-no">9</td>
-                            <td><div class="td-name">Muhammad Rizky</div></td>
-                            <td><span class="nim-badge">12221001</span></td>
-                            <td class="td-prodi">Teknik Perminyakan</td>
-                            <td><span class="bab-chip">Bab 1-2</span></td>
-                            <td class="td-date">2026-09-05</td>
-                            <td class="td-room">Ruang Sidang A</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sk1"><i class="fas fa-chart-line"></i> Seminar Kemajuan I</span></td>
-                        </tr>
-                        <tr data-jenis="Seminar Kemajuan I" data-status="Selesai">
-                            <td class="td-no">10</td>
-                            <td><div class="td-name">Aulia Rahman</div></td>
-                            <td><span class="nim-badge">12221002</span></td>
-                            <td class="td-prodi">Teknik Metalurgi</td>
-                            <td><span class="bab-chip">Bab 1-2</span></td>
-                            <td class="td-date">2026-09-06</td>
-                            <td class="td-room">Ruang Sidang B</td>
-                            <td><span class="badge badge-selesai">Selesai</span></td>
-                            <td><span class="jenis-tag j-sk1"><i class="fas fa-chart-line"></i> Seminar Kemajuan I</span></td>
-                        </tr>
-                        <tr data-jenis="Seminar Kemajuan I" data-status="Terjadwal">
-                            <td class="td-no">11</td>
-                            <td><div class="td-name">Bambang Susilo</div></td>
-                            <td><span class="nim-badge">12221004</span></td>
-                            <td class="td-prodi">Teknik Geofisika</td>
-                            <td><span class="bab-chip">Bab 1-2</span></td>
-                            <td class="td-date">2026-09-07</td>
-                            <td class="td-room">Ruang Sidang C</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sk1"><i class="fas fa-chart-line"></i> Seminar Kemajuan I</span></td>
-                        </tr>
-
-                        <!-- ── Seminar Kemajuan II ── -->
-                        <tr data-jenis="Seminar Kemajuan II" data-status="Terjadwal">
-                            <td class="td-no">12</td>
-                            <td><div class="td-name">Muhammad Rizky</div></td>
-                            <td><span class="nim-badge">12221001</span></td>
-                            <td class="td-prodi">Teknik Perminyakan</td>
-                            <td><span class="bab-chip">Bab 3</span></td>
-                            <td class="td-date">2026-10-10</td>
-                            <td class="td-room">Ruang Sidang A</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sk2"><i class="fas fa-chart-line"></i> Seminar Kemajuan II</span></td>
-                        </tr>
-                        <tr data-jenis="Seminar Kemajuan II" data-status="Terjadwal">
-                            <td class="td-no">13</td>
-                            <td><div class="td-name">Aulia Rahman</div></td>
-                            <td><span class="nim-badge">12221002</span></td>
-                            <td class="td-prodi">Teknik Metalurgi</td>
-                            <td><span class="bab-chip">Bab 3</span></td>
-                            <td class="td-date">2026-10-11</td>
-                            <td class="td-room">Ruang Sidang B</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sk2"><i class="fas fa-chart-line"></i> Seminar Kemajuan II</span></td>
-                        </tr>
-
-                        <!-- ── Seminar Kemajuan III ── -->
-                        <tr data-jenis="Seminar Kemajuan III" data-status="Terjadwal">
-                            <td class="td-no">14</td>
-                            <td><div class="td-name">Muhammad Rizky</div></td>
-                            <td><span class="nim-badge">12221001</span></td>
-                            <td class="td-prodi">Teknik Perminyakan</td>
-                            <td><span class="bab-chip">Bab 4</span></td>
-                            <td class="td-date">2026-11-15</td>
-                            <td class="td-room">Ruang Sidang A</td>
-                            <td><span class="badge badge-terjadwal">Terjadwal</span></td>
-                            <td><span class="jenis-tag j-sk3"><i class="fas fa-chart-line"></i> Seminar Kemajuan III</span></td>
-                        </tr>
-
-                        <!-- empty row shown when no result -->
+                        <!-- empty row shown when filter returns no result -->
                         <tr id="emptyRow" style="display:none;">
-                            <td colspan="10" style="text-align:center; padding:36px; color:var(--muted); font-size:0.82rem;">
+                            <td colspan="9" style="text-align:center; padding:36px; color:var(--muted); font-size:0.82rem;">
                                 <i class="fas fa-search" style="font-size:1.4rem; opacity:0.25; display:block; margin-bottom:8px;"></i>
                                 Tidak ada data yang cocok dengan pencarian
                             </td>
@@ -637,14 +616,13 @@
             </div><!-- /table-scroll -->
 
             <!-- bottom summary -->
-            <div style="padding: 12px 20px; border-top: 1px solid var(--border); display:flex; align-items:center; gap:16px; flex-wrap:wrap; background:var(--bg3);">
-                <span style="font-size:0.75rem; color:var(--muted);" id="rowCount">Menampilkan 14 data</span>
+            <div style="padding: 12px 20px; border-top: 1px solid var(--border); display:flex; align-items:center; gap:16px; flex-wrap:wrap; background:var(--bg3); color:var(--text);">
+                <span style="font-size:0.75rem; color:var(--muted);" id="rowCount">Menampilkan {{ $jadwalSidang->count() }} data</span>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;">
-                    <span class="jenis-tag j-uk" style="font-size:0.65rem;"><i class="fas fa-circle" style="font-size:6px;"></i> Ujian Kualifikasi</span>
-                    <span class="jenis-tag j-sp" style="font-size:0.65rem;"><i class="fas fa-circle" style="font-size:6px;"></i> Sidang Proposal</span>
-                    <span class="jenis-tag j-sk1" style="font-size:0.65rem;"><i class="fas fa-circle" style="font-size:6px;"></i> Seminar Kemajuan I</span>
-                    <span class="jenis-tag j-sk2" style="font-size:0.65rem;"><i class="fas fa-circle" style="font-size:6px;"></i> Seminar Kemajuan II</span>
-                    <span class="jenis-tag j-sk3" style="font-size:0.65rem;"><i class="fas fa-circle" style="font-size:6px;"></i> Seminar Kemajuan III</span>
+                    @foreach($jenisSidangList as $j)
+                        @php $ljc = $jenisColors[$j]['class'] ?? 'j-uk'; @endphp
+                        <span class="jenis-tag {{ $ljc }}" style="font-size:0.65rem;"><i class="fas fa-circle" style="font-size:6px;"></i> {{ $j }}</span>
+                    @endforeach
                 </div>
             </div>
         </div><!-- /main-card -->
@@ -656,6 +634,26 @@
     </div>
 
     <script>
+        function toggleDarkMode() {
+            var html = document.documentElement;
+            var icon = document.getElementById('darkModeIcon');
+            var isDark = html.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        (function initDarkMode() {
+            var html = document.documentElement;
+            var icon = document.getElementById('darkModeIcon');
+            var saved = localStorage.getItem('darkMode');
+            if (saved === 'true') {
+                html.classList.add('dark-mode');
+                if (icon) icon.className = 'fas fa-sun';
+            } else {
+                if (icon) icon.className = 'fas fa-moon';
+            }
+        })();
+
         // Column indices (0-based): #=0, Mahasiswa=1, NIM=2, Prodi=3, Judul/Bab=4, Tanggal=5, Ruang=6, Status=7, Jenis=8
         function getCellText(row, colIndex) {
             const cells = row.querySelectorAll('td');

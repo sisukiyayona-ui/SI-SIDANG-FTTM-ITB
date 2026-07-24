@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\TUser;
 use App\Models\TProdi;
 use Illuminate\Http\Request;
@@ -12,14 +13,21 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = TUser::all()->map(function ($u) {
+        $authUser = session('auth_user');
+        $query = TUser::query();
+
+        if ($authUser['role'] === 'TU Prodi' && $authUser['kode_prodi']) {
+            $query->where('kode_prodi', $authUser['kode_prodi']);
+        }
+
+        $users = $query->orderBy('id', 'desc')->paginate(10)->through(function ($u) {
             return [
                 'id'             => $u->id,
                 'nip_nim'        => $u->nip_nim,
                 'nama_lengkap'   => $u->nama_lengkap,
                 'email'          => $u->email,
                 'akun_ina'       => $u->akun_ina,
-                'Username'       => $u->Username,
+                'username'       => $u->username,
                 'status_pegawai' => $u->status_pegawai,
                 'jenis_user'     => $u->jenis_user,
                 'kode_prodi'     => $u->kode_prodi,
@@ -30,12 +38,40 @@ class UserController extends Controller
                 'thn_angkatan'   => $u->thn_angkatan,
                 'status_aktif'   => $u->status_aktif,
                 'status_approve' => $u->status_approve,
+                'status_kaprodi' => $u->status_kaprodi,
             ];
         });
 
         $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
 
         return view('master.user', compact('users', 'prodis'));
+    }
+
+    public function edit($id)
+    {
+        $u = TUser::find((int) $id);
+        if (!$u) {
+            return response()->json(null, 404);
+        }
+
+        return response()->json([
+            'id'             => $u->id,
+            'nip_nim'        => $u->nip_nim,
+            'nama_lengkap'   => $u->nama_lengkap,
+            'email'          => $u->email,
+            'akun_ina'       => $u->akun_ina,
+            'username'       => $u->username,
+            'status_pegawai' => $u->status_pegawai,
+            'jenis_user'     => $u->jenis_user,
+            'kode_prodi'     => $u->kode_prodi,
+            'nama_prodi'     => $u->nama_prodi,
+            'kode_fs'        => $u->kode_fs,
+            'nama_fs'        => $u->nama_fs,
+            'strata'         => $u->strata,
+            'thn_angkatan'   => $u->thn_angkatan,
+            'status_aktif'   => $u->status_aktif,
+            'status_approve' => $u->status_approve,
+        ]);
     }
 
     public function store(Request $request)
@@ -45,6 +81,7 @@ class UserController extends Controller
             'nama_lengkap'   => 'required',
             'email'          => 'required|email',
             'jenis_user'     => 'required',
+            'status_pegawai' => 'required',
             'status_aktif'   => 'required',
             'status_approve' => 'required',
         ]);
@@ -58,23 +95,33 @@ class UserController extends Controller
             $namaProdi = $prodi?->nama_prodi;
         }
 
+        // Resolve FS prodi
+        $kodeFs = null;
+        $namaFs = null;
+        if ($request->id_fs_prodi) {
+            $fsProdi = TProdi::find($request->id_fs_prodi);
+            $kodeFs  = $fsProdi?->kode_prodi;
+            $namaFs  = $fsProdi?->nama_prodi;
+        }
+
         TUser::create([
-            'nip_nim'        => $request->nip_nim,
-            'nama_lengkap'   => $request->nama_lengkap,
-            'email'          => $request->email,
-            'akun_ina'       => $request->akun_ina,
-            'Username'       => $request->Username,
-            'Password'       => $request->Password ? Hash::make($request->Password) : null,
-            'status_pegawai' => $request->status_pegawai,
-            'jenis_user'     => $request->jenis_user,
-            'kode_prodi'     => $kodeProdi,
-            'nama_prodi'     => $namaProdi,
-            'kode_fs'        => '13321002',
-            'nama_fs'        => 'FTTM',
-            'strata'         => $request->strata,
-            'thn_angkatan'   => $request->thn_angkatan,
-            'status_aktif'   => $request->status_aktif,
-            'status_approve' => $request->status_approve,
+            'NIP_NIM'        => $request->nip_nim,
+            'NAMA_LENGKAP'   => $request->nama_lengkap,
+            'EMAIL'          => $request->email,
+            'AKUN_INA'       => $request->akun_ina,
+            'USERNAME'       => $request->username,
+            'PASSWORD'       => $request->password ? Hash::make($request->password) : null,
+            'JENIS_USER'     => $request->jenis_user,
+            'STATUS_PEGAWAI' => $request->status_pegawai,
+            'KODE_PRODI'     => $kodeProdi,
+            'NAMA_PRODI'     => $namaProdi,
+            'KODE_FS'        => $kodeFs,
+            'NAMA_FS'        => $namaFs,
+            'STRATA'         => $request->strata,
+            'THN_ANGKATAN'   => $request->thn_angkatan,
+            'STATUS_AKTIF'   => $request->status_aktif,
+            'STATUS_APPROVE' => $request->status_approve,
+            'TGL_CREATE'     => now(),
         ]);
 
         return response()->json(['success' => true]);
@@ -87,6 +134,7 @@ class UserController extends Controller
             'nama_lengkap'   => 'required',
             'email'          => 'required|email',
             'jenis_user'     => 'required',
+            'status_pegawai' => 'required',
             'status_aktif'   => 'required',
             'status_approve' => 'required',
         ]);
@@ -101,30 +149,59 @@ class UserController extends Controller
                 $namaProdi = $prodi?->nama_prodi;
             }
 
-            $data = [
-                'nip_nim'        => $request->nip_nim,
-                'nama_lengkap'   => $request->nama_lengkap,
-                'email'          => $request->email,
-                'akun_ina'       => $request->akun_ina,
-                'Username'       => $request->Username,
-                'status_pegawai' => $request->status_pegawai,
-                'jenis_user'     => $request->jenis_user,
-                'kode_prodi'     => $kodeProdi,
-                'nama_prodi'     => $namaProdi,
-                'kode_fs'        => '13321002',
-                'nama_fs'        => 'FTTM',
-                'strata'         => $request->strata,
-                'thn_angkatan'   => $request->thn_angkatan,
-                'status_aktif'   => $request->status_aktif,
-                'status_approve' => $request->status_approve,
-                'tgl_update'     => now(),
-            ];
-
-            if ($request->Password) {
-                $data['Password'] = Hash::make($request->Password);
+            $kodeFs = $user->kode_fs;
+            $namaFs = $user->nama_fs;
+            if ($request->id_fs_prodi) {
+                $fsProdi = TProdi::find($request->id_fs_prodi);
+                $kodeFs  = $fsProdi?->kode_prodi;
+                $namaFs  = $fsProdi?->nama_prodi;
             }
 
+            $data = [
+                'NIP_NIM'        => $request->nip_nim,
+                'NAMA_LENGKAP'   => $request->nama_lengkap,
+                'EMAIL'          => $request->email,
+                'AKUN_INA'       => $request->akun_ina,
+                'USERNAME'       => $request->username,
+                'JENIS_USER'     => $request->jenis_user,
+                'STATUS_PEGAWAI' => $request->status_pegawai,
+                'KODE_PRODI'     => $kodeProdi,
+                'NAMA_PRODI'     => $namaProdi,
+                'KODE_FS'        => $kodeFs,
+                'NAMA_FS'        => $namaFs,
+                'STRATA'         => $request->strata,
+                'THN_ANGKATAN'   => $request->thn_angkatan,
+                'STATUS_AKTIF'   => $request->status_aktif,
+                'STATUS_APPROVE' => $request->status_approve,
+                'TGL_UPDATE'     => now(),
+            ];
+
+            if ($request->password) {
+                $data['PASSWORD'] = Hash::make($request->password);
+            }
+
+            $oldStatus = $user->status_approve;
             $user->update($data);
+
+            if ($oldStatus !== $user->status_approve) {
+                if ($user->status_approve === 't') {
+                    Notification::createForUser(
+                        $user->id,
+                        'Akun Disetujui',
+                        'Selamat! Akun Anda (' . $user->nama_lengkap . ') telah disetujui oleh admin. Silakan login.',
+                        'success',
+                        route('login')
+                    );
+                } elseif ($user->status_approve === 'f') {
+                    Notification::createForUser(
+                        $user->id,
+                        'Akun Ditolak',
+                        'Maaf, akun Anda (' . $user->nama_lengkap . ') tidak disetujui. Silakan hubungi admin.',
+                        'error',
+                        null
+                    );
+                }
+            }
         }
 
         return response()->json(['success' => true]);

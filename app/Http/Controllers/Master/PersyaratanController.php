@@ -10,6 +10,45 @@ use Illuminate\Http\Request;
 
 class PersyaratanController extends Controller
 {
+    public function create()
+    {
+        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        $tahapans = TTahapan::all();
+        return view('master.persyaratan-form', compact('prodis', 'tahapans'))->with('persyaratan', null);
+    }
+
+    public function edit($id)
+    {
+        $item = TSyaratSidang::find((int) $id);
+        if (!$item) {
+            return redirect()->route('master.persyaratan.index')->with('error', 'Data tidak ditemukan.');
+        }
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'id' => $item->id,
+                'nama' => $item->nama_persyaratan,
+                'id_prodi' => $item->id_prodi,
+                'tahapan_sidang' => $item->tahapan_sidang,
+                'strata' => $item->strata,
+                'status_aktif' => $item->status_aktif,
+            ]);
+        }
+
+        $persyaratan = [
+            'id' => $item->id,
+            'nama' => $item->nama_persyaratan,
+            'id_prodi' => $item->id_prodi,
+            'tahapan_sidang' => $item->tahapan_sidang,
+            'strata' => $item->strata,
+            'status_aktif' => $item->status_aktif,
+        ];
+
+        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        $tahapans = TTahapan::all();
+        return view('master.persyaratan-form', compact('persyaratan', 'prodis', 'tahapans'));
+    }
+
     public function index()
     {
         $user = session('auth_user');
@@ -19,9 +58,7 @@ class PersyaratanController extends Controller
             $query->where('kode_prodi', $user['kode_prodi']);
         }
 
-        $persyaratanRaw = $query->get();
-
-        $persyaratan = $persyaratanRaw->map(function($item) {
+        $persyaratan = $query->orderBy('id', 'desc')->paginate(10)->through(function($item) {
             return [
                 'id' => $item->id,
                 'nama' => $item->nama_persyaratan,
@@ -45,7 +82,7 @@ class PersyaratanController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nama' => 'required',
+            'nama_persyaratan' => 'required',
             'tahapan_sidang' => 'required',
             'strata' => 'required',
             'status_aktif' => 'required',
@@ -65,22 +102,26 @@ class PersyaratanController extends Controller
         }
 
         TSyaratSidang::create([
-            'nama_persyaratan' => $request->nama,
-            'id_prodi' => $prodiId,
-            'kode_prodi' => $kodeProdi,
-            'nama_prodi' => $namaProdi,
-            'tahapan_sidang' => $request->tahapan_sidang,
-            'strata' => $request->strata,
-            'status_aktif' => $request->status_aktif,
+            'NAMA_PERSYARATAN' => $request->nama_persyaratan,
+            'ID_PRODI' => $prodiId,
+            'KODE_PRODI' => $kodeProdi,
+            'NAMA_PRODI' => $namaProdi,
+            'TAHAPAN_SIDANG' => $request->tahapan_sidang,
+            'STRATA' => $request->strata,
+            'STATUS_AKTIF' => $request->status_aktif,
+            'TGL_CREATE' => now(),
         ]);
 
-        return response()->json(['success' => true]);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return redirect()->route('master.persyaratan.index')->with('success', 'Data persyaratan berhasil disimpan.');
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
-            'nama' => 'required',
+            'nama_persyaratan' => 'required',
             'tahapan_sidang' => 'required',
             'strata' => 'required',
             'status_aktif' => 'required',
@@ -102,18 +143,21 @@ class PersyaratanController extends Controller
             }
 
             $item->update([
-                'nama_persyaratan' => $request->nama,
-                'id_prodi' => $prodiId,
-                'kode_prodi' => $kodeProdi,
-                'nama_prodi' => $namaProdi,
-                'tahapan_sidang' => $request->tahapan_sidang,
-                'strata' => $request->strata,
-                'status_aktif' => $request->status_aktif,
-                'tgl_update' => now(),
+                'NAMA_PERSYARATAN' => $request->nama_persyaratan,
+                'ID_PRODI' => $prodiId,
+                'KODE_PRODI' => $kodeProdi,
+                'NAMA_PRODI' => $namaProdi,
+                'TAHAPAN_SIDANG' => $request->tahapan_sidang,
+                'STRATA' => $request->strata,
+                'STATUS_AKTIF' => $request->status_aktif,
+                'TGL_UPDATE' => now(),
             ]);
         }
 
-        return response()->json(['success' => true]);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return redirect()->route('master.persyaratan.index')->with('success', 'Data persyaratan berhasil disimpan.');
     }
 
     public function destroy($id)

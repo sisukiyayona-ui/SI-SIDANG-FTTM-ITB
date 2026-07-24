@@ -35,7 +35,33 @@ class LoginController extends Controller
             ])->withInput();
         }
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang, ' . $user['name'] . '!');
+        return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
+    }
+
+    public function redirectToSSO()
+    {
+        $ssoUrl = config('sso.url');
+        $callback = route('sso.callback');
+        return redirect($ssoUrl . '?callback=' . urlencode($callback));
+    }
+
+    public function handleSSOCallback(Request $request)
+    {
+        // Placeholder: handle SSO callback from ITB SSO provider
+        // This will be implemented based on actual SSO protocol (CAS/OAuth/SAML)
+        $username = $request->input('username');
+
+        if (!$username) {
+            return redirect()->route('login')->withErrors(['username' => 'SSO login gagal.']);
+        }
+
+        $user = $this->auth->attempt($username, null, true);
+
+        if (!$user) {
+            return redirect()->route('login')->withErrors(['username' => 'Akun SSO tidak ditemukan.']);
+        }
+
+        return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
     }
 
     public function logout()

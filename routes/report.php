@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReportController;
 
-Route::prefix('report')->name('report.')->middleware(['auth.dummy'])->group(function () {
+// Report untuk Admin dan TU Prodi (2.4 Report)
+Route::prefix('report')->name('report.')->middleware(['auth.dummy', 'role:Admin,TU Prodi'])->group(function () {
     Route::get('/', [ReportController::class, 'index'])->name('index');
+    Route::get('detail/{idJudul}/{tahapan}', [ReportController::class, 'showDetail'])->name('detail');
 });

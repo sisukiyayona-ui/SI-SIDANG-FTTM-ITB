@@ -2,23 +2,88 @@
 
 namespace App\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Models\Concerns\HasUppercaseColumns;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class TUser extends Authenticatable
 {
-    use HasFactory;
-    protected $table = 'T_User';
+    use HasFactory, Notifiable, HasUppercaseColumns;
+
+    protected $table = 'T_USER';
+
     public $timestamps = false;
 
     protected $fillable = [
-        'nip_nim', 'nama_lengkap', 'email', 'akun_ina', 'Username', 'Password',
-        'status_pegawai', 'jenis_user', 'kode_prodi', 'nama_prodi', 'kode_fs', 'nama_fs',
-        'strata', 'thn_angkatan', 'status_aktif', 'status_approve', 'tgl_create', 'tgl_update'
+        'NIP_NIM',
+        'NAMA_LENGKAP',
+        'EMAIL',
+        'AKUN_INA',
+        'USERNAME',
+        'PASSWORD',
+        'STATUS_PEGAWAI',
+        'JENIS_USER',
+        'KODE_PRODI',
+        'NAMA_PRODI',
+        'KODE_FS',
+        'NAMA_FS',
+        'STRATA',
+        'THN_ANGKATAN',
+        'STATUS_AKTIF',
+        'STATUS_APPROVE',
+        'TGL_CREATE',
+        'TGL_UPDATE',
+        'STATUS_KAPRODI',
     ];
 
-    public function getAuthPassword()
+    protected $hidden = [
+        'PASSWORD',
+    ];
+
+    protected $casts = [
+        'TGL_CREATE' => 'date',
+        'TGL_UPDATE' => 'date',
+        'THN_ANGKATAN' => 'integer',
+    ];
+
+    public function getAuthPassword(): string
     {
-        return $this->Password;
+        return (string) ($this->attributes['PASSWORD'] ?? '');
+    }
+
+    public function judul()
+    {
+        return $this->hasMany(TJudul::class, 'ID_USER_MHS');
+    }
+
+    public function ajuanSidang()
+    {
+        return $this->hasMany(TAjuanSidang::class, 'ID_USER');
+    }
+
+    public function ajuanSidangCreated()
+    {
+        return $this->hasMany(TAjuanSidang::class, 'ID_USER_CREATE');
+    }
+
+    public function timSidang()
+    {
+        return $this->hasMany(TTimSidang::class, 'ID_USER_PENILAI');
+    }
+
+    public function penilaian()
+    {
+        return $this->hasMany(TPenilaian::class, 'ID_USER_PENILAI');
+    }
+
+    public function penilaianCreated()
+    {
+        return $this->hasMany(TPenilaian::class, 'ID_USER_CREATE');
+    }
+
+    public function prodi()
+    {
+        return $this->belongsTo(TProdi::class, 'KODE_PRODI', 'KODE_PRODI');
     }
 }

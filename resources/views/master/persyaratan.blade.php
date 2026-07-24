@@ -5,7 +5,7 @@
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
-        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="#">Data Master</a></li>
         <li class="breadcrumb-item active">Persyaratan</li>
     </ol>
 @endsection
@@ -29,41 +29,49 @@
                             <th>Strata</th>
                             <th>Program Studi</th>
                             <th>Status</th>
-                            <th style="width: 150px;">Aksi</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="1"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="2"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="3"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="4"></th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="5">
+                                    <option value="">Semua</option>
+                                    <option value="AKTIF">AKTIF</option>
+                                    <option value="NON AKTIF">NON AKTIF</option>
+                                </select>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($persyaratan as $i => $item)
                             <tr>
                                 <td>{{ $i + 1 }}</td>
-                                <td>{{ $item['nama'] }}</td>
-                                <td><span class="badge bg-secondary">{{ $item['tahapan_sidang'] }}</span></td>
-                                <td><span class="badge bg-primary">{{ $item['strata'] }}</span></td>
-                                <td>{{ $item['nama_prodi'] }} ({{ $item['kode_prodi'] }})</td>
+                                <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
+                                <td>{{ $item['tahapan_sidang'] }}</td>
+                                <td>{{ $item['strata'] }}</td>
+                                <td>{{ $item['kode_prodi'] }} - {{ $item['nama_prodi'] }}</td>
                                 <td>
                                     <span class="badge bg-{{ $item['status_aktif'] === 'AKTIF' ? 'success' : 'danger' }}">
                                         {{ $item['status_aktif'] }}
                                     </span>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-warning" onclick="openEdit({{ $item['id'] }})">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="openDelete({{ $item['id'] }})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
+            <div class="mt-3 d-flex justify-content-center">
+                {{ $persyaratan->links() }}
+            </div>
         </div>
     </div>
 
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
-        <div class="card-header">
+        <div class="card-header" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
             <h5 class="mb-0" id="formTitle"><i class="fas fa-plus mr-2"></i>Tambah Persyaratan</h5>
         </div>
         <div class="card-body">
@@ -71,46 +79,52 @@
                 @csrf
                 <input type="hidden" name="_method" id="methodField" value="POST">
                 <input type="hidden" name="id" id="dataId">
-                <div class="mb-3">
-                    <label for="nama" class="form-label">Nama Persyaratan</label>
-                    <input type="text" name="nama" id="f_nama" class="form-control" placeholder="Nama persyaratan" required>
-                </div>
-                <div class="mb-3">
-                    <label for="tahapan_sidang" class="form-label">Tahapan Sidang</label>
-                    <select name="tahapan_sidang" id="f_tahapan_sidang" class="form-control" required>
-                        @foreach($tahapans as $t)
-                            <option value="{{ $t->Tahapan }}">{{ $t->Tahapan }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="strata" class="form-label">Strata</label>
-                    <select name="strata" id="f_strata" class="form-control" required>
-                        <option value="S1">S1</option>
-                        <option value="S2">S2</option>
-                        <option value="S3" selected>S3</option>
-                    </select>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="nama_persyaratan" class="form-label fw-semibold text-secondary">Nama Persyaratan</label>
+                            <input type="text" name="nama_persyaratan" id="f_nama" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Nama persyaratan" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tahapan_sidang" class="form-label fw-semibold text-secondary">Tahapan Sidang</label>
+                            <select name="tahapan_sidang" id="f_tahapan_sidang" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
+                                @foreach($tahapans as $t)
+                                    <option value="{{ $t->Tahapan }}">{{ $t->Tahapan }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 
-                @if(session('auth_user.role') === 'Admin')
-                    <div class="mb-3">
-                        <label for="id_prodi" class="form-label">Program Studi</label>
-                        <select name="id_prodi" id="f_id_prodi" class="form-control" required>
-                            @foreach($prodis as $p)
-                                <option value="{{ $p->id }}">{{ $p->nama_prodi }}</option>
-                            @endforeach
-                        </select>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="strata" class="form-label fw-semibold text-secondary">Strata</label>
+                            <select name="strata" id="f_strata" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
+                                <option value="S1">S1</option>
+                                <option value="S2">S2</option>
+                                <option value="S3" selected>S3</option>
+                            </select>
+                        </div>
                     </div>
-                @else
-                    <div class="mb-3">
-                        <label class="form-label">Program Studi</label>
-                        <input type="text" class="form-control" value="{{ session('auth_user.nama_prodi') }}" disabled>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="id_prodi" class="form-label fw-semibold text-secondary">Program Studi</label>
+                            <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
+                                @foreach($prodis as $p)
+                                    <option value="{{ $p->id }}">{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
-                @endif
+                </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Status Aktif</label>
-                    <div class="d-flex gap-3">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-secondary">Status Aktif</label>
+                    <div class="d-flex gap-4">
                         <div class="form-check">
                             <input type="radio" name="status_aktif" value="AKTIF" class="form-check-input" id="statusAktif" checked>
                             <label class="form-check-label" for="statusAktif">AKTIF</label>
@@ -153,8 +167,6 @@
 
 @push('scripts')
 <script>
-    const syaratData = @json($persyaratan);
-
     function openCreate() {
         document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Persyaratan';
         document.getElementById('mainForm').action = '{{ route("master.persyaratan.store") }}';
@@ -172,21 +184,26 @@
     }
 
     function openEdit(id) {
-        const item = syaratData.find(p => p.id === id);
-        if (!item) return;
-        document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit mr-2"></i>Edit Persyaratan';
-        document.getElementById('mainForm').action = '{{ url("master/persyaratan") }}/' + id;
-        document.getElementById('methodField').value = 'PUT';
-        document.getElementById('dataId').value = id;
-        document.getElementById('f_nama').value = item.nama;
-        document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
-        document.getElementById('f_strata').value = item.strata;
-        const prodiSelect = document.getElementById('f_id_prodi');
-        if (prodiSelect) prodiSelect.value = item.id_prodi;
-        (item.status_aktif === 'AKTIF' ? document.getElementById('statusAktif') : document.getElementById('statusNonaktif')).checked = true;
+        fetch('{{ url("master/persyaratan") }}/' + id + '/edit', {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(item) {
+            if (!item) return;
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit mr-2"></i>Edit Persyaratan';
+            document.getElementById('mainForm').action = '{{ url("master/persyaratan") }}/' + id;
+            document.getElementById('methodField').value = 'PUT';
+            document.getElementById('dataId').value = id;
+            document.getElementById('f_nama').value = item.nama;
+            document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
+            document.getElementById('f_strata').value = item.strata;
+            var prodiSelect = document.getElementById('f_id_prodi');
+            if (prodiSelect) prodiSelect.value = item.id_prodi;
+            (item.status_aktif === 'AKTIF' ? document.getElementById('statusAktif') : document.getElementById('statusNonaktif')).checked = true;
 
-        document.getElementById('listContainer').style.display = 'none';
-        document.getElementById('formContainer').style.display = 'block';
+            document.getElementById('listContainer').style.display = 'none';
+            document.getElementById('formContainer').style.display = 'block';
+        });
     }
 
     function closeForm() {
@@ -224,5 +241,32 @@
             setTimeout(() => location.reload(), 1200);
         });
     });
+
+    document.querySelectorAll('.column-search').forEach(input => {
+        input.addEventListener('input', filterTable);
+        input.addEventListener('change', filterTable);
+    });
+
+    function filterTable() {
+        const filters = Array.from(document.querySelectorAll('.column-search')).map(input => ({
+            colIndex: parseInt(input.dataset.col),
+            value: input.value.toLowerCase()
+        }));
+
+        document.querySelectorAll('table tbody tr').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (!cells || cells.length === 0) return;
+            let isMatch = true;
+            filters.forEach(filter => {
+                if (filter.value && cells[filter.colIndex]) {
+                    const cellText = cells[filter.colIndex].textContent.toLowerCase();
+                    if (!cellText.includes(filter.value)) {
+                        isMatch = false;
+                    }
+                }
+            });
+            row.style.display = isMatch ? '' : 'none';
+        });
+    }
 </script>
 @endpush

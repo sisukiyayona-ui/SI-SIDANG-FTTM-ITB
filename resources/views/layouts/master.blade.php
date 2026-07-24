@@ -28,6 +28,189 @@
             --text-muted: #64748b;
             --border-color: #cbd5e1;
             --body-bg: #1e3a8a;
+            --card-bg: #ffffff;
+            --card-header-bg: #ffffff;
+            --table-stripe: #f8fafc;
+            --table-hover: #f1f5f9;
+            --input-bg: #ffffff;
+            --toast-bg: #ffffff;
+            --navbar-bg: #ffffff;
+            --content-bg: #ffffff;
+        }
+
+        html.dark-mode {
+            --primary-blue: #0f172a;
+            --primary-blue-dark: #0f172a;
+            --sidebar-bg: #0f172a;
+            --accent: #60a5fa;
+            --bg-light: #1e293b;
+            --text-dark: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --body-bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-header-bg: #1e293b;
+            --table-stripe: #1e293b;
+            --table-hover: #334155;
+            --input-bg: #334155;
+            --toast-bg: #1e293b;
+            --navbar-bg: #1e293b;
+            --content-bg: #0f172a;
+        }
+
+        html.dark-mode body {
+            background: var(--body-bg) !important;
+        }
+        html.dark-mode .wrapper {
+            background: var(--body-bg) !important;
+        }
+        html.dark-mode html,
+        html.dark-mode body {
+            background: var(--body-bg) !important;
+        }
+        html.dark-mode .main-header {
+            background: var(--navbar-bg) !important;
+        }
+        html.dark-mode .content-wrapper {
+            background: var(--content-bg) !important;
+        }
+        html.dark-mode .content-wrapper > .content {
+            background: var(--content-bg) !important;
+        }
+        html.dark-mode .main-footer {
+            background: var(--navbar-bg) !important;
+            color: var(--text-muted) !important;
+        }
+        html.dark-mode .card {
+            background: var(--card-bg) !important;
+        }
+        html.dark-mode .card-header {
+            background: var(--card-header-bg) !important;
+            border-bottom-color: var(--border-color) !important;
+        }
+        html.dark-mode .card-footer {
+            background: var(--card-header-bg) !important;
+            border-top-color: var(--border-color) !important;
+        }
+        html.dark-mode .table {
+            color: var(--text-dark) !important;
+        }
+        html.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+            background: var(--table-stripe) !important;
+        }
+        html.dark-mode .table-hover tbody tr:hover {
+            background: var(--table-hover) !important;
+        }
+        html.dark-mode .table td,
+        html.dark-mode .table th {
+            border-top-color: var(--border-color) !important;
+        }
+        html.dark-mode .table thead th {
+            border-bottom-color: var(--border-color) !important;
+        }
+        html.dark-mode .form-control {
+            background: var(--input-bg) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-dark) !important;
+        }
+        html.dark-mode .form-control:focus {
+            border-color: var(--accent) !important;
+        }
+        html.dark-mode h1, html.dark-mode h2, html.dark-mode h3,
+        html.dark-mode h4, html.dark-mode h5, html.dark-mode h6,
+        html.dark-mode p, html.dark-mode span:not(.badge):not(.brand-text),
+        html.dark-mode div:not(.main-sidebar):not(.sidebar):not(.brand-link) {
+            color: var(--text-dark);
+        }
+        html.dark-mode .text-muted {
+            color: var(--text-muted) !important;
+        }
+        html.dark-mode .breadcrumb-item.active {
+            color: var(--text-muted) !important;
+        }
+        html.dark-mode .breadcrumb-item + .breadcrumb-item::before {
+            color: var(--text-muted) !important;
+        }
+        html.dark-mode a:not(.btn):not(.nav-link):not(.brand-link) {
+            color: var(--accent) !important;
+        }
+        html.dark-mode .pagination .page-item .page-link {
+            background: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-dark) !important;
+        }
+        html.dark-mode .pagination .page-item.active .page-link {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: #fff !important;
+        }
+        html.dark-mode .pagination .page-item.disabled .page-link {
+            background: var(--input-bg) !important;
+            color: var(--text-muted) !important;
+        }
+        html.dark-mode .modal-content {
+            background: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+        }
+        html.dark-mode .modal-header {
+            border-bottom-color: var(--border-color) !important;
+        }
+        html.dark-mode .modal-footer {
+            border-top-color: var(--border-color) !important;
+        }
+        html.dark-mode .close {
+            color: var(--text-dark) !important;
+            text-shadow: none !important;
+        }
+        html.dark-mode .table-bordered,
+        html.dark-mode .table-bordered td,
+        html.dark-mode .table-bordered th {
+            border-color: var(--border-color) !important;
+        }
+        html.dark-mode .dropdown-menu {
+            background: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+        }
+        html.dark-mode .dropdown-item {
+            color: var(--text-dark) !important;
+        }
+        html.dark-mode .dropdown-item:hover {
+            background: var(--table-hover) !important;
+        }
+        html.dark-mode select option {
+            background: var(--card-bg) !important;
+            color: var(--text-dark) !important;
+        }
+        html.dark-mode .custom-toast {
+            background: var(--toast-bg) !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+        }
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
+            background: var(--body-bg) !important;
+            color: var(--accent) !important;
+        }
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::before {
+            box-shadow: 15px 15px 0 15px var(--body-bg) !important;
+        }
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::after {
+            box-shadow: 15px -15px 0 15px var(--body-bg) !important;
+        }
+
+        .dark-mode-toggle {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .dark-mode-toggle:hover {
+            background: var(--table-hover);
+            color: var(--text-dark);
         }
 
         /* Global Font & Body */
@@ -35,13 +218,18 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
 
+        html {
+            height: 100%;
+        }
+
         body {
             background-color: var(--primary-blue) !important;
-            overflow-x: hidden;
+            min-height: 100vh;
         }
 
         .wrapper {
             background-color: var(--primary-blue) !important;
+            min-height: 100vh;
         }
 
         /* Main Header (Navbar) Styling */
@@ -96,6 +284,7 @@
         .sidebar .nav-sidebar .nav-item {
             width: 100% !important;
             margin: 4px 0 !important;
+            position: relative;
         }
 
         .sidebar .nav-sidebar .nav-link {
@@ -160,20 +349,66 @@
             pointer-events: none;
         }
 
+        /* When submenu has active item, keep curved cutout effect on parent */
+        .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active {
+            background: var(--bg-light) !important;
+            color: var(--primary-blue) !important;
+            font-weight: 600;
+            position: relative;
+            z-index: 0;
+        }
+
+        /* Keep top curve */
+        .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::before {
+            content: "";
+            position: absolute;
+            top: -30px;
+            right: 0;
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border-bottom-right-radius: 20px;
+            box-shadow: 15px 15px 0 15px var(--bg-light);
+            pointer-events: none;
+        }
+
+        /* Hide bottom curve when submenu is open */
+        .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::after {
+            display: none;
+        }
+
+        /* Ensure active state works for submenu items */
+        .nav-treeview .nav-link.active {
+            background: rgba(255, 255, 255, 0.3) !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            border-left: 3px solid #ffffff !important;
+        }
+
         /* Submenu Styling */
         .nav-sidebar .nav-treeview {
             background: transparent !important;
             padding-left: 15px;
+            position: relative;
+            z-index: 100;
+            margin-top: 0 !important;
+        }
+
+        .nav-flat.nav-sidebar>.nav-item .nav-treeview .nav-item>.nav-link,
+        .nav-flat.nav-sidebar>.nav-item>.nav-treeview .nav-item>.nav-link {
+            border-left: none !important;
         }
 
         .nav-sidebar .nav-treeview .nav-link {
             border-radius: 30px !important;
             margin-right: 15px !important;
+            position: relative;
+            z-index: 101;
+            background: rgba(255, 255, 255, 0.08) !important;
         }
 
-        .nav-sidebar .nav-treeview .nav-link.active {
+        .nav-sidebar .nav-treeview .nav-link:hover {
             background: rgba(255, 255, 255, 0.15) !important;
-            color: #ffffff !important;
         }
 
         /* Unified Floating Content Area */
@@ -218,6 +453,7 @@
             padding: 24px !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05) !important;
             transition: margin-left .3s ease-in-out;
+            min-height: calc(100vh - 100px);
         }
 
         .user-panel {
@@ -254,6 +490,14 @@
             font-size: 1.1rem !important;
             color: var(--text-dark) !important;
             margin-bottom: 0 !important;
+        }
+
+        /* Ensure card header buttons stay on the right */
+        .card-header.d-flex {
+            justify-content: space-between !important;
+        }
+        .card-header.d-flex .btn {
+            margin-left: auto !important;
         }
 
         .card-body {
@@ -1070,6 +1314,36 @@
             text-overflow: ellipsis;
         }
 
+        .teams-notif-item.unread {
+            position: relative;
+        }
+        .teams-notif-item.unread .teams-notif-title .title-text {
+            color: #fff;
+            font-weight: 700;
+        }
+        .teams-notif-item.unread .teams-notif-desc {
+            color: rgba(255,255,255,0.75);
+        }
+        .teams-notif-item.unread::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            flex-shrink: 0;
+        }
+        .teams-notif-item.read .teams-notif-title .title-text {
+            color: rgba(255,255,255,0.6);
+            font-weight: 400;
+        }
+        .teams-notif-item.read .teams-notif-desc {
+            color: rgba(255,255,255,0.4);
+        }
+
         /* ---- Teams Profile Dropdown ---- */
         .profile-dropdown-teams {
             background-color: #1e2235 !important;
@@ -1233,80 +1507,30 @@
                 </div>
             </li>
 
+            {{-- Dark Mode Toggle --}}
+            <li class="nav-item d-flex align-items-center mr-1">
+                <button class="dark-mode-toggle" id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+            </li>
+
             {{-- Bell / Notifications --}}
             <li class="nav-item dropdown d-flex align-items-center">
-                <a class="nav-link navbar-icon-btn" data-toggle="dropdown" href="#" role="button">
+                <a class="nav-link navbar-icon-btn" data-toggle="dropdown" href="#" role="button" id="notifBell">
                     <i class="far fa-bell" style="font-size:1.05rem;"></i>
-                    <span class="notif-badge">4</span>
+                    <span class="notif-badge" id="notifBadge">0</span>
                 </a>
-                <div class="dropdown-menu dropdown-menu-right dropdown-menu-teams">
+                <div class="dropdown-menu dropdown-menu-right dropdown-menu-teams" id="notifDropdown">
                     <div class="teams-dropdown-header">
                         <h5>Notifications</h5>
                         <div class="teams-header-actions">
-                            <button title="Filter"><i class="fas fa-filter"></i></button>
-                            <button title="Mark all read"><i class="fas fa-check-double"></i></button>
-                            <button title="Settings"><i class="fas fa-cog"></i></button>
+                            <button title="Mark all read" onclick="markAllRead()"><i class="fas fa-check-double"></i></button>
                             <button title="Close" onclick="$(this).closest('.dropdown-menu').parent().find('.nav-link').dropdown('toggle'); return false;"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
-
-                    <div class="teams-time-group"><span>Last seen</span></div>
-                    <a href="#" class="teams-notif-item">
-                        <div class="teams-avatar-wrapper">
-                            <div class="teams-avatar" style="background:#9B870C;">A</div>
-                            <div class="teams-app-icon"><div class="icon-bg"><i class="fas fa-comment-alt"></i></div></div>
-                        </div>
-                        <div class="teams-notif-content">
-                            <div class="teams-notif-title">
-                                <span class="title-text">Re: TAMBAH VENDOR</span>
-                                <span class="teams-notif-time">4 hrs ago</span>
-                            </div>
-                            <div class="teams-notif-desc">Ade mentioned you</div>
-                        </div>
-                    </a>
-
-                    <div class="teams-time-group"><span>Yesterday</span></div>
-                    <a href="#" class="teams-notif-item">
-                        <div class="teams-avatar-wrapper">
-                            <div class="teams-avatar" style="background:#8A2BE2;">T</div>
-                            <div class="teams-app-icon"><div class="icon-bg"><i class="fas fa-comment-alt"></i></div></div>
-                        </div>
-                        <div class="teams-notif-content">
-                            <div class="teams-notif-title">
-                                <span class="title-text">Re: DELETE MATERIA</span>
-                                <span class="teams-notif-time">22 hrs ago</span>
-                            </div>
-                            <div class="teams-notif-desc">Tutus mentioned you</div>
-                        </div>
-                    </a>
-                    <a href="#" class="teams-notif-item">
-                        <div class="teams-avatar-wrapper">
-                            <div class="teams-avatar" style="background:#9B870C;">A</div>
-                            <div class="teams-app-icon"><div class="icon-bg"><i class="fas fa-comment-alt"></i></div></div>
-                        </div>
-                        <div class="teams-notif-content">
-                            <div class="teams-notif-title">
-                                <span class="title-text">Re: TAMBAH VENDO</span>
-                                <span class="teams-notif-time">23 hrs ago</span>
-                            </div>
-                            <div class="teams-notif-desc">Ade mentioned you</div>
-                        </div>
-                    </a>
-
-                    <div class="teams-time-group"><span>Last week</span></div>
-                    <a href="#" class="teams-notif-item">
-                        <div class="teams-avatar-wrapper">
-                            <div class="teams-avatar" style="background:#E9967A;">KW</div>
-                            <div class="teams-app-icon"><div class="icon-bg"><i class="fas fa-comment-alt"></i></div></div>
-                        </div>
-                        <div class="teams-notif-content">
-                            <div class="teams-notif-title">
-                                <span class="title-text">Re: Daftar Supplier</span>
-                                <span class="teams-notif-time">6 days ago</span>
-                            </div>
-                            <div class="teams-notif-desc">Katarina mentioned you</div>
-                        </div>
-                    </a>
+                    <div id="notifList">
+                        <div class="text-center py-4 text-muted" style="font-size:0.85rem;">Memuat notifikasi...</div>
+                    </div>
                 </div>
             </li>
 
@@ -1315,7 +1539,7 @@
                 <a class="nav-link p-0" data-toggle="dropdown" href="#" role="button" style="display:flex;align-items:center;">
                     @php
                         $avatarUrl = session('auth_user.avatar');
-                        $userName  = session('auth_user.name', 'User');
+                        $userName  = session('auth_user.nama_lengkap', 'User');
                         $initials  = strtoupper(substr($userName, 0, 1));
                     @endphp
                     @if($avatarUrl)
@@ -1341,16 +1565,10 @@
                             <div class="profile-pic-fallback">{{ $initials }}</div>
                         @endif
                         <div class="profile-info">
-                            <div class="profile-name">{{ session('auth_user.name', 'Nama User') }}</div>
+                            <div class="profile-name">{{ session('auth_user.nama_lengkap', 'Nama User') }}</div>
                             <div class="profile-email">{{ session('auth_user.email', 'email@example.com') }}</div>
                             <a href="{{ route('profile') }}" class="profile-link">View account</a>
-                            <a href="#" class="profile-link">Open another mailbox</a>
                         </div>
-                    </div>
-                    <div class="profile-bottom">
-                        <a href="#">
-                            <i class="far fa-user-circle"></i> Sign in with a different account
-                        </a>
                     </div>
                 </div>
             </li>
@@ -1365,29 +1583,20 @@
         </a>
 
         <div class="sidebar">
-            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-                <div class="image">
-                    <img src="{{ session('auth_user.avatar') }}" class="img-circle elevation-2" alt="User">
-                </div>
-                <div class="info">
-                    <a href="{{ route('profile') }}" class="d-block">{{ session('auth_user.name') }}</a>
-                    <small class="text-white-50">{{ session('auth_user.role') }}</small>
-                </div>
-            </div>
-
-            <nav class="mt-2">
+            <nav class="mt-4">
                 <ul class="nav nav-pills nav-sidebar flex-column nav-flat" data-widget="treeview" role="menu" data-accordion="false">
 
                     <li class="nav-item">
                         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-tachometer-alt"></i>
-                            <p>Dashboard</p>
+                            <p>Dashboard Home</p>
                         </a>
                     </li>
 
-                    @if(in_array(session('auth_user.role'), ['Admin', 'TU Prodi']))
-                    <li class="nav-item has-treeview {{ request()->routeIs('master.*') ? 'menu-open' : '' }}">
-                        <a href="#" class="nav-link {{ request()->routeIs('master.*') ? 'active' : '' }}">
+                    @if(session('auth_user.role') === 'Admin')
+                    <!-- ADMIN NAVIGATION -->
+                    <li class="nav-item has-treeview {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>Data Master <i class="right fas fa-angle-left"></i></p>
                         </a>
@@ -1404,82 +1613,85 @@
                                     <p>Penilaian</p>
                                 </a>
                             </li>
-                            @if(session('auth_user.role') === 'Admin')
                             <li class="nav-item">
                                 <a href="{{ route('master.prodi.index') }}" class="nav-link {{ request()->routeIs('master.prodi*') ? 'active' : '' }}">
                                     <i class="nav-icon fas fa-university"></i>
                                     <p>Prodi</p>
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a href="{{ route('master.user.index') }}" class="nav-link {{ request()->routeIs('master.user*') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-users"></i>
-                                    <p>User</p>
-                                </a>
-                            </li>
-                            @endif
                         </ul>
                     </li>
 
                     <li class="nav-item">
-                        <a href="{{ route('approve.user') }}" class="nav-link {{ request()->routeIs('approve.user*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-user-check"></i>
-                            <p>Approve User</p>
+                        <a href="{{ route('master.user.index') }}" class="nav-link {{ request()->routeIs('master.user*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Data User</p>
                         </a>
                     </li>
                     @endif
 
+                    @if(session('auth_user.role') === 'TU Prodi')
+                    <!-- TU PRODI NAVIGATION -->
+                    <li class="nav-item has-treeview {{ request()->routeIs('master.persyaratan*', 'master.penilaian*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('master.persyaratan*', 'master.penilaian*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-database"></i>
+                            <p>Data Master <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('master.persyaratan.index') }}" class="nav-link {{ request()->routeIs('master.persyaratan*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-file-alt"></i>
+                                    <p>Persyaratan</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('master.penilaian.index') }}" class="nav-link {{ request()->routeIs('master.penilaian*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-chart-bar"></i>
+                                    <p>Penilaian</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
 
+                    <li class="nav-item">
+                        <a href="{{ route('master.user.index') }}" class="nav-link {{ request()->routeIs('master.user*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Data User</p>
+                        </a>
+                    </li>
 
-                    <li class="nav-item has-treeview {{ request()->routeIs('sidang.*') ? 'menu-open' : '' }}">
-                        <a href="#" class="nav-link {{ request()->routeIs('sidang.*') ? 'active' : '' }}">
+                    <li class="nav-item has-treeview {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-gavel"></i>
                             <p>Sidang <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ route('sidang.ujian-kualifikasi') }}" class="nav-link {{ request()->routeIs('sidang.ujian-kualifikasi') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-file-signature"></i>
-                                    <p>Ujian Kualifikasi</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.sidang-proposal') }}" class="nav-link {{ request()->routeIs('sidang.sidang-proposal') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-file-export"></i>
-                                    <p>Sidang Proposal</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.seminar-kemajuan-i') }}" class="nav-link {{ request()->routeIs('sidang.seminar-kemajuan-i') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-chart-line"></i>
-                                    <p>Seminar Kemajuan I</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.seminar-kemajuan-ii') }}" class="nav-link {{ request()->routeIs('sidang.seminar-kemajuan-ii') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-chart-line"></i>
-                                    <p>Seminar Kemajuan II</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.seminar-kemajuan-iii') }}" class="nav-link {{ request()->routeIs('sidang.seminar-kemajuan-iii') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-chart-line"></i>
-                                    <p>Seminar Kemajuan III</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.seminar-kemajuan-iv') }}" class="nav-link {{ request()->routeIs('sidang.seminar-kemajuan-iv') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-chart-line"></i>
-                                    <p>Seminar Kemajuan IV</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.sidang-akhir') }}" class="nav-link {{ request()->routeIs('sidang.sidang-akhir') ? 'active' : '' }}">
+                                <a href="{{ route('sidang.s1') }}" class="nav-link {{ request()->routeIs('sidang.s1') ? 'active' : '' }}">
                                     <i class="nav-icon fas fa-graduation-cap"></i>
-                                    <p>Sidang Akhir</p>
+                                    <p>S1</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s2') }}" class="nav-link {{ request()->routeIs('sidang.s2') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S2</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s3') }}" class="nav-link {{ request()->routeIs('sidang.s3') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S3</p>
                                 </a>
                             </li>
                         </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('sidang.jadwal-sidang') }}" class="nav-link {{ request()->routeIs('sidang.jadwal-sidang') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-alt"></i>
+                            <p>Jadwal Sidang</p>
+                        </a>
                     </li>
 
                     <li class="nav-item">
@@ -1488,14 +1700,99 @@
                             <p>Report</p>
                         </a>
                     </li>
+                    @endif
+
+                    @if(session('auth_user.role') === 'FS')
+                    <!-- TU FS NAVIGATION - Tanpa Data Master dan Approve User -->
+                    <li class="nav-item has-treeview {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-gavel"></i>
+                            <p>Sidang <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s1') }}" class="nav-link {{ request()->routeIs('sidang.s1') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S1</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s2') }}" class="nav-link {{ request()->routeIs('sidang.s2') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S2</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s3') }}" class="nav-link {{ request()->routeIs('sidang.s3') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S3</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
 
                     <li class="nav-item">
-                        <a href="{{ route('profile') }}" class="nav-link {{ request()->routeIs('profile') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-user-circle"></i>
-                            <p>Profile</p>
+                        <a href="{{ route('sidang.jadwal-sidang') }}" class="nav-link {{ request()->routeIs('sidang.jadwal-sidang') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-alt"></i>
+                            <p>Jadwal Sidang</p>
                         </a>
                     </li>
 
+                    <li class="nav-item">
+                        <a href="{{ route('report.index') }}" class="nav-link {{ request()->routeIs('report.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-file-report"></i>
+                            <p>Report</p>
+                        </a>
+                    </li>
+                    @endif
+
+                    @if(session('auth_user.role') === 'Mahasiswa')
+                    <!-- MAHASISWA NAVIGATION - Semua Strata -->
+                    <li class="nav-item">
+                        <a href="{{ route('mahasiswa.dashboard') }}" class="nav-link {{ request()->routeIs('mahasiswa.dashboard') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-tasks"></i>
+                            <p>Progress Sidang</p>
+                        </a>
+                    </li>
+                    @endif
+
+                    @if(in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
+                    <!-- PEMBIMBING & PENGUJI NAVIGATION -->
+                    <li class="nav-item has-treeview {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-gavel"></i>
+                            <p>Penilaian Sidang <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s1') }}" class="nav-link {{ request()->routeIs('sidang.s1') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S1</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s2') }}" class="nav-link {{ request()->routeIs('sidang.s2') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S2</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.s3') }}" class="nav-link {{ request()->routeIs('sidang.s3') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S3</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('sidang.jadwal-sidang') }}" class="nav-link {{ request()->routeIs('sidang.jadwal-sidang') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-alt"></i>
+                            <p>Jadwal Sidang</p>
+                        </a>
+                    </li>
+                    @endif
+                    
                     <li class="nav-item">
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
@@ -1573,21 +1870,138 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
 <script>
+    var toastTimer = null;
+
     function showToast(type, message) {
         var id = type === 'success' ? '#toastSuccess' : '#toastError';
         var msgId = type === 'success' ? '#toastSuccessMsg' : '#toastErrorMsg';
+
+        if (toastTimer) clearTimeout(toastTimer);
+        $(id).fadeOut(100);
+
         $(msgId).text(message);
         $(id).fadeIn(200);
-        
-        // Auto hide after 4 seconds
-        setTimeout(function() {
+
+        toastTimer = setTimeout(function() {
             $(id).fadeOut(300);
-        }, 4000);
+            toastTimer = null;
+        }, 3000);
     }
 
     function hideToast(type) {
         var id = type === 'success' ? '#toastSuccess' : '#toastError';
         $(id).fadeOut(300);
+    }
+
+    function toggleDarkMode() {
+        var html = document.documentElement;
+        var icon = document.getElementById('darkModeIcon');
+        var isDark = html.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+        icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    (function initDarkMode() {
+        var html = document.documentElement;
+        var icon = document.getElementById('darkModeIcon');
+        var saved = localStorage.getItem('darkMode');
+        if (saved === 'true') {
+            html.classList.add('dark-mode');
+            if (icon) icon.className = 'fas fa-sun';
+        } else {
+            if (icon) icon.className = 'fas fa-moon';
+        }
+    })();
+
+    function loadNotifications() {
+        $.get('{{ route("notifications.index") }}', function(res) {
+            var badge = $('#notifBadge');
+            var count = res.unread_count || 0;
+            badge.text(count > 99 ? '99+' : count);
+            badge.toggle(count > 0);
+
+            var list = $('#notifList');
+            if (!res.notifications || res.notifications.length === 0) {
+                list.html('<div class="text-center py-4 text-muted" style="font-size:0.85rem;">Tidak ada notifikasi</div>');
+                return;
+            }
+
+            var html = '';
+            var today = new Date();
+            var yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            function timeAgo(dateStr) {
+                var d = new Date(dateStr.replace(' ', 'T') + 'Z');
+                var now = new Date();
+                var diff = Math.floor((now - d) / 1000);
+                if (diff < 60) return 'Baru saja';
+                if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+                if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+                if (diff < 172800) return 'Yesterday';
+                return Math.floor(diff / 86400) + 'd ago';
+            }
+
+            function groupLabel(d) {
+                var date = new Date(d.created_at.replace(' ', 'T') + 'Z');
+                if (date.toDateString() === today.toDateString()) return 'Today';
+                if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+                return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            }
+
+            var groups = {};
+            res.notifications.forEach(function(n) {
+                var g = groupLabel(n);
+                if (!groups[g]) groups[g] = [];
+                groups[g].push(n);
+            });
+
+            Object.keys(groups).forEach(function(group) {
+                html += '<div class="teams-time-group"><span>' + group + '</span></div>';
+                groups[group].forEach(function(n) {
+                    var initial = (n.title || 'N').charAt(0).toUpperCase();
+                    var colors = ['#2f5597', '#9B870C', '#8A2BE2', '#E9967A', '#2563EB', '#059669', '#D97706'];
+                    var color = colors[n.id % colors.length];
+                    var notifClass = n.is_read ? 'teams-notif-item read' : 'teams-notif-item unread';
+                    var link = n.link || '#';
+                    html += '<a href="' + link + '" class="' + notifClass + '" data-id="' + n.id + '" onclick="markRead(' + n.id + ')">';
+                    html += '<div class="teams-avatar-wrapper">';
+                    html += '<div class="teams-avatar" style="background:' + color + ';">' + initial + '</div>';
+                    html += '<div class="teams-app-icon"><div class="icon-bg"><i class="fas fa-bell"></i></div></div>';
+                    html += '</div>';
+                    html += '<div class="teams-notif-content">';
+                    html += '<div class="teams-notif-title">';
+                    html += '<span class="title-text">' + n.title + '</span>';
+                    html += '<span class="teams-notif-time">' + timeAgo(n.created_at) + '</span>';
+                    html += '</div>';
+                    if (n.message) {
+                        html += '<div class="teams-notif-desc">' + n.message + '</div>';
+                    }
+                    html += '</div>';
+                    html += '</a>';
+                });
+            });
+
+            list.html(html);
+        }).fail(function() {
+            $('#notifList').html('<div class="text-center py-4 text-muted" style="font-size:0.85rem;">Gagal memuat notifikasi</div>');
+        });
+    }
+
+    function markRead(id) {
+        $.post('{{ route("notifications.mark-read", ":id") }}'.replace(':id', id), {
+            _token: '{{ csrf_token() }}'
+        }, function() {
+            loadNotifications();
+        });
+    }
+
+    function markAllRead() {
+        $.post('{{ route("notifications.mark-all-read") }}', {
+            _token: '{{ csrf_token() }}'
+        }, function() {
+            loadNotifications();
+        });
     }
 
     $(function () {
@@ -1597,6 +2011,11 @@
         @if(session('error'))
             showToast('error', '{{ session('error') }}');
         @endif
+
+        loadNotifications();
+        $('#notifBell').on('click', function() {
+            setTimeout(loadNotifications, 100);
+        });
     });
 </script>
 

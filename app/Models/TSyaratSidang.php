@@ -2,26 +2,42 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HasUppercaseColumns;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class TSyaratSidang extends Model
 {
-    use HasFactory;
-    protected $table = 'T_Syarat_sidang';
+    use HasFactory, HasUppercaseColumns;
+
+    protected $table = 'T_SYARAT_SIDANG';
+
     public $timestamps = false;
+
     protected $fillable = [
-        'nama_persyaratan', 'id_prodi', 'kode_prodi', 'nama_prodi',
-        'tahapan_sidang', 'status_aktif', 'strata', 'tgl_create', 'tgl_update'
+        'NAMA_PERSYARATAN',
+        'ID_PRODI',
+        'KODE_PRODI',
+        'NAMA_PRODI',
+        'TAHAPAN_SIDANG',
+        'STATUS_AKTIF',
+        'STRATA',
+        'TGL_CREATE',
+        'TGL_UPDATE',
     ];
 
     protected $casts = [
-        'tgl_create' => 'date',
-        'tgl_update' => 'date',
+        'TGL_CREATE' => 'date',
+        'TGL_UPDATE' => 'date',
     ];
 
     public function prodi()
     {
-        return $this->belongsTo(TProdi::class, 'id_prodi');
+        return $this->belongsTo(TProdi::class, 'ID_PRODI');
+    }
+
+    public function cekPersyaratan()
+    {
+        return $this->hasMany(TCekPersyaratan::class, 'ID_SYARAT_SIDANG');
     }
 }

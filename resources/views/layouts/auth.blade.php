@@ -15,14 +15,113 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg:       #0f1117;
-            --bg2:      #16181f;
-            --bg3:      #1c1f2a;
-            --border:   rgba(255,255,255,0.08);
+            --bg:       #f8fafc;
+            --bg2:      #ffffff;
+            --bg3:      #f1f5f9;
+            --border:   #e2e8f0;
+            --text:     #1e293b;
+            --muted:    #64748b;
+            --accent:   #2563eb;
+            --accent2:  #4f46e5;
+            --link:     #2563eb;
+        }
+
+        html.dark-mode {
+            --bg:       #0f172a;
+            --bg2:      #1e293b;
+            --bg3:      #334155;
+            --border:   #334155;
             --text:     #e2e8f0;
-            --muted:    rgba(226,232,240,0.55);
-            --accent:   #3b82f6;
-            --accent2:  #6366f1;
+            --muted:    #94a3b8;
+            --accent:   #60a5fa;
+            --accent2:  #818cf8;
+            --link:     #60a5fa;
+        }
+        html.dark-mode body {
+            background: var(--bg) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .top-nav {
+            background: var(--bg2) !important;
+            border-bottom-color: var(--border) !important;
+        }
+        html.dark-mode .nav-brand-name {
+            color: var(--text) !important;
+        }
+        html.dark-mode .nav-brand-logo {
+            background: var(--accent) !important;
+        }
+        html.dark-mode .login-box {
+            background: var(--bg2) !important;
+            border-color: var(--border) !important;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5) !important;
+        }
+        html.dark-mode .form-control {
+            background: var(--bg3) !important;
+            border-color: var(--border) !important;
+            color: var(--text) !important;
+        }
+        html.dark-mode .form-control:focus {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 3px rgba(96,165,250,0.15) !important;
+        }
+        html.dark-mode .form-control::placeholder {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .form-label {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .check-label {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .register-row {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .register-row a {
+            color: var(--link) !important;
+        }
+        html.dark-mode .forgot-link {
+            color: var(--link) !important;
+        }
+        html.dark-mode .demo-card {
+            background: var(--bg3) !important;
+            border-color: var(--border) !important;
+        }
+        html.dark-mode .demo-card-role {
+            color: var(--text) !important;
+        }
+        html.dark-mode .demo-card-username,
+        html.dark-mode .demo-card-password {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .divider {
+            border-top-color: var(--border) !important;
+        }
+        html.dark-mode .toast {
+            background: var(--bg2) !important;
+            border-color: var(--border) !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+        }
+        html.dark-mode .toast-msg {
+            color: var(--text) !important;
+        }
+        html.dark-mode .toast-close {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .toast-close:hover {
+            color: var(--text) !important;
+        }
+        html.dark-mode .input-wrap i.icon-left {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .btn-toggle-pass {
+            color: var(--muted) !important;
+        }
+        html.dark-mode .btn-toggle-pass:hover {
+            color: var(--text) !important;
+        }
+        html.dark-mode .demo-header {
+            color: var(--muted) !important;
         }
 
         body {
@@ -57,7 +156,7 @@
         .nav-brand-logo {
             width: 32px;
             height: 32px;
-            background: #fff;
+            background: #1e3a8a;
             border-radius: 50%;
             padding: 4px;
         }
@@ -69,7 +168,7 @@
         .nav-brand-name {
             font-size: 0.95rem;
             font-weight: 800;
-            color: #fff;
+            color: var(--text);
             letter-spacing: 0.3px;
             line-height: 1.1;
         }
@@ -95,7 +194,7 @@
             border: 1px solid transparent;
         }
         .btn-nav-ghost { color: var(--muted); background: transparent; }
-        .btn-nav-ghost:hover { color: #fff; background: rgba(255,255,255,0.06); }
+        .btn-nav-ghost:hover { color: var(--text); background: var(--bg3); }
 
         /* ── PAGE BODY ── */
         .login-wrapper {
@@ -108,12 +207,12 @@
 
         .login-box {
             width: 100%;
-            max-width: 420px;
+            max-width: 560px;
             background: var(--bg2);
             border: 1px solid var(--border);
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
         }
 
         .login-head {
@@ -186,10 +285,10 @@
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .form-control::placeholder { color: var(--muted); }
+        .form-control::placeholder { color: #94a3b8; }
         .form-control:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
         }
         .form-control.is-invalid { border-color: #ef4444; }
         .btn-toggle-pass {
@@ -207,7 +306,7 @@
         }
         .btn-toggle-pass:hover { color: var(--text); }
         .text-danger {
-            color: #f87171;
+            color: #dc2626;
             font-size: 0.75rem;
             margin-top: 5px;
             display: block;
@@ -256,12 +355,11 @@
             justify-content: center;
             gap: 8px;
             transition: all 0.2s;
-            box-shadow: 0 4px 20px rgba(59,130,246,0.3);
         }
         .btn-submit:hover {
             opacity: 0.9;
             transform: translateY(-1px);
-            box-shadow: 0 8px 28px rgba(59,130,246,0.4);
+            box-shadow: 0 8px 28px rgba(37,99,235,0.35);
         }
 
         .divider {
@@ -283,42 +381,81 @@
         }
         .register-row a:hover { text-decoration: underline; }
 
-        /* Demo account section */
-        .demo-box {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 14px 16px;
-            margin-top: 18px;
+        /* ── DEMO CARDS ── */
+        .demo-section {
+            margin-top: 28px;
         }
-        .demo-title {
-            font-size: 0.73rem;
+        .demo-header {
+            font-size: 0.8rem;
             font-weight: 600;
             color: var(--muted);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 10px;
         }
-        .demo-grid {
+        .demo-cards {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 6px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
         }
-        .demo-item {
-            background: rgba(255,255,255,0.04);
-            border-radius: 7px;
-            padding: 8px 10px;
+        @media (min-width: 520px) {
+            .demo-cards { grid-template-columns: repeat(3, 1fr); }
+        }
+        .demo-card {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: all 0.2s;
         }
-        .demo-item:hover { background: rgba(59,130,246,0.1); }
-        .demo-role {
-            font-size: 0.7rem;
+        .demo-card:hover {
+            border-color: var(--accent);
+            background: rgba(37,99,235,0.04);
+            transform: translateY(-2px);
+        }
+        .demo-card-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(37,99,235,0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: var(--accent);
-            font-weight: 600;
-            margin-bottom: 3px;
+            font-size: 0.9rem;
         }
-        .demo-cred { font-size: 0.72rem; color: var(--muted); }
+        .demo-card-content {
+            flex: 1;
+        }
+        .demo-card-role {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+        .demo-card-username {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-bottom: 1px;
+        }
+        .demo-card-password {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+        .demo-card-action {
+            color: var(--muted);
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+        .demo-card:hover .demo-card-action {
+            color: var(--accent);
+        }
 
         /* Toast */
         .toast-wrap {
@@ -332,55 +469,107 @@
         }
         .toast {
             background: var(--bg2);
-            border-radius: 12px;
-            padding: 14px 18px;
-            display: none;
-            align-items: flex-start;
-            gap: 12px;
-            min-width: 280px;
-            max-width: 340px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
             border: 1px solid var(--border);
-            animation: slideInRight 0.3s ease;
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 280px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            animation: slideIn 0.3s ease;
         }
-        .toast.show { display: flex; }
-        .toast-success { border-left: 3px solid #10b981; }
-        .toast-error { border-left: 3px solid #ef4444; }
-        .toast-icon { font-size: 1.1rem; margin-top: 1px; flex-shrink: 0; }
-        .toast-success .toast-icon { color: #10b981; }
-        .toast-error .toast-icon { color: #ef4444; }
-        .toast-body { flex: 1; }
-        .toast-title { font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 2px; }
-        .toast-msg { font-size: 0.78rem; color: var(--muted); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-success { border-left: 3px solid #16a34a; }
+        .toast-error { border-left: 3px solid #dc2626; }
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast-icon {
+            font-size: 1rem;
+        }
+        .toast-success .toast-icon { color: #16a34a; }
+        .toast-error .toast-icon { color: #dc2626; }
+        .toast-msg {
+            font-size: 0.82rem;
+            color: var(--text);
+            flex: 1;
+        }
         .toast-close {
             background: none;
             border: none;
             color: var(--muted);
-            font-size: 1rem;
+            font-size: 1.2rem;
             cursor: pointer;
+            padding: 0 0 0 8px;
             line-height: 1;
-            padding: 0;
+            transition: color 0.2s;
         }
-        @keyframes slideInRight {
-            from { transform: translateX(60px); opacity: 0; }
-            to   { transform: translateX(0); opacity: 1; }
+        .toast-close:hover { color: var(--text); }
+
+        /* Responsive */
+        /* ── SSO BUTTON ── */
+        .sso-section {
+            text-align: center;
+        }
+        .btn-sso {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--muted);
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-sso:hover {
+            color: var(--text);
+            border-color: var(--accent);
+            background: rgba(37,99,235,0.04);
+            transform: translateY(-1px);
+        }
+        .sso-logo {
+            width: 20px;
+            height: 20px;
+        }
+        html.dark-mode .btn-sso {
+            color: var(--muted);
+        }
+        html.dark-mode .btn-sso:hover {
+            color: var(--text);
+        }
+
+        @media (max-width: 480px) {
+            .nav-brand-name { font-size: 0.85rem; }
+            .nav-brand-sub { font-size: 0.62rem; }
+            .login-box { max-width: 100%; }
+            .demo-cards { grid-template-columns: 1fr; }
         }
     </style>
-    @stack('styles')
 </head>
 <body>
-
-    <!-- NAVBAR -->
+    <!-- Navbar -->
     <nav class="top-nav">
         <div class="nav-inner">
             <a href="{{ url('/') }}" class="nav-brand">
                 <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB Logo" class="nav-brand-logo">
                 <div class="nav-brand-text">
-                    <span class="nav-brand-name">SI SIDANG</span>
-                    <span class="nav-brand-sub">FTTM ITB</span>
+                    <span class="nav-brand-name">SI SIDANG FTTM ITB</span>
+                    <span class="nav-brand-sub">Sistem Informasi Sidang</span>
                 </div>
             </a>
             <div class="nav-actions">
+                <button class="btn-nav btn-nav-ghost" id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="border:none; font-size:1rem;">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
                 <a href="{{ url('/') }}" class="btn-nav btn-nav-ghost">
                     <i class="fas fa-home"></i> Beranda
                 </a>
@@ -388,14 +577,14 @@
         </div>
     </nav>
 
-    <!-- LOGIN FORM AREA -->
+    <!-- Login Form -->
     <div class="login-wrapper">
         <div class="login-box">
             <div class="login-head">
                 <div class="login-head-inner">
                     <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB Logo" class="login-logo">
-                    <h1>SI SIDANG FTTM ITB</h1>
-                    <p>Sistem Informasi Sidang<br>Fakultas Teknik Pertambangan dan Perminyakan</p>
+                    <h1>Sistem Informasi Sidang</h1>
+                    <p>Fakultas Teknik Pertambangan dan Perminyakan</p>
                 </div>
             </div>
             <div class="login-body">
@@ -404,45 +593,62 @@
         </div>
     </div>
 
-    <!-- TOASTS -->
-    <div class="toast-wrap">
-        <div id="toastSuccess" class="toast toast-success">
-            <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
-            <div class="toast-body">
-                <div class="toast-title">Berhasil</div>
-                <div class="toast-msg" id="toastSuccessMsg"></div>
+    <!-- Toasts -->
+    <div class="toast-wrap" id="toastWrap">
+        @if(session('success'))
+            <div class="toast toast-success" data-toast>
+                <div class="toast-content">
+                    <i class="fas fa-check-circle toast-icon"></i>
+                    <span class="toast-msg">{{ session('success') }}</span>
+                    <button type="button" class="toast-close" onclick="this.closest('[data-toast]').remove()">&times;</button>
+                </div>
             </div>
-            <button class="toast-close" onclick="hideToast('success')">&times;</button>
-        </div>
-        <div id="toastError" class="toast toast-error">
-            <div class="toast-icon"><i class="fas fa-exclamation-circle"></i></div>
-            <div class="toast-body">
-                <div class="toast-title">Gagal</div>
-                <div class="toast-msg" id="toastErrorMsg"></div>
+        @endif
+        @if(session('error'))
+            <div class="toast toast-error" data-toast>
+                <div class="toast-content">
+                    <i class="fas fa-exclamation-circle toast-icon"></i>
+                    <span class="toast-msg">{{ session('error') }}</span>
+                    <button type="button" class="toast-close" onclick="this.closest('[data-toast]').remove()">&times;</button>
+                </div>
             </div>
-            <button class="toast-close" onclick="hideToast('error')">&times;</button>
-        </div>
+        @endif
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function showToast(type, message) {
-            var id = type === 'success' ? '#toastSuccess' : '#toastError';
-            var msgId = type === 'success' ? '#toastSuccessMsg' : '#toastErrorMsg';
-            $(msgId).text(message);
-            $(id).addClass('show');
-            setTimeout(function() { hideToast(type); }, 4000);
-        }
-        function hideToast(type) {
-            var id = type === 'success' ? '#toastSuccess' : '#toastError';
-            $(id).removeClass('show');
-        }
-        $(function () {
-            @if(session('success')) showToast('success', '{{ session('success') }}'); @endif
-            @if(session('error')) showToast('error', '{{ session('error') }}'); @endif
-        });
-    </script>
     @stack('scripts')
+
+    <script>
+        document.querySelectorAll('[data-toast]').forEach(function(el) {
+            var timer = setTimeout(function() {
+                if (el.parentNode) el.remove();
+            }, 3000);
+            el.addEventListener('mouseenter', function() { clearTimeout(timer); });
+            el.addEventListener('mouseleave', function() {
+                timer = setTimeout(function() {
+                    if (el.parentNode) el.remove();
+                }, 3000);
+            });
+        });
+
+        function toggleDarkMode() {
+            var html = document.documentElement;
+            var icon = document.getElementById('darkModeIcon');
+            var isDark = html.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        (function initDarkMode() {
+            var html = document.documentElement;
+            var icon = document.getElementById('darkModeIcon');
+            var saved = localStorage.getItem('darkMode');
+            if (saved === 'true') {
+                html.classList.add('dark-mode');
+                if (icon) icon.className = 'fas fa-sun';
+            } else {
+                if (icon) icon.className = 'fas fa-moon';
+            }
+        })();
+    </script>
 </body>
 </html>

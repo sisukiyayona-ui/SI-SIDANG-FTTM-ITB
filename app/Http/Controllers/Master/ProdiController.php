@@ -10,15 +10,26 @@ class ProdiController extends Controller
 {
     public function index()
     {
-        $prodi = TProdi::all()->map(function($p) {
+        $prodi = TProdi::paginate(10);
+        $prodi->getCollection()->transform(function($p) {
             return [
                 'id' => $p->id,
                 'kode' => $p->kode_prodi,
                 'nama' => $p->nama_prodi,
-                'status' => $p->status_aktif === 'AKTIF' ? 'Aktif' : 'Nonaktif',
+                'status' => $p->status_aktif,
             ];
         });
-        return view('master.prodi', compact('prodi'));
+
+        $allProdi = TProdi::all()->map(function($p) {
+            return [
+                'id' => $p->id,
+                'kode' => $p->kode_prodi,
+                'nama' => $p->nama_prodi,
+                'status' => $p->status_aktif,
+            ];
+        });
+
+        return view('master.prodi', compact('prodi', 'allProdi'));
     }
 
     public function create()
@@ -29,17 +40,21 @@ class ProdiController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode' => 'required',
-            'nama' => 'required',
-            'status' => 'required',
+            'kode_prodi' => 'required',
+            'nama_prodi' => 'required',
+            'status_aktif' => 'required',
         ]);
 
         TProdi::create([
-            'kode_prodi' => $request->kode,
-            'nama_prodi' => $request->nama,
-            'status_aktif' => strtoupper($request->status),
+            'KODE_PRODI' => $request->kode_prodi,
+            'NAMA_PRODI' => $request->nama_prodi,
+            'STATUS_AKTIF' => $request->status_aktif,
+            'TGL_CREATE' => now(),
         ]);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
         return redirect()->route('master.prodi.index')->with('success', 'Prodi berhasil ditambahkan.');
     }
 
@@ -51,7 +66,7 @@ class ProdiController extends Controller
             'id' => $p->id,
             'kode' => $p->kode_prodi,
             'nama' => $p->nama_prodi,
-            'status' => $p->status_aktif === 'AKTIF' ? 'Aktif' : 'Nonaktif',
+            'status' => $p->status_aktif,
         ];
         return view('master.prodi-form', compact('prodi'));
     }
@@ -59,21 +74,24 @@ class ProdiController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'kode' => 'required',
-            'nama' => 'required',
-            'status' => 'required',
+            'kode_prodi' => 'required',
+            'nama_prodi' => 'required',
+            'status_aktif' => 'required',
         ]);
 
         $p = TProdi::find((int) $id);
         if ($p) {
             $p->update([
-                'kode_prodi' => $request->kode,
-                'nama_prodi' => $request->nama,
-                'status_aktif' => strtoupper($request->status),
-                'tgl_update' => now(),
+                'KODE_PRODI' => $request->kode_prodi,
+                'NAMA_PRODI' => $request->nama_prodi,
+                'STATUS_AKTIF' => $request->status_aktif,
+                'TGL_UPDATE' => now(),
             ]);
         }
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
         return redirect()->route('master.prodi.index')->with('success', 'Prodi berhasil diperbarui.');
     }
 
@@ -85,16 +103,19 @@ class ProdiController extends Controller
             'id' => $p->id,
             'kode' => $p->kode_prodi,
             'nama' => $p->nama_prodi,
-            'status' => $p->status_aktif === 'AKTIF' ? 'Aktif' : 'Nonaktif',
+            'status' => $p->status_aktif,
         ];
         return view('master.prodi-detail', compact('prodi'));
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $p = TProdi::find((int) $id);
         if ($p) {
             $p->delete();
+        }
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
         }
         return redirect()->route('master.prodi.index')->with('success', 'Prodi berhasil dihapus.');
     }

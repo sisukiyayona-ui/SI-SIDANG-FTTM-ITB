@@ -3,7 +3,7 @@
 @section('title', 'Login - SI SIDANG FTTM ITB')
 
 @section('auth-content')
-    <form action="{{ route('login') }}" method="POST" autocomplete="off">
+    <form action="{{ route('login') }}" method="POST" autocomplete="off" id="loginForm">
         @csrf
 
         <div class="form-group">
@@ -54,27 +54,51 @@
             <a href="{{ route('register') }}">Daftar Sekarang</a>
         </div>
 
-        {{-- Demo credentials --}}
-        <div class="demo-box">
-            <div class="demo-title"><i class="fas fa-info-circle mr-1"></i> Akun Demo</div>
-            <div class="demo-grid">
-                <div class="demo-item" onclick="fillCred('admin','admin123')">
-                    <div class="demo-role">Admin</div>
-                    <div class="demo-cred">admin</div>
-                    <div class="demo-cred">admin123</div>
-                </div>
-                <div class="demo-item" onclick="fillCred('mahasiswa','mhs123')">
-                    <div class="demo-role">Mahasiswa</div>
-                    <div class="demo-cred">mahasiswa</div>
-                    <div class="demo-cred">mhs123</div>
-                </div>
-                <div class="demo-item" onclick="fillCred('pembimbing','dosen123')">
-                    <div class="demo-role">Dosen</div>
-                    <div class="demo-cred">pembimbing</div>
-                    <div class="demo-cred">dosen123</div>
-                </div>
+        <div class="demo-section">
+            <div class="demo-header">
+                <i class="fas fa-user-circle"></i> Akun Demo
+            </div>
+            <div class="demo-cards">
+                @php
+                    $demos = [
+                        ['role' => 'Admin', 'icon' => 'fa-user-shield', 'user' => 'admin', 'pass' => 'admin123'],
+                        ['role' => 'TU Prodi', 'icon' => 'fa-user-tie', 'user' => 'tuprodi', 'pass' => 'prodi123'],
+                        ['role' => 'TU FS', 'icon' => 'fa-building', 'user' => 'tufs', 'pass' => 'fs123'],
+                        ['role' => 'Pembimbing', 'icon' => 'fa-chalkboard-teacher', 'user' => 'pembimbing', 'pass' => 'dosen123'],
+                        ['role' => 'Penguji', 'icon' => 'fa-user-check', 'user' => 'penguji', 'pass' => 'dosen123'],
+                        ['role' => 'Monev', 'icon' => 'fa-clipboard-check', 'user' => 'monev', 'pass' => 'dosen123'],
+                        ['role' => 'Mhs S3', 'icon' => 'fa-user-graduate', 'user' => 'ulvienin', 'pass' => 'mhs123'],
+                        ['role' => 'Mhs S3', 'icon' => 'fa-user-graduate', 'user' => 'dede', 'pass' => 'mhs123'],
+                    ];
+                @endphp
+                @foreach($demos as $demo)
+                    <div class="demo-card" onclick="fillCred('{{ $demo['user'] }}','{{ $demo['pass'] }}', true)">
+                        <div class="demo-card-icon">
+                            <i class="fas {{ $demo['icon'] }}"></i>
+                        </div>
+                        <div class="demo-card-content">
+                            <div class="demo-card-role">{{ $demo['role'] }}</div>
+                            <div class="demo-card-username">{{ $demo['user'] }}</div>
+                            <div class="demo-card-password">{{ $demo['pass'] }}</div>
+                        </div>
+                        <div class="demo-card-action">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
+
+        @if(config('sso.enabled'))
+        <hr class="divider">
+
+        <div class="sso-section">
+            <a href="{{ route('sso.redirect') }}" class="btn-sso">
+                <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB" class="sso-logo">
+                Masuk dengan SSO ITB
+            </a>
+        </div>
+        @endif
     </form>
 
     @push('scripts')
@@ -90,9 +114,12 @@
                 e.className = 'fas fa-eye';
             }
         }
-        function fillCred(user, pass) {
+        function fillCred(user, pass, autoSubmit) {
             document.getElementById('username').value = user;
             document.getElementById('password').value = pass;
+            if (autoSubmit) {
+                document.getElementById('loginForm').submit();
+            }
         }
     </script>
     @endpush

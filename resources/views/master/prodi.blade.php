@@ -5,7 +5,7 @@
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
-        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="#">Data Master</a></li>
         <li class="breadcrumb-item active">Prodi</li>
     </ol>
 @endsection
@@ -19,14 +19,7 @@
             </button>
         </div>
         <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Cari prodi..." id="searchInput" onkeyup="filterTable()">
-                    </div>
-                </div>
-            </div>
+
 
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="prodiTable">
@@ -36,7 +29,18 @@
                             <th>Kode Prodi</th>
                             <th>Nama Prodi</th>
                             <th>Status</th>
-                            <th style="width: 200px;">Aksi</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="1"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="2"></th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="3">
+                                    <option value="">Semua</option>
+                                    <option value="AKTIF">AKTIF</option>
+                                    <option value="NON AKTIF">NON AKTIF</option>
+                                </select>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -44,22 +48,11 @@
                             <tr>
                                 <td>{{ $i + 1 }}</td>
                                 <td><span class="badge bg-info">{{ $item['kode'] }}</span></td>
-                                <td>{{ $item['nama'] }}</td>
+                                <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
                                 <td>
-                                    <span class="badge bg-{{ $item['status'] === 'Aktif' ? 'success' : 'danger' }}">
+                                    <span class="badge bg-{{ $item['status'] === 'AKTIF' ? 'success' : 'danger' }}">
                                         {{ $item['status'] }}
                                     </span>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-info" title="Detail" onclick="openDetail({{ $item['id'] }})">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-warning" title="Edit" onclick="openEdit({{ $item['id'] }})">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" title="Hapus" onclick="openDelete({{ $item['id'] }})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
                                 </td>
                             </tr>
                         @endforeach
@@ -68,12 +61,8 @@
             </div>
 
             <nav>
-                <ul class="pagination pagination-dummy justify-content-center mb-0">
-                    <li class="page-item disabled"><a class="page-link" href="#">&laquo;</a></li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item"><a class="page-link" href="#">&raquo;</a></li>
+                <ul class="pagination justify-content-center mb-0">
+                    {{ $prodi->links() }}
                 </ul>
             </nav>
         </div>
@@ -81,7 +70,7 @@
 
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
-        <div class="card-header">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
             <h5 class="mb-0" id="modalProdiTitle"><i class="fas fa-plus mr-2"></i>Tambah Prodi</h5>
         </div>
         <div class="card-body">
@@ -89,30 +78,39 @@
                 @csrf
                 <input type="hidden" name="_method" id="methodProdi" value="POST">
                 <input type="hidden" name="id" id="prodiId">
-                <div class="mb-3">
-                    <label for="kode" class="form-label">Kode Prodi</label>
-                    <input type="text" name="kode" id="kode" class="form-control" placeholder="Contoh: 322" required>
-                </div>
-                <div class="mb-3">
-                    <label for="nama" class="form-label">Nama Prodi</label>
-                    <input type="text" name="nama" id="nama" class="form-control" placeholder="Nama Program Studi" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Status</label>
-                    <div class="d-flex gap-3">
-                        <div class="form-check">
-                            <input type="radio" name="status" value="Aktif" class="form-check-input" id="statusAktif" checked>
-                            <label class="form-check-label" for="statusAktif">Aktif</label>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="f_kode_prodi" class="form-label fw-semibold text-secondary">Kode Prodi</label>
+                            <input type="text" name="kode_prodi" id="f_kode_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Contoh: 322" required>
                         </div>
-                        <div class="form-check">
-                            <input type="radio" name="status" value="Nonaktif" class="form-check-input" id="statusNonaktif">
-                            <label class="form-check-label" for="statusNonaktif">Nonaktif</label>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="f_nama_prodi" class="form-label fw-semibold text-secondary">Nama Prodi</label>
+                            <input type="text" name="nama_prodi" id="f_nama_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Nama Program Studi" required>
                         </div>
                     </div>
                 </div>
-                <div class="mt-4 d-flex justify-content-end" style="gap: 10px;">
+                
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-secondary">Status</label>
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            <input type="radio" name="status_aktif" value="AKTIF" class="form-check-input" id="statusAktif" checked>
+                            <label class="form-check-label" for="statusAktif">AKTIF</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" name="status_aktif" value="NON AKTIF" class="form-check-input" id="statusNonaktif">
+                            <label class="form-check-label" for="statusNonaktif">NON AKTIF</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 d-flex justify-content-end" style="gap: 12px;">
                     <button type="button" class="btn btn-secondary" onclick="closeForm()">Batal</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Simpan</button>
+                    <button type="submit" class="btn btn-primary" style="border-radius: 8px; padding: 10px 25px;"><i class="fas fa-save me-1"></i> Simpan</button>
                 </div>
             </form>
         </div>
@@ -163,15 +161,15 @@
 
 @push('scripts')
 <script>
-    const prodiData = @json($prodi);
+    const prodiData = @json($allProdi);
 
     function openCreate() {
         document.getElementById('modalProdiTitle').innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Prodi';
         document.getElementById('formProdi').action = '{{ route("master.prodi.store") }}';
         document.getElementById('methodProdi').value = 'POST';
         document.getElementById('prodiId').value = '';
-        document.getElementById('kode').value = '';
-        document.getElementById('nama').value = '';
+        document.getElementById('f_kode_prodi').value = '';
+        document.getElementById('f_nama_prodi').value = '';
         document.getElementById('statusAktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
@@ -185,9 +183,9 @@
         document.getElementById('formProdi').action = '{{ url("master/prodi") }}/' + id;
         document.getElementById('methodProdi').value = 'PUT';
         document.getElementById('prodiId').value = id;
-        document.getElementById('kode').value = item.kode;
-        document.getElementById('nama').value = item.nama;
-        document.getElementById(item.status === 'Aktif' ? 'statusAktif' : 'statusNonaktif').checked = true;
+        document.getElementById('f_kode_prodi').value = item.kode;
+        document.getElementById('f_nama_prodi').value = item.nama;
+        document.getElementById(item.status === 'AKTIF' ? 'statusAktif' : 'statusNonaktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
         document.getElementById('formContainer').style.display = 'block';
@@ -240,11 +238,32 @@
         });
     });
 
+    document.querySelectorAll('.column-search').forEach(input => {
+        input.addEventListener('input', filterTable);
+        input.addEventListener('change', filterTable);
+    });
+
     function filterTable() {
-        const q = document.getElementById('searchInput').value.toLowerCase();
+        const filters = Array.from(document.querySelectorAll('.column-search')).map(input => ({
+            colIndex: parseInt(input.dataset.col),
+            value: input.value.toLowerCase()
+        }));
+
         document.querySelectorAll('#prodiTable tbody tr').forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            const cells = row.querySelectorAll('td');
+            if (!cells || cells.length === 0) return;
+            let isMatch = true;
+            filters.forEach(filter => {
+                if (filter.value && cells[filter.colIndex]) {
+                    const cellText = cells[filter.colIndex].textContent.toLowerCase();
+                    if (!cellText.includes(filter.value)) {
+                        isMatch = false;
+                    }
+                }
+            });
+            row.style.display = isMatch ? '' : 'none';
         });
     }
+
 </script>
 @endpush

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
+use App\Models\TUser;
 use App\Services\DummyAuthService;
 use Illuminate\Http\Request;
 
@@ -31,7 +33,18 @@ class RegisterController extends Controller
             'akun_ina' => 'required',
         ]);
 
-        $this->auth->register($request->only(['name', 'email', 'username', 'password', 'akun_ina']));
+        $user = $this->auth->register($request->only(['name', 'email', 'username', 'password', 'akun_ina']));
+
+        $admins = TUser::where('jenis_user', 'Admin')->get();
+        foreach ($admins as $admin) {
+            Notification::createForUser(
+                $admin->id,
+                'Pengajuan User Baru',
+                $user['nama_lengkap'] . ' (' . $user['Username'] . ') telah mendaftar. Silakan verifikasi.',
+                'info',
+                route('master.user.index')
+            );
+        }
 
         return redirect()->route('login')->with('success', 'Registrasi berhasil! Silakan tunggu persetujuan admin.');
     }

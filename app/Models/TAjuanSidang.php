@@ -2,18 +2,95 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HasUppercaseColumns;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class TAjuanSidang extends Model
 {
-    use HasFactory;
-    protected $table = 'T_ajuan_sidang';
+    use HasFactory, HasUppercaseColumns;
+
+    protected $table = 'T_AJUAN_SIDANG';
+
     public $timestamps = false;
+
     protected $fillable = [
-        'id_user', 'Nim', 'nama_mhs', 'angkatan', 'id_judul', 'Judul', 'tahapan_sidang', 'Strata',
-        'tgl_sidang', 'waktu_sidang', 'ruang_sidang', 'status_lulus', 'sk_pembimbing', 'status_ajukan_mhs',
-        'sk_penguji', 'no_undangan', 'status_ajukan_prodi', 'no_BA_sidang', 'sk_lulus', 'tgl_create', 'tgl_update',
-        'id_user_create', 'nama_user_create', 'thn_create', 'id_prodi', 'kode_prodi', 'nama_prodi'
+        'ID_USER',
+        'NIM',
+        'NAMA_MHS',
+        'ANGKATAN',
+        'ID_JUDUL',
+        'JUDUL',
+        'TAHAPAN_SIDANG',
+        'STRATA',
+        'TGL_SIDANG',
+        'WAKTU_SIDANG',
+        'RUANG_SIDANG',
+        'STATUS_LULUS',
+        'STATUS_AJUKAN_MHS',
+        'NO_UNDANGAN',
+        'STATUS_AJUKAN_PRODI',
+        'NO_BA_SIDANG',
+        'SK_LULUS',
+        'TGL_CREATE',
+        'TGL_UPDATE',
+        'ID_USER_CREATE',
+        'NAMA_USER_CREATE',
+        'THN_CREATE',
+        'ID_PRODI',
+        'KODE_PRODI',
+        'NAMA_PRODI',
+        'TGL_UNDANGAN',
+        'TGL_PENGUMPULAN',
+        'TGL_PENELAAH',
+        'NO_SURAT_PENELAAH',
+        'EMAIL_SURAT',
     ];
+
+    protected $casts = [
+        'TGL_SIDANG' => 'date',
+        'WAKTU_SIDANG' => 'datetime',
+        'TGL_CREATE' => 'date',
+        'TGL_UPDATE' => 'date',
+        'TGL_UNDANGAN' => 'date',
+        'TGL_PENGUMPULAN' => 'date',
+        'TGL_PENELAAH' => 'date',
+        'ANGKATAN' => 'integer',
+        'THN_CREATE' => 'integer',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(TUser::class, 'ID_USER');
+    }
+
+    public function userCreate()
+    {
+        return $this->belongsTo(TUser::class, 'ID_USER_CREATE');
+    }
+
+    public function judul()
+    {
+        return $this->belongsTo(TJudul::class, 'ID_JUDUL');
+    }
+
+    public function prodi()
+    {
+        return $this->belongsTo(TProdi::class, 'ID_PRODI');
+    }
+
+    public function cekPersyaratan()
+    {
+        return $this->hasMany(TCekPersyaratan::class, 'ID_JUDUL');
+    }
+
+    public function timSidang()
+    {
+        return $this->hasMany(TTimSidang::class, 'ID_JUDUL');
+    }
+
+    public function penilaian()
+    {
+        return $this->hasMany(TPenilaian::class, 'ID_AJUAN');
+    }
 }

@@ -2,13 +2,28 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HasUppercaseColumns;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class TTahapan extends Model
 {
-    use HasFactory;
-    protected $table = 'T_tahapan';
+    use HasFactory, HasUppercaseColumns;
+
+    protected $table = 'T_TAHAPAN';
+
     public $timestamps = false;
-    protected $fillable = ['Tahapan', 'Kode_tahap', 'strata', 'tgl_buat', 'tgl_update'];
+
+    protected $fillable = [
+        'TAHAPAN',
+        'KODE_TAHAP',
+        'STRATA',
+        'TGL_BUAT',
+        'TGL_UPDATE',
+    ];
+
+    protected $casts = [
+        'TGL_BUAT' => 'date',
+        'TGL_UPDATE' => 'date',
+    ];
 }

@@ -7,23 +7,14 @@ use Illuminate\Support\Facades\Hash;
 
 class DummyAuthService
 {
-    public function attempt(string $username, string $password): ?array
+    public function attempt(string $username, string $password, bool $sso = false): ?array
     {
-        $user = TUser::where('Username', $username)->first();
+        $user = TUser::where('USERNAME', $username)
+            ->where('STATUS_AKTIF', 'AKTIF')
+            ->first();
 
-        if ($user && Hash::check($password, $user->Password)) {
-            $userData = [
-                'id' => $user->id,
-                'name' => $user->nama_lengkap,
-                'email' => $user->email,
-                'username' => $user->Username,
-                'role' => $user->jenis_user,
-                'kode_prodi' => $user->kode_prodi,
-                'nama_prodi' => $user->nama_prodi,
-                'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($user->nama_lengkap) . '&background=2f5597&color=fff&size=128',
-                'akun_ina' => $user->akun_ina,
-                'status' => $user->status_approve === 'y' ? 'approved' : 'pending',
-            ];
+        if ($user && ($sso || Hash::check($password, $user->getAuthPassword()))) {
+            $userData = $this->toSessionUser($user);
             session(['auth_user' => $userData]);
             return $userData;
         }
@@ -49,38 +40,31 @@ class DummyAuthService
     public function register(array $data): array
     {
         $user = TUser::create([
-            'nip_nim' => $data['nip_nim'] ?? rand(10000, 99999),
-            'nama_lengkap' => $data['name'],
-            'email' => $data['email'],
-            'Username' => $data['username'],
-            'Password' => Hash::make($data['password']),
-            'jenis_user' => 'Mahasiswa',
-            'status_pegawai' => 'Mahasiswa',
-            'kode_fs' => '13321002',
-            'nama_fs' => 'FTTM',
-            'status_aktif' => 'AKTIF',
-            'status_approve' => 't',
-            'akun_ina' => $data['akun_ina'] ?? null,
+            'NIP_NIM' => $data['nip_nim'] ?? (string) rand(10000, 99999),
+            'NAMA_LENGKAP' => $data['nama_lengkap'] ?? $data['name'] ?? 'User',
+            'EMAIL' => $data['email'],
+            'USERNAME' => $data['username'],
+            'PASSWORD' => Hash::make($data['password']),
+            'JENIS_USER' => 'Mahasiswa',
+            'STATUS_PEGAWAI' => 'Mahasiswa',
+            'KODE_FS' => '13321002',
+            'NAMA_FS' => 'FTTM',
+            'STATUS_AKTIF' => 'AKTIF',
+            'STATUS_APPROVE' => 'f',
+            'TGL_CREATE' => now(),
+            'TGL_UPDATE' => now(),
+            'AKUN_INA' => $data['akun_ina'] ?? null,
         ]);
 
-        $userData = [
-            'id' => $user->id,
-            'name' => $user->nama_lengkap,
-            'email' => $user->email,
-            'username' => $user->Username,
-            'role' => $user->jenis_user,
-            'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($user->nama_lengkap) . '&background=2f5597&color=fff&size=128',
-            'akun_ina' => $user->akun_ina,
-            'status' => 'pending',
-        ];
-
-        return $userData;
+        return $this->toSessionUser($user, pending: true);
     }
 
     public function hasRole(string|array $roles): bool
     {
         $user = $this->user();
-        if (!$user) return false;
+        if (!$user) {
+            return false;
+        }
 
         if (is_array($roles)) {
             return in_array($user['role'], $roles);
@@ -96,27 +80,19 @@ class DummyAuthService
 
     public function pendingUsers(): array
     {
-        return TUser::where('status_approve', 't')
+        return TUser::where('STATUS_APPROVE', 'f')
             ->get()
-            ->map(function ($u) {
-                return [
-                    'id' => $u->id,
-                    'name' => $u->nama_lengkap,
-                    'email' => $u->email,
-                    'username' => $u->Username,
-                    'role' => $u->jenis_user,
-                    'akun_ina' => $u->akun_ina,
-                    'status' => 'pending',
-                    'registered_at' => $u->tgl_create,
-                ];
-            })->toArray();
+            ->map(fn (TUser $u) => array_merge($this->toSessionUser($u, pending: true), [
+                'registered_at' => $u->TGL_CREATE,
+            ]))
+            ->toArray();
     }
 
     public function approveUser(int $id): bool
     {
         $user = TUser::find($id);
         if ($user) {
-            $user->status_approve = 'y';
+            $user->STATUS_APPROVE = 't';
             $user->save();
             return true;
         }
@@ -127,11 +103,30 @@ class DummyAuthService
     {
         $user = TUser::find($id);
         if ($user) {
-            $user->status_aktif = 'NON AKTIF';
+            $user->STATUS_AKTIF = 'NON AKTIF';
             $user->save();
             return true;
         }
         return false;
     }
-}
 
+    private function toSessionUser(TUser $user, bool $pending = false): array
+    {
+        $nama = $user->NAMA_LENGKAP;
+
+        return [
+            'id' => $user->id,
+            'nama_lengkap' => $nama,
+            'nip_nim' => $user->NIP_NIM,
+            'email' => $user->EMAIL,
+            'Username' => $user->USERNAME,
+            'role' => $user->JENIS_USER,
+            'strata' => $user->STRATA,
+            'kode_prodi' => $user->KODE_PRODI,
+            'nama_prodi' => $user->NAMA_PRODI,
+            'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($nama) . '&background=2f5597&color=fff&size=128',
+            'akun_ina' => $user->AKUN_INA,
+            'status' => $pending ? 'pending' : ($user->STATUS_APPROVE === 't' ? 'approved' : 'pending'),
+        ];
+    }
+}
