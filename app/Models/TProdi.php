@@ -10,7 +10,7 @@ class TProdi extends Model
 {
     use HasFactory, HasUppercaseColumns;
 
-    protected $table = 'T_PRODI';
+    protected $table = 't_prodi';
 
     public $timestamps = false;
 

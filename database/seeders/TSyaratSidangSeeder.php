@@ -9,7 +9,7 @@ class TSyaratSidangSeeder extends Seeder
 {
     public function run(): void
     {
-        $prodi = DB::table('T_PRODI')->where('KODE_PRODI', '322')->first();
+        $prodi = DB::table('t_prodi')->where('KODE_PRODI', '322')->first();
         $now = now();
 
         $data = [
@@ -43,7 +43,7 @@ class TSyaratSidangSeeder extends Seeder
         ];
 
         foreach ($data as $d) {
-            DB::table('T_SYARAT_SIDANG')->insert([
+            DB::table('t_syarat_sidang')->insert([
                 'NAMA_PERSYARATAN' => $d[1],
                 'ID_PRODI' => $prodi->id,
                 'KODE_PRODI' => '322',

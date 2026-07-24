@@ -10,7 +10,7 @@ class TSyaratSidang extends Model
 {
     use HasFactory, HasUppercaseColumns;
 
-    protected $table = 'T_SYARAT_SIDANG';
+    protected $table = 't_syarat_sidang';
 
     public $timestamps = false;
 

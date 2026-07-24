@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('T_PENILAIAN', function (Blueprint $table) {
+        Schema::create('t_penilaian', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('ID_AJUAN');
             $table->unsignedBigInteger('ID_JUDUL');
@@ -32,17 +32,17 @@ return new class extends Migration
             $table->string('NAMA_USER_CREATE', 250);
             $table->string('NO_FORM', 50)->nullable();
 
-            $table->foreign('ID_AJUAN')->references('id')->on('T_AJUAN_SIDANG')->onDelete('cascade');
-            $table->foreign('ID_JUDUL')->references('id')->on('T_JUDUL')->onDelete('cascade');
-            $table->foreign('ID_TIM_SIDANG')->references('id')->on('T_TIM_SIDANG')->onDelete('cascade');
-            $table->foreign('ID_USER_PENILAI')->references('id')->on('T_USER')->onDelete('cascade');
-            $table->foreign('ID_PENILAIAN')->references('id')->on('T_POINT_PENILAIAN')->onDelete('cascade');
-            $table->foreign('ID_USER_CREATE')->references('id')->on('T_USER')->onDelete('cascade');
+            $table->foreign('ID_AJUAN')->references('id')->on('t_ajuan_sidang')->onDelete('cascade');
+            $table->foreign('ID_JUDUL')->references('id')->on('t_judul')->onDelete('cascade');
+            $table->foreign('ID_TIM_SIDANG')->references('id')->on('t_tim_sidang')->onDelete('cascade');
+            $table->foreign('ID_USER_PENILAI')->references('id')->on('t_user')->onDelete('cascade');
+            $table->foreign('ID_PENILAIAN')->references('id')->on('t_point_penilaian')->onDelete('cascade');
+            $table->foreign('ID_USER_CREATE')->references('id')->on('t_user')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('T_PENILAIAN');
+        Schema::dropIfExists('t_penilaian');
     }
 };

@@ -10,7 +10,7 @@ class TJudulTemp extends Model
 {
     use HasFactory, HasUppercaseColumns;
 
-    protected $table = 'T_JUDUL_TEMP';
+    protected $table = 't_judul_temp';
 
     public $timestamps = false;
 

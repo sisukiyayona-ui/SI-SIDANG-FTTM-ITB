@@ -10,15 +10,15 @@ class TSkSeeder extends Seeder
     public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::table('T_SK')->truncate();
+        DB::table('t_sk')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $now = now();
 
-        $judulDede = DB::table('T_JUDUL')->where('NIM', '456783210')->first();
-        $judulBastian = DB::table('T_JUDUL')->where('NIM', '32224001')->first();
+        $judulDede = DB::table('t_judul')->where('NIM', '456783210')->first();
+        $judulBastian = DB::table('t_judul')->where('NIM', '32224001')->first();
 
-        DB::table('T_SK')->insert([
+        DB::table('t_sk')->insert([
             'NO_SK' => 'SK/SIDANG/322/2023/001',
             'ID_JUDUL' => $judulDede->id,
             'TAHAPAN_SIDANG' => 'tahap I',
@@ -26,7 +26,7 @@ class TSkSeeder extends Seeder
             'TGL_UPDATE' => $now,
         ]);
 
-        DB::table('T_SK')->insert([
+        DB::table('t_sk')->insert([
             'NO_SK' => 'SK/SIDANG/322/2024/001',
             'ID_JUDUL' => $judulBastian->id,
             'TAHAPAN_SIDANG' => 'tahap I',

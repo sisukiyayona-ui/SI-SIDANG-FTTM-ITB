@@ -409,12 +409,12 @@ class TUserSeeder extends Seeder
 
         // Insert demo accounts
         foreach ($demoAccounts as $u) {
-            DB::table('T_USER')->insert(array_merge($common, $u));
+            DB::table('t_user')->insert(array_merge($common, $u));
         }
 
         // Insert 18 dosen
         foreach ($dosen as $u) {
-            DB::table('T_USER')->insert(array_merge($common, [
+            DB::table('t_user')->insert(array_merge($common, [
                 'STATUS_PEGAWAI' => 'Dosen',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
@@ -424,12 +424,12 @@ class TUserSeeder extends Seeder
 
         // Insert staff
         foreach ($staff as $u) {
-            DB::table('T_USER')->insert(array_merge($common, $u));
+            DB::table('t_user')->insert(array_merge($common, $u));
         }
 
         // Insert extra mahasiswa
         foreach ($extraMhs as $u) {
-            DB::table('T_USER')->insert(array_merge($common, $u));
+            DB::table('t_user')->insert(array_merge($common, $u));
         }
     }
 }

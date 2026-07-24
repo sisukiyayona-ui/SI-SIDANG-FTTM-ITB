@@ -650,10 +650,10 @@ class MahasiswaController extends Controller
                     ->whereNotIn('id', $currentIds)
                     ->whereExists(function ($q) use ($penilaiIds) {
                         $q->select(\Illuminate\Support\Facades\DB::raw(1))
-                            ->from('T_TIM_SIDANG')
-                            ->whereColumn('T_TIM_SIDANG.id_judul', 'T_AJUAN_SIDANG.id_judul')
-                            ->whereColumn('T_TIM_SIDANG.tahapan_sidang', 'T_AJUAN_SIDANG.tahapan_sidang')
-                            ->whereIn('T_TIM_SIDANG.id_user_penilai', $penilaiIds);
+                            ->from('t_tim_sidang')
+                            ->whereColumn('t_tim_sidang.id_judul', 't_ajuan_sidang.id_judul')
+                            ->whereColumn('t_tim_sidang.tahapan_sidang', 't_ajuan_sidang.tahapan_sidang')
+                            ->whereIn('t_tim_sidang.id_user_penilai', $penilaiIds);
                     })
                     ->where('WAKTU_SIDANG', '>=', $waktuMulai)
                     ->where('WAKTU_SIDANG', '<=', $waktuAkhir)

@@ -10,27 +10,27 @@ class TTimSidangSeeder extends Seeder
     public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::table('T_TIM_SIDANG')->truncate();
+        DB::table('t_tim_sidang')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        $pembimbing = DB::table('T_USER')->where('USERNAME', 'pembimbing')->first();
-        $penguji = DB::table('T_USER')->where('USERNAME', 'penguji')->first();
+        $pembimbing = DB::table('t_user')->where('USERNAME', 'pembimbing')->first();
+        $penguji = DB::table('t_user')->where('USERNAME', 'penguji')->first();
 
-        $judulDede = DB::table('T_JUDUL')->where('NIM', '456783210')->first();
-        $judulBastian = DB::table('T_JUDUL')->where('NIM', '32224001')->first();
+        $judulDede = DB::table('t_judul')->where('NIM', '456783210')->first();
+        $judulBastian = DB::table('t_judul')->where('NIM', '32224001')->first();
         $now = now();
 
-        $skDede = DB::table('T_SK')
+        $skDede = DB::table('t_sk')
             ->where('ID_JUDUL', $judulDede->id)
             ->where('TAHAPAN_SIDANG', 'tahap I')
             ->first();
 
-        $skBastian = DB::table('T_SK')
+        $skBastian = DB::table('t_sk')
             ->where('ID_JUDUL', $judulBastian->id)
             ->where('TAHAPAN_SIDANG', 'tahap I')
             ->first();
 
-        DB::table('T_TIM_SIDANG')->insert([
+        DB::table('t_tim_sidang')->insert([
             // dede - Tahap I
             [
                 'TAHAPAN_SIDANG' => 'tahap I',

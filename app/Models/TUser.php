@@ -11,7 +11,7 @@ class TUser extends Authenticatable
 {
     use HasFactory, Notifiable, HasUppercaseColumns;
 
-    protected $table = 'T_USER';
+    protected $table = 't_user';
 
     public $timestamps = false;
 

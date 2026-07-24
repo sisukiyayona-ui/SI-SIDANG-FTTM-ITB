@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('T_AJUAN_SIDANG', function (Blueprint $table) {
+        Schema::create('t_ajuan_sidang', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('ID_USER');
             $table->string('NIM', 50);
@@ -41,15 +41,15 @@ return new class extends Migration
             $table->string('NO_SURAT_PENELAAH', 250)->nullable();
             $table->string('EMAIL_SURAT', 500)->nullable();
 
-            $table->foreign('ID_USER')->references('id')->on('T_USER')->onDelete('cascade');
-            $table->foreign('ID_JUDUL')->references('id')->on('T_JUDUL')->onDelete('cascade');
-            $table->foreign('ID_USER_CREATE')->references('id')->on('T_USER')->onDelete('cascade');
-            $table->foreign('ID_PRODI')->references('id')->on('T_PRODI')->onDelete('cascade');
+            $table->foreign('ID_USER')->references('id')->on('t_user')->onDelete('cascade');
+            $table->foreign('ID_JUDUL')->references('id')->on('t_judul')->onDelete('cascade');
+            $table->foreign('ID_USER_CREATE')->references('id')->on('t_user')->onDelete('cascade');
+            $table->foreign('ID_PRODI')->references('id')->on('t_prodi')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('T_AJUAN_SIDANG');
+        Schema::dropIfExists('t_ajuan_sidang');
     }
 };

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('T_SYARAT_SIDANG', function (Blueprint $table) {
+        Schema::create('t_syarat_sidang', function (Blueprint $table) {
             $table->id();
             $table->string('NAMA_PERSYARATAN', 500);
             $table->unsignedBigInteger('ID_PRODI');
@@ -20,12 +20,12 @@ return new class extends Migration
             $table->date('TGL_CREATE')->useCurrent();
             $table->date('TGL_UPDATE')->useCurrent();
 
-            $table->foreign('ID_PRODI')->references('id')->on('T_PRODI')->onDelete('cascade');
+            $table->foreign('ID_PRODI')->references('id')->on('t_prodi')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('T_SYARAT_SIDANG');
+        Schema::dropIfExists('t_syarat_sidang');
     }
 };

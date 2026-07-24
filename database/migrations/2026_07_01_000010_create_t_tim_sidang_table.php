@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('T_TIM_SIDANG', function (Blueprint $table) {
+        Schema::create('t_tim_sidang', function (Blueprint $table) {
             $table->id();
             $table->string('TAHAPAN_SIDANG', 100);
             $table->unsignedBigInteger('ID_JUDUL');
@@ -21,13 +21,13 @@ return new class extends Migration
             $table->unsignedBigInteger('ID_SK')->nullable();
             $table->integer('URUTAN')->nullable();
 
-            $table->foreign('ID_JUDUL')->references('id')->on('T_JUDUL')->onDelete('cascade');
-            $table->foreign('ID_USER_PENILAI')->references('id')->on('T_USER')->onDelete('cascade');
+            $table->foreign('ID_JUDUL')->references('id')->on('t_judul')->onDelete('cascade');
+            $table->foreign('ID_USER_PENILAI')->references('id')->on('t_user')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('T_TIM_SIDANG');
+        Schema::dropIfExists('t_tim_sidang');
     }
 };

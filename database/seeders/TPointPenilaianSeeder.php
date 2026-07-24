@@ -10,10 +10,10 @@ class TPointPenilaianSeeder extends Seeder
     public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::table('T_POINT_PENILAIAN')->truncate();
+        DB::table('t_point_penilaian')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        $prodi = DB::table('T_PRODI')->where('KODE_PRODI', '322')->first();
+        $prodi = DB::table('t_prodi')->where('KODE_PRODI', '322')->first();
         $now = now();
 
         $data = [
@@ -59,7 +59,7 @@ class TPointPenilaianSeeder extends Seeder
         ];
 
         foreach ($data as $d) {
-            DB::table('T_POINT_PENILAIAN')->insert([
+            DB::table('t_point_penilaian')->insert([
                 'PENILAIAN' => $d[2],
                 'NO_FORM' => $d[1],
                 'ID_PRODI' => $prodi->id,

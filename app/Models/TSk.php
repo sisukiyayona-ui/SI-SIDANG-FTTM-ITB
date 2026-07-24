@@ -10,7 +10,7 @@ class TSk extends Model
 {
     use HasFactory, HasUppercaseColumns;
 
-    protected $table = 'T_SK';
+    protected $table = 't_sk';
 
     public $timestamps = false;
 

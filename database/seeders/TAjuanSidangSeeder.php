@@ -9,15 +9,15 @@ class TAjuanSidangSeeder extends Seeder
 {
     public function run(): void
     {
-        $tuprodi = DB::table('T_USER')->where('USERNAME', 'tuprodi')->first();
-        $prodi = DB::table('T_PRODI')->where('KODE_PRODI', '322')->first();
+        $tuprodi = DB::table('t_user')->where('USERNAME', 'tuprodi')->first();
+        $prodi = DB::table('t_prodi')->where('KODE_PRODI', '322')->first();
         $now = now();
 
         // dede - sudah sampai penilaian tahap I
-        $dede = DB::table('T_USER')->where('NIP_NIM', '456783210')->first();
-        $judulDede = DB::table('T_JUDUL')->where('NIM', '456783210')->first();
+        $dede = DB::table('t_user')->where('NIP_NIM', '456783210')->first();
+        $judulDede = DB::table('t_judul')->where('NIM', '456783210')->first();
 
-        DB::table('T_AJUAN_SIDANG')->insert([
+        DB::table('t_ajuan_sidang')->insert([
             'ID_USER' => $dede->id,
             'NIM' => '456783210',
             'NAMA_MHS' => 'dede',
@@ -43,10 +43,10 @@ class TAjuanSidangSeeder extends Seeder
         ]);
 
         // Bastian - data baru untuk testing
-        $bastian = DB::table('T_USER')->where('NIP_NIM', '32224001')->first();
-        $judulBastian = DB::table('T_JUDUL')->where('NIM', '32224001')->first();
+        $bastian = DB::table('t_user')->where('NIP_NIM', '32224001')->first();
+        $judulBastian = DB::table('t_judul')->where('NIM', '32224001')->first();
 
-        DB::table('T_AJUAN_SIDANG')->insert([
+        DB::table('t_ajuan_sidang')->insert([
             'ID_USER' => $bastian->id,
             'NIM' => '32224001',
             'NAMA_MHS' => 'Bastian',

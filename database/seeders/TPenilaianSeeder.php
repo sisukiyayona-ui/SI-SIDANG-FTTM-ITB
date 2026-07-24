@@ -10,24 +10,24 @@ class TPenilaianSeeder extends Seeder
     public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::table('T_PENILAIAN')->truncate();
+        DB::table('t_penilaian')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        $tuprodi = DB::table('T_USER')->where('USERNAME', 'tuprodi')->first();
-        $prodi = DB::table('T_PRODI')->where('KODE_PRODI', '322')->value('id');
+        $tuprodi = DB::table('t_user')->where('USERNAME', 'tuprodi')->first();
+        $prodi = DB::table('t_prodi')->where('KODE_PRODI', '322')->value('id');
 
-        $judul = DB::table('T_JUDUL')->where('NIM', '456783210')->first();
-        $ajuan = DB::table('T_AJUAN_SIDANG')
+        $judul = DB::table('t_judul')->where('NIM', '456783210')->first();
+        $ajuan = DB::table('t_ajuan_sidang')
             ->where('NIM', '456783210')
             ->where('TAHAPAN_SIDANG', 'tahap I')
             ->first();
 
-        $pointList = DB::table('T_POINT_PENILAIAN')
+        $pointList = DB::table('t_point_penilaian')
             ->where('ID_PRODI', $prodi)
             ->where('TAHAPAN_SIDANG', 'tahap I')
             ->get();
 
-        $timList = DB::table('T_TIM_SIDANG')
+        $timList = DB::table('t_tim_sidang')
             ->where('ID_JUDUL', $judul->id)
             ->where('TAHAPAN_SIDANG', 'tahap I')
             ->get();
@@ -36,7 +36,7 @@ class TPenilaianSeeder extends Seeder
 
         foreach ($timList as $tim) {
             foreach ($pointList as $point) {
-                DB::table('T_PENILAIAN')->insert([
+                DB::table('t_penilaian')->insert([
                     'ID_AJUAN' => $ajuan->id,
                     'ID_JUDUL' => $judul->id,
                     'JUDUL' => $judul->JUDUL,

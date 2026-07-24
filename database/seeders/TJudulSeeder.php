@@ -12,8 +12,8 @@ class TJudulSeeder extends Seeder
         $now = now();
 
         // Bastian - judul only (no ajuan/tim/penilaian)
-        $bastian = DB::table('T_USER')->where('NIP_NIM', '32224001')->first();
-        DB::table('T_JUDUL')->insert([
+        $bastian = DB::table('t_user')->where('NIP_NIM', '32224001')->first();
+        DB::table('t_judul')->insert([
             'JUDUL' => 'Optimasi Enhanced Oil Recovery pada Reservoir Minyak Berat',
             'ID_USER_MHS' => $bastian->id,
             'NIM' => '32224001',
@@ -23,8 +23,8 @@ class TJudulSeeder extends Seeder
         ]);
 
         // dede - has penilaian tahap I
-        $dede = DB::table('T_USER')->where('NIP_NIM', '456783210')->first();
-        DB::table('T_JUDUL')->insert([
+        $dede = DB::table('t_user')->where('NIP_NIM', '456783210')->first();
+        DB::table('t_judul')->insert([
             'JUDUL' => 'Karakterisasi Litologi dan Struktur Geologi di Daerah Tambang Emas Pongkor',
             'ID_USER_MHS' => $dede->id,
             'NIM' => '456783210',

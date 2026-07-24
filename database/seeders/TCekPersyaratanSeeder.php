@@ -9,18 +9,18 @@ class TCekPersyaratanSeeder extends Seeder
 {
     public function run(): void
     {
-        $prodi = DB::table('T_PRODI')->where('KODE_PRODI', '322')->value('id');
-        $judulDede = DB::table('T_JUDUL')->where('NIM', '456783210')->value('id');
+        $prodi = DB::table('t_prodi')->where('KODE_PRODI', '322')->value('id');
+        $judulDede = DB::table('t_judul')->where('NIM', '456783210')->value('id');
         $now = now();
         $nim = '456783210';
 
-        $syaratList = DB::table('T_SYARAT_SIDANG')
+        $syaratList = DB::table('t_syarat_sidang')
             ->where('ID_PRODI', $prodi)
             ->where('TAHAPAN_SIDANG', 'tahap I')
             ->get();
 
         foreach ($syaratList as $syarat) {
-            DB::table('T_CEK_PERSYARATAN')->insert([
+            DB::table('t_cek_persyaratan')->insert([
                 'TAHAPAN_SIDANG' => 'tahap I',
                 'ID_JUDUL' => $judulDede,
                 'ID_SYARAT_SIDANG' => $syarat->id,

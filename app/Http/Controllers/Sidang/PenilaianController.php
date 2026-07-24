@@ -109,7 +109,7 @@ class PenilaianController extends Controller
                 ->exists();
 
             if ($isPembimbing || $isAdmin) {
-                DB::table('T_AJUAN_SIDANG')
+                DB::table('t_ajuan_sidang')
                     ->where('ID_JUDUL', $idJudul)
                     ->where('TAHAPAN_SIDANG', $tahapanSidang)
                     ->update([
@@ -188,7 +188,7 @@ class PenilaianController extends Controller
             return response()->json(['error' => 'Hanya Pembimbing atau TU Prodi yang dapat mengubah status kelulusan'], 403);
         }
 
-        DB::table('T_AJUAN_SIDANG')
+        DB::table('t_ajuan_sidang')
             ->where('ID_JUDUL', $idJudul)
             ->where('TAHAPAN_SIDANG', $tahapanSidang)
             ->update([

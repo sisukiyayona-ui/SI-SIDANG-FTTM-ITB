@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('T_JUDUL_TEMP', function (Blueprint $table) {
+        Schema::create('t_judul_temp', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('ID_JUDUL');
             $table->string('JUDUL', 500);
@@ -20,12 +20,12 @@ return new class extends Migration
             $table->date('TGL_CREATE')->useCurrent();
             $table->date('TGL_UPDATE')->useCurrent();
 
-            $table->foreign('ID_USER_MHS')->references('id')->on('T_USER')->onDelete('cascade');
+            $table->foreign('ID_USER_MHS')->references('id')->on('t_user')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('T_JUDUL_TEMP');
+        Schema::dropIfExists('t_judul_temp');
     }
 };

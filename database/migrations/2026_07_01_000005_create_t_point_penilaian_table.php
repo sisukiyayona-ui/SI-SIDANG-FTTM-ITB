@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('T_POINT_PENILAIAN', function (Blueprint $table) {
+        Schema::create('t_point_penilaian', function (Blueprint $table) {
             $table->id();
             $table->string('PENILAIAN', 500);
             $table->unsignedBigInteger('ID_PRODI');
@@ -23,12 +23,12 @@ return new class extends Migration
             $table->char('STATUS_CATATAN', 1)->nullable();
             $table->string('KETERANGAN', 500)->nullable();
 
-            $table->foreign('ID_PRODI')->references('id')->on('T_PRODI')->onDelete('cascade');
+            $table->foreign('ID_PRODI')->references('id')->on('t_prodi')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('T_POINT_PENILAIAN');
+        Schema::dropIfExists('t_point_penilaian');
     }
 };

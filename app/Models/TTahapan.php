@@ -10,7 +10,7 @@ class TTahapan extends Model
 {
     use HasFactory, HasUppercaseColumns;
 
-    protected $table = 'T_TAHAPAN';
+    protected $table = 't_tahapan';
 
     public $timestamps = false;
 

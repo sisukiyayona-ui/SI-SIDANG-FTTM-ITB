@@ -9,7 +9,7 @@ class TProdiSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('T_PRODI')->insert([
+        DB::table('t_prodi')->insert([
             [
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',

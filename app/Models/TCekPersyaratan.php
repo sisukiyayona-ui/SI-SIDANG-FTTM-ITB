@@ -10,7 +10,7 @@ class TCekPersyaratan extends Model
 {
     use HasFactory, HasUppercaseColumns;
 
-    protected $table = 'T_CEK_PERSYARATAN';
+    protected $table = 't_cek_persyaratan';
 
     public $timestamps = false;
 

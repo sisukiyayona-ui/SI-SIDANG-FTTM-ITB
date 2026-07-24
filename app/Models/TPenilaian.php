@@ -10,7 +10,7 @@ class TPenilaian extends Model
 {
     use HasFactory, HasUppercaseColumns;
 
-    protected $table = 'T_PENILAIAN';
+    protected $table = 't_penilaian';
 
     public $timestamps = false;
 

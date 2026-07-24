@@ -9,7 +9,7 @@ class TTahapanSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('T_TAHAPAN')->insert([
+        DB::table('t_tahapan')->insert([
             ['TAHAPAN' => 'tahap I', 'KODE_TAHAP' => 'T1', 'STRATA' => 'S3', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
             ['TAHAPAN' => 'tahap II', 'KODE_TAHAP' => 'T2', 'STRATA' => 'S3', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
             ['TAHAPAN' => 'SK I', 'KODE_TAHAP' => 'SK1', 'STRATA' => 'S3', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
