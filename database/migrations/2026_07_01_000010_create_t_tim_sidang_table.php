@@ -16,8 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('ID_USER_PENILAI');
             $table->string('NIP', 50);
             $table->string('NAMA', 250);
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
             $table->unsignedBigInteger('ID_SK')->nullable();
             $table->integer('URUTAN')->nullable();
 

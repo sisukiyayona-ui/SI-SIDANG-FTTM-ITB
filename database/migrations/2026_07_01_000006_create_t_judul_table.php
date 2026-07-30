@@ -14,8 +14,8 @@ return new class extends Migration
             $table->unsignedBigInteger('ID_USER_MHS');
             $table->string('NIM', 50);
             $table->integer('THN_CREATE');
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
 
             $table->foreign('ID_USER_MHS')->references('id')->on('t_user')->onDelete('cascade');
         });

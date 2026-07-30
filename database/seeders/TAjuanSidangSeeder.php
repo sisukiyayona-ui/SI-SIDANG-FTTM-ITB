@@ -30,6 +30,8 @@ class TAjuanSidangSeeder extends Seeder
             'WAKTU_SIDANG' => '10:00:00',
             'RUANG_SIDANG' => 'Ruang Seminar 1',
             'STATUS_LULUS' => null,
+            'NILAI_TERKUNCI' => 't',
+            'STATUS_SUBMIT' => 't',
             'STATUS_AJUKAN_MHS' => 'y',
             'STATUS_AJUKAN_PRODI' => 'y',
             'TGL_CREATE' => $now,

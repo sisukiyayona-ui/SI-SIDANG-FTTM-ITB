@@ -58,6 +58,8 @@ class TPenilaianSeeder extends Seeder
                     'ID_USER_CREATE' => $tuprodi->id,
                     'NAMA_USER_CREATE' => $tuprodi->NAMA_LENGKAP,
                     'NO_FORM' => $point->NO_FORM,
+                    'STATUS_LULUS' => null,
+                    'NILAI_TERKUNCI' => null,
                 ]);
             }
         }

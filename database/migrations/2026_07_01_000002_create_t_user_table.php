@@ -26,8 +26,8 @@ return new class extends Migration
             $table->integer('THN_ANGKATAN')->nullable();
             $table->string('STATUS_AKTIF', 50);
             $table->char('STATUS_APPROVE', 1);
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
             $table->char('STATUS_KAPRODI', 1)->nullable();
         });
     }

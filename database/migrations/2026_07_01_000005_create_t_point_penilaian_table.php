@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('TAHAPAN_SIDANG', 250);
             $table->string('STATUS_AKTIF', 50);
             $table->string('STRATA', 10);
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
             $table->string('NO_FORM', 50)->nullable();
             $table->char('STATUS_CATATAN', 1)->nullable();
             $table->string('KETERANGAN', 500)->nullable();

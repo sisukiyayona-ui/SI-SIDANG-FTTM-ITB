@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('JUDUL_BARU', 500);
             $table->string('TAHAP_PERUBAHAN', 250);
             $table->string('ALASAN_PERUBAHAN', 500);
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
 
             $table->foreign('ID_USER_MHS')->references('id')->on('t_user')->onDelete('cascade');
         });

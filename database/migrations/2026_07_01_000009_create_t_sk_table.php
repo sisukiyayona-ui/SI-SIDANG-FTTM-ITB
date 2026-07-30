@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('NO_SK', 250);
             $table->unsignedBigInteger('ID_JUDUL')->nullable();
             $table->string('TAHAPAN_SIDANG', 100);
-            $table->date('TGL_BUAT')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_BUAT')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
 
             $table->foreign('ID_JUDUL')->references('id')->on('t_judul')->onDelete('cascade');
         });

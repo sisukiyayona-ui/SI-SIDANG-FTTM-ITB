@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('TAHAPAN', 250);
             $table->string('KODE_TAHAP', 50);
             $table->string('STRATA', 10);
-            $table->date('TGL_BUAT')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_BUAT')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
         });
     }
 

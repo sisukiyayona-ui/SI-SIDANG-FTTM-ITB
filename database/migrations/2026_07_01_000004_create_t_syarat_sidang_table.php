@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('TAHAPAN_SIDANG', 100);
             $table->string('STATUS_AKTIF', 50);
             $table->string('STRATA', 10);
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
 
             $table->foreign('ID_PRODI')->references('id')->on('t_prodi')->onDelete('cascade');
         });

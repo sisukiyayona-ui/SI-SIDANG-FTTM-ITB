@@ -27,8 +27,8 @@ return new class extends Migration
             $table->char('STATUS_AJUKAN_PRODI', 1)->nullable();
             $table->string('NO_BA_SIDANG', 250)->nullable();
             $table->string('SK_LULUS', 250)->nullable();
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
             $table->unsignedBigInteger('ID_USER_CREATE');
             $table->string('NAMA_USER_CREATE', 250);
             $table->integer('THN_CREATE');

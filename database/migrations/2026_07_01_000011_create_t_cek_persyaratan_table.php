@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('PERSYARATAN', 250);
             $table->char('STATUS_LENGKAP', 1);
             $table->string('LINK_FILE', 2000)->nullable();
-            $table->date('TGL_BUAT')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_BUAT')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
 
             $table->foreign('ID_JUDUL')->references('id')->on('t_judul')->onDelete('cascade');
             $table->foreign('ID_SYARAT_SIDANG')->references('id')->on('t_syarat_sidang')->onDelete('cascade');

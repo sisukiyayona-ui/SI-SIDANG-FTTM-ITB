@@ -26,11 +26,13 @@ return new class extends Migration
             $table->decimal('NILAI', 5, 2)->nullable();
             $table->string('CATATAN', 500)->nullable();
             $table->char('STATUS_SUBMIT', 1);
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
             $table->unsignedBigInteger('ID_USER_CREATE');
             $table->string('NAMA_USER_CREATE', 250);
             $table->string('NO_FORM', 50)->nullable();
+            $table->string('STATUS_LULUS', 20)->nullable();
+            $table->tinyInteger('NILAI_TERKUNCI')->nullable();
 
             $table->foreign('ID_AJUAN')->references('id')->on('t_ajuan_sidang')->onDelete('cascade');
             $table->foreign('ID_JUDUL')->references('id')->on('t_judul')->onDelete('cascade');

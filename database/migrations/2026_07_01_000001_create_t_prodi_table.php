@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
             $table->string('KODE_PRODI', 50);
             $table->string('NAMA_PRODI', 250);
-            $table->date('TGL_CREATE')->useCurrent();
-            $table->date('TGL_UPDATE')->useCurrent();
+            $table->date('TGL_CREATE')->nullable();
+            $table->date('TGL_UPDATE')->nullable();
             $table->string('STATUS_AKTIF', 50);
         });
     }
