@@ -11,6 +11,7 @@ use App\Http\Controllers\Sidang\SidangAkhirController;
 use App\Http\Controllers\Sidang\SidangS1Controller;
 use App\Http\Controllers\Sidang\SidangS2Controller;
 use App\Http\Controllers\Sidang\SidangS3Controller;
+use App\Http\Controllers\Sidang\CetakController;
 
 Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(function () {
     // Existing routes (general access)
@@ -28,14 +29,12 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::post('penilaian', [\App\Http\Controllers\Sidang\PenilaianController::class, 'store'])->name('penilaian.store');
         Route::put('penilaian/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'update'])->name('penilaian.update');
         Route::put('status-lulus/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'updateStatusLulus'])->name('penilaian.update-status-lulus');
+        Route::post('lock-nilai/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'lockNilai'])->name('penilaian.lock-nilai');
         Route::post('tim-sidang', [\App\Http\Controllers\MahasiswaController::class, 'storeTimSidang'])->name('tim-sidang.store');
         Route::post('sk', [\App\Http\Controllers\MahasiswaController::class, 'storeSk'])->name('sk.store');
         Route::get('sk/next/{tahapan}', [\App\Http\Controllers\MahasiswaController::class, 'getNextSkNumber'])->name('sk.next');
         Route::put('tim-sidang/{id}', [\App\Http\Controllers\MahasiswaController::class, 'updateTimSidang'])->name('tim-sidang.update');
         Route::delete('tim-sidang/{id}', [\App\Http\Controllers\MahasiswaController::class, 'deleteTimSidang'])->name('tim-sidang.delete');
-
-        Route::get('jadwal-sidang', [\App\Http\Controllers\Sidang\JadwalSidangController::class, 'index'])->name('jadwal-sidang');
-        Route::post('jadwal-sidang', [\App\Http\Controllers\MahasiswaController::class, 'storeJadwal'])->name('jadwal-sidang.store');
         
         Route::get('s1', [SidangS1Controller::class, 'index'])->name('s1');
         Route::get('s1/{id}', [SidangS1Controller::class, 'show'])->name('s1.show');
@@ -45,6 +44,8 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::get('s2/{id}', [SidangS2Controller::class, 'show'])->name('s2.show');
         Route::put('s2/{id}', [SidangS2Controller::class, 'update'])->name('s2.update');
         
+        Route::get('cetak-form/{idJudul}/{tahapan}', [CetakController::class, 'cetakForm'])->name('cetak-form');
+
         Route::get('s3', [SidangS3Controller::class, 'index'])->name('s3');
         Route::get('s3/{id}', [SidangS3Controller::class, 'show'])->name('s3.show');
         Route::put('s3/{id}', [SidangS3Controller::class, 'update'])->name('s3.update');
@@ -52,4 +53,8 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::post('s3/{idJudul}/ubah-judul', [SidangS3Controller::class, 'storeUbahJudul'])->name('s3.store-ubah-judul');
         Route::post('s3/judul', [SidangS3Controller::class, 'storeJudul'])->name('s3.store-judul');
     });
+
+    // Jadwal Sidang — accessible by all authenticated roles including Mahasiswa
+    Route::get('jadwal-sidang', [\App\Http\Controllers\Sidang\JadwalSidangController::class, 'index'])->name('jadwal-sidang');
+    Route::post('jadwal-sidang', [\App\Http\Controllers\MahasiswaController::class, 'storeJadwal'])->name('jadwal-sidang.store');
 });

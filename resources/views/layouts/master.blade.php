@@ -16,7 +16,71 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ionicons@2.0.1/css/ionicons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/styles/overlayscrollbars.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-theme@0.1.0-beta.10/dist/select2-bootstrap.min.css">
 
+    <style>
+        /* Select2 Custom Styling */
+        .select2-container--bootstrap .select2-selection--single {
+            height: calc(1.5em + 0.5rem + 2px) !important;
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.875rem !important;
+            border-radius: 0 !important;
+        }
+        
+        .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {
+            line-height: calc(1.5em + 0.5rem) !important;
+            padding-left: 0 !important;
+        }
+        
+        .select2-container--bootstrap .select2-selection--single .select2-selection__arrow {
+            height: calc(1.5em + 0.5rem) !important;
+        }
+        
+        /* Select2 Dark Mode */
+        html.dark-mode .select2-container--bootstrap .select2-selection--single {
+            background-color: #334155 !important;
+            border-color: #475569 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        html.dark-mode .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {
+            color: #f1f5f9 !important;
+        }
+        
+        html.dark-mode .select2-container--bootstrap .select2-selection--single .select2-selection__placeholder {
+            color: #94a3b8 !important;
+        }
+        
+        html.dark-mode .select2-dropdown {
+            background-color: #1e293b !important;
+            border-color: #475569 !important;
+        }
+        
+        html.dark-mode .select2-container--bootstrap .select2-results__option {
+            color: #f1f5f9 !important;
+        }
+        
+        html.dark-mode .select2-container--bootstrap .select2-results__option--highlighted {
+            background-color: #334155 !important;
+            color: #60a5fa !important;
+        }
+        
+        html.dark-mode .select2-container--bootstrap .select2-results__option[aria-selected=true] {
+            background-color: #1e3a8a !important;
+            color: #ffffff !important;
+        }
+        
+        html.dark-mode .select2-search--dropdown .select2-search__field {
+            background-color: #334155 !important;
+            border-color: #475569 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        html.dark-mode .select2-search--dropdown .select2-search__field:focus {
+            border-color: #60a5fa !important;
+        }
+    </style>
     <style>
         :root {
             --primary-blue: #1e3a8a;
@@ -185,6 +249,51 @@
             background: var(--toast-bg) !important;
             box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
         }
+        
+        /* SIDEBAR NAVIGATION - DARK MODE FIX */
+        /* Parent Menu (Data Master) when expanded/opened - MUST BE BLUE! */
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link,
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link,
+        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item.menu-open > .nav-link,
+        html.dark-mode [class*="sidebar-dark"] .nav-sidebar > .nav-item.menu-open > .nav-link {
+            background-color: transparent !important;
+            color: #60a5fa !important;
+        }
+        
+        /* Parent menu icons when expanded */
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link .nav-icon,
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link i,
+        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link .right {
+            color: #60a5fa !important;
+        }
+        
+        /* Parent menu hover when expanded */
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link:hover {
+            background-color: rgba(96, 165, 250, 0.15) !important;
+            color: #60a5fa !important;
+        }
+        
+        /* Child menu items (Persyaratan, Penilaian, etc) */
+        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link,
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link {
+            color: rgba(255, 255, 255, 0.65) !important;
+        }
+        
+        /* Child menu active state */
+        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active,
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link.active {
+            background-color: var(--body-bg) !important;
+            color: #60a5fa !important;
+        }
+        
+        /* Child menu hover */
+        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link:hover,
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link:hover {
+            background-color: rgba(96, 165, 250, 0.1) !important;
+            color: #60a5fa !important;
+        }
+        
+        /* Override any AdminLTE default that makes it black */
         html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
             background: var(--body-bg) !important;
             color: var(--accent) !important;
@@ -194,6 +303,82 @@
         }
         html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::after {
             box-shadow: 15px -15px 0 15px var(--body-bg) !important;
+        }
+
+        /* Fix Parent Menu (has-treeview) Active State in Dark Mode */
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link,
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link {
+            background: transparent !important;
+            color: var(--accent) !important;
+        }
+
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link:hover,
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link:hover {
+            background: rgba(96, 165, 250, 0.1) !important;
+            color: var(--accent) !important;
+        }
+
+        /* Fix Child Menu Active State in Dark Mode */
+        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active {
+            background: var(--body-bg) !important;
+            color: var(--accent) !important;
+        }
+
+        /* Sidebar Child Menu in Dark Mode */
+        html.dark-mode .sidebar .nav-treeview > .nav-item > .nav-link {
+            color: rgba(255, 255, 255, 0.65) !important;
+        }
+
+        html.dark-mode .sidebar .nav-treeview > .nav-item > .nav-link:hover {
+            color: var(--accent) !important;
+            background: rgba(96, 165, 250, 0.1) !important;
+        }
+
+        /* More Specific Rules for Parent Menu with Dropdown (has-treeview) */
+        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item.menu-open > .nav-link,
+        html.dark-mode [class*="sidebar-dark"] .nav-sidebar > .nav-item.menu-open > .nav-link,
+        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link {
+            background-color: transparent !important;
+            color: #60a5fa !important;
+        }
+
+        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item.menu-is-opening > .nav-link,
+        html.dark-mode [class*="sidebar-dark"] .nav-sidebar > .nav-item.menu-is-opening > .nav-link,
+        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-is-opening > .nav-link {
+            background-color: transparent !important;
+            color: #60a5fa !important;
+        }
+
+        /* Parent menu hover when expanded */
+        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link:hover {
+            background-color: rgba(96, 165, 250, 0.15) !important;
+            color: #60a5fa !important;
+        }
+
+        /* Icon color for parent menu when expanded */
+        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link .nav-icon,
+        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link i {
+            color: #60a5fa !important;
+        }
+
+        /* Arrow icon for parent menu */
+        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link .right {
+            color: #60a5fa !important;
+        }
+
+        /* Override AdminLTE default dark sidebar */
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link {
+            color: rgba(255, 255, 255, 0.65) !important;
+        }
+
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link.active {
+            background-color: var(--body-bg) !important;
+            color: #60a5fa !important;
+        }
+
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link:hover {
+            background-color: rgba(96, 165, 250, 0.1) !important;
+            color: #60a5fa !important;
         }
 
         .dark-mode-toggle {
@@ -718,12 +903,13 @@
         }
 
         /* Teams-like Notification Dropdown */
+        /* Light Mode (default) - PRIORITAS TINGGI */
         .dropdown-menu-teams {
-            background-color: #242424 !important;
-            border: 1px solid #3b3b3b !important;
+            background-color: #ffffff !important;
+            border: 1px solid #e5e7eb !important;
             border-radius: 8px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-            color: #fff !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+            color: #1f2937 !important;
             padding: 0 !important;
             width: 440px !important;
             max-height: 80vh;
@@ -733,24 +919,25 @@
             width: 8px;
         }
         .dropdown-menu-teams::-webkit-scrollbar-thumb {
-            background-color: #4a4a4a;
+            background-color: #d1d5db;
             border-radius: 4px;
         }
         .teams-dropdown-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 16px 8px;
+            padding: 16px 16px 12px;
             position: sticky;
             top: 0;
-            background-color: #242424;
+            background-color: #ffffff !important;
             z-index: 10;
+            border-bottom: 2px solid #3b82f6 !important;
         }
         .teams-dropdown-header h5 {
             margin: 0;
             font-size: 18px;
             font-weight: 600;
-            color: #fff;
+            color: #111827 !important;
         }
         .teams-header-actions {
             display: flex;
@@ -759,47 +946,47 @@
         .teams-header-actions button {
             background: transparent;
             border: none;
-            color: #c8c8c8;
+            color: #6b7280 !important;
             padding: 6px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
         }
         .teams-header-actions button:hover {
-            background: #3b3b3b;
-            color: #fff;
+            background: #f3f4f6;
+            color: #111827 !important;
         }
         .teams-nav-tabs {
             display: flex;
             padding: 0 16px;
-            border-bottom: 1px solid #3b3b3b;
+            border-bottom: 1px solid #e5e7eb;
             margin-bottom: 8px;
         }
         .teams-nav-tabs .tab {
             padding: 8px 0;
             margin-right: 20px;
-            color: #c8c8c8;
+            color: #6b7280;
             cursor: pointer;
             font-weight: 600;
             font-size: 14px;
         }
         .teams-nav-tabs .tab.active {
-            color: #fff;
-            border-bottom: 2px solid #5b5fc7;
+            color: #111827;
+            border-bottom: 2px solid #3b82f6;
         }
 
         .teams-time-group {
             display: flex;
             align-items: center;
             padding: 12px 16px 4px;
-            color: #c8c8c8;
+            color: #6b7280 !important;
             font-size: 12px;
             font-weight: 600;
         }
         .teams-time-group::before, .teams-time-group::after {
             content: "";
             flex: 1;
-            border-bottom: 1px solid #3b3b3b;
+            border-bottom: 1px solid #e5e7eb;
         }
         .teams-time-group span {
             padding: 0 10px;
@@ -809,13 +996,60 @@
             display: flex;
             padding: 12px 16px;
             text-decoration: none !important;
-            color: #fff !important;
+            color: #1f2937 !important;
             gap: 16px;
             transition: background 0.2s;
             margin: 0;
         }
         .teams-notif-item:hover {
-            background-color: #333333;
+            background-color: #f9fafb !important;
+        }
+
+        /* Dark Mode - override dengan specificity tinggi */
+        body.dark-mode .dropdown-menu-teams {
+            background-color: #1e293b !important;
+            border: 1px solid #334155 !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-mode .dropdown-menu-teams::-webkit-scrollbar-thumb {
+            background-color: #475569 !important;
+        }
+        body.dark-mode .teams-dropdown-header {
+            background-color: #1e293b !important;
+            border-bottom: 2px solid #3b82f6 !important;
+        }
+        body.dark-mode .teams-dropdown-header h5 {
+            color: #f1f5f9 !important;
+        }
+        body.dark-mode .teams-header-actions button {
+            color: #cbd5e1 !important;
+        }
+        body.dark-mode .teams-header-actions button:hover {
+            background: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-mode .teams-nav-tabs {
+            border-bottom: 1px solid #334155;
+        }
+        body.dark-mode .teams-nav-tabs .tab {
+            color: #cbd5e1;
+        }
+        body.dark-mode .teams-nav-tabs .tab.active {
+            color: #f1f5f9;
+        }
+        body.dark-mode .teams-time-group {
+            color: #cbd5e1 !important;
+        }
+        body.dark-mode .teams-time-group::before, 
+        body.dark-mode .teams-time-group::after {
+            border-bottom: 1px solid #334155;
+        }
+        body.dark-mode .teams-notif-item {
+            color: #f1f5f9 !important;
+        }
+        body.dark-mode .teams-notif-item:hover {
+            background-color: #334155 !important;
         }
         .teams-avatar-wrapper {
             position: relative;
@@ -846,12 +1080,15 @@
             right: -2px;
             width: 22px;
             height: 22px;
-            background-color: #242424;
+            background-color: #ffffff;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 2px;
+        }
+        body.dark-mode .teams-app-icon {
+            background-color: #1e293b;
         }
         .teams-app-icon .icon-bg {
             background-color: #7479ed;
@@ -877,7 +1114,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: #ffffff;
+            color: #111827 !important;
+        }
+        body.dark-mode .teams-notif-title {
+            color: #f1f5f9 !important;
         }
         .teams-notif-title span.title-text {
             white-space: nowrap;
@@ -886,18 +1126,32 @@
         }
         .teams-notif-time {
             font-size: 12px;
-            color: #c8c8c8;
+            color: #6b7280 !important;
             font-weight: 400;
             white-space: nowrap;
             margin-left: 10px;
             flex-shrink: 0;
         }
+        body.dark-mode .teams-notif-time {
+            color: #cbd5e1 !important;
+        }
         .teams-notif-desc {
             font-size: 13px;
-            color: #c8c8c8;
+            color: #6b7280 !important;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        body.dark-mode .teams-notif-desc {
+            color: #cbd5e1 !important;
+        }
+
+        /* Notification empty message styling */
+        .notif-empty-message {
+            color: #6b7280 !important;
+        }
+        body.dark-mode .notif-empty-message {
+            color: #cbd5e1 !important;
         }
 
         /* Teams-like Profile Dropdown */
@@ -1479,6 +1733,278 @@
             color: #3b82f6 !important;
             border: 1px solid rgba(59, 130, 246, 0.3) !important;
         }
+
+        /* FORCE OVERRIDE - Notifications Dropdown Theme dengan specificity maksimal */
+        html:not(.dark-mode) body .dropdown-menu.dropdown-menu-teams,
+        html body:not(.dark-mode) .dropdown-menu.dropdown-menu-teams,
+        body:not(.dark-mode) .dropdown-menu.dropdown-menu-teams {
+            background-color: #ffffff !important;
+            border-color: #e5e7eb !important;
+            color: #1f2937 !important;
+        }
+        
+        html:not(.dark-mode) body .teams-dropdown-header,
+        body:not(.dark-mode) .teams-dropdown-header {
+            background-color: #ffffff !important;
+            border-bottom: 2px solid #3b82f6 !important;
+        }
+        
+        html:not(.dark-mode) body .teams-dropdown-header h5,
+        body:not(.dark-mode) .teams-dropdown-header h5 {
+            color: #111827 !important;
+        }
+        
+        html:not(.dark-mode) body .teams-header-actions button,
+        body:not(.dark-mode) .teams-header-actions button {
+            color: #6b7280 !important;
+        }
+        
+        html:not(.dark-mode) body .teams-notif-item,
+        body:not(.dark-mode) .teams-notif-item {
+            color: #1f2937 !important;
+        }
+        
+        html:not(.dark-mode) body .notif-empty-message,
+        body:not(.dark-mode) .notif-empty-message {
+            color: #6b7280 !important;
+        }
+        
+        html:not(.dark-mode) body .teams-time-group,
+        body:not(.dark-mode) .teams-time-group {
+            color: #6b7280 !important;
+        }
+
+        /* FORCE OVERRIDE - Dark Mode */
+        html.dark-mode body .dropdown-menu.dropdown-menu-teams,
+        body.dark-mode .dropdown-menu.dropdown-menu-teams {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        html.dark-mode body .teams-dropdown-header,
+        body.dark-mode .teams-dropdown-header {
+            background-color: #1e293b !important;
+            border-bottom: 2px solid #3b82f6 !important;
+        }
+        
+        html.dark-mode body .teams-dropdown-header h5,
+        body.dark-mode .teams-dropdown-header h5 {
+            color: #f1f5f9 !important;
+        }
+        
+        html.dark-mode body .teams-header-actions button,
+        body.dark-mode .teams-header-actions button {
+            color: #cbd5e1 !important;
+        }
+        
+        html.dark-mode body .teams-notif-item,
+        body.dark-mode .teams-notif-item {
+            color: #f1f5f9 !important;
+        }
+        
+        html.dark-mode body .notif-empty-message,
+        body.dark-mode .notif-empty-message {
+            color: #cbd5e1 !important;
+        }
+        
+        html.dark-mode body .teams-time-group,
+        body.dark-mode .teams-time-group {
+            color: #cbd5e1 !important;
+        }
+
+        /* Jadwal Sidang - Calendar & Card Dark Mode Styling */
+        /* STRATEGI: Warna pastel tetap tampil, tapi text selalu kontras */
+        
+        /* Calendar - Keep colorful background, ensure text visibility */
+        body.dark-mode .table-bordered {
+            border-color: #475569 !important;
+        }
+        
+        /* Calendar header row - keep pastel colors visible */
+        body.dark-mode .table thead th {
+            /* Warna background tetap dari inline style, tidak di-override */
+            color: #0f172a !important; /* Text gelap agar kontras dengan pastel */
+            font-weight: 700 !important;
+            border-color: #475569 !important;
+        }
+        
+        /* Calendar body cells - keep pastel colors */
+        body.dark-mode .table tbody td {
+            /* Background color tetap dari inline style (dayColors) */
+            border-color: #475569 !important;
+        }
+        
+        /* Day numbers - ensure visibility on pastel backgrounds */
+        body.dark-mode .table tbody td > div > span.font-weight-bold {
+            color: #0f172a !important; /* Gelap agar kontras dengan pastel */
+            text-shadow: 0 0 2px rgba(255,255,255,0.5);
+        }
+        
+        body.dark-mode .table tbody td > div > span.font-weight-bold.text-primary {
+            color: #1e3a8a !important; /* Biru gelap untuk hari ini */
+            text-shadow: 0 0 3px rgba(255,255,255,0.7);
+        }
+        
+        /* Badge count on calendar cells */
+        body.dark-mode .table tbody td .badge-primary {
+            background-color: #1e3a8a !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        
+        /* Event cards in calendar - keep white for readability */
+        body.dark-mode .table tbody td .rounded.shadow-sm {
+            background: #ffffff !important;
+            border-left-color: #1e3a8a !important;
+            color: #0f172a !important;
+        }
+        
+        body.dark-mode .table tbody td .rounded.shadow-sm strong {
+            color: #0f172a !important;
+        }
+        
+        body.dark-mode .table tbody td .rounded.shadow-sm .text-muted {
+            color: #475569 !important;
+        }
+        
+        /* Card View - PENTING: Text harus gelap di atas background warna-warni */
+        body.dark-mode #card .mb-4 {
+            border-color: #475569 !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
+        }
+        
+        /* Card date headers - keep colorful, text dark for contrast */
+        body.dark-mode #card .mb-4 > div[style*="background-color"] {
+            /* Background tetap colorful dari inline style */
+            color: #0f172a !important; /* Text GELAP */
+            font-weight: 700 !important;
+            border-bottom-color: rgba(0,0,0,0.2) !important;
+        }
+        
+        body.dark-mode #card .mb-4 > div[style*="background-color"] i {
+            color: #1e3a8a !important; /* Icon biru gelap */
+        }
+        
+        /* Card content rows - keep colorful backgrounds, DARK text */
+        body.dark-mode #card .d-flex.p-3[style*="background-color"] {
+            /* Background tetap colorful dari inline style ($rowColors) */
+            color: #0f172a !important; /* Text GELAP untuk kontras */
+            font-weight: 600 !important;
+        }
+        
+        /* PAKSA semua text di card rows jadi gelap */
+        body.dark-mode #card .d-flex.p-3 div,
+        body.dark-mode #card .d-flex.p-3 table,
+        body.dark-mode #card .d-flex.p-3 td {
+            color: #0f172a !important; /* GELAP agar terbaca di pastel */
+        }
+        
+        /* Border antar rows */
+        body.dark-mode #card .d-flex.p-3[style*="border-bottom"] {
+            border-bottom-color: rgba(0,0,0,0.3) !important;
+        }
+        
+        /* Empty state text */
+        body.dark-mode #card .text-center.text-muted {
+            color: #cbd5e1 !important;
+        }
+        
+        /* General card styling */
+        body.dark-mode .card {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        
+        body.dark-mode .card-header {
+            background-color: #334155 !important;
+            border-bottom-color: #475569 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .card-body {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+        }
+        
+        /* Tab navigation */
+        body.dark-mode .nav-tabs {
+            border-bottom-color: #475569 !important;
+        }
+        
+        body.dark-mode .nav-tabs .nav-link {
+            color: #cbd5e1 !important;
+            border-color: transparent !important;
+        }
+        
+        body.dark-mode .nav-tabs .nav-link.active {
+            background-color: #334155 !important;
+            border-color: #475569 #475569 #334155 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .nav-tabs .nav-link:hover {
+            border-color: #475569 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        /* Modal styling */
+        body.dark-mode .modal-content {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .modal-header {
+            background-color: #334155 !important;
+            border-bottom-color: #475569 !important;
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .modal-body {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .modal-body .card {
+            background-color: #334155 !important;
+            border-left-color: #3b82f6 !important;
+        }
+        
+        body.dark-mode .modal-body .card .text-muted {
+            color: #cbd5e1 !important;
+        }
+        
+        body.dark-mode .modal-body h5 {
+            color: #f1f5f9 !important;
+        }
+        
+        /* Buttons */
+        body.dark-mode .btn-outline-primary {
+            color: #60a5fa !important;
+            border-color: #3b82f6 !important;
+        }
+        
+        body.dark-mode .btn-outline-primary:hover {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+        }
+        
+        /* Page title */
+        body.dark-mode h4.font-weight-bold {
+            color: #f1f5f9 !important;
+        }
+        
+        /* Footer text */
+        body.dark-mode .text-muted.small {
+            color: #cbd5e1 !important;
+        }
+        
+        /* Today border highlight */
+        body.dark-mode .table tbody td[style*="border: 3px solid #1e3a8a"] {
+            border-color: #3b82f6 !important;
+            box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.3) !important;
+        }
     </style>
     @stack('styles')
 </head>
@@ -1529,7 +2055,7 @@
                         </div>
                     </div>
                     <div id="notifList">
-                        <div class="text-center py-4 text-muted" style="font-size:0.85rem;">Memuat notifikasi...</div>
+                        <div class="text-center py-4 notif-empty-message" style="font-size:0.85rem;">Memuat notifikasi...</div>
                     </div>
                 </div>
             </li>
@@ -1579,7 +2105,7 @@
         <a href="{{ route('dashboard') }}" class="brand-link d-flex align-items-center" style="gap: 10px; padding: 1.5rem 1.25rem !important;">
             <img src="{{ asset('images/itb-logo.svg') }}"
                  alt="ITB Logo" style="width: 38px; height: 38px; background: #fff; border-radius: 50%; padding: 6px; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-            <span class="brand-text" style="font-size: 1.15rem; line-height: 1.2; font-weight: 700; color: #fff; letter-spacing: 0.5px;">SI SIDANG<br><span style="font-size: 0.75rem; font-weight: 500; opacity: 0.8;">FTTM ITB</span></span>
+            <span class="brand-text" style="font-size: 1.15rem; line-height: 1.2; font-weight: 700; color: #fff; letter-spacing: 0.5px;">SI SIDANG<br><span style="font-size: 0.75rem; font-weight: 500; opacity: 0.8;">FTTM ITB</span><br><span style="font-size: 0.65rem; font-weight: 400; opacity: 0.6; text-transform: capitalize;">Role : {{ session('auth_user.role') }}</span></span>
         </a>
 
         <div class="sidebar">
@@ -1696,7 +2222,7 @@
 
                     <li class="nav-item">
                         <a href="{{ route('report.index') }}" class="nav-link {{ request()->routeIs('report.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-file-report"></i>
+                            <i class="nav-icon fas fa-file-export"></i>
                             <p>Report</p>
                         </a>
                     </li>
@@ -1740,7 +2266,7 @@
 
                     <li class="nav-item">
                         <a href="{{ route('report.index') }}" class="nav-link {{ request()->routeIs('report.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-file-report"></i>
+                            <i class="nav-icon fas fa-file-export"></i>
                             <p>Report</p>
                         </a>
                     </li>
@@ -1752,6 +2278,12 @@
                         <a href="{{ route('mahasiswa.dashboard') }}" class="nav-link {{ request()->routeIs('mahasiswa.dashboard') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-tasks"></i>
                             <p>Progress Sidang</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('sidang.jadwal-sidang') }}" class="nav-link {{ request()->routeIs('sidang.jadwal-sidang') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-alt"></i>
+                            <p>Jadwal Sidang</p>
                         </a>
                     </li>
                     @endif
@@ -1868,6 +2400,7 @@
 <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/dist/overlayscrollbars.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
     var toastTimer = null;
@@ -1894,24 +2427,110 @@
     }
 
     function toggleDarkMode() {
+        var body = document.body;
         var html = document.documentElement;
         var icon = document.getElementById('darkModeIcon');
         var isDark = html.classList.toggle('dark-mode');
+        body.classList.toggle('dark-mode');
         localStorage.setItem('darkMode', isDark ? 'true' : 'false');
         icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        
+        // Force update notifications dropdown styling
+        updateNotificationDropdownTheme(isDark);
     }
 
     (function initDarkMode() {
+        var body = document.body;
         var html = document.documentElement;
         var icon = document.getElementById('darkModeIcon');
         var saved = localStorage.getItem('darkMode');
-        if (saved === 'true') {
+        var isDark;
+        
+        // Jika belum pernah di-set manual, deteksi dari system theme
+        if (saved === null) {
+            // Deteksi system theme dari browser/OS
+            isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            console.log('Auto-detect system theme:', isDark ? 'dark' : 'light');
+        } else {
+            // Gunakan preference yang sudah disimpan
+            isDark = saved === 'true';
+        }
+        
+        if (isDark) {
             html.classList.add('dark-mode');
+            body.classList.add('dark-mode');
             if (icon) icon.className = 'fas fa-sun';
         } else {
+            html.classList.remove('dark-mode');
+            body.classList.remove('dark-mode');
             if (icon) icon.className = 'fas fa-moon';
         }
+        
+        // Force update notifications dropdown styling on load
+        setTimeout(function() {
+            updateNotificationDropdownTheme(isDark);
+        }, 100);
+        
+        // Listen untuk perubahan system theme (real-time)
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                // Hanya apply auto jika user belum set manual preference
+                if (localStorage.getItem('darkMode') === null) {
+                    var newIsDark = e.matches;
+                    console.log('System theme changed:', newIsDark ? 'dark' : 'light');
+                    
+                    if (newIsDark) {
+                        html.classList.add('dark-mode');
+                        body.classList.add('dark-mode');
+                        if (icon) icon.className = 'fas fa-sun';
+                    } else {
+                        html.classList.remove('dark-mode');
+                        body.classList.remove('dark-mode');
+                        if (icon) icon.className = 'fas fa-moon';
+                    }
+                    
+                    updateNotificationDropdownTheme(newIsDark);
+                }
+            });
+        }
     })();
+
+    function updateNotificationDropdownTheme(isDark) {
+        var dropdown = document.getElementById('notifDropdown');
+        var header = document.querySelector('.teams-dropdown-header');
+        
+        if (dropdown) {
+            if (isDark) {
+                dropdown.style.backgroundColor = '#1e293b';
+                dropdown.style.borderColor = '#334155';
+                dropdown.style.color = '#f1f5f9';
+            } else {
+                dropdown.style.backgroundColor = '#ffffff';
+                dropdown.style.borderColor = '#e5e7eb';
+                dropdown.style.color = '#1f2937';
+            }
+        }
+        
+        if (header) {
+            if (isDark) {
+                header.style.backgroundColor = '#1e293b';
+                header.style.borderBottomColor = '#3b82f6';
+            } else {
+                header.style.backgroundColor = '#ffffff';
+                header.style.borderBottomColor = '#3b82f6';
+            }
+            
+            var h5 = header.querySelector('h5');
+            if (h5) {
+                h5.style.color = isDark ? '#f1f5f9' : '#111827';
+            }
+            
+            var buttons = header.querySelectorAll('button');
+            buttons.forEach(function(btn) {
+                btn.style.color = isDark ? '#cbd5e1' : '#6b7280';
+            });
+        }
+    }
 
     function loadNotifications() {
         $.get('{{ route("notifications.index") }}', function(res) {
@@ -1922,7 +2541,7 @@
 
             var list = $('#notifList');
             if (!res.notifications || res.notifications.length === 0) {
-                list.html('<div class="text-center py-4 text-muted" style="font-size:0.85rem;">Tidak ada notifikasi</div>');
+                list.html('<div class="text-center py-4 notif-empty-message" style="font-size:0.85rem;">Tidak ada notifikasi</div>');
                 return;
             }
 
@@ -1984,7 +2603,7 @@
 
             list.html(html);
         }).fail(function() {
-            $('#notifList').html('<div class="text-center py-4 text-muted" style="font-size:0.85rem;">Gagal memuat notifikasi</div>');
+            $('#notifList').html('<div class="text-center py-4 notif-empty-message" style="font-size:0.85rem;">Gagal memuat notifikasi</div>');
         });
     }
 

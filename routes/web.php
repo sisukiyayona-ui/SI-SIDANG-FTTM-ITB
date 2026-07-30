@@ -26,6 +26,7 @@ Route::middleware(['auth.dummy'])->group(function () {
         Route::get('tahap/{tahapan}', [MahasiswaController::class, 'showTahap'])->name('tahap');
         Route::post('judul', [MahasiswaController::class, 'storeJudul'])->name('store-judul');
         Route::get('ubah-judul/{idJudul}', [MahasiswaController::class, 'ubahJudul'])->name('ubah-judul');
+        Route::post('ajukan-prodi', [MahasiswaController::class, 'ajukanProdi'])->name('ajukan-prodi');
     });
 });
 

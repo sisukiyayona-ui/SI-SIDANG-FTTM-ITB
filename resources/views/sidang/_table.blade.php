@@ -2,7 +2,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Data {{ $page_title ?? 'Sidang' }}</h5>
         <div>
-            <a href="#" class="btn btn-sm btn-accent" onclick="window.print()">
+            <a href="#" class="btn btn-sm btn-primary" onclick="window.print()">
                 <i class="fas fa-print mr-1"></i> Cetak
             </a>
         </div>

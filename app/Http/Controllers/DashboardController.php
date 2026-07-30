@@ -55,31 +55,33 @@ class DashboardController extends Controller
             ];
         });
 
-        $chartSidang = [];
-        $chartSeminar = [];
-        $chartLabels = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i);
-            $label = $month->format('M');
-            $chartLabels[] = $label;
+        $user = session('auth_user');
 
-            $chartSidang[] = TAjuanSidang::whereIn('TAHAPAN_SIDANG', [
-                'Sidang Akhir', 'Sidang Proposal', 'Ujian Kualifikasi'
-            ])->whereMonth('TGL_SIDANG', $month->month)
-              ->whereYear('TGL_SIDANG', $month->year)
-              ->count();
-
-            $chartSeminar[] = TAjuanSidang::where('TAHAPAN_SIDANG', 'like', 'Seminar Kemajuan%')
-                ->whereMonth('TGL_SIDANG', $month->month)
-                ->whereYear('TGL_SIDANG', $month->year)
-                ->count();
+        $tahapLabels = ['Tahap I', 'Tahap II', 'Tahap III', 'Tahap IV'];
+        $chartYears = [];
+        $chartTahapData = [];
+        $currentYear = (int)Carbon::now()->format('Y');
+        foreach ($tahapLabels as $tahap) {
+            $chartTahapData[$tahap] = [];
+        }
+        for ($y = $currentYear - 2; $y <= $currentYear; $y++) {
+            $chartYears[] = $y;
+            foreach ($tahapLabels as $tahap) {
+                $q = TAjuanSidang::where('TAHAPAN_SIDANG', $tahap)
+                    ->where('STATUS_LULUS', 'lulus')
+                    ->whereYear('TGL_SIDANG', $y);
+                if ($user['role'] === 'TU Prodi') {
+                    $q->where('KODE_PRODI', $user['kode_prodi']);
+                }
+                $chartTahapData[$tahap][] = $q->count();
+            }
         }
 
         return view('dashboard.index', compact(
             'totalMahasiswa', 'totalSidang', 'totalSeminar', 'totalPenguji',
             'mahasiswaAktif', 'sidangSelesai', 'seminarBerjalan',
             'progress', 'recentActivities',
-            'chartLabels', 'chartSidang', 'chartSeminar'
+            'chartYears', 'chartTahapData'
         ));
     }
 }

@@ -49,7 +49,8 @@ class TUser extends Authenticatable
 
     public function getAuthPassword(): string
     {
-        return (string) ($this->attributes['PASSWORD'] ?? '');
+        // Gunakan accessor agar trait HasUppercaseColumns bekerja
+        return (string) ($this->PASSWORD ?? $this->password ?? '');
     }
 
     public function judul()

@@ -28,26 +28,19 @@ class JadwalSidangController extends Controller
             ->whereNotNull('a.tgl_sidang');
 
         // Role-based filtering
-        if ($user['role'] === 'TU Prodi') {
+        if ($user['role'] === 'Mahasiswa') {
+            $query->where('a.id_user', $user['id']);
+        } elseif ($user['role'] === 'TU Prodi') {
             $query->where('a.kode_prodi', $user['kode_prodi']);
         } elseif ($user['role'] === 'FS') {
             // FS sees all prodi, only status_ajukan_prodi = 'y'
             $query->where('a.status_ajukan_prodi', 'y');
-        } elseif ($user['role'] === 'Pembimbing') {
-            // Filter by judul yang dibimbing
+        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
+            // Filter by judul yang dibimbing/diuji
             $query->whereIn('a.id_judul', function($q) use ($user) {
                 $q->select('id_judul')
                   ->from('t_tim_sidang')
-                  ->where('id_user_penilai', $user['id'])
-                  ->where('status_tim_sidang', 'Pembimbing');
-            });
-        } elseif ($user['role'] === 'Penguji') {
-            // Filter by judul yang diuji
-            $query->whereIn('a.id_judul', function($q) use ($user) {
-                $q->select('id_judul')
-                  ->from('t_tim_sidang')
-                  ->where('id_user_penilai', $user['id'])
-                  ->where('status_tim_sidang', 'Penguji');
+                  ->where('id_user_penilai', $user['id']);
             });
         }
 

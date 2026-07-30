@@ -27,6 +27,8 @@ class TAjuanSidang extends Model
         'WAKTU_SIDANG',
         'RUANG_SIDANG',
         'STATUS_LULUS',
+        'NILAI_TERKUNCI',
+        'STATUS_SUBMIT',
         'STATUS_AJUKAN_MHS',
         'NO_UNDANGAN',
         'STATUS_AJUKAN_PRODI',

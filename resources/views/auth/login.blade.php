@@ -47,12 +47,16 @@
             <i class="fas fa-sign-in-alt"></i> Masuk
         </button>
 
-        <hr class="divider">
-
-        <div class="register-row">
-            Belum punya akun?
-            <a href="{{ route('register') }}">Daftar Sekarang</a>
+        @if(config('sso.enabled'))
+        <div class="sso-section" style="margin-top: 12px;">
+            <a href="{{ route('sso.redirect') }}" class="btn-sso">
+                <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB" class="sso-logo">
+                Masuk dengan SSO ITB
+            </a>
         </div>
+        @endif
+
+        <hr class="divider">
 
         <div class="demo-section">
             <div class="demo-header">
@@ -62,13 +66,12 @@
                 @php
                     $demos = [
                         ['role' => 'Admin', 'icon' => 'fa-user-shield', 'user' => 'admin', 'pass' => 'admin123'],
-                        ['role' => 'TU Prodi', 'icon' => 'fa-user-tie', 'user' => 'tuprodi', 'pass' => 'prodi123'],
-                        ['role' => 'TU FS', 'icon' => 'fa-building', 'user' => 'tufs', 'pass' => 'fs123'],
-                        ['role' => 'Pembimbing', 'icon' => 'fa-chalkboard-teacher', 'user' => 'pembimbing', 'pass' => 'dosen123'],
+                        ['role' => 'TU Prodi', 'icon' => 'fa-user-tie', 'user' => 'Dede', 'pass' => '1234'],
+                        ['role' => 'TU FS', 'icon' => 'fa-building', 'user' => 'dedefs', 'pass' => '1234'],
+                        ['role' => 'Pembimbing', 'icon' => 'fa-chalkboard-teacher', 'user' => 'pembimbing', 'pass' => '1234'],
                         ['role' => 'Penguji', 'icon' => 'fa-user-check', 'user' => 'penguji', 'pass' => 'dosen123'],
                         ['role' => 'Monev', 'icon' => 'fa-clipboard-check', 'user' => 'monev', 'pass' => 'dosen123'],
-                        ['role' => 'Mhs S3', 'icon' => 'fa-user-graduate', 'user' => 'ulvienin', 'pass' => 'mhs123'],
-                        ['role' => 'Mhs S3', 'icon' => 'fa-user-graduate', 'user' => 'dede', 'pass' => 'mhs123'],
+                        ['role' => 'Mahasiswa', 'icon' => 'fa-user-graduate', 'user' => 'ade', 'pass' => '1234'],
                     ];
                 @endphp
                 @foreach($demos as $demo)
@@ -89,16 +92,6 @@
             </div>
         </div>
 
-        @if(config('sso.enabled'))
-        <hr class="divider">
-
-        <div class="sso-section">
-            <a href="{{ route('sso.redirect') }}" class="btn-sso">
-                <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB" class="sso-logo">
-                Masuk dengan SSO ITB
-            </a>
-        </div>
-        @endif
     </form>
 
     @push('scripts')

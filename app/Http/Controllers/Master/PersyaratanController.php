@@ -12,9 +12,9 @@ class PersyaratanController extends Controller
 {
     public function create()
     {
-        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        [$prodis, $userProdiId] = $this->prodiFormContext();
         $tahapans = TTahapan::all();
-        return view('master.persyaratan-form', compact('prodis', 'tahapans'))->with('persyaratan', null);
+        return view('master.persyaratan-form', compact('prodis', 'tahapans', 'userProdiId'))->with('persyaratan', null);
     }
 
     public function edit($id)
@@ -44,12 +44,12 @@ class PersyaratanController extends Controller
             'status_aktif' => $item->status_aktif,
         ];
 
-        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        [$prodis, $userProdiId] = $this->prodiFormContext();
         $tahapans = TTahapan::all();
-        return view('master.persyaratan-form', compact('persyaratan', 'prodis', 'tahapans'));
+        return view('master.persyaratan-form', compact('persyaratan', 'prodis', 'tahapans', 'userProdiId'));
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $user = session('auth_user');
         $query = TSyaratSidang::query();
@@ -58,7 +58,23 @@ class PersyaratanController extends Controller
             $query->where('kode_prodi', $user['kode_prodi']);
         }
 
-        $persyaratan = $query->orderBy('id', 'desc')->paginate(10)->through(function($item) {
+        if ($s = $request->get('nama_persyaratan')) {
+            $query->where('NAMA_PERSYARATAN', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('tahapan_sidang')) {
+            $query->where('TAHAPAN_SIDANG', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('strata')) {
+            $query->where('STRATA', $s);
+        }
+        if ($s = $request->get('nama_prodi')) {
+            $query->where('NAMA_PRODI', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('status_aktif')) {
+            $query->where('STATUS_AKTIF', $s);
+        }
+
+        $persyaratan = $query->orderBy('id', 'desc')->paginate(10)->withQueryString()->through(function($item) {
             return [
                 'id' => $item->id,
                 'nama' => $item->nama_persyaratan,
@@ -73,10 +89,49 @@ class PersyaratanController extends Controller
             ];
         });
 
-        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        [$prodis, $userProdiId] = $this->prodiFormContext();
         $tahapans = TTahapan::all();
 
-        return view('master.persyaratan', compact('persyaratan', 'prodis', 'tahapans'));
+        return view('master.persyaratan', compact('persyaratan', 'prodis', 'tahapans', 'userProdiId'));
+    }
+
+    private function prodiFormContext(): array
+    {
+        $user = session('auth_user');
+        $userProdiId = null;
+
+        if ($user['role'] === 'TU Prodi' && !empty($user['kode_prodi'])) {
+            $prodis = TProdi::where('status_aktif', 'AKTIF')
+                ->where('kode_prodi', $user['kode_prodi'])
+                ->get();
+            $userProdiId = $prodis->first()?->id;
+        } else {
+            $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        }
+
+        return [$prodis, $userProdiId];
+    }
+
+    private function resolveProdiFromSession(): array
+    {
+        $user = session('auth_user');
+
+        // Use submitted id_prodi if available (admin can choose), otherwise from session
+        $prodiId = request('id_prodi');
+        if ($prodiId) {
+            $prodi = TProdi::find((int) $prodiId);
+            if ($prodi) {
+                return [$prodi->id, $prodi->kode_prodi, $prodi->nama_prodi];
+            }
+        }
+
+        $prodi = TProdi::where('kode_prodi', $user['kode_prodi'] ?? null)->first();
+
+        return [
+            $prodi?->id,
+            $user['kode_prodi'] ?? null,
+            $user['nama_prodi'] ?? $prodi?->nama_prodi,
+        ];
     }
 
     public function store(Request $request)
@@ -88,18 +143,7 @@ class PersyaratanController extends Controller
             'status_aktif' => 'required',
         ]);
 
-        $user = session('auth_user');
-
-        if ($user['role'] === 'TU Prodi') {
-            $prodiId = TProdi::where('kode_prodi', $user['kode_prodi'])->value('id');
-            $kodeProdi = $user['kode_prodi'];
-            $namaProdi = $user['nama_prodi'];
-        } else {
-            $prodi = TProdi::find($request->id_prodi);
-            $prodiId = $prodi->id;
-            $kodeProdi = $prodi->kode_prodi;
-            $namaProdi = $prodi->nama_prodi;
-        }
+        [$prodiId, $kodeProdi, $namaProdi] = $this->resolveProdiFromSession();
 
         TSyaratSidang::create([
             'NAMA_PERSYARATAN' => $request->nama_persyaratan,
@@ -129,18 +173,7 @@ class PersyaratanController extends Controller
 
         $item = TSyaratSidang::find((int) $id);
         if ($item) {
-            $user = session('auth_user');
-
-            if ($user['role'] === 'TU Prodi') {
-                $prodiId = TProdi::where('kode_prodi', $user['kode_prodi'])->value('id');
-                $kodeProdi = $user['kode_prodi'];
-                $namaProdi = $user['nama_prodi'];
-            } else {
-                $prodi = TProdi::find($request->id_prodi);
-                $prodiId = $prodi->id;
-                $kodeProdi = $prodi->kode_prodi;
-                $namaProdi = $prodi->nama_prodi;
-            }
+            [$prodiId, $kodeProdi, $namaProdi] = $this->resolveProdiFromSession();
 
             $item->update([
                 'NAMA_PERSYARATAN' => $request->nama_persyaratan,

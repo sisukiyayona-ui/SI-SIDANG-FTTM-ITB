@@ -10,9 +10,9 @@ class TCekPersyaratanSeeder extends Seeder
     public function run(): void
     {
         $prodi = DB::table('t_prodi')->where('KODE_PRODI', '322')->value('id');
-        $judulDede = DB::table('t_judul')->where('NIM', '456783210')->value('id');
+        $judulAde = DB::table('t_judul')->where('NIM', '32322004')->value('id');
         $now = now();
-        $nim = '456783210';
+        $nim = '32322004';
 
         $syaratList = DB::table('t_syarat_sidang')
             ->where('ID_PRODI', $prodi)
@@ -22,7 +22,7 @@ class TCekPersyaratanSeeder extends Seeder
         foreach ($syaratList as $syarat) {
             DB::table('t_cek_persyaratan')->insert([
                 'TAHAPAN_SIDANG' => 'tahap I',
-                'ID_JUDUL' => $judulDede,
+                'ID_JUDUL' => $judulAde,
                 'ID_SYARAT_SIDANG' => $syarat->id,
                 'PERSYARATAN' => $syarat->NAMA_PERSYARATAN,
                 'STATUS_LENGKAP' => 't',

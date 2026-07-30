@@ -1,145 +1,102 @@
 @extends('layouts.master')
 
-@section('title', 'Report - SI SIDANG FTTM ITB')
-@section('page_title', 'Report Progress Sidang')
+@section('title', 'Report Tipe I - SI SIDANG FTTM ITB')
+@section('page_title', 'Report Tipe I')
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item active">Report</li>
+        <li class="breadcrumb-item active">Report Tipe I</li>
     </ol>
 @endsection
 
 @section('content')
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Report Progress Sidang Mahasiswa S3</h5>
+            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Report Tipe I</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
+                <table class="table table-bordered table-hover table-sm" id="reportTable">
+                    <thead class="bg-light text-dark">
                         <tr>
-                            <th rowspan="2">Judul</th>
-                            <th rowspan="2">Tahap 1</th>
-                            <th rowspan="2">Tahap II (Proposal)</th>
-                            <th colspan="3">Tahap III</th>
-                            <th rowspan="2">Tahap IV (Sidang Akhir)</th>
-                        </tr>
-                        <tr>
-                            <th>SK I</th>
-                            <th>SK II</th>
-                            <th>SK III</th>
+                            <th>No</th>
+                            <th>Tahun</th>
+                            <th>NIM</th>
+                            <th>Nama Mahasiswa</th>
+                            <th>Judul</th>
+                            <th>NIP</th>
+                            <th>Pembimbing / Penguji</th>
+                            <th>Status Tim Sidang</th>
+                            <th>Tahapan</th>
+                            <th>Status lulus</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($reports as $item)
+                        @forelse($reports as $idx => $item)
                             <tr>
+                                <td>{{ $idx + 1 }}</td>
+                                <td>{{ $item->tahun }}</td>
+                                <td>{{ $item->NIM }}</td>
+                                <td>{{ $item->nama_mahasiswa }}</td>
+                                <td>{{ $item->JUDUL }}</td>
+                                <td>{{ $item->NIP }}</td>
+                                <td>{{ $item->pembimbing_penguji }}</td>
+                                <td>{{ $item->STATUS_TIM_SIDANG }}</td>
+                                <td>{{ $item->tahapan_sidang }}</td>
                                 <td>
-                                    <a href="#" onclick="showDetail({{ $item->id_judul }})" class="text-primary">
-                                        {{ $item->Judul }}
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ getStatusColor($item->tahap1) }}">
-                                        {{ $item->tahap1 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ getStatusColor($item->tahap2) }}">
-                                        {{ $item->tahap2 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ getStatusColor($item->sk1) }}">
-                                        {{ $item->sk1 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ getStatusColor($item->sk2) }}">
-                                        {{ $item->sk2 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ getStatusColor($item->sk3) }}">
-                                        {{ $item->sk3 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ getStatusColor($item->tahap4) }}">
-                                        {{ $item->tahap4 }}
+                                    <span class="badge bg-{{ getStatusColor($item->status_lulus) }}">
+                                        {{ $item->status_lulus ?? 'belum diajukan' }}
                                     </span>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="10" class="text-center text-muted">Tidak ada data</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-
-    <!-- Modal Detail -->
-    <div class="modal fade" id="detailModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Detail Progress Sidang</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body" id="detailContent">
-                    <div class="text-center">
-                        <div class="spinner-border" role="status">
-                            <span class="sr-only">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 @endsection
 
+@push('styles')
+<link rel="stylesheet" href="//cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
+@endpush
+
 @push('scripts')
+<script src="//cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="//cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
 <script>
-    function showDetail(idJudul) {
-        $('#detailModal').modal('show');
-        $('#detailContent').html('<div class="text-center"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div></div>');
-        
-        // Show simple detail info for now
-        fetch(`/report/detail/${idJudul}/tahap I`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    $('#detailContent').html('<div class="alert alert-info">Detail untuk judul ini akan ditampilkan lebih lengkap setelah data tersedia.</div>');
-                } else {
-                    let html = '<div class="row">';
-                    html += '<div class="col-md-12"><strong>Judul:</strong> ' + data.Judul + '</div>';
-                    html += '<div class="col-md-6 mt-2"><strong>Tahapan:</strong> ' + data.tahapan_sidang + '</div>';
-                    html += '<div class="col-md-6 mt-2"><strong>Tanggal:</strong> ' + (data.tgl_sidang || '-') + '</div>';
-                    html += '<div class="col-md-6 mt-2"><strong>Waktu:</strong> ' + (data.waktu_sidang || '-') + '</div>';
-                    html += '<div class="col-md-6 mt-2"><strong>Ruang:</strong> ' + (data.ruang_sidang || '-') + '</div>';
-                    html += '<div class="col-md-6 mt-2"><strong>Status:</strong> ' + (data.status_lulus || '-') + '</div>';
-                    html += '</div>';
-                    $('#detailContent').html(html);
-                }
-            })
-            .catch(error => {
-                $('#detailContent').html('<div class="alert alert-info">Detail untuk judul ini akan ditampilkan lebih lengkap setelah data tersedia.</div>');
-            });
-    }
+$(document).ready(function() {
+    $('#reportTable').DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        info: true,
+        pageLength: 25,
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
+        }
+    });
+});
 </script>
 @endpush
 
 @php
 function getStatusColor($status) {
     switch($status) {
-        case 'belum diajukan':
-            return 'secondary';
+        case 'lulus':
+            return 'success';
+        case 'tidak lulus':
+            return 'danger';
         case 'dalam proses':
             return 'warning';
-        case 'Lulus':
-            return 'success';
+        case 'belum diajukan':
+        case null:
+            return 'secondary';
         default:
             return 'info';
     }

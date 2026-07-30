@@ -22,7 +22,7 @@ class PenilaianController extends Controller
             'id_tim_sidang' => 'required',
             'penilaian' => 'required|array',
             'penilaian.*.id_penilaian' => 'required',
-            'penilaian.*.nilai' => 'nullable|numeric|min:0|max:100',
+            'penilaian.*.nilai' => 'nullable|numeric|min:1|max:5',
             'status_lulus' => 'nullable|in:lulus,tidak lulus',
         ]);
 
@@ -94,36 +94,18 @@ class PenilaianController extends Controller
             );
         }
 
-        // Save status_lulus if provided
-        $statusLulusUpdated = false;
+        // Save status_lulus to t_penilaian only (not t_ajuan_sidang)
         if ($request->has('status_lulus') && $request->input('status_lulus') !== '') {
-            $isPembimbing = TTimSidang::where('ID_JUDUL', $ajuan->id_judul)
-                ->where('TAHAPAN_SIDANG', $ajuan->tahapan_sidang)
-                ->where('ID_USER_PENILAI', $user['id'])
-                ->where(function($query) {
-                    $query->where('STATUS_TIM_SIDANG', 'Ketua Pembimbing')
-                        ->orWhere('STATUS_TIM_SIDANG', 'Pembimbing')
-                        ->orWhere('STATUS_TIM_SIDANG', 'Pembimbing II')
-                        ->orWhere('STATUS_TIM_SIDANG', 'like', '%Pembimbing%');
-                })
-                ->exists();
-
-            if ($isPembimbing || $isAdmin) {
-                DB::table('t_ajuan_sidang')
-                    ->where('ID_JUDUL', $idJudul)
-                    ->where('TAHAPAN_SIDANG', $tahapanSidang)
-                    ->update([
-                        'STATUS_LULUS' => $request->input('status_lulus'),
-                        'TGL_UPDATE' => now(),
-                    ]);
-                $statusLulusUpdated = true;
-            }
+            TPenilaian::where('ID_JUDUL', $idJudul)
+                ->where('TAHAPAN_SIDANG', $tahapanSidang)
+                ->where('ID_TIM_SIDANG', $idTimSidang)
+                ->update(['STATUS_LULUS' => $request->input('status_lulus')]);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Penilaian berhasil disimpan',
-            'status_lulus_updated' => $statusLulusUpdated,
+            'status_lulus_updated' => true,
         ]);
     }
 
@@ -132,7 +114,7 @@ class PenilaianController extends Controller
         $user = session('auth_user');
         
         $request->validate([
-            'nilai' => 'required|numeric|min:0|max:100',
+            'nilai' => 'required|numeric|min:1|max:5',
             'catatan' => 'nullable|string',
         ]);
 
@@ -142,14 +124,14 @@ class PenilaianController extends Controller
         }
 
         // Validate that user owns this penilaian
-        if ($penilaian->id_user_penilai != $user['id']) {
+        if ($penilaian->ID_USER_PENILAI != $user['id']) {
             return response()->json(['error' => 'Anda tidak memiliki akses untuk mengubah penilaian ini'], 403);
         }
 
         $penilaian->update([
-            'nilai' => $request->nilai,
-            'catatan' => $request->catatan,
-            'tgl_update' => now(),
+            'NILAI' => $request->nilai,
+            'CATATAN' => $request->catatan,
+            'TGL_UPDATE' => now(),
         ]);
 
         return response()->json(['success' => true, 'message' => 'Penilaian berhasil diperbarui']);
@@ -163,16 +145,16 @@ class PenilaianController extends Controller
             'status_lulus' => 'required|in:lulus,tidak lulus',
         ]);
 
-        $ajuan = TAjuanSidang::where('id_judul', $id)
-            ->where('tahapan_sidang', $request->tahapan_sidang)
+        $ajuan = TAjuanSidang::where('ID_JUDUL', $id)
+            ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
             ->first();
         if (!$ajuan) {
             return response()->json(['error' => 'Data ajuan sidang tidak ditemukan'], 404);
         }
 
         // Check if user is Pembimbing (any type) or TU Prodi
-        $isPembimbing = TTimSidang::where('ID_JUDUL', $ajuan->id_judul)
-            ->where('TAHAPAN_SIDANG', $ajuan->tahapan_sidang)
+        $isPembimbing = TTimSidang::where('ID_JUDUL', $ajuan->ID_JUDUL)
+            ->where('TAHAPAN_SIDANG', $ajuan->TAHAPAN_SIDANG)
             ->where('ID_USER_PENILAI', $user['id'])
             ->where(function($query) {
                 $query->where('STATUS_TIM_SIDANG', 'Ketua Pembimbing')
@@ -189,13 +171,87 @@ class PenilaianController extends Controller
         }
 
         DB::table('t_ajuan_sidang')
-            ->where('ID_JUDUL', $idJudul)
-            ->where('TAHAPAN_SIDANG', $tahapanSidang)
+            ->where('ID_JUDUL', $id)
+            ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
             ->update([
                 'STATUS_LULUS' => $request->input('status_lulus'),
                 'TGL_UPDATE' => now(),
             ]);
 
         return response()->json(['success' => true, 'message' => 'Status kelulusan berhasil diperbarui']);
+    }
+
+    public function lockNilai(Request $request, $id)
+    {
+        try {
+            $user = session('auth_user');
+
+            $request->validate([
+                'nilai_terkunci' => 'required|in:y,t',
+                'tahapan_sidang' => 'required|string',
+                'id_tim_sidang' => 'required|string',
+            ]);
+
+            \Log::info('Lock Nilai Request', [
+                'id_judul' => $id,
+                'nilai_terkunci' => $request->nilai_terkunci,
+                'tahapan_sidang' => $request->tahapan_sidang,
+                'id_tim_sidang' => $request->id_tim_sidang,
+                'status_lulus' => $request->status_lulus,
+                'user' => $user
+            ]);
+
+            $statusLulus = $request->filled('status_lulus') ? $request->status_lulus : null;
+
+            // 1. Update t_penilaian for this penilai
+            $nilaiTerkunciInt = $request->nilai_terkunci === 'y' ? 1 : 0;
+            $updatePenilaian = [
+                'NILAI_TERKUNCI' => $nilaiTerkunciInt,
+                'TGL_UPDATE' => now(),
+            ];
+            if ($statusLulus) {
+                $updatePenilaian['STATUS_LULUS'] = $statusLulus;
+            }
+
+            DB::table('t_penilaian')
+                ->where('ID_JUDUL', $id)
+                ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                ->where('ID_TIM_SIDANG', $request->id_tim_sidang)
+                ->update($updatePenilaian);
+
+            // 2. Check if penilai is Ketua Pembimbing
+            $timSidang = TTimSidang::find($request->id_tim_sidang);
+            $isKetuaPembimbing = $timSidang && (
+                $timSidang->STATUS_TIM_SIDANG === 'Ketua Pembimbing' ||
+                strpos($timSidang->STATUS_TIM_SIDANG, 'Ketua Pembimbing') !== false
+            );
+
+            // 3. If Ketua Pembimbing, also update t_ajuan_sidang
+            if ($isKetuaPembimbing && $statusLulus) {
+                $updateAjuan = [
+                    'STATUS_LULUS' => $statusLulus,
+                    'NILAI_TERKUNCI' => $request->nilai_terkunci,
+                    'TGL_UPDATE' => now(),
+                ];
+
+                DB::table('t_ajuan_sidang')
+                    ->where('ID_JUDUL', $id)
+                    ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                    ->update($updateAjuan);
+
+                \Log::info('Lock Nilai: Updated t_ajuan_sidang for Ketua Pembimbing');
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nilai berhasil dikunci'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Lock Nilai Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
+        }
     }
 }

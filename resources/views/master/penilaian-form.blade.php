@@ -23,8 +23,12 @@
 
                 <div class="mb-3">
                     <label for="nama" class="form-label">Parameter Penilaian</label>
-                    <input type="text" name="nama" id="nama" class="form-control"
+                    <input type="text" name="penilaian" id="nama" class="form-control"
                            value="{{ $penilaian['nama'] ?? '' }}" placeholder="Nama parameter komponen" required>
+                </div>
+                <div class="mb-3">
+                    <label for="keterangan" class="form-label">Keterangan</label>
+                    <textarea name="Keterangan" id="keterangan" class="form-control" placeholder="Keterangan tambahan" rows="2">{{ $penilaian['Keterangan'] ?? '' }}</textarea>
                 </div>
                 <div class="mb-3">
                     <label for="no_form" class="form-label">No Form</label>
@@ -82,15 +86,10 @@
                         </div>
                         <div class="form-check">
                             <input type="radio" name="status_catatan" value="t" class="form-check-input" id="statusCatatanTidak"
-                                {{ !isset($penilaian) || $penilaian['status_catatan'] == 't' ? 'checked' : '' }}>
+                                {{ !isset($penilaian) || ($penilaian['status_catatan'] ?? 't') == 't' ? 'checked' : '' }}>
                             <label class="form-check-label" for="statusCatatanTidak">Tidak (t)</label>
                         </div>
                     </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="keterangan" class="form-label">Keterangan</label>
-                    <textarea name="Keterangan" id="keterangan" class="form-control" placeholder="Keterangan tambahan" rows="2">{{ $penilaian['Keterangan'] ?? '' }}</textarea>
                 </div>
 
                 <div class="d-flex gap-2">

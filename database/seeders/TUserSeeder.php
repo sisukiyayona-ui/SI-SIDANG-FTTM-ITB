@@ -25,31 +25,15 @@ class TUserSeeder extends Seeder
         ];
 
         // =============================================
-        // DEMO ACCOUNTS (8)
+        // DEMO ACCOUNTS (7)
         // =============================================
-        $extraMhs = [
-            // Bastian - referenced by all other seeders
-            [
-                'NIP_NIM' => '32224001',
-                'NAMA_LENGKAP' => 'Bastian',
-                'EMAIL' => 'bastian@mahasiswa.itb.ac.id',
-                'USERNAME' => 'bastian',
-                'PASSWORD' => Hash::make('mhs123'),
-                'STATUS_PEGAWAI' => 'Mahasiswa',
-                'JENIS_USER' => 'Mahasiswa',
-                'KODE_PRODI' => '322',
-                'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
-                'STRATA' => 'S3',
-            ],
-        ];
 
         $demoAccounts = [
             // 1. Admin
             [
                 'NIP_NIM' => '112000021',
-                'NAMA_LENGKAP' => 'Dede Rosyani',
-                'EMAIL' => 'Dede@itb.ac.id',
+                'NAMA_LENGKAP' => 'Administrator',
+                'EMAIL' => 'admin@itb.ac.id',
                 'USERNAME' => 'admin',
                 'PASSWORD' => Hash::make('admin123'),
                 'STATUS_PEGAWAI' => 'Tendik',
@@ -61,10 +45,10 @@ class TUserSeeder extends Seeder
             // 2. TU Prodi
             [
                 'NIP_NIM' => '197502082005012001',
-                'NAMA_LENGKAP' => 'Feri Rezeki Hastuti, SS',
-                'EMAIL' => 'feri@tm.itb.ac.id',
-                'USERNAME' => 'tuprodi',
-                'PASSWORD' => Hash::make('prodi123'),
+                'NAMA_LENGKAP' => 'Dede',
+                'EMAIL' => 'dede@tm.itb.ac.id',
+                'USERNAME' => 'Dede',
+                'PASSWORD' => Hash::make('1234'),
                 'STATUS_PEGAWAI' => 'Tendik',
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
@@ -74,10 +58,10 @@ class TUserSeeder extends Seeder
             // 3. TU FS
             [
                 'NIP_NIM' => '196508022009021002',
-                'NAMA_LENGKAP' => 'Haryanta',
-                'EMAIL' => 'haryanta@tm.itb.ac.id',
-                'USERNAME' => 'tufs',
-                'PASSWORD' => Hash::make('fs123'),
+                'NAMA_LENGKAP' => 'Dede FS',
+                'EMAIL' => 'dedefs@tm.itb.ac.id',
+                'USERNAME' => 'dedefs',
+                'PASSWORD' => Hash::make('1234'),
                 'STATUS_PEGAWAI' => 'Tendik',
                 'JENIS_USER' => 'FS',
                 'KODE_PRODI' => null,
@@ -87,10 +71,10 @@ class TUserSeeder extends Seeder
             // 4. Pembimbing
             [
                 'NIP_NIM' => '197803152002121001',
-                'NAMA_LENGKAP' => 'Dr. Budi Santoso',
-                'EMAIL' => 'budi@fttm.itb.ac.id',
+                'NAMA_LENGKAP' => 'Pembimbing',
+                'EMAIL' => 'pembimbing@fttm.itb.ac.id',
                 'USERNAME' => 'pembimbing',
-                'PASSWORD' => Hash::make('dosen123'),
+                'PASSWORD' => Hash::make('1234'),
                 'STATUS_PEGAWAI' => 'Dosen',
                 'JENIS_USER' => 'Pembimbing',
                 'KODE_PRODI' => '322',
@@ -100,8 +84,8 @@ class TUserSeeder extends Seeder
             // 5. Penguji
             [
                 'NIP_NIM' => '197210122003121001',
-                'NAMA_LENGKAP' => 'Prof. Dr. Siti Aminah',
-                'EMAIL' => 'siti@fttm.itb.ac.id',
+                'NAMA_LENGKAP' => 'Penguji',
+                'EMAIL' => 'penguji@itb.ac.id',
                 'USERNAME' => 'penguji',
                 'PASSWORD' => Hash::make('dosen123'),
                 'STATUS_PEGAWAI' => 'Dosen',
@@ -113,8 +97,8 @@ class TUserSeeder extends Seeder
             // 6. Monev
             [
                 'NIP_NIM' => '197512012005011002',
-                'NAMA_LENGKAP' => 'Dr. Ahmad Hidayat',
-                'EMAIL' => 'ahmad@fttm.itb.ac.id',
+                'NAMA_LENGKAP' => 'Monev',
+                'EMAIL' => 'monev@itb.ac.id',
                 'USERNAME' => 'monev',
                 'PASSWORD' => Hash::make('dosen123'),
                 'STATUS_PEGAWAI' => 'Dosen',
@@ -123,27 +107,13 @@ class TUserSeeder extends Seeder
                 'NAMA_PRODI' => 'Teknik Perminyakan',
                 'KODE_FS' => '13321002',
             ],
-            // 7. Mhs S3
+            // 7. Mahasiswa
             [
                 'NIP_NIM' => '32322004',
-                'NAMA_LENGKAP' => 'Ulvienin Harlianti',
-                'EMAIL' => 'ulvienin@mahasiswa.itb.ac.id',
-                'USERNAME' => 'ulvienin',
-                'PASSWORD' => Hash::make('mhs123'),
-                'STATUS_PEGAWAI' => 'Mahasiswa',
-                'JENIS_USER' => 'Mahasiswa',
-                'KODE_PRODI' => '322',
-                'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
-                'STRATA' => 'S3',
-            ],
-            // 8. Mhs S3
-            [
-                'NIP_NIM' => '456783210',
-                'NAMA_LENGKAP' => 'dede',
-                'EMAIL' => 'dede@mahasiswa.itb.ac.id',
-                'USERNAME' => 'dede',
-                'PASSWORD' => Hash::make('mhs123'),
+                'NAMA_LENGKAP' => 'Ade',
+                'EMAIL' => 'ade@mahasiswa.itb.ac.id',
+                'USERNAME' => 'ade',
+                'PASSWORD' => Hash::make('1234'),
                 'STATUS_PEGAWAI' => 'Mahasiswa',
                 'JENIS_USER' => 'Mahasiswa',
                 'KODE_PRODI' => '322',
@@ -424,11 +394,6 @@ class TUserSeeder extends Seeder
 
         // Insert staff
         foreach ($staff as $u) {
-            DB::table('t_user')->insert(array_merge($common, $u));
-        }
-
-        // Insert extra mahasiswa
-        foreach ($extraMhs as $u) {
             DB::table('t_user')->insert(array_merge($common, $u));
         }
     }

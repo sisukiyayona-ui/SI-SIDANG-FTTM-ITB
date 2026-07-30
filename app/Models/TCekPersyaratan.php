@@ -32,11 +32,11 @@ class TCekPersyaratan extends Model
 
     public function judul()
     {
-        return $this->belongsTo(TJudul::class, 'ID_JUDUL');
+        return $this->belongsTo(TJudul::class, 'ID_JUDUL', 'ID');
     }
 
     public function syaratSidang()
     {
-        return $this->belongsTo(TSyaratSidang::class, 'ID_SYARAT_SIDANG');
+        return $this->belongsTo(TSyaratSidang::class, 'ID_SYARAT_SIDANG', 'id');
     }
 }

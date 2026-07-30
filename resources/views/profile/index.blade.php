@@ -11,48 +11,275 @@
 @endsection
 
 @section('content')
-    @php $user = session('auth_user'); @endphp
+<style>
+    /* Profile Container Styles */
+    .profile-container {
+        --profile-card-bg: #ffffff;
+        --profile-border: #e5e7eb;
+        --profile-hover-bg: #f9fafb;
+        --profile-text-primary: #1f2937;
+        --profile-text-secondary: #6b7280;
+        --profile-avatar-border: #3b82f6;
+        --profile-badge-bg: #3b82f6;
+        --profile-badge-text: #ffffff;
+        --profile-success: #10b981;
+        --profile-warning: #f59e0b;
+        --profile-info-bg: #f8fafc;
+        --profile-code-bg: #f1f5f9;
+        --profile-code-text: #3b82f6;
+    }
+
+    html.dark-mode .profile-container {
+        --profile-card-bg: #1e293b;
+        --profile-border: #334155;
+        --profile-hover-bg: #2d3748;
+        --profile-text-primary: #f1f5f9;
+        --profile-text-secondary: #94a3b8;
+        --profile-avatar-border: #60a5fa;
+        --profile-badge-bg: #3b82f6;
+        --profile-badge-text: #ffffff;
+        --profile-success: #10b981;
+        --profile-warning: #f59e0b;
+        --profile-info-bg: #0f172a;
+        --profile-code-bg: #334155;
+        --profile-code-text: #60a5fa;
+    }
+
+    .profile-container .profile-card {
+        background: var(--profile-card-bg);
+        border: 1px solid var(--profile-border);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    html.dark-mode .profile-container .profile-card {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-container .profile-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    html.dark-mode .profile-container .profile-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    }
+
+    .profile-container .profile-avatar {
+        width: 140px;
+        height: 140px;
+        border: 4px solid var(--profile-avatar-border);
+        object-fit: cover;
+        border-radius: 50%;
+        transition: transform 0.3s ease;
+    }
+
+    .profile-container .profile-avatar:hover {
+        transform: scale(1.05);
+    }
+
+    .profile-container .profile-status-dot {
+        width: 22px;
+        height: 22px;
+        background: var(--profile-success);
+        border: 3px solid var(--profile-card-bg);
+        border-radius: 50%;
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-container .profile-name {
+        color: var(--profile-text-primary);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-container .profile-badge {
+        background: var(--profile-badge-bg);
+        color: var(--profile-badge-text);
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: inline-block;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+
+    .profile-container .profile-info-row {
+        border-bottom: 1px solid var(--profile-border);
+        transition: background-color 0.2s ease;
+    }
+
+    .profile-container .profile-info-row:last-child {
+        border-bottom: none;
+    }
+
+    .profile-container .profile-info-row:hover {
+        background-color: var(--profile-hover-bg);
+    }
+
+    .profile-container .profile-info-label {
+        width: 220px;
+        padding: 18px 24px;
+        background: var(--profile-info-bg);
+        border: none;
+        color: var(--profile-text-secondary);
+        font-weight: 600;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .profile-container .profile-info-value {
+        padding: 18px 24px;
+        border: none;
+        font-weight: 500;
+        color: var(--profile-text-primary);
+        vertical-align: middle;
+    }
+
+    .profile-container .profile-code {
+        background: var(--profile-code-bg);
+        padding: 4px 12px;
+        border-radius: 6px;
+        color: var(--profile-code-text);
+        font-size: 0.875rem;
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+    }
+
+    .profile-container .profile-section-title {
+        color: var(--profile-text-primary);
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .profile-container .profile-icon {
+        color: var(--profile-avatar-border);
+        width: 20px;
+        text-align: center;
+    }
+
+    .profile-container .profile-divider {
+        border-color: var(--profile-border);
+        opacity: 1;
+    }
+
+    .profile-container .profile-detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        font-size: 0.875rem;
+    }
+
+    .profile-container .profile-detail-label {
+        color: var(--profile-text-secondary);
+        font-weight: 500;
+    }
+
+    .profile-container .profile-detail-value {
+        color: var(--profile-text-primary);
+        font-weight: 600;
+    }
+
+    .profile-container .profile-status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .profile-container .profile-status-active {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--profile-success);
+    }
+
+    html.dark-mode .profile-container .profile-status-active {
+        background: rgba(16, 185, 129, 0.2);
+    }
+
+    .profile-container .profile-status-pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--profile-warning);
+    }
+
+    html.dark-mode .profile-container .profile-status-pending {
+        background: rgba(245, 158, 11, 0.2);
+    }
+
+    .profile-container .card-header {
+        background: transparent;
+        border-bottom: 1px solid var(--profile-border);
+        padding: 20px 24px;
+    }
+
+    .profile-container .card-body {
+        padding: 0;
+    }
+
+    .profile-container .profile-sidebar {
+        padding: 32px 24px;
+    }
+
+    @media (max-width: 768px) {
+        .profile-container .profile-info-label {
+            width: 140px;
+            padding: 14px 16px;
+            font-size: 0.8rem;
+        }
+        
+        .profile-container .profile-info-value {
+            padding: 14px 16px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+
+@php $user = session('auth_user'); @endphp
+<div class="profile-container">
     <div class="row">
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body text-center py-5">
-                    <div class="position-relative d-inline-block mb-3">
-                        <img src="{{ $user['avatar'] }}" alt="Avatar"
-                             class="img-circle img-fluid"
-                             style="width: 130px; height: 130px; border: 4px solid var(--primary-blue); object-fit: cover;">
-                        <span class="position-absolute"
-                              style="bottom: 5px; right: 5px; width: 22px; height: 22px; background: #22c55e; border: 3px solid #fff; border-radius: 50%; display: block;"></span>
+        <div class="col-md-4 mb-4">
+            <div class="profile-card">
+                <div class="profile-sidebar text-center">
+                    <div class="position-relative d-inline-block mb-4">
+                        <img src="{{ $user['avatar'] }}" alt="Avatar" class="profile-avatar">
+                        <span class="profile-status-dot"></span>
                     </div>
-                    <h5 class="fw-bold mb-1">{{ $user['nama_lengkap'] }}</h5>
-                    <p class="text-muted mb-2" style="font-size: 0.9rem;">
-                        <span class="badge bg-primary px-3 py-1">{{ $user['role'] }}</span>
+                    <h5 class="profile-name">{{ $user['nama_lengkap'] }}</h5>
+                    <p class="mb-3">
+                        <span class="profile-badge">{{ $user['role'] }}</span>
                     </p>
                     @if($user['strata'])
-                        <span class="badge bg-secondary px-2 py-1">{{ $user['strata'] }}</span>
+                        <span class="badge badge-secondary px-3 py-1" style="font-size: 0.85rem;">{{ $user['strata'] }}</span>
                     @endif
-                    <hr class="my-3" style="border-color: #e5e7eb;">
-                    <div class="text-start small">
+                    <hr class="profile-divider my-4">
+                    <div class="text-start">
                         @if($user['nip_nim'])
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">NIP/NIM</span>
-                                <span class="fw-medium">{{ $user['nip_nim'] }}</span>
+                            <div class="profile-detail-item">
+                                <span class="profile-detail-label">NIP/NIM</span>
+                                <span class="profile-detail-value">{{ $user['nip_nim'] }}</span>
                             </div>
                         @endif
                         @if($user['strata'])
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Strata</span>
-                                <span class="fw-medium">{{ $user['strata'] }}</span>
+                            <div class="profile-detail-item">
+                                <span class="profile-detail-label">Strata</span>
+                                <span class="profile-detail-value">{{ $user['strata'] }}</span>
                             </div>
                         @endif
                         @if($user['nama_prodi'])
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Program Studi</span>
-                                <span class="fw-medium">{{ $user['nama_prodi'] }}</span>
+                            <div class="profile-detail-item">
+                                <span class="profile-detail-label">Program Studi</span>
+                                <span class="profile-detail-value">{{ $user['nama_prodi'] }}</span>
                             </div>
                         @endif
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Status</span>
-                            <span class="badge bg-{{ $user['status'] === 'approved' ? 'success' : 'warning' }} px-2 py-1">
+                        <div class="profile-detail-item">
+                            <span class="profile-detail-label">Status</span>
+                            <span class="profile-status-badge {{ $user['status'] === 'approved' ? 'profile-status-active' : 'profile-status-pending' }}">
                                 {{ $user['status'] === 'approved' ? 'Active' : 'Pending' }}
                             </span>
                         </div>
@@ -60,61 +287,61 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header" style="background: transparent; border-bottom: 1px solid #e5e7eb;">
-                    <h5 class="mb-0 fw-bold" style="color: var(--text-dark);">
-                        <i class="fas fa-id-card mr-2" style="color: var(--primary-blue);"></i>Informasi Akun
+        <div class="col-md-8 mb-4">
+            <div class="profile-card">
+                <div class="card-header">
+                    <h5 class="profile-section-title">
+                        <i class="fas fa-id-card profile-icon mr-2"></i>Informasi Akun
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
                     <div class="table-responsive">
                         <table class="table mb-0" style="border-collapse: separate; border-spacing: 0;">
                             <tbody>
-                                <tr style="border-bottom: 1px solid #f1f5f9;">
-                                    <th style="width: 200px; padding: 16px 24px; background: #f8fafc; border: none; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; vertical-align: middle;">
-                                        <i class="fas fa-user mr-2" style="color: var(--primary-blue); width: 18px;"></i>Nama Lengkap
+                                <tr class="profile-info-row">
+                                    <th class="profile-info-label">
+                                        <i class="fas fa-user profile-icon mr-2"></i>Nama Lengkap
                                     </th>
-                                    <td style="padding: 16px 24px; border: none; font-weight: 500; color: var(--text-dark); vertical-align: middle;">
+                                    <td class="profile-info-value">
                                         {{ $user['nama_lengkap'] }}
                                     </td>
                                 </tr>
-                                <tr style="border-bottom: 1px solid #f1f5f9;">
-                                    <th style="width: 200px; padding: 16px 24px; background: #f8fafc; border: none; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; vertical-align: middle;">
-                                        <i class="fas fa-envelope mr-2" style="color: var(--primary-blue); width: 18px;"></i>Email
+                                <tr class="profile-info-row">
+                                    <th class="profile-info-label">
+                                        <i class="fas fa-envelope profile-icon mr-2"></i>Email
                                     </th>
-                                    <td style="padding: 16px 24px; border: none; color: var(--text-dark); vertical-align: middle;">
+                                    <td class="profile-info-value">
                                         {{ $user['email'] }}
                                     </td>
                                 </tr>
-                                <tr style="border-bottom: 1px solid #f1f5f9;">
-                                    <th style="width: 200px; padding: 16px 24px; background: #f8fafc; border: none; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; vertical-align: middle;">
-                                        <i class="fas fa-user-circle mr-2" style="color: var(--primary-blue); width: 18px;"></i>Username
+                                <tr class="profile-info-row">
+                                    <th class="profile-info-label">
+                                        <i class="fas fa-user-circle profile-icon mr-2"></i>Username
                                     </th>
-                                    <td style="padding: 16px 24px; border: none; color: var(--text-dark); vertical-align: middle;">
-                                        <code style="background: #f1f5f9; padding: 3px 10px; border-radius: 4px; color: var(--primary-blue); font-size: 0.85rem;">{{ $user['Username'] }}</code>
+                                    <td class="profile-info-value">
+                                        <code class="profile-code">{{ $user['Username'] }}</code>
                                     </td>
                                 </tr>
-                                <tr style="border-bottom: 1px solid #f1f5f9;">
-                                    <th style="width: 200px; padding: 16px 24px; background: #f8fafc; border: none; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; vertical-align: middle;">
-                                        <i class="fas fa-shield-alt mr-2" style="color: var(--primary-blue); width: 18px;"></i>Role
+                                <tr class="profile-info-row">
+                                    <th class="profile-info-label">
+                                        <i class="fas fa-shield-alt profile-icon mr-2"></i>Role
                                     </th>
-                                    <td style="padding: 16px 24px; border: none; vertical-align: middle;">
-                                        <span class="badge bg-primary px-3 py-1" style="font-size: 0.85rem;">{{ $user['role'] }}</span>
+                                    <td class="profile-info-value">
+                                        <span class="profile-badge">{{ $user['role'] }}</span>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <th style="width: 200px; padding: 16px 24px; background: #f8fafc; border: none; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; vertical-align: middle;">
-                                        <i class="fas fa-globe mr-2" style="color: var(--primary-blue); width: 18px;"></i>Akun INA
+                                <tr class="profile-info-row">
+                                    <th class="profile-info-label">
+                                        <i class="fas fa-globe profile-icon mr-2"></i>Akun INA
                                     </th>
-                                    <td style="padding: 16px 24px; border: none; color: var(--text-dark); vertical-align: middle;">
+                                    <td class="profile-info-value">
                                         @if($user['akun_ina'])
                                             <span class="d-inline-flex align-items-center">
-                                                <i class="fas fa-check-circle text-success mr-1"></i>
+                                                <i class="fas fa-check-circle mr-2" style="color: var(--profile-success);"></i>
                                                 {{ $user['akun_ina'] }}
                                             </span>
                                         @else
-                                            <span class="text-muted font-italic">—</span>
+                                            <span style="color: var(--profile-text-secondary); font-style: italic;">—</span>
                                         @endif
                                     </td>
                                 </tr>
@@ -125,4 +352,5 @@
             </div>
         </div>
     </div>
+</div>
 @endsection

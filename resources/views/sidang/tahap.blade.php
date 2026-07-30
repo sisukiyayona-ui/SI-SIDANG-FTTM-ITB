@@ -20,6 +20,12 @@
             color: #1e293b !important;
             text-decoration-color: transparent !important;
         }
+        html:not(.dark-mode) .tahap-container .jadwal-date-link.text-primary {
+            color: #0066cc !important;
+        }
+        html:not(.dark-mode) .tahap-container .jadwal-date-link.text-primary:hover {
+            color: #004499 !important;
+        }
         html:not(.dark-mode) .tahap-container table tbody td span {
             color: #1e293b !important;
             text-decoration-color: transparent !important;
@@ -148,31 +154,28 @@
                         <tbody>
                             @if($persyaratan && $persyaratan->count() > 0)
                                 @foreach($persyaratan as $idx => $item)
-                                    @php $syaratId = $item->id_syarat_sidang ?? $item->id; @endphp
+                                    @php $syaratId = $item->ID_SYARAT_SIDANG ?? $item->id; @endphp
                                     <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
                                         <td>{{ $idx + 1 }}</td>
-                                        <td class="text-left"><span>{{ $item->Persyaratan ?? $item->nama_persyaratan }}</span></td>
+                                        <td class="text-left"><span>{{ $item->PERSYARATAN ?? $item->NAMA_PERSYARATAN }}</span></td>
                                         <td>
-                                            <input type="checkbox" {{ isset($item->status_kelengkapan) && $item->status_kelengkapan ? 'checked' : '' }} onchange="window.updateKelengkapan({{ $syaratId }}, this.checked)">
+                                            <input type="checkbox" {{ isset($item->STATUS_LENGKAP) && $item->STATUS_LENGKAP === 'y' ? 'checked' : '' }} data-syarat-id="{{ $syaratId }}">
                                         </td>
                                         <td>
-                                            <div class="d-flex align-items-center justify-content-center flex-column" id="upload-wrapper-{{ $syaratId }}">
-                                                <div class="d-flex align-items-center mb-1">
-                                                    <a href="{{ isset($item->link_file) && $item->link_file ? $item->link_file : '#' }}" target="_blank" class="btn btn-sm btn-info text-white mr-2 {{ isset($item->link_file) && $item->link_file ? '' : 'd-none' }}" id="link-{{ $syaratId }}" title="Lihat Dokumen">
-                                                        <i class="fas fa-eye mr-1"></i> Lihat
-                                                    </a>
-                                                    <label for="file-{{ $syaratId }}" class="btn btn-sm {{ isset($item->link_file) && $item->link_file ? 'btn-outline-primary' : 'btn-primary' }} m-0" id="label-file-{{ $syaratId }}" style="cursor: pointer;">
-                                                        <i class="fas {{ isset($item->link_file) && $item->link_file ? 'fa-edit' : 'fa-upload' }} mr-1" id="icon-file-{{ $syaratId }}"></i> 
-                                                        <span id="btn-text-{{ $syaratId }}">{{ isset($item->link_file) && $item->link_file ? 'Ubah' : 'Upload' }}</span>
-                                                    </label>
-                                                    <input type="file" class="d-none" id="file-{{ $syaratId }}" onchange="window.uploadFile(this, '{{ $syaratId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <a href="{{ isset($item->LINK_FILE) && $item->LINK_FILE ? $item->LINK_FILE : '#' }}" target="_blank" class="mr-2 text-primary {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}" style="font-size: 13px;" id="link-{{ $syaratId }}">Lihat file</a>
+                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
+                                                @if(!in_array(session('auth_user.role'), ['FS']))
+                                                <div class="upload-container" style="position: relative; width: 34px;">
+                                                    <input type="file" class="d-none" id="file-{{ $syaratId }}" accept=".pdf" onchange="window.uploadFile(this, '{{ $syaratId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
+                                                    <label for="file-{{ $syaratId }}" class="btn btn-light bg-white border py-0 px-2 text-dark upload-btn" style="cursor: pointer; margin-bottom: 0;"><i class="fas fa-upload" style="font-size: 14px;"></i></label>
+                                                    <div id="progress-{{ $syaratId }}" class="progress mt-1 d-none" style="height: 4px; position: absolute; bottom: -8px; left: 0; right: 0;">
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+                                                    </div>
                                                 </div>
-                                                <div id="file-name-{{ $syaratId }}" class="text-muted text-center" style="font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                    {{ isset($item->link_file) && $item->link_file ? basename($item->link_file) : '' }}
-                                                </div>
-                                                <div id="progress-container-{{ $syaratId }}" class="progress mt-1 d-none" style="height: 6px; width: 100%;">
-                                                    <div id="progress-bar-{{ $syaratId }}" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
+                                                @else
+                                                <span class="text-muted" style="font-size: 12px;">Tidak dapat mengunggah</span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -185,9 +188,11 @@
                         </tbody>
                     </table>
                     <div class="text-right mt-3">
+                        @if(!in_array(session('auth_user.role'), ['FS']))
                         <button type="button" class="btn btn-primary" onclick="window.savePersyaratan('{{ $tahapan }}')">
                             <i class="fas fa-save mr-1"></i> Simpan
                         </button>
+                        @endif
                     </div>
                 </div>
 
@@ -259,21 +264,7 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Urutan</label>
-                                        <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" name="urutan">
-                                                <option value="">Pilih Urutan</option>
-                                                <option value="1">1</option>
-                                                <option value="2">2</option>
-                                                <option value="3">3</option>
-                                                <option value="4">4</option>
-                                                <option value="5">5</option>
-                                                <option value="6">6</option>
-                                                <option value="7">7</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <input type="hidden" name="urutan" value="">
                                     <div class="text-center mt-4">
                                         <button type="submit" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;">Simpan</button>
                                         <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timForm').style.display='none'; document.getElementById('timAddBtn').style.display='block';">Batal</button>
@@ -281,7 +272,7 @@
                                 </form>
                             </div>
                             <div id="timAddBtn" style="display: none;">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="showAddTimForm('timForm', 'timAddBtn')"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                                <button type="button" class="btn btn-primary btn-sm" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} onclick="showAddTimForm('timForm', 'timAddBtn')"><i class="fas fa-plus mr-1"></i> Tambah</button>
                             </div>
                         </div>
                         {{-- KANAN: REPORT --}}
@@ -297,7 +288,7 @@
                                         <th style="width: 20%;">NIP</th>
                                         <th style="width: 30%;">Nama</th>
                                         <th style="width: 20%;">Keterangan</th>
-                                        <th style="width: 20%;">No SK</th><th style="width: 10%;">Aksi</th>
+                                        <th style="width: 20%;">No SK</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="width: 10%;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -316,15 +307,17 @@
                                                  <td class="text-left text-primary" style="text-decoration:underline;">{{ $tim->Nama }}</td>
                                                  <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
                                                  <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
+                                                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
                                                  <td>
                                                      <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                      <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
                                                  </td>
+                                                 @endif
                                              </tr>
                                          @endforeach
                                     @else
                                         <tr style="background-color: #dbe5f1;">
-                                            <td colspan="6" class="text-center text-muted">Belum ada tim penguji</td>
+                                            <td colspan="{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '6' : '5' }}" class="text-center text-muted">Belum ada tim penguji</td>
                                         </tr>
                                     @endif
                                 </tbody>
@@ -341,11 +334,11 @@
                             <div class="form-group row align-items-center mb-2">
                                 <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                                 <div class="col-sm-8 px-1">
-                                    <select class="form-control form-control-sm" id="penilaianSelect" onchange="filterPenilaian(); document.getElementById('selectedTimSidangTahap1').value = this.value">
+                                    <select class="form-control form-control-sm" id="penilaianSelect" onchange="document.getElementById('formFilterSelect').value='';document.getElementById('selectedTimSidangTahap1').value=this.value;filterPenilaian();">
                                         <option value="">-- Pilih Penilai --</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
-                                                <option value="{{ $tim->id }}">{{ $tim->Nama }} ({{ $tim->nip }})</option>
+                                                <option value="{{ $tim->id }}" data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }} ({{ $tim->nip }})</option>
                                             @endforeach
                                         @endif
                                     </select>
@@ -376,7 +369,7 @@
                                 <tr>
                                     <th style="width: 10%;">No</th>
                                     <th style="width: 40%;"><span class="text-danger text-decoration-underline">Parameter Nilai</span></th>
-                                    <th style="width: 15%;"><span class="text-danger text-decoration-underline">Nilai</span></th>
+                                    <th style="width: 15%;"><span class="text-danger text-decoration-underline">Nilai (Range 1 - 5)</span></th>
                                     <th style="width: 35%;"><span class="text-danger text-decoration-underline">Catatan</span></th>
                                 </tr>
                             </thead>
@@ -391,26 +384,26 @@
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
                                             @php $rowNum++; @endphp
-                                            <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}">
+                                             <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 <td>
-                                                    <input type="number" class="form-control form-control-sm" style="width: 60px; margin: auto;" value="" min="0" max="100">
+                                                    <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="" min="1" max="5">
                                                 </td>
                                                 <td>
-                                                    <input type="text" class="form-control form-control-sm" value="">
+                                                    <input type="text" class="form-control form-control-sm catatan-input" value="">
                                                 </td>
                                             </tr>
                                             @foreach($existingRecords as $existing)
                                                 @php $rowNum++; @endphp
-                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}">
+                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     <td>
-                                                        <input type="number" class="form-control form-control-sm" style="width: 60px; margin: auto;" value="{{ $existing->Nilai }}" min="0" max="100">
+                                                        <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="{{ $existing->Nilai }}" min="1" max="5">
                                                     </td>
                                                     <td>
-                                                        <input type="text" class="form-control form-control-sm" value="{{ $existing->catatan }}">
+                                                        <input type="text" class="form-control form-control-sm catatan-input" value="{{ $existing->catatan }}">
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -423,13 +416,19 @@
                     <div class="mt-4 d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
                             <span class="mr-4 font-weight-bold">Status Lulus</span>
+                            @if(!in_array(session('auth_user.role'), ['FS']))
                             <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;">
                                 <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                 <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
                             </select>
-                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-outline-secondary ml-2 px-2 py-0" onclick="toggleLockNilai()" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-outline-secondary ml-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                            @else
+                            <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? $ajuan->status_lulus : 'Belum ditentukan' }}</span>
+                            @endif
                         </div>
+                        @if(!in_array(session('auth_user.role'), ['FS']))
                         <button type="button" class="btn btn-outline-dark px-4 py-1 bg-white text-danger" style="font-size: 14px; text-decoration: underline; text-decoration-color: red;" onclick="savePenilaianTahap1()">Simpan</button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -447,21 +446,19 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if($timSidang && $timSidang->where('status_tim_sidang', 'Pembimbing')->count() > 0)
-                            @foreach($timSidang->where('status_tim_sidang', 'Pembimbing') as $idx => $pembimbing)
+                        @php $pembimbingList = $timSidang ? $timSidang->filter(fn($t) => str_contains($t->status_tim_sidang ?? '', 'Pembimbing')) : collect(); @endphp
+                        @if($pembimbingList->count() > 0)
+                            @foreach($pembimbingList as $idx => $pembimbing)
                                 <tr>
                                     <td>{{ $idx + 1 }}</td>
                                     <td>{{ $pembimbing->nip }}</td>
-                                    <td>Prof. Dr. <span class="text-danger text-decoration-underline">{{ $pembimbing->Nama }}</span>.</td>
+                                    <td><span class="text-danger text-decoration-underline">{{ $pembimbing->Nama }}</span></td>
                                     <td><span class="text-danger text-decoration-underline">{{ $pembimbing->keterangan ?? 'Ketua Pembimbing' }}</span></td>
                                 </tr>
                             @endforeach
                         @else
                             <tr>
-                                <td>1</td>
-                                <td>12345678</td>
-                                <td>Prof. Dr. <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Satria Bijaksana</span>.</td>
-                                <td><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Ketua Pembimbing</span></td>
+                                <td colspan="4" class="text-muted">Belum ada data pembimbing</td>
                             </tr>
                         @endif
                     </tbody>
@@ -491,10 +488,7 @@
                             @endforeach
                         @else
                         <tr>
-                            <td>1</td>
-                            <td><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Nilai MK Ujian Kualifikasi</span></td>
-                            <td>4</td>
-                            <td></td>
+                            <td colspan="4" class="text-muted">Belum ada data penilaian</td>
                         </tr>
                         @endif
                     </tbody>
@@ -546,31 +540,28 @@
                         <tbody id="persyaratanTahapBody">
                             @if($persyaratan && $persyaratan->count() > 0)
                                 @foreach($persyaratan as $idx => $item)
-                                    @php $syaratId = $item->id_syarat_sidang ?? $item->id; @endphp
+                                    @php $syaratId = $item->ID_SYARAT_SIDANG ?? $item->id; @endphp
                                     <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
                                         <td>{{ $idx + 1 }}</td>
-                                        <td class="text-left"><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">{{ $item->Persyaratan ?? $item->nama_persyaratan }}</span></td>
+                                        <td class="text-left"><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">{{ $item->PERSYARATAN ?? $item->NAMA_PERSYARATAN }}</span></td>
                                         <td>
-                                            <input type="checkbox" {{ isset($item->status_kelengkapan) && $item->status_kelengkapan ? 'checked' : '' }} data-syarat-id="{{ $syaratId }}">
+                                            <input type="checkbox" {{ isset($item->STATUS_LENGKAP) && $item->STATUS_LENGKAP === 'y' ? 'checked' : '' }} data-syarat-id="{{ $syaratId }}">
                                         </td>
                                         <td>
-                                            <div class="d-flex align-items-center justify-content-center flex-column" id="upload-wrapper-{{ $syaratId }}">
-                                                <div class="d-flex align-items-center mb-1">
-                                                    <a href="{{ isset($item->link_file) && $item->link_file ? $item->link_file : '#' }}" target="_blank" class="btn btn-sm btn-info text-white mr-2 {{ isset($item->link_file) && $item->link_file ? '' : 'd-none' }}" id="link-{{ $syaratId }}" title="Lihat Dokumen">
-                                                        <i class="fas fa-eye mr-1"></i> Lihat
-                                                    </a>
-                                                    <label for="file-{{ $syaratId }}" class="btn btn-sm {{ isset($item->link_file) && $item->link_file ? 'btn-outline-primary' : 'btn-primary' }} m-0" id="label-file-{{ $syaratId }}" style="cursor: pointer;">
-                                                        <i class="fas {{ isset($item->link_file) && $item->link_file ? 'fa-edit' : 'fa-upload' }} mr-1" id="icon-file-{{ $syaratId }}"></i> 
-                                                        <span id="btn-text-{{ $syaratId }}">{{ isset($item->link_file) && $item->link_file ? 'Ubah' : 'Upload' }}</span>
-                                                    </label>
-                                                    <input type="file" class="d-none" id="file-{{ $syaratId }}" onchange="window.uploadFile(this, '{{ $syaratId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <a href="{{ isset($item->LINK_FILE) && $item->LINK_FILE ? $item->LINK_FILE : '#' }}" target="_blank" class="mr-2 text-primary {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}" style="font-size: 13px;" id="link-{{ $syaratId }}">Lihat file</a>
+                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
+                                @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
+                                                <div class="upload-container" style="position: relative; width: 34px;">
+                                                    <input type="file" class="d-none" id="file-{{ $syaratId }}" accept=".pdf" onchange="window.uploadFile(this, '{{ $syaratId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
+                                                    <label for="file-{{ $syaratId }}" class="btn btn-light bg-white border py-0 px-2 text-dark upload-btn" style="cursor: pointer; margin-bottom: 0;"><i class="fas fa-upload" style="font-size: 14px;"></i></label>
+                                                    <div id="progress-{{ $syaratId }}" class="progress mt-1 d-none" style="height: 4px; position: absolute; bottom: -8px; left: 0; right: 0;">
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+                                                    </div>
                                                 </div>
-                                                <div id="file-name-{{ $syaratId }}" class="text-muted text-center" style="font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                    {{ isset($item->link_file) && $item->link_file ? basename($item->link_file) : '' }}
-                                                </div>
-                                                <div id="progress-container-{{ $syaratId }}" class="progress mt-1 d-none" style="height: 6px; width: 100%;">
-                                                    <div id="progress-bar-{{ $syaratId }}" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
+                                                @else
+                                                <span class="text-muted" style="font-size: 12px;">Tidak dapat mengunggah</span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -583,22 +574,20 @@
                                     <td class="text-left">{!! $hname !!}</td>
                                     <td><input type="checkbox" data-syarat-id="{{ $hfakerId }}"></td>
                                      <td>
-                                        <div class="d-flex align-items-center justify-content-center flex-column" id="upload-wrapper-{{ $hfakerId }}">
-                                            <div class="d-flex align-items-center mb-1">
-                                                <a href="#" target="_blank" class="btn btn-sm btn-info text-white mr-2 d-none" id="link-{{ $hfakerId }}" title="Lihat Dokumen">
-                                                    <i class="fas fa-eye mr-1"></i> Lihat
-                                                </a>
-                                                <label for="file-{{ $hfakerId }}" class="btn btn-sm btn-primary m-0" id="label-file-{{ $hfakerId }}" style="cursor: pointer;">
-                                                    <i class="fas fa-upload mr-1" id="icon-file-{{ $hfakerId }}"></i> 
-                                                    <span id="btn-text-{{ $hfakerId }}">Upload</span>
-                                                </label>
-                                                <input type="file" class="d-none" id="file-{{ $hfakerId }}" onchange="window.uploadFile(this, '{{ $hfakerId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
-                                            </div>
-                                            <div id="file-name-{{ $hfakerId }}" class="text-muted text-center" style="font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            </div>
-                                            <div id="progress-container-{{ $hfakerId }}" class="progress mt-1 d-none" style="height: 6px; width: 100%;">
-                                                <div id="progress-bar-{{ $hfakerId }}" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                            </div>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <a href="#" target="_blank" class="mr-2 text-primary d-none" style="font-size: 13px;" id="link-{{ $hfakerId }}">Lihat file</a>
+                                            <span id="check-{{ $hfakerId }}" class="mr-2 text-success d-none"><i class="fas fa-check-circle"></i></span>
+                                                @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
+                                                <div class="upload-container" style="position: relative; width: 34px;">
+                                                    <input type="file" class="d-none" id="file-{{ $hfakerId }}" accept=".pdf" onchange="window.uploadFile(this, '{{ $hfakerId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
+                                                    <label for="file-{{ $hfakerId }}" class="btn btn-light bg-white border py-0 px-2 text-dark upload-btn" style="cursor: pointer; margin-bottom: 0;"><i class="fas fa-upload" style="font-size: 14px;"></i></label>
+                                                    <div id="progress-{{ $hfakerId }}" class="progress mt-1 d-none" style="height: 4px; position: absolute; bottom: -8px; left: 0; right: 0;">
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+                                                    </div>
+                                                </div>
+                                                @else
+                                                <span class="text-muted" style="font-size: 12px;">Tidak dapat mengunggah</span>
+                                                @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -607,15 +596,18 @@
                         </tbody>
                     </table>
                     <div class="text-right mt-3">
+                        @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
                         <button type="button" class="btn btn-primary" onclick="savePersyaratanTahap()">
                             <i class="fas fa-save mr-1"></i> Simpan
                         </button>
+                        @endif
                     </div>
                 </div>
 
                 <div class="tab-pane fade" id="tim" role="tabpanel">
                     {{-- TIM: FORM LEFT, REPORT RIGHT --}}
                     <div class="row">
+                        @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
                         {{-- KIRI: FORM --}}
                         <div class="col-md-6">
                             <div id="timFormTahap2" style="display: block;">
@@ -681,21 +673,7 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Urutan</label>
-                                        <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" name="urutan">
-                                                <option value="">Pilih Urutan</option>
-                                                <option value="1">1</option>
-                                                <option value="2">2</option>
-                                                <option value="3">3</option>
-                                                <option value="4">4</option>
-                                                <option value="5">5</option>
-                                                <option value="6">6</option>
-                                                <option value="7">7</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <input type="hidden" name="urutan" id="urutanHidden" value="">
                                     <div class="text-center mt-4">
                                         <button type="submit" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;">Simpan</button>
                                         <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timFormTahap2').style.display='none'; document.getElementById('timAddBtnTahap2').style.display='block';">Batal</button>
@@ -703,11 +681,12 @@
                                 </form>
                             </div>
                             <div id="timAddBtnTahap2" style="display: none;">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="showAddTimForm('timFormTahap2', 'timAddBtnTahap2')"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                                <button type="button" class="btn btn-primary btn-sm" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} onclick="showAddTimForm('timFormTahap2', 'timAddBtnTahap2')"><i class="fas fa-plus mr-1"></i> Tambah</button>
                             </div>
                         </div>
+                        @endif
                         {{-- KANAN: REPORT --}}
-                        <div class="col-md-6">
+                        <div class="col-md-{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '6' : '12' }}">
                             <div class="text-muted font-weight-bold mb-2 ml-1" style="font-size: 14px;">
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
@@ -719,7 +698,7 @@
                                         <th style="width: 20%;">NIP</th>
                                         <th style="width: 30%;">Nama</th>
                                         <th style="width: 20%;">Keterangan</th>
-                                        <th style="width: 20%;">No SK</th><th style="width: 10%;">Aksi</th>
+                                        <th style="width: 20%;">No SK</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="width: 10%;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -738,15 +717,17 @@
                                                  <td class="text-left text-primary" style="text-decoration:underline;">{{ $tim->Nama }}</td>
                                                  <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
                                                  <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
+                                                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
                                                  <td>
                                                      <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                      <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
                                                  </td>
+                                                 @endif
                                              </tr>
                                          @endforeach
                                     @else
                                         <tr style="background-color: #dbe5f1;">
-                                            <td colspan="6" class="text-center text-muted">Belum ada tim penguji</td>
+                                            <td colspan="{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '6' : '5' }}" class="text-center text-muted">Belum ada tim penguji</td>
                                         </tr>
                                     @endif
                                 </tbody>
@@ -763,7 +744,7 @@
                             <div class="text-muted font-weight-bold">
                                 Jadwal Sidang {{ str_replace('tahap', 'Tahap', $tahapan) }}
                             </div>
-                            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('jadwalFormTahap2').style.display='block';"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                            <button type="button" class="btn btn-primary btn-sm" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? 'disabled' : '' }} onclick="openJadwalForm(null)"><i class="fas fa-plus mr-1"></i> Tambah</button>
                         </div>
                         <table class="table table-bordered table-sm text-center">
                             <thead style="background-color: #6998d3; color: white;">
@@ -775,15 +756,18 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @if(isset($ajuan) && $ajuan->tgl_sidang)
+                                @php $visibleAjuan = isset($allAjuan) ? $allAjuan->filter(function($a) { return $a->tgl_sidang && (session('auth_user.role') !== 'FS' || ($a->STATUS_AJUKAN_PRODI ?? 't') === 'y'); }) : collect(); @endphp
+                                @if($visibleAjuan->isNotEmpty())
+                                    @foreach($visibleAjuan as $idx => $a)
                                     <tr style="background-color: #dbe5f1;">
-                                        <td>1</td>
-                                        <td><span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: pointer;">{{ \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') }}</span></td>
-                                        <td>{{ $ajuan->status_lulus ?? 'Dalam Proses' }}</td>
+                                        <td>{{ $idx + 1 }}</td>
+                                        <td><span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: {{ (in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) || ($a->status_lulus ?? '') === 'tidak lulus') ? 'default' : 'pointer' }};" {{ (in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) || ($a->status_lulus ?? '') === 'tidak lulus') ? '' : 'onclick="openJadwalForm(' . $a->id . ')"' }}>{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span></td>
+                                        <td>{{ $a->status_lulus ?? 'Dalam Proses' }}</td>
                                         <td>
-                                            <button type="button" class="btn btn-link text-primary p-0" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';">Penilaian</button>
+                                            <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
                                         </td>
                                     </tr>
+                                    @endforeach
                                 @else
                                     <tr style="background-color: #dbe5f1;">
                                         <td colspan="4" class="text-center text-muted">Belum ada jadwal</td>
@@ -804,41 +788,31 @@
                             <input type="hidden" name="tahapan_sidang" value="{{ $tahapan }}">
                             <input type="hidden" name="id_tim_sidang" id="selectedTimSidangTahap2">
                             <input type="hidden" name="no_form" id="selectedNoFormTahap2">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Penilai</label>
-                                        <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" id="penilaiTahap2" name="id_user_penilai" onchange="filterPenilaianTahap2(); document.getElementById('selectedTimSidangTahap2').value = this.value">
-                                                <option value="">Pilih Penilai</option>
-                                                @if(isset($timSidang) && $timSidang->count() > 0)
-                                                    @foreach($timSidang as $tim)
-                                                        <option value="{{ $tim->id }}">{{ $tim->Nama }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
-                                        </div>
-                                    </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                <div class="d-flex align-items-center">
+                                    <label class="text-danger mb-0 text-nowrap mr-2" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Penilai</label>
+                                    <select class="form-control form-control-sm border-dark rounded-0" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('formTahap2').value='';document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value='';filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
+                                        <option value="">Pilih Penilai</option>
+                                        @if(isset($timSidang) && $timSidang->count() > 0)
+                                            @foreach($timSidang as $tim)
+                                                <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                    <label class="text-danger mb-0 text-nowrap mr-2 ml-3" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Form</label>
+                                    <select class="form-control form-control-sm border-dark rounded-0" id="formTahap2" name="no_form_display" style="width: 160px;" onchange="filterPenilaianTahap2(); document.getElementById('selectedNoFormTahap2').value = this.value">
+                                        <option value="">Pilih Form</option>
+                                        @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
+                                            @foreach($pointPenilaian as $form)
+                                                <option value="{{ $form->no_form }}">{{ $form->no_form }}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Form</label>
-                                        <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" id="formTahap2" name="no_form_display" onchange="filterPenilaianTahap2(); document.getElementById('selectedNoFormTahap2').value = this.value">
-                                                <option value="">Pilih Form</option>
-                                                @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
-                                                    @foreach($pointPenilaian as $form)
-                                                        <option value="{{ $form->no_form }}">{{ $form->no_form }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <button type="button" class="btn btn-outline-dark px-2 py-0 bg-white text-danger" style="font-size: 12px; border-radius: 0;" onclick="cetakForm()">Cetak Surat Penelahan</button>
+                                    <button type="button" class="btn btn-outline-dark px-2 py-0 bg-white text-danger ml-1" style="font-size: 12px; border-radius: 0;">Ba Sidang</button>
                                 </div>
-                            </div>
-                            <div class="text-center mt-2 mb-4">
-                                <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger mr-2" style="font-size: 13px; border-radius: 0;">Cetak Form</button>
-                                <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0;">Ba Sidang</button>
                             </div>
                             {{-- REPORT TABLE --}}
                             <table class="table table-bordered table-sm text-center">
@@ -861,28 +835,28 @@
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
                                             @php $rowNum++; @endphp
-                                            <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}">
+                                             <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 <td>
                                                     <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                    <input type="number" class="form-control form-control-sm" style="width: 60px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5">
+                                                    <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5">
                                                 </td>
                                                 <td>
-                                                    <input type="text" class="form-control form-control-sm" name="penilaian[{{ $rowNum }}][catatan]" value="">
+                                                    <input type="text" class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" value="">
                                                 </td>
                                             </tr>
                                             @foreach($existingRecords as $existing)
                                                 @php $rowNum++; @endphp
-                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}">
+                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                        <input type="number" class="form-control form-control-sm" style="width: 60px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ $existing->Nilai }}" min="1" max="5">
+                                                        <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ $existing->Nilai }}" min="1" max="5">
                                                     </td>
                                                     <td>
-                                                        <input type="text" class="form-control form-control-sm" name="penilaian[{{ $rowNum }}][catatan]" value="{{ $existing->catatan }}">
+                                                        <input type="text" class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" value="{{ $existing->catatan }}">
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -890,24 +864,40 @@
                                     @endif
                                 </tbody>
                             </table>
-                            <div class="text-left mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';">&larr; Kembali</button>
+                            {{-- STATUS KELULUSAN --}}
+                            <div class="mt-4 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0 mr-3" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';">&larr; Kembali</button>
+                                    <span class="mr-4 font-weight-bold">Status Kelulusan</span>
+                                    @if(!in_array(session('auth_user.role'), ['FS']))
+                                    <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 150px;">
+                                        <option value="">Pilih Status</option>
+                                        <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
+                                        <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
+                                    </select>
+                                    <button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-outline-secondary ml-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                                    @else
+                                    <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? $ajuan->status_lulus : 'Belum ditentukan' }}</span>
+                                    @endif
+                                </div>
+                                @if(!in_array(session('auth_user.role'), ['FS']))
+                                <button type="button" class="btn btn-outline-dark px-4 py-1 bg-white text-danger" style="font-size: 14px; text-decoration: underline; text-decoration-color: red;" onclick="savePenilaianTahap2()">Simpan</button>
+                                @endif
                             </div>
                         </form>
                     </div>
-                    {{-- STATUS KELULUSAN --}}
-                    <div class="mt-4 d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <span class="mr-4 font-weight-bold">Status Kelulusan</span>
-                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 150px;">
-                                <option value="">Pilih Status</option>
-                                <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
-                                <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
-                            </select>
-                            <button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-outline-secondary ml-2 px-2 py-0" onclick="toggleLockNilaiTahap2()" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
-                        </div>
-                        <button type="button" class="btn btn-outline-dark px-4 py-1 bg-white text-danger" style="font-size: 14px; text-decoration: underline; text-decoration-color: red;" onclick="savePenilaianTahap2()">Simpan</button>
-                    </div>
+
+                    @if(in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
+                    <script>
+                        (function() {
+                            var sel = document.getElementById('penilaiTahap2');
+                            if (sel && sel.value) {
+                                document.getElementById('selectedTimSidangTahap2').value = sel.value;
+                                filterPenilaianTahap2();
+                            }
+                        })();
+                    </script>
+                    @endif
 
                     <div id="jadwalFormTahap2" style="display: none;">
                         <div class="d-flex justify-content-between align-items-start mb-3">
@@ -923,36 +913,37 @@
                             @csrf
                             <input type="hidden" name="id_judul" value="{{ $idJudul }}">
                             <input type="hidden" name="tahapan_sidang" value="{{ $tahapan }}">
+                            <input type="hidden" id="id_ajuan_tahap2" name="id_ajuan" value="">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tgl Seminar/Sidang</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_sidang" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}">
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_sidang" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Waktu</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_sidang" value="{{ isset($ajuan) ? $ajuan->waktu_sidang : '' }}">
+                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_sidang" value="{{ isset($ajuan) ? $ajuan->waktu_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Ruangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="ruang_sidang" value="{{ isset($ajuan) ? $ajuan->ruang_sidang : '' }}">
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="ruang_sidang" value="{{ isset($ajuan) ? $ajuan->ruang_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Undangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_surat_undangan : '' }}">
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_surat_undangan : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Undangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->no_surat_undangan : '' }}">
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                 </div>
@@ -960,40 +951,55 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->tgl_surat_penelaah : '' }}">
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->tgl_surat_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->no_surat_penelaah : '' }}">
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->no_surat_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Pemanggilan Penilai</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_pemanggilan_penilai" value="{{ isset($ajuan) ? $ajuan->tgl_pemanggilan_penilai : '' }}">
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_pemanggilan_penilai" value="{{ isset($ajuan) ? $ajuan->tgl_pemanggilan_penilai : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row align-items-center mb-2 px-1">
+                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Hasil Penelahan</label>
+                                        <div class="col-sm-6 px-2">
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_hasil_penelahan" value="{{ isset($ajuan) ? $ajuan->TGL_HASIL_PENELAHAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Email Surat</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}">
+                                            <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No SK Kelulusan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_sk_kelulusan" value="{{ isset($ajuan) ? $ajuan->no_sk_kelulusan : '' }}">
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_sk_kelulusan" value="{{ isset($ajuan) ? $ajuan->SK_LULUS : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-end mt-4">
-                                <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger mr-2" style="font-size: 13px; border-radius: 0;">Ajukan ke FS</button>
-                                <button type="submit" class="btn btn-outline-dark px-3 py-0 bg-white text-danger mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;">Simpan</button>
-                                <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('jadwalFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';">Batal</button>
-                            </div>
+                             <div class="d-flex justify-content-between align-items-center mt-4">
+                                 <div>
+                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('jadwalFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';">&larr; Kembali</button>
+                                 </div>
+                                 <div>
+                                     <input type="hidden" name="is_ajukan_fs" value="">
+                                     @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
+                                     <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);">Ajukan ke FS</button>
+                                     @endif
+                                     @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
+                                     <button type="submit" class="btn btn-outline-dark px-3 py-0 bg-white text-danger mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;">Simpan</button>
+                                     @endif
+                                 </div>
+                             </div>
                         </form>
                     </div>
 
@@ -1007,7 +1013,7 @@
                                 <div class="form-group row align-items-center mb-2 px-1">
                                     <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tanggal</label>
                                     <div class="col-sm-8 px-2">
-                                        <input type="text" class="form-control form-control-sm border-dark rounded-0" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}">
+                                        <input type="text" class="form-control form-control-sm border-dark rounded-0" value="{{ isset($ajuan) && $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') : '' }}">
                                     </div>
                                 </div>
                                 <div class="form-group row align-items-center mb-2 px-1">
@@ -1067,11 +1073,11 @@
                                     <div class="form-group row align-items-center mb-2">
                                         <label class="col-sm-2 text-danger mb-0 px-1 text-right" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                                         <div class="col-sm-4 px-1">
-                                            <select class="form-control form-control-sm border-dark rounded-0" id="penilaiSelect" onchange="loadPenilaianForm()">
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="penilaiSelect" onchange="document.getElementById('formSelect').value='';loadPenilaianForm();">
                                                 <option value="">Pilih Penilai</option>
                                                 @if(isset($timSidang) && $timSidang->count() > 0)
                                                     @foreach($timSidang as $tim)
-                                                        <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == $user['id'] ? 'selected' : '' }}>{{ $tim->Nama }}</option>
+                                                        <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == $user['id'] ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }}</option>
                                                     @endforeach
                                                 @endif
                                             </select>
@@ -1090,8 +1096,24 @@
                                         <div class="col-sm-2 pl-0 d-flex align-items-center">
                                             <button type="submit" class="btn btn-outline-dark py-0 px-1 bg-white" style="font-size: 12px; border-radius: 0;">Simpan</button>
                                         </div>
+                                        @if($isKetuaPembimbing ?? false)
+                                        <div class="col-sm-2 pl-0 d-flex align-items-center ml-2">
+                                            <button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-outline-secondary px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" title="Kunci Nilai" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                                        </div>
+                                        @endif
                                     </div>
                                     
+                                    @if($isKetuaPembimbing ?? false)
+                                    <div class="d-flex align-items-center mb-2 mt-3">
+                                        <span class="mr-2 font-weight-bold" style="font-size: 13px;">Status Kelulusan</span>
+                                        <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;">
+                                            <option value="">Pilih Status</option>
+                                            <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
+                                            <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
+                                        </select>
+                                    </div>
+                                    @endif
+
                                     <table class="table table-bordered table-sm text-center mt-3 mb-0" style="table-layout: fixed; border-color: #fff;">
                                         <thead style="background-color: #6998d3; color: white;">
                                             <tr>
@@ -1107,29 +1129,29 @@
                                             </tr>
                                             @if(isset($penilaian) && $penilaian->count() > 0)
                                                 @foreach($penilaian as $idx => $nilai)
-                                                <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-no-form="{{ $nilai->no_form }}">
+                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $nilai->id_penilaian }}" hidden>
-                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="{{ $nilai->Nilai }}" class="form-control form-control-sm" min="0" max="100" style="width: 60px; margin: auto;">
+                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="{{ $nilai->Nilai }}" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;">
                                                     </td>
                                                     <td>
-                                                        <input type="text" name="penilaian[{{ $idx }}][catatan]" value="{{ $nilai->catatan }}" class="form-control form-control-sm" style="font-size: 12px;">
+                                                        <input type="text" name="penilaian[{{ $idx }}][catatan]" value="{{ $nilai->catatan }}" class="form-control form-control-sm catatan-input" style="font-size: 12px;">
                                                     </td>
                                                 </tr>
-                                                @endforeach
-                                            @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
+                                            @endforeach
+                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
                                                 @foreach($allPointPenilaian as $idx => $point)
-                                                <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}">
+                                                <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm" min="0" max="100" style="width: 60px; margin: auto;">
+                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;">
                                                     </td>
                                                     <td>
-                                                        <input type="text" name="penilaian[{{ $idx }}][catatan]" value="" class="form-control form-control-sm" style="font-size: 12px;">
+                                                        <input type="text" name="penilaian[{{ $idx }}][catatan]" value="" class="form-control form-control-sm catatan-input" style="font-size: 12px;">
                                                     </td>
                                                 </tr>
                                                 @endforeach
@@ -1197,6 +1219,7 @@
                 <div class="tab-pane fade" id="tim" role="tabpanel">
                     {{-- TIM: FORM LEFT, REPORT RIGHT --}}
                     <div class="row">
+                        @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
                         {{-- KIRI: FORM --}}
                         <div class="col-md-6">
                             <div id="timFormTahap2" style="display: block;">
@@ -1262,21 +1285,7 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Urutan</label>
-                                        <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" name="urutan">
-                                                <option value="">Pilih Urutan</option>
-                                                <option value="1">1</option>
-                                                <option value="2">2</option>
-                                                <option value="3">3</option>
-                                                <option value="4">4</option>
-                                                <option value="5">5</option>
-                                                <option value="6">6</option>
-                                                <option value="7">7</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <input type="hidden" name="urutan" id="urutanHidden" value="">
                                     <div class="text-center mt-4">
                                         <button type="submit" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;">Simpan</button>
                                         <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timFormTahap2').style.display='none'; document.getElementById('timAddBtnTahap2').style.display='block';">Batal</button>
@@ -1284,11 +1293,12 @@
                                 </form>
                             </div>
                             <div id="timAddBtnTahap2" style="display: none;">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="showAddTimForm('timFormTahap2', 'timAddBtnTahap2')"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                                <button type="button" class="btn btn-primary btn-sm" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} onclick="showAddTimForm('timFormTahap2', 'timAddBtnTahap2')"><i class="fas fa-plus mr-1"></i> Tambah</button>
                             </div>
                         </div>
+                        @endif
                         {{-- KANAN: REPORT --}}
-                        <div class="col-md-6">
+                        <div class="col-md-{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '6' : '12' }}">
                             <div class="text-muted font-weight-bold mb-2 ml-1" style="font-size: 14px;">
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
@@ -1300,7 +1310,7 @@
                                         <th style="width: 20%;">NIP</th>
                                         <th style="width: 30%;">Nama</th>
                                         <th style="width: 20%;">Keterangan</th>
-                                        <th style="width: 20%;">No SK</th><th style="width: 10%;">Aksi</th>
+                                        <th style="width: 20%;">No SK</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="width: 10%;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1319,15 +1329,17 @@
                                                  <td class="text-left text-primary" style="text-decoration:underline;">{{ $tim->Nama }}</td>
                                                  <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
                                                  <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
+                                                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
                                                  <td>
                                                      <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                      <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
                                                  </td>
+                                                 @endif
                                              </tr>
                                          @endforeach
                                     @else
                                         <tr style="background-color: #dbe5f1;">
-                                            <td colspan="6" class="text-center text-muted">Belum ada tim penguji</td>
+                                            <td colspan="{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '6' : '5' }}" class="text-center text-muted">Belum ada tim penguji</td>
                                         </tr>
                                     @endif
                                 </tbody>
@@ -1378,13 +1390,11 @@ function savePersyaratanTahap() {
         formData.append('kelengkapan[' + cb.getAttribute('data-syarat-id') + ']', cb.checked ? 'y' : 't');
     });
 
-    var fileInputs = tbody.querySelectorAll('input[type="file"][data-syarat-id]');
-    fileInputs.forEach(function(input) {
-        var id = input.getAttribute('data-syarat-id');
-        if (persyaratanFiles[id]) {
+    if (typeof persyaratanFiles !== 'undefined') {
+        Object.keys(persyaratanFiles).forEach(function(id) {
             formData.append('files[' + id + ']', persyaratanFiles[id]);
-        }
-    });
+        });
+    }
 
     var btn = document.querySelector('.btn-primary[onclick*="savePersyaratanTahap"]');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
@@ -1504,7 +1514,7 @@ function submitPenilaian(event) {
 }
 
 function filterPenilaianTahap2() {
-    var isLocked = {{ isset($ajuan) && $ajuan->status_lulus ? 'true' : 'false' }};
+    var isLocked = false;
     var penilaiId = document.getElementById('penilaiTahap2').value;
     var noForm = document.getElementById('formTahap2').value;
     document.getElementById('selectedTimSidangTahap2').value = penilaiId;
@@ -1539,19 +1549,44 @@ function filterPenilaianTahap2() {
         }
 
         row.style.display = show ? '' : 'none';
-        row.querySelectorAll('input, textarea, select').forEach(function(input) {
-            input.disabled = !show || isLocked;
-        });
+        if (!show) {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = true;
+            });
+        } else if (isLocked) {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = true;
+            });
+        } else {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = false;
+            });
+            applyStatusCatatan(row);
+        }
         if (show) hasVisible = true;
     });
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
+    toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
+}
+
+function applyStatusCatatan(row) {
+    var sc = row.getAttribute('data-status-catatan');
+    var catatanInput = row.querySelector('input.catatan-input');
+    var nilaiInput = row.querySelector('input.nilai-input');
+    if (sc === 'y') {
+        if (catatanInput) catatanInput.disabled = false;
+        if (nilaiInput) nilaiInput.disabled = true;
+    } else {
+        if (catatanInput) catatanInput.disabled = true;
+        if (nilaiInput) nilaiInput.disabled = false;
+    }
 }
 
 function filterPenilaian() {
-    var isLocked = {{ isset($ajuan) && $ajuan->status_lulus ? 'true' : 'false' }};
+    var isLocked = false;
     var penilaiId = document.getElementById('penilaianSelect').value;
     var noForm = document.getElementById('formFilterSelect').value;
     var tbody = document.getElementById('penilaianReportBody');
@@ -1584,20 +1619,33 @@ function filterPenilaian() {
         }
 
         row.style.display = show ? 'table-row' : 'none';
-        row.querySelectorAll('input, textarea, select').forEach(function(input) {
-            input.disabled = !show || isLocked;
-        });
+        if (!show) {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = true;
+            });
+        } else if (isLocked) {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = true;
+            });
+        } else {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = false;
+            });
+            applyStatusCatatan(row);
+        }
         if (show) hasVisible = true;
     });
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
+    toggleLockButton('penilaianReportBody', 'lockNilaiBtn');
 }
 
 function loadPenilaianForm() {
     const timSidangId = document.getElementById('penilaiSelect').value;
     const noForm = document.getElementById('formSelect').value;
+    var isLocked = false;
     
     document.getElementById('selectedTimSidang').value = timSidangId;
     document.getElementById('selectedNoForm').value = noForm;
@@ -1618,18 +1666,34 @@ function loadPenilaianForm() {
             }
         }
         row.style.display = show ? 'table-row' : 'none';
+        if (!show) {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = true;
+            });
+        } else if (isLocked) {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = true;
+            });
+        } else {
+            row.querySelectorAll('input, textarea, select').forEach(function(inp) {
+                inp.disabled = false;
+            });
+            applyStatusCatatan(row);
+        }
         if (show) hasVisible = true;
     });
     
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
+    toggleLockButton('penilaianTableBody', 'lockNilaiPembimbingBtn');
 }
 
 function updateKelengkapan(idSyarat, isChecked) {
     let formData = new FormData();
     formData.append('id_syarat_sidang', idSyarat);
     formData.append('status_lengkap', isChecked ? 'y' : 't');
+    formData.append('id_judul', '{{ $idJudul }}');
     formData.append('_token', '{{ csrf_token() }}');
 
     fetch('{{ route('mahasiswa.update-kelengkapan') }}', {
@@ -1640,6 +1704,12 @@ function updateKelengkapan(idSyarat, isChecked) {
     .then(data => {
         if (data.success) {
             console.log('Status kelengkapan updated');
+            // Reload to show updated database status
+            if (typeof showTahapForm === 'function') {
+                showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'persyaratan');
+            } else {
+                location.reload();
+            }
         } else {
             alert('Gagal update status kelengkapan');
         }
@@ -1649,42 +1719,100 @@ function updateKelengkapan(idSyarat, isChecked) {
     });
 }
 
-function uploadFile(input, idSyarat, tahapan) {
-    if (!input.files || input.files.length === 0) return;
-
-    let formData = new FormData();
-    formData.append('file', input.files[0]);
-    formData.append('id_syarat_sidang', idSyarat);
-    formData.append('tahapan_sidang', tahapan);
+function savePersyaratan(tahapan) {
+    var formData = new FormData();
     formData.append('_token', '{{ csrf_token() }}');
+    formData.append('id_judul', '{{ $idJudul }}');
+    formData.append('tahapan_sidang', tahapan);
 
-    let xhr = new XMLHttpRequest();
-    xhr.open('POST', '{{ route('mahasiswa.upload-persyaratan') }}', true);
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    var checkboxes = document.querySelectorAll('#persyaratan input[type="checkbox"][data-syarat-id]');
+    checkboxes.forEach(function(cb) {
+        formData.append('kelengkapan[' + cb.getAttribute('data-syarat-id') + ']', cb.checked ? 'y' : 't');
+    });
 
-    xhr.onload = function () {
-        if (xhr.status === 200) {
-            try {
-                let data = JSON.parse(xhr.responseText);
-                if (data.success) {
-                    alert('File berhasil diupload');
-                    location.reload();
-                } else {
-                    alert(data.message || 'Gagal upload file');
-                }
-            } catch (e) {
-                alert('Error parsing response: ' + e.message);
+    if (typeof persyaratanFiles !== 'undefined') {
+        Object.keys(persyaratanFiles).forEach(function(id) {
+            formData.append('files[' + id + ']', persyaratanFiles[id]);
+        });
+    }
+
+    var btn = document.querySelector('.btn-primary[onclick*="savePersyaratan"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
+
+    fetch('{{ route('mahasiswa.save-all-persyaratan') }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast('Persyaratan berhasil disimpan', 'success');
+            persyaratanFiles = {};
+            if (typeof showTahapForm === 'function') {
+                showTahapForm(tahapan, '{{ $idJudul }}', 'persyaratan');
+            } else {
+                location.reload();
             }
         } else {
-            alert('Upload failed with status: ' + xhr.status);
+            alert(data.message || 'Gagal menyimpan persyaratan');
         }
-    };
+    })
+    .catch(function(error) {
+        alert('Terjadi kesalahan: ' + error);
+    })
+    .finally(function() {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan'; }
+    });
+}
 
-    xhr.onerror = function () {
-        alert('Upload error occurred');
-    };
+function uploadFile(input, idSyarat, tahapan, idJudul) {
+    if (!input.files || input.files.length === 0) return;
 
-    xhr.send(formData);
+    let file = input.files[0];
+
+    let ext = file.name.split('.').pop().toLowerCase();
+    if (ext !== 'pdf') {
+        showToast('Hanya file PDF yang diizinkan', 'error');
+        input.value = '';
+        return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('Maksimal ukuran file 2 MB', 'error');
+        input.value = '';
+        return;
+    }
+
+    if (typeof persyaratanFiles === 'undefined') {
+        window.persyaratanFiles = {};
+    }
+    persyaratanFiles[idSyarat] = file;
+
+    let progressEl = document.getElementById('progress-' + idSyarat);
+    if (progressEl) {
+        progressEl.classList.remove('d-none');
+        let bar = progressEl.querySelector('.progress-bar');
+        if (bar) {
+            bar.style.width = '0%';
+            setTimeout(function() { bar.style.width = '60%'; }, 100);
+            setTimeout(function() { bar.style.width = '100%'; }, 400);
+            setTimeout(function() { progressEl.classList.add('d-none'); }, 900);
+        }
+    }
+
+    let linkEl = document.getElementById('link-' + idSyarat);
+    if (linkEl) {
+        linkEl.href = URL.createObjectURL(file);
+        linkEl.classList.remove('d-none');
+    }
+
+    let checkIcon = document.getElementById('check-' + idSyarat);
+    if (checkIcon) checkIcon.classList.remove('d-none');
+
+    input.value = '';
 }
 
 function showAddTimForm(formId, btnId) {
@@ -1946,20 +2074,105 @@ function saveStatusLulus2() {
     });
 }
 
-function toggleLockNilaiTahap2() {
-    var btn = document.getElementById('lockNilaiTahap2Btn');
-    var inputs = document.querySelectorAll('#penilaianTahap2Body input');
-    var isLocked = inputs.length > 0 && inputs[0].disabled;
-    inputs.forEach(function(inp) { inp.disabled = !isLocked; });
-    btn.innerHTML = isLocked ? '<i class="fas fa-lock"></i> Kunci Nilai' : '<i class="fas fa-unlock"></i> Buka Nilai';
+function toggleLockButton(tbodyId, btnId) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) { btn.disabled = true; return; }
+
+    var statusLulusId = '';
+    if (tbodyId === 'penilaianReportBody') statusLulusId = 'statusLulusDisplay';
+    else if (tbodyId === 'penilaianTahap2Body') statusLulusId = 'statusLulusTahap2';
+    else if (tbodyId === 'penilaianTableBody') statusLulusId = 'statusLulusPembimbing';
+    var statusEl = document.getElementById(statusLulusId);
+
+    var rows = tbody.querySelectorAll('tr[data-status-catatan]');
+    var allFilled = true;
+    var hasVisible = false;
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.style.display === 'none') continue;
+        if (row.id && row.id.indexOf('EmptyRow') !== -1) continue;
+        hasVisible = true;
+        var sc = row.getAttribute('data-status-catatan');
+        if (sc === 'y') {
+            var catatanInput = row.querySelector('input.catatan-input');
+            if (catatanInput && !catatanInput.value.trim()) {
+                allFilled = false;
+                break;
+            }
+        } else {
+            var nilaiInput = row.querySelector('input.nilai-input');
+            if (nilaiInput && !nilaiInput.value.trim()) {
+                allFilled = false;
+                break;
+            }
+        }
+    }
+    var enabled = hasVisible && allFilled;
+    btn.disabled = !enabled;
+    if (statusEl) statusEl.disabled = !enabled;
 }
 
-function toggleLockNilai() {
-    var btn = document.getElementById('lockNilaiBtn');
-    var inputs = document.querySelectorAll('#penilaianReportBody input');
-    var isLocked = inputs.length > 0 && inputs[0].disabled;
-    inputs.forEach(function(inp) { inp.disabled = !isLocked; });
-    btn.innerHTML = isLocked ? '<i class="fas fa-lock"></i> Kunci Nilai' : '<i class="fas fa-unlock"></i> Buka Nilai';
+function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
+    if (!confirm('Apakah Anda yakin ingin mengunci nilai? Setelah dikunci, nilai tidak dapat diubah.')) {
+        return;
+    }
+    var statusLulus = document.getElementById(statusLulusId);
+    var statusLulusVal = statusLulus ? statusLulus.value : '';
+    var idJudul = '{{ $idJudul }}';
+
+    var idTimSidang = '';
+    var keterangan = '';
+    if (tbodyId === 'penilaianReportBody') {
+        idTimSidang = document.getElementById('selectedTimSidangTahap1') ? document.getElementById('selectedTimSidangTahap1').value : '';
+        var sel = document.getElementById('penilaianSelect');
+        if (sel) {
+            var opt = sel.options[sel.selectedIndex];
+            if (opt) keterangan = opt.getAttribute('data-keterangan') || '';
+        }
+    } else if (tbodyId === 'penilaianTahap2Body') {
+        idTimSidang = document.getElementById('selectedTimSidangTahap2') ? document.getElementById('selectedTimSidangTahap2').value : '';
+        var sel = document.getElementById('penilaiTahap2');
+        if (sel) {
+            var opt = sel.options[sel.selectedIndex];
+            if (opt) keterangan = opt.getAttribute('data-keterangan') || '';
+        }
+    } else if (tbodyId === 'penilaianTableBody') {
+        idTimSidang = document.getElementById('selectedTimSidang') ? document.getElementById('selectedTimSidang').value : '';
+        var sel = document.getElementById('penilaiSelect');
+        if (sel) {
+            var opt = sel.options[sel.selectedIndex];
+            if (opt) keterangan = opt.getAttribute('data-keterangan') || '';
+        }
+    }
+
+    fetch('/sidang/lock-nilai/' + idJudul, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            nilai_terkunci: 'y',
+            tahapan_sidang: tahapan,
+            status_lulus: statusLulusVal,
+            id_tim_sidang: idTimSidang,
+            keterangan: keterangan
+        })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast(data.message || 'Nilai berhasil dikunci', 'success');
+        } else {
+            showToast('Error: ' + (data.error || 'Gagal mengunci nilai'), 'error');
+        }
+    })
+    .catch(function(error) {
+        showToast('Error: ' + error, 'error');
+    });
 }
 
 async function savePenilaianTahap2() {
@@ -2020,6 +2233,11 @@ async function savePenilaianTahap2() {
             body: JSON.stringify(body)
         });
         const data = await res.json();
+        if (!res.ok) {
+            var msg = data.error || data.message || JSON.stringify(data.errors || data);
+            showToast('Error: ' + msg, 'error');
+            return;
+        }
         if (data.success) {
             let msg = 'Penilaian berhasil disimpan';
             if (data.status_lulus_updated) {
@@ -2139,27 +2357,24 @@ function submitJadwalTahap2(event) {
 }
 
 function showToast(message, type) {
-    // Create toast element
-    let toast = document.createElement('div');
-    toast.className = 'toast show';
-    toast.style.position = 'fixed';
-    toast.style.top = '20px';
-    toast.style.right = '20px';
-    toast.style.zIndex = '9999';
-    toast.style.minWidth = '250px';
-    toast.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
-    toast.style.color = 'white';
-    toast.style.padding = '15px';
-    toast.style.borderRadius = '5px';
-    toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-    toast.textContent = message;
-
+    var isSuccess = type === 'success';
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:24px;right:24px;z-index:9999;max-width:350px;width:100%;animation:slideInRight 0.3s ease forwards;';
+    toast.innerHTML =
+        '<div style="background:#fff;border-radius:12px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.08),0 8px 10px -6px rgba(0,0,0,0.05);border-left:4px solid ' + (isSuccess ? '#10b981' : '#ef4444') + ';padding:16px;margin-bottom:12px;">' +
+            '<div style="display:flex;align-items:flex-start;">' +
+                '<div style="font-size:1.2rem;margin-top:2px;margin-right:12px;color:' + (isSuccess ? '#10b981' : '#ef4444') + '">' +
+                    '<i class="fas ' + (isSuccess ? 'fa-check-circle' : 'fa-exclamation-circle') + ' fa-lg"></i>' +
+                '</div>' +
+                '<div style="flex-grow:1;">' +
+                    '<h6 style="margin:0;font-weight:700;color:#1e293b;font-size:0.95rem;">' + (isSuccess ? 'Berhasil' : 'Gagal') + '</h6>' +
+                    '<p style="margin:4px 0 0;font-size:0.85rem;line-height:1.4;color:#64748b;">' + message + '</p>' +
+                '</div>' +
+                '<button type="button" style="background:none;border:none;font-size:1.25rem;color:#94a3b8;cursor:pointer;margin-left:12px;padding:0;line-height:1;" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>' +
+            '</div>' +
+        '</div>';
     document.body.appendChild(toast);
-
-    // Remove after 3 seconds
-    setTimeout(function() {
-        toast.remove();
-    }, 3000);
+    setTimeout(function() { toast.remove(); }, 3000);
 }
 
 // Tab switching for Tahap I
@@ -2224,23 +2439,59 @@ if (tahap2Body) {
     filterPenilaianTahap2();
 }
 
-// Auto-lock inputs when status_lulus already exists
-@if(isset($ajuan) && $ajuan->status_lulus)
-(function() {
-    var inputs = document.querySelectorAll('#penilaianReportBody input, #penilaianTahap2Body input');
-    inputs.forEach(function(inp) { inp.disabled = true; });
-    var btn = document.getElementById('lockNilaiBtn');
-    if (btn) btn.innerHTML = '<i class="fas fa-lock"></i> Terkunci';
-    var btn2 = document.getElementById('lockNilaiTahap2Btn');
-    if (btn2) btn2.innerHTML = '<i class="fas fa-lock"></i> Terkunci';
-})();
-@endif
-
-// Make jadwal date clickable to show edit form
-document.querySelectorAll('#jadwalListTahap2 .jadwal-date-link').forEach(function(el) {
-    el.addEventListener('click', function() {
-        document.getElementById('jadwalListTahap2').style.display = 'none';
-        document.getElementById('jadwalFormTahap2').style.display = 'block';
-    });
+// Input listeners for dynamic lock button validation
+document.addEventListener('input', function(e) {
+    if (e.target.closest('#penilaianReportBody')) {
+        toggleLockButton('penilaianReportBody', 'lockNilaiBtn');
+    } else if (e.target.closest('#penilaianTahap2Body')) {
+        toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
+    } else if (e.target.closest('#penilaianTableBody')) {
+        toggleLockButton('penilaianTableBody', 'lockNilaiPembimbingBtn');
+    }
 });
+
+// All ajuan data for jadwal edit
+var _allAjuanData = @json($allAjuanJson);
+
+function openJadwalForm(id) {
+    var form = document.getElementById('jadwalFormTahap2Form');
+    var fields = ['tgl_sidang','waktu_sidang','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_pemanggilan_penilai','tgl_hasil_penelahan','email_surat','no_sk_kelulusan'];
+
+    // Clear all fields first
+    fields.forEach(function(name) {
+        var el = form.querySelector('[name="' + name + '"]');
+        if (el) el.value = '';
+    });
+    document.getElementById('id_ajuan_tahap2').value = '';
+
+    // Find record by id
+    var data = null;
+    if (id) {
+        for (var i = 0; i < _allAjuanData.length; i++) {
+            if (_allAjuanData[i].id == id) { data = _allAjuanData[i]; break; }
+        }
+    }
+
+    if (data) {
+        fields.forEach(function(name) {
+            var el = form.querySelector('[name="' + name + '"]');
+            if (el && data[name] !== undefined && data[name] !== null) el.value = data[name];
+        });
+        document.getElementById('id_ajuan_tahap2').value = data.id;
+    }
+
+    document.getElementById('jadwalListTahap2').style.display = 'none';
+    document.getElementById('jadwalFormTahap2').style.display = 'block';
+}
+
+function cetakForm() {
+    var idTimSidang = document.getElementById('selectedTimSidangTahap2').value;
+    if (!idTimSidang) { alert('Pilih penilai terlebih dahulu.'); return; }
+    var idJudul = document.querySelector('#penilaianFormTahap2Form [name="id_judul"]').value;
+    var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
+    var url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+    url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
+    url += '?id_tim_sidang=' + encodeURIComponent(idTimSidang);
+    window.open(url, '_blank');
+}
 </script>

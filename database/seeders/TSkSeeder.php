@@ -15,20 +15,11 @@ class TSkSeeder extends Seeder
 
         $now = now();
 
-        $judulDede = DB::table('t_judul')->where('NIM', '456783210')->first();
-        $judulBastian = DB::table('t_judul')->where('NIM', '32224001')->first();
-
-        DB::table('t_sk')->insert([
-            'NO_SK' => 'SK/SIDANG/322/2023/001',
-            'ID_JUDUL' => $judulDede->id,
-            'TAHAPAN_SIDANG' => 'tahap I',
-            'TGL_BUAT' => $now,
-            'TGL_UPDATE' => $now,
-        ]);
+        $judulAde = DB::table('t_judul')->where('NIM', '32322004')->first();
 
         DB::table('t_sk')->insert([
             'NO_SK' => 'SK/SIDANG/322/2024/001',
-            'ID_JUDUL' => $judulBastian->id,
+            'ID_JUDUL' => $judulAde->id,
             'TAHAPAN_SIDANG' => 'tahap I',
             'TGL_BUAT' => $now,
             'TGL_UPDATE' => $now,

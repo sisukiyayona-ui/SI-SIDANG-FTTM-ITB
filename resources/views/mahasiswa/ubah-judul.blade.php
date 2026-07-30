@@ -58,4 +58,8 @@
             @endif
         </div>
     </div>
+
+    <div class="mt-3">
+        <a href="{{ route('mahasiswa.dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left mr-1"></i>Kembali</a>
+    </div>
 @endsection

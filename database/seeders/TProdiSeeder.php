@@ -17,6 +17,13 @@ class TProdiSeeder extends Seeder
                 'TGL_CREATE' => now(),
                 'TGL_UPDATE' => now(),
             ],
+            [
+                'KODE_PRODI' => '323',
+                'NAMA_PRODI' => 'Teknik Geofisika',
+                'STATUS_AKTIF' => 'AKTIF',
+                'TGL_CREATE' => now(),
+                'TGL_UPDATE' => now(),
+            ],
         ]);
     }
 }

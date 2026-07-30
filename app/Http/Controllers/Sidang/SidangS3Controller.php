@@ -101,28 +101,19 @@ class SidangS3Controller extends Controller
             $query->where('u.KODE_PRODI', $user['kode_prodi']);
         } elseif ($user['role'] === 'FS') {
             // FS sees all records
-        } elseif ($user['role'] === 'Pembimbing') {
-            $query->whereIn('j.id', function($q) use ($user) {
-                $q->select('id_judul')
-                  ->from('t_tim_sidang')
-                  ->where('id_user_penilai', $user['id'])
-                  ->where('status_tim_sidang', 'Pembimbing');
-            });
-        } elseif ($user['role'] === 'Penguji') {
-            $query->whereIn('j.id', function($q) use ($user) {
-                $q->select('id_judul')
-                  ->from('t_tim_sidang')
-                  ->where('id_user_penilai', $user['id'])
-                  ->where('status_tim_sidang', 'Penguji');
-            });
+        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
+            $query->join('t_tim_sidang as ts', 'j.id', '=', 'ts.ID_JUDUL')
+                  ->where('ts.ID_USER_PENILAI', $user['id']);
         }
 
         $tracking = $query->orderBy('j.id', 'desc')->paginate(10);
 
-        // Fetch mahasiswa list for Tambah Judul modal (TU Prodi/FS)
+        // Fetch mahasiswa list for Tambah Judul modal (TU Prodi/FS) — only those without a title
         $mahasiswaList = collect();
         if (in_array($user['role'], ['TU Prodi', 'FS'])) {
-            $mhsQuery = \App\Models\TUser::where('JENIS_USER', 'Mahasiswa');
+            $existingMhsIds = DB::table('t_judul')->pluck('ID_USER_MHS');
+            $mhsQuery = \App\Models\TUser::where('JENIS_USER', 'Mahasiswa')
+                ->whereNotIn('id', $existingMhsIds);
             if ($user['role'] === 'TU Prodi') {
                 $mhsQuery->where('KODE_PRODI', $user['kode_prodi']);
             }
@@ -253,6 +244,11 @@ class SidangS3Controller extends Controller
         $mhs = \App\Models\TUser::find($request->id_user_mhs);
         if (!$mhs) {
             return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+        }
+
+        $existingJudul = DB::table('t_judul')->where('NIM', $mhs->NIP_NIM)->first();
+        if ($existingJudul) {
+            return redirect()->back()->with('error', 'Mahasiswa dengan NIM ' . $mhs->NIP_NIM . ' sudah memiliki judul.');
         }
 
         $judulId = DB::table('t_judul')->insertGetId([

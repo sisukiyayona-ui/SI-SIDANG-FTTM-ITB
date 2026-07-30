@@ -55,7 +55,7 @@ class PenilaianController extends Controller
         return view('master.penilaian-form', compact('penilaian', 'prodis', 'tahapans'));
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $user = session('auth_user');
         $query = TPointPenilaian::query();
@@ -64,7 +64,29 @@ class PenilaianController extends Controller
             $query->where('kode_prodi', $user['kode_prodi']);
         }
 
-        $penilaian = $query->orderBy('id', 'desc')->paginate(10)->through(function($item) {
+        if ($s = $request->get('penilaian')) {
+            $query->where('PENILAIAN', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('no_form')) {
+            $query->where('NO_FORM', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('tahapan_sidang')) {
+            $query->where('TAHAPAN_SIDANG', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('strata')) {
+            $query->where('STRATA', $s);
+        }
+        if ($s = $request->get('nama_prodi')) {
+            $query->where('NAMA_PRODI', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('Keterangan')) {
+            $query->where('KETERANGAN', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('status_aktif')) {
+            $query->where('STATUS_AKTIF', $s);
+        }
+
+        $penilaian = $query->orderBy('id', 'desc')->paginate(10)->withQueryString()->through(function($item) {
             return [
                 'id' => $item->id,
                 'nama' => $item->penilaian ?? $item->PENILAIAN,

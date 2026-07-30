@@ -8,14 +8,29 @@ use Illuminate\Http\Request;
 
 class ProdiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $prodi = TProdi::paginate(10);
-        $prodi->getCollection()->transform(function($p) {
+        $query = TProdi::query();
+
+        if ($s = $request->get('kode_prodi')) {
+            $query->where('KODE_PRODI', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('nama_prodi')) {
+            $query->where('NAMA_PRODI', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('strata')) {
+            $query->where('STRATA', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('status_aktif')) {
+            $query->where('STATUS_AKTIF', $s);
+        }
+
+        $prodi = $query->orderBy('KODE_PRODI', 'asc')->paginate(10)->withQueryString()->through(function($p) {
             return [
                 'id' => $p->id,
                 'kode' => $p->kode_prodi,
                 'nama' => $p->nama_prodi,
+                'strata' => $p->strata ?? '',
                 'status' => $p->status_aktif,
             ];
         });
@@ -25,6 +40,7 @@ class ProdiController extends Controller
                 'id' => $p->id,
                 'kode' => $p->kode_prodi,
                 'nama' => $p->nama_prodi,
+                'strata' => $p->strata ?? '',
                 'status' => $p->status_aktif,
             ];
         });

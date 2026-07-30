@@ -13,12 +13,12 @@ class TPenilaianSeeder extends Seeder
         DB::table('t_penilaian')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        $tuprodi = DB::table('t_user')->where('USERNAME', 'tuprodi')->first();
+        $tuprodi = DB::table('t_user')->where('USERNAME', 'Dede')->first();
         $prodi = DB::table('t_prodi')->where('KODE_PRODI', '322')->value('id');
 
-        $judul = DB::table('t_judul')->where('NIM', '456783210')->first();
+        $judul = DB::table('t_judul')->where('NIM', '32322004')->first();
         $ajuan = DB::table('t_ajuan_sidang')
-            ->where('NIM', '456783210')
+            ->where('NIM', '32322004')
             ->where('TAHAPAN_SIDANG', 'tahap I')
             ->first();
 
@@ -40,8 +40,8 @@ class TPenilaianSeeder extends Seeder
                     'ID_AJUAN' => $ajuan->id,
                     'ID_JUDUL' => $judul->id,
                     'JUDUL' => $judul->JUDUL,
-                    'NIM' => '456783210',
-                    'NAMA_MHS' => 'dede',
+                    'NIM' => '32322004',
+                    'NAMA_MHS' => 'Ade',
                     'TAHAPAN_SIDANG' => 'tahap I',
                     'ID_TIM_SIDANG' => $tim->id,
                     'ID_USER_PENILAI' => $tim->ID_USER_PENILAI,

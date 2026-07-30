@@ -12,88 +12,35 @@ class ReportController extends Controller
     {
         $user = session('auth_user');
 
-        // Query untuk report progress sidang sesuai requirement
         $query = DB::table('t_ajuan_sidang as a')
             ->select(
-                'a.id_judul',
-                'a.Judul',
-                DB::raw('
-                    CASE
-                        WHEN COALESCE(MAX(a1.status_ajukan_mhs), \'t\') != \'y\' AND COALESCE(MAX(a1.status_ajukan_prodi), \'t\') != \'y\' THEN \'belum diajukan\'
-                        WHEN MAX(a1.status_lulus) IS NULL THEN \'dalam proses\'
-                        ELSE MAX(a1.status_lulus)
-                    END as tahap1
-                '),
-                DB::raw('
-                    CASE
-                        WHEN COALESCE(MAX(a2.status_ajukan_mhs), \'t\') != \'y\' AND COALESCE(MAX(a2.status_ajukan_prodi), \'t\') != \'y\' THEN \'belum diajukan\'
-                        WHEN MAX(a2.status_lulus) IS NULL THEN \'dalam proses\'
-                        ELSE MAX(a2.status_lulus)
-                    END as tahap2
-                '),
-                DB::raw('
-                    CASE
-                        WHEN COALESCE(MAX(a3.status_ajukan_mhs), \'t\') != \'y\' AND COALESCE(MAX(a3.status_ajukan_prodi), \'t\') != \'y\' THEN \'belum diajukan\'
-                        WHEN MAX(a3.status_lulus) IS NULL THEN \'dalam proses\'
-                        ELSE MAX(a3.status_lulus)
-                    END as sk1
-                '),
-                DB::raw('
-                    CASE
-                        WHEN COALESCE(MAX(a4.status_ajukan_mhs), \'t\') != \'y\' AND COALESCE(MAX(a4.status_ajukan_prodi), \'t\') != \'y\' THEN \'belum diajukan\'
-                        WHEN MAX(a4.status_lulus) IS NULL THEN \'dalam proses\'
-                        ELSE MAX(a4.status_lulus)
-                    END as sk2
-                '),
-                DB::raw('
-                    CASE
-                        WHEN COALESCE(MAX(a5.status_ajukan_mhs), \'t\') != \'y\' AND COALESCE(MAX(a5.status_ajukan_prodi), \'t\') != \'y\' THEN \'belum diajukan\'
-                        WHEN MAX(a5.status_lulus) IS NULL THEN \'dalam proses\'
-                        ELSE MAX(a5.status_lulus)
-                    END as sk3
-                '),
-                DB::raw('
-                    CASE
-                        WHEN COALESCE(MAX(a6.status_ajukan_mhs), \'t\') != \'y\' AND COALESCE(MAX(a6.status_ajukan_prodi), \'t\') != \'y\' THEN \'belum diajukan\'
-                        WHEN MAX(a6.status_lulus) IS NULL THEN \'dalam proses\'
-                        ELSE MAX(a6.status_lulus)
-                    END as sk4
-                '),
-                DB::raw('
-                    CASE
-                        WHEN COALESCE(MAX(a7.status_ajukan_mhs), \'t\') != \'y\' AND COALESCE(MAX(a7.status_ajukan_prodi), \'t\') != \'y\' THEN \'belum diajukan\'
-                        WHEN MAX(a7.status_lulus) IS NULL THEN \'dalam proses\'
-                        ELSE MAX(a7.status_lulus)
-                    END as tahap4
-                ')
+                'a.id',
+                'j.id as id_judul',
+                DB::raw('YEAR(a.tgl_create) as tahun'),
+                'j.NIM',
+                'u.NAMA_LENGKAP as nama_mahasiswa',
+                'j.JUDUL',
+                'ts.NIP',
+                'ts.NAMA as pembimbing_penguji',
+                'ts.STATUS_TIM_SIDANG',
+                'a.tahapan_sidang',
+                'a.status_lulus'
             )
-            ->leftJoin(DB::raw('(SELECT * FROM t_ajuan_sidang WHERE tahapan_sidang = "tahap I" ORDER BY id DESC LIMIT 1) as a1'), function($join) {
-                $join->on('a.id_judul', '=', 'a1.id_judul');
+            ->join('t_judul as j', 'a.id_judul', '=', 'j.id')
+            ->join('t_user as u', 'j.id_user_mhs', '=', 'u.id')
+            ->join('t_tim_sidang as ts', function ($join) {
+                $join->on('ts.id_judul', '=', 'j.id')
+                     ->on('ts.tahapan_sidang', '=', 'a.tahapan_sidang');
             })
-            ->leftJoin(DB::raw('(SELECT * FROM t_ajuan_sidang WHERE tahapan_sidang = "tahap II" ORDER BY id DESC LIMIT 1) as a2'), function($join) {
-                $join->on('a.id_judul', '=', 'a2.id_judul');
-            })
-            ->leftJoin(DB::raw('(SELECT * FROM t_ajuan_sidang WHERE tahapan_sidang = "SK I" ORDER BY id DESC LIMIT 1) as a3'), function($join) {
-                $join->on('a.id_judul', '=', 'a3.id_judul');
-            })
-            ->leftJoin(DB::raw('(SELECT * FROM t_ajuan_sidang WHERE tahapan_sidang = "SK II" ORDER BY id DESC LIMIT 1) as a4'), function($join) {
-                $join->on('a.id_judul', '=', 'a4.id_judul');
-            })
-            ->leftJoin(DB::raw('(SELECT * FROM t_ajuan_sidang WHERE tahapan_sidang = "SK III" ORDER BY id DESC LIMIT 1) as a5'), function($join) {
-                $join->on('a.id_judul', '=', 'a5.id_judul');
-            })
-            ->leftJoin(DB::raw('(SELECT * FROM t_ajuan_sidang WHERE tahapan_sidang = "SK IV" ORDER BY id DESC LIMIT 1) as a6'), function($join) {
-                $join->on('a.id_judul', '=', 'a6.id_judul');
-            })
-            ->leftJoin(DB::raw('(SELECT * FROM t_ajuan_sidang WHERE tahapan_sidang = "tahap IV" ORDER BY id DESC LIMIT 1) as a7'), function($join) {
-                $join->on('a.id_judul', '=', 'a7.id_judul');
-            })
-            ->where('a.Strata', 'S3')
-            ->groupBy('a.id', 'a.id_judul', 'a.Judul');
+            ->where('a.strata', 'S3')
+            ->orderBy('j.id')
+            ->orderBy('a.tahapan_sidang')
+            ->orderBy('ts.URUTAN');
 
-        // Filter berdasarkan role
         if ($user['role'] === 'TU Prodi') {
             $query->where('a.kode_prodi', $user['kode_prodi']);
+        } elseif (in_array($user['role'], ['FS', 'Monev'])) {
+            // sees all records
         }
 
         $reports = $query->get();
@@ -105,14 +52,12 @@ class ReportController extends Controller
     {
         $user = session('auth_user');
         
-        // Get judul info
         $judul = DB::table('t_judul')->where('id', $idJudul)->first();
         
         if (!$judul) {
             return response()->json(['error' => 'Judul tidak ditemukan'], 404);
         }
         
-        // Get detail data untuk tahapan tertentu
         $detail = TAjuanSidang::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)
             ->where('Strata', 'S3')
@@ -120,7 +65,6 @@ class ReportController extends Controller
             ->first();
         
         if (!$detail) {
-            // Return basic info if no detail exists
             return response()->json([
                 'Judul' => $judul->Judul,
                 'tahapan_sidang' => $tahapan,
@@ -131,9 +75,8 @@ class ReportController extends Controller
             ]);
         }
         
-        // Filter berdasarkan role
-        if ($user['role'] === 'TU Prodi' && $detail->kode_prodi !== $user['kode_prodi']) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+        if (in_array($user['role'], ['TU Prodi', 'FS'])) {
+            // Filter by prodi/FS if needed
         }
         
         return response()->json($detail);

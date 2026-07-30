@@ -467,9 +467,7 @@
                 <h3><i class="fas fa-calendar-alt"></i> &nbsp;Jadwal Sidang Mahasiswa – FTTM ITB</h3>
                 <p>Halaman publik. Login untuk mengajukan sidang atau mengelola jadwal Anda.</p>
             </div>
-            <div class="d-flex gap-2">
-                <a href="{{ route('login') }}" class="cta-btn"><i class="fas fa-sign-in-alt"></i> Masuk / Login</a>
-            </div>
+
         </div>
 
         <!-- ══ ONE BIG CARD ══ -->
@@ -589,7 +587,7 @@
                                 <td><span class="nim-badge">{{ $item->Nim }}</span></td>
                                 <td class="td-prodi">{{ $item->nama_prodi }}</td>
                                 <td class="td-extra">{{ $item->Judul ?? '—' }}</td>
-                                <td class="td-date">{{ $item->tgl_sidang ? \Carbon\Carbon::parse($item->tgl_sidang)->format('Y-m-d') : '—' }}</td>
+                                <td class="td-date">{{ $item->tgl_sidang ? \Carbon\Carbon::parse($item->tgl_sidang)->translatedFormat('l, d F Y') : '—' }}</td>
                                 <td class="td-room">{{ $item->ruang_sidang ?? '—' }}</td>
                                 <td><span class="badge badge-terjadwal">Terjadwal</span></td>
                                 <td><span class="jenis-tag {{ $jc }}"><i class="{{ $ji }}"></i> {{ $item->tahapan_sidang }}</span></td>

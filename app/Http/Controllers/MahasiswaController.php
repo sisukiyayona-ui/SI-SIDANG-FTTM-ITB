@@ -32,83 +32,111 @@ class MahasiswaController extends Controller
                 j.JUDUL as Judul,
                 MAX(CASE
                     WHEN a1.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a1.status_ajukan_mhs, 't') != 'y' AND COALESCE(a1.status_ajukan_prodi, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a1.status_lulus IS NULL THEN 'dalam proses'
-                    ELSE a1.status_lulus
+                    WHEN COALESCE(a1.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a1.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
+                    WHEN a1.STATUS_LULUS IS NULL THEN 'dalam proses'
+                    ELSE a1.STATUS_LULUS
                 END) as tahap1,
                 MAX(CASE
                     WHEN a2.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a2.status_ajukan_mhs, 't') != 'y' AND COALESCE(a2.status_ajukan_prodi, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a2.status_lulus IS NULL THEN 'dalam proses'
-                    ELSE a2.status_lulus
+                    WHEN COALESCE(a2.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a2.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
+                    WHEN a2.STATUS_LULUS IS NULL THEN 'dalam proses'
+                    ELSE a2.STATUS_LULUS
                 END) as tahap2,
                 MAX(CASE
                     WHEN a3.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a3.status_ajukan_mhs, 't') != 'y' AND COALESCE(a3.status_ajukan_prodi, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a3.status_lulus IS NULL THEN 'dalam proses'
-                    ELSE a3.status_lulus
+                    WHEN COALESCE(a3.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a3.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
+                    WHEN a3.STATUS_LULUS IS NULL THEN 'dalam proses'
+                    ELSE a3.STATUS_LULUS
                 END) as sk1,
                 MAX(CASE
                     WHEN a4.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a4.status_ajukan_mhs, 't') != 'y' AND COALESCE(a4.status_ajukan_prodi, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a4.status_lulus IS NULL THEN 'dalam proses'
-                    ELSE a4.status_lulus
+                    WHEN COALESCE(a4.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a4.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
+                    WHEN a4.STATUS_LULUS IS NULL THEN 'dalam proses'
+                    ELSE a4.STATUS_LULUS
                 END) as sk2,
                 MAX(CASE
                     WHEN a5.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a5.status_ajukan_mhs, 't') != 'y' AND COALESCE(a5.status_ajukan_prodi, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a5.status_lulus IS NULL THEN 'dalam proses'
-                    ELSE a5.status_lulus
+                    WHEN COALESCE(a5.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a5.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
+                    WHEN a5.STATUS_LULUS IS NULL THEN 'dalam proses'
+                    ELSE a5.STATUS_LULUS
                 END) as sk3,
                 MAX(CASE
                     WHEN a6.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a6.status_ajukan_mhs, 't') != 'y' AND COALESCE(a6.status_ajukan_prodi, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a6.status_lulus IS NULL THEN 'dalam proses'
-                    ELSE a6.status_lulus
+                    WHEN COALESCE(a6.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a6.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
+                    WHEN a6.STATUS_LULUS IS NULL THEN 'dalam proses'
+                    ELSE a6.STATUS_LULUS
                 END) as sk4,
                 MAX(CASE
                     WHEN a7.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a7.status_ajukan_mhs, 't') != 'y' AND COALESCE(a7.status_ajukan_prodi, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a7.status_lulus IS NULL THEN 'dalam proses'
-                    ELSE a7.status_lulus
+                    WHEN COALESCE(a7.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a7.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
+                    WHEN a7.STATUS_LULUS IS NULL THEN 'dalam proses'
+                    ELSE a7.STATUS_LULUS
                 END) as tahap4
             FROM t_judul j
             LEFT JOIN t_user u ON j.ID_USER_MHS = u.id
             LEFT JOIN (
-                SELECT * FROM t_ajuan_sidang
-                WHERE id_user = " . $user['id'] . " AND tahapan_sidang = 'tahap I'
-                ORDER BY id DESC LIMIT 1
-            ) a1 ON j.id = a1.id_judul
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = 'tahap I'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) a1 ON j.id = a1.ID_JUDUL
             LEFT JOIN (
-                SELECT * FROM t_ajuan_sidang
-                WHERE id_user = " . $user['id'] . " AND tahapan_sidang = 'tahap II'
-                ORDER BY id DESC LIMIT 1
-            ) a2 ON j.id = a2.id_judul
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = 'tahap II'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) a2 ON j.id = a2.ID_JUDUL
             LEFT JOIN (
-                SELECT * FROM t_ajuan_sidang
-                WHERE id_user = " . $user['id'] . " AND tahapan_sidang = 'SK I'
-                ORDER BY id DESC LIMIT 1
-            ) a3 ON j.id = a3.id_judul
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = 'SK I'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) a3 ON j.id = a3.ID_JUDUL
             LEFT JOIN (
-                SELECT * FROM t_ajuan_sidang
-                WHERE id_user = " . $user['id'] . " AND tahapan_sidang = 'SK II'
-                ORDER BY id DESC LIMIT 1
-            ) a4 ON j.id = a4.id_judul
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = 'SK II'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) a4 ON j.id = a4.ID_JUDUL
             LEFT JOIN (
-                SELECT * FROM t_ajuan_sidang
-                WHERE id_user = " . $user['id'] . " AND tahapan_sidang = 'SK III'
-                ORDER BY id DESC LIMIT 1
-            ) a5 ON j.id = a5.id_judul
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = 'SK III'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) a5 ON j.id = a5.ID_JUDUL
             LEFT JOIN (
-                SELECT * FROM t_ajuan_sidang
-                WHERE id_user = " . $user['id'] . " AND tahapan_sidang = 'SK IV'
-                ORDER BY id DESC LIMIT 1
-            ) a6 ON j.id = a6.id_judul
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = 'SK IV'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) a6 ON j.id = a6.ID_JUDUL
             LEFT JOIN (
-                SELECT * FROM t_ajuan_sidang
-                WHERE id_user = " . $user['id'] . " AND tahapan_sidang = 'tahap IV'
-                ORDER BY id DESC LIMIT 1
-            ) a7 ON j.id = a7.id_judul
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = 'tahap IV'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) a7 ON j.id = a7.ID_JUDUL
             WHERE j.ID_USER_MHS = " . $user['id'] . " AND u.STRATA = '" . $strata . "'
             GROUP BY j.id, j.JUDUL
         ");
@@ -155,18 +183,44 @@ class MahasiswaController extends Controller
             $idJudul = $judul->id;
             session(['active_judul_id' => $idJudul]);
         }
+
+        // Validasi kepemilikan judul untuk role Mahasiswa
+        if ($user['role'] === 'Mahasiswa') {
+            $judulMhs = TJudul::where('id', $idJudul)->where('id_user_mhs', $user['id'])->exists();
+            if (!$judulMhs) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        }
         
         // Data nama, nim, judul, status lulus dari table t_ajuan_sidang
-        $ajuanQuery = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan);
+        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->latest('id')
+            ->first();
 
-        // Jika tidak ada id_judul dari request (mahasiswa sendiri), filter by id_user
-        if (!request('id_judul') && !in_array($user['role'], ['Pembimbing', 'Penguji'])) {
-            $ajuanQuery->where('id_user', $user['id']);
-        }
+        // All ajuan records for this judul+tahapan (for jadwal history table)
+        $allAjuan = TAjuanSidang::where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->orderBy('id')
+            ->get();
 
-        $ajuan = $ajuanQuery->first();
-        
+        $allAjuanJson = $allAjuan->map(function($a) {
+            return [
+                'id' => $a->id,
+                'tgl_sidang' => $a->tgl_sidang,
+                'waktu_sidang' => $a->waktu_sidang,
+                'ruang_sidang' => $a->ruang_sidang,
+                'tgl_surat_undangan' => $a->tgl_undangan,
+                'no_surat_undangan' => $a->NO_UNDANGAN,
+                'tgl_surat_penelaah' => $a->tgl_penelaah,
+                'no_surat_penelaah' => $a->no_surat_penelaah,
+                'tgl_pemanggilan_penilai' => $a->tgl_pemanggilan_penilai,
+                'tgl_hasil_penelahan' => $a->TGL_HASIL_PENELAHAN,
+                'email_surat' => $a->email_surat,
+                'no_sk_kelulusan' => $a->SK_LULUS,
+            ];
+        })->values();
+
         // Get kode_prodi for persyaratan filtering
         $kodeProdi = $ajuan->kode_prodi ?? session('auth_user.kode_prodi');
 
@@ -184,22 +238,31 @@ class MahasiswaController extends Controller
         // For Pembimbing/Penguji, show all team members
         $timSidang = $timSidangQuery->get();
             
-        // Table t_cek_persyaratan (Persyaratan)
-        $cekPersyaratan = \App\Models\TCekPersyaratan::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
+        // Get syarat IDs belonging to this prodi (to filter cek_persyaratan)
+        $syaratIdsForProdi = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
+            ->where('STATUS_AKTIF', 'AKTIF');
+        if ($prodiId) {
+            $syaratIdsForProdi->where('ID_PRODI', $prodiId);
+        }
+        $syaratIdsForProdi = $syaratIdsForProdi->pluck('id');
+
+        // Table t_cek_persyaratan (Persyaratan) — filter by prodi syarat IDs
+        $cekPersyaratan = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan)
+            ->whereIn('ID_SYARAT_SIDANG', $syaratIdsForProdi)
             ->get();
-            
+
         // Jika data t_cek_persyaratan kosong, ambil dari t_syarat_sidang
         $persyaratan = collect();
         if ($cekPersyaratan->isEmpty()) {
-            $persyaratan = \App\Models\TSyaratSidang::where('tahapan_sidang', $tahapan)
-                ->where('status_aktif', 'AKTIF');
-            
+            $persyaratan = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
+                ->where('STATUS_AKTIF', 'AKTIF');
+
             // Filter by prodi ID (integer) — berlaku untuk semua role
             if ($prodiId) {
-                $persyaratan->where('id_prodi', $prodiId);
+                $persyaratan->where('ID_PRODI', $prodiId);
             }
-            
+
             $persyaratan = $persyaratan->get();
         } else {
             $persyaratan = $cekPersyaratan;
@@ -215,24 +278,44 @@ class MahasiswaController extends Controller
         
         $penilaian = $penilaianQuery->get();
         
-        // Get point penilaian for form (distinct no_form based on tahapan)
-        $pointPenilaian = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
-            ->where('status_aktif', 'AKTIF')
-            ->select('no_form')
+        // Get point penilaian for form (distinct no_form based on tahapan and prodi)
+        // Get mahasiswa's prodi from judul->user relationship
+        $mahasiswaProdi = null;
+        if ($idJudul) {
+            $judul = \App\Models\TJudul::find($idJudul);
+            if ($judul && $judul->user) {
+                $mahasiswaProdi = $judul->user->KODE_PRODI;
+            }
+        }
+        
+        $pointPenilaianQuery = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
+            ->where('status_aktif', 'AKTIF');
+        
+        // Filter by prodi if mahasiswa prodi is available
+        if ($mahasiswaProdi) {
+            $pointPenilaianQuery->where('KODE_PRODI', $mahasiswaProdi);
+        }
+        
+        $pointPenilaian = $pointPenilaianQuery->select('no_form')
             ->distinct()
             ->orderBy('no_form')
             ->get();
         
-        // Get all point penilaian details
-        $allPointPenilaian = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
-            ->where('status_aktif', 'AKTIF')
-            ->get();
+        // Get all point penilaian details (with same filters)
+        $allPointPenilaianQuery = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
+            ->where('status_aktif', 'AKTIF');
+        
+        if ($mahasiswaProdi) {
+            $allPointPenilaianQuery->where('KODE_PRODI', $mahasiswaProdi);
+        }
+        
+        $allPointPenilaian = $allPointPenilaianQuery->get();
         
         // Additional data for TU Prodi/Admin/FS Tahap I & Tahap II
         $users = collect();
         $skList = collect();
         
-        if ((strtolower($tahapan) === 'tahap i' || strtolower($tahapan) === 'tahap ii') && in_array($user['role'], ['TU Prodi', 'Admin', 'FS'])) {
+        if (in_array($tahapan, ['tahap I', 'tahap II', 'SK I', 'SK II', 'SK III', 'SK IV', 'tahap IV']) && in_array($user['role'], ['TU Prodi', 'Admin', 'FS'])) {
             // Get users for dropdown (dosen only)
             $users = \App\Models\TUser::where('STATUS_PEGAWAI', 'Dosen')
                 ->select('ID', 'NAMA_LENGKAP', 'NIP_NIM')
@@ -249,10 +332,10 @@ class MahasiswaController extends Controller
         // Check if user is Ketua Tim Pembimbing (for status_lulus field)
         $isKetuaPembimbing = false;
         if ($user['role'] === 'Pembimbing') {
-            $ketuaPembimbing = $timSidang->where('status_tim_sidang', 'Pembimbing')
-                ->where('id_user_penilai', $user['id'])
-                ->where('keterangan', 'Ketua Pembimbing')
-                ->first();
+            $ketuaPembimbing = $timSidang->first(function($item) use ($user) {
+                return str_contains($item->status_tim_sidang ?? '', 'Pembimbing')
+                    && $item->id_user_penilai == $user['id'];
+            });
             $isKetuaPembimbing = $ketuaPembimbing !== null;
         }
             
@@ -260,77 +343,86 @@ class MahasiswaController extends Controller
         $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
 
         if (request()->ajax()) {
-            return view($viewName, compact('ajuan', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList'))->render();
+            return view($viewName, compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList'))->render();
         }
         
-        return view($viewName, compact('ajuan', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList'));
+        return view($viewName, compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList'));
     }
     
     public function uploadPersyaratan(\Illuminate\Http\Request $request)
     {
         $user = session('auth_user');
         $idJudul = $request->id_judul ?? session('active_judul_id');
-        
+
+        if (!$idJudul) {
+            \Log::error('ID Judul tidak ditemukan in uploadPersyaratan', ['request' => $request->all(), 'session' => session()->all()]);
+            return response()->json(['success' => false, 'message' => 'ID Judul tidak ditemukan'], 400);
+        }
+
+        if ($user['role'] === 'Mahasiswa' && !TJudul::where('id', $idJudul)->where('id_user_mhs', $user['id'])->exists()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
         $request->validate([
             'id_syarat_sidang' => 'required',
             'tahapan_sidang' => 'required',
             'file' => 'required|file|max:10240', // Max 10MB
         ]);
-        
+
         $tahapan = $request->tahapan_sidang;
         $idSyarat = $request->id_syarat_sidang;
-        
+
         // Handle file upload
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('uploads/persyaratan', $filename, 'public');
             $linkFile = '/storage/' . $path;
-            
+
             // Check if exist in t_cek_persyaratan
-            $cek = \App\Models\TCekPersyaratan::where('id_judul', $idJudul)
-                ->where('tahapan_sidang', $tahapan)
-                ->where('id_syarat_sidang', $idSyarat)
+            $cek = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+                ->where('TAHAPAN_SIDANG', $tahapan)
+                ->where('ID_SYARAT_SIDANG', $idSyarat)
                 ->first();
-                
+
             if ($cek) {
                 // Hapus file lama jika ada
-                if ($cek->link_file) {
-                    $oldPath = str_replace('/storage/', '', $cek->link_file);
+                if ($cek->LINK_FILE) {
+                    $oldPath = str_replace('/storage/', '', $cek->LINK_FILE);
                     if (\Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath)) {
                         \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
                     }
                 }
-                
+
                 // Update
-                $cek->link_file = $linkFile;
-                $cek->status_lengkap = 'y';
-                $cek->tgl_update = date('Y-m-d H:i:s');
+                $cek->LINK_FILE = $linkFile;
+                $cek->STATUS_LENGKAP = 'y';
+                $cek->TGL_UPDATE = date('Y-m-d');
                 $cek->save();
             } else {
                 // Ambil info nama persyaratan dari TSyaratSidang
                 $syarat = \App\Models\TSyaratSidang::find($idSyarat);
-                
+
                 // Jika data kosong, insert semua persyaratan untuk tahapan ini terlebih dahulu agar berurutan
-                $allSyarat = \App\Models\TSyaratSidang::where('tahapan_sidang', $tahapan)
-                    ->where('status_aktif', 'AKTIF')
+                $allSyarat = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
+                    ->where('STATUS_AKTIF', 'AKTIF')
                     ->get();
                     
                 foreach($allSyarat as $s) {
                     $newCek = new \App\Models\TCekPersyaratan();
-                    $newCek->id_judul = $idJudul;
-                    $newCek->tahapan_sidang = $tahapan;
-                    $newCek->id_syarat_sidang = $s->id;
-                    $newCek->Persyaratan = $s->nama_persyaratan;
-                    
+                    $newCek->ID_JUDUL = $idJudul;
+                    $newCek->TAHAPAN_SIDANG = $tahapan;
+                    $newCek->ID_SYARAT_SIDANG = $s->id;
+                    $newCek->PERSYARATAN = $s->NAMA_PERSYARATAN;
+
                     if ($s->id == $idSyarat) {
-                        $newCek->link_file = $linkFile;
-                        $newCek->status_lengkap = 'y';
+                        $newCek->LINK_FILE = $linkFile;
+                        $newCek->STATUS_LENGKAP = 'y';
                     } else {
-                        $newCek->status_lengkap = 't';
+                        $newCek->STATUS_LENGKAP = 't';
                     }
-                    
-                    $newCek->tgl_buat = date('Y-m-d H:i:s');
+
+                    $newCek->TGL_BUAT = date('Y-m-d');
                     $newCek->save();
                 }
             }
@@ -344,7 +436,16 @@ class MahasiswaController extends Controller
     public function updateKelengkapan(\Illuminate\Http\Request $request)
     {
         $user = session('auth_user');
-        $idJudul = session('active_judul_id');
+        $idJudul = $request->id_judul ?? session('active_judul_id');
+        
+        if (!$idJudul) {
+            \Log::error('ID Judul tidak ditemukan in updateKelengkapan', ['request' => $request->all(), 'session' => session()->all()]);
+            return response()->json(['success' => false, 'message' => 'ID Judul tidak ditemukan'], 400);
+        }
+
+        if ($user['role'] === 'Mahasiswa' && !TJudul::where('id', $idJudul)->where('id_user_mhs', $user['id'])->exists()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
         
         $request->validate([
             'id_syarat_sidang' => 'required',
@@ -357,32 +458,35 @@ class MahasiswaController extends Controller
         // Get tahapan from the syarat
         $syarat = \App\Models\TSyaratSidang::find($idSyarat);
         if (!$syarat) {
+            \Log::error('Persyaratan tidak ditemukan', ['id_syarat' => $idSyarat]);
             return response()->json(['success' => false, 'message' => 'Persyaratan tidak ditemukan'], 404);
         }
         
-        $tahapan = $syarat->tahapan_sidang;
+        $tahapan = $syarat->TAHAPAN_SIDANG;
         
         // Check if exist in t_cek_persyaratan
-        $cek = \App\Models\TCekPersyaratan::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->where('id_syarat_sidang', $idSyarat)
+        $cek = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan)
+            ->where('ID_SYARAT_SIDANG', $idSyarat)
             ->first();
             
         if ($cek) {
             // Update
-            $cek->status_lengkap = $statusLengkap;
-            $cek->tgl_update = date('Y-m-d H:i:s');
+            $cek->STATUS_LENGKAP = $statusLengkap;
+            $cek->TGL_UPDATE = date('Y-m-d');
             $cek->save();
+            \Log::info('Updated kelengkapan', ['id_judul' => $idJudul, 'tahapan' => $tahapan, 'id_syarat' => $idSyarat, 'status' => $statusLengkap]);
         } else {
             // Insert new record
             $newCek = new \App\Models\TCekPersyaratan();
-            $newCek->id_judul = $idJudul;
-            $newCek->tahapan_sidang = $tahapan;
-            $newCek->id_syarat_sidang = $idSyarat;
-            $newCek->Persyaratan = $syarat->nama_persyaratan;
-            $newCek->status_lengkap = $statusLengkap;
-            $newCek->tgl_buat = date('Y-m-d H:i:s');
+            $newCek->ID_JUDUL = $idJudul;
+            $newCek->TAHAPAN_SIDANG = $tahapan;
+            $newCek->ID_SYARAT_SIDANG = $idSyarat;
+            $newCek->PERSYARATAN = $syarat->NAMA_PERSYARATAN;
+            $newCek->STATUS_LENGKAP = $statusLengkap;
+            $newCek->TGL_BUAT = date('Y-m-d');
             $newCek->save();
+            \Log::info('Inserted kelengkapan', ['id_judul' => $idJudul, 'tahapan' => $tahapan, 'id_syarat' => $idSyarat, 'status' => $statusLengkap]);
         }
         
         return response()->json(['success' => true, 'message' => 'Status kelengkapan berhasil diupdate']);
@@ -395,79 +499,149 @@ class MahasiswaController extends Controller
         $tahapan = $request->tahapan_sidang;
 
         if (!$idJudul || !$tahapan) {
+            \Log::error('Data tidak lengkap in saveAllPersyaratan', ['request' => $request->all(), 'session' => session()->all()]);
             return response()->json(['success' => false, 'message' => 'Data tidak lengkap'], 400);
+        }
+
+        if ($user['role'] === 'Mahasiswa' && !TJudul::where('id', $idJudul)->where('id_user_mhs', $user['id'])->exists()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        \Log::info('saveAllPersyaratan called', ['id_judul' => $idJudul, 'tahapan' => $tahapan, 'kelengkapan' => $request->kelengkapan]);
+
+        // Check if ajuan record exists for this tahapan, if not create it
+        $ajuan = \App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan)
+            ->first();
+
+        if (!$ajuan) {
+            // Get judul information
+            $judul = \App\Models\TJudul::find($idJudul);
+            if ($judul) {
+                $mahasiswa = \App\Models\TUser::find($judul->ID_USER_MHS);
+                $prodi = \App\Models\TProdi::find($judul->ID_PRODI);
+
+                $ajuan = new \App\Models\TAjuanSidang();
+                $ajuan->ID_USER = $judul->ID_USER_MHS;
+                $ajuan->NIM = $mahasiswa ? $mahasiswa->NIP_NIM : '';
+                $ajuan->NAMA_MHS = $mahasiswa ? $mahasiswa->NAMA_LENGKAP : '';
+                $ajuan->ANGKATAN = $mahasiswa && $mahasiswa->THN_ANGKATAN ? $mahasiswa->THN_ANGKATAN : (int)date('Y');
+                $ajuan->ID_JUDUL = $idJudul;
+                $ajuan->JUDUL = $judul->JUDUL;
+                $ajuan->TAHAPAN_SIDANG = $tahapan;
+                $ajuan->STRATA = $mahasiswa ? $mahasiswa->STRATA : 'S3';
+                $ajuan->STATUS_LULUS = null; // 'dalam proses'
+                $ajuan->STATUS_AJUKAN_MHS = 't';
+                $ajuan->STATUS_AJUKAN_PRODI = 't';
+                if (!$prodi && !empty($user['kode_prodi'])) {
+                    $prodi = \App\Models\TProdi::where('KODE_PRODI', $user['kode_prodi'])->first();
+                }
+                $ajuan->ID_PRODI = $prodi ? $prodi->id : null;
+                $ajuan->KODE_PRODI = $prodi ? $prodi->KODE_PRODI : ($user['kode_prodi'] ?? '');
+                $ajuan->NAMA_PRODI = $prodi ? $prodi->NAMA_PRODI : ($user['nama_prodi'] ?? '');
+                $ajuan->TGL_CREATE = date('Y-m-d');
+                $ajuan->TGL_UPDATE = date('Y-m-d');
+                $ajuan->ID_USER_CREATE = $user['id'];
+                $ajuan->NAMA_USER_CREATE = $user['nama_lengkap'];
+                $ajuan->THN_CREATE = date('Y');
+                $ajuan->save();
+                \Log::info('Created ajuan record for tahap', ['id_judul' => $idJudul, 'tahapan' => $tahapan]);
+            }
         }
 
         // Simpan status kelengkapan checkbox
         if ($request->has('kelengkapan')) {
             foreach ($request->kelengkapan as $idSyarat => $status) {
                 $syarat = \App\Models\TSyaratSidang::find($idSyarat);
-                $tahapSyarat = $syarat ? $syarat->tahapan_sidang : $tahapan;
+                $tahapSyarat = $syarat ? $syarat->TAHAPAN_SIDANG : $tahapan;
 
-                $cek = \App\Models\TCekPersyaratan::where('id_judul', $idJudul)
-                    ->where('tahapan_sidang', $tahapSyarat)
-                    ->where('id_syarat_sidang', $idSyarat)
+                $cek = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+                    ->where('TAHAPAN_SIDANG', $tahapSyarat)
+                    ->where('ID_SYARAT_SIDANG', $idSyarat)
                     ->first();
 
                 if ($cek) {
-                    $cek->status_lengkap = $status;
-                    $cek->tgl_update = now();
+                    $cek->STATUS_LENGKAP = $status;
+                    $cek->TGL_UPDATE = date('Y-m-d');
                     $cek->save();
+                    \Log::info('Updated kelengkapan in saveAll', ['id_judul' => $idJudul, 'tahapan' => $tahapSyarat, 'id_syarat' => $idSyarat, 'status' => $status]);
                 } else {
                     $newCek = new \App\Models\TCekPersyaratan();
-                    $newCek->id_judul = $idJudul;
-                    $newCek->tahapan_sidang = $tahapSyarat;
-                    $newCek->id_syarat_sidang = $idSyarat;
-                    $newCek->Persyaratan = $syarat ? $syarat->nama_persyaratan : ('Persyaratan #' . $idSyarat);
-                    $newCek->status_lengkap = $status;
-                    $newCek->tgl_buat = now();
+                    $newCek->ID_JUDUL = $idJudul;
+                    $newCek->TAHAPAN_SIDANG = $tahapSyarat;
+                    $newCek->ID_SYARAT_SIDANG = $idSyarat;
+                    $newCek->PERSYARATAN = $syarat ? $syarat->NAMA_PERSYARATAN : ('Persyaratan #' . $idSyarat);
+                    $newCek->STATUS_LENGKAP = $status;
+                    $newCek->TGL_BUAT = date('Y-m-d');
                     $newCek->save();
+                    \Log::info('Inserted kelengkapan in saveAll', ['id_judul' => $idJudul, 'tahapan' => $tahapSyarat, 'id_syarat' => $idSyarat, 'status' => $status]);
                 }
             }
+        } else {
+            \Log::warning('No kelengkapan data in request', ['request' => $request->all()]);
         }
 
         // Simpan file upload
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $idSyarat => $file) {
+                // Validate file type and size
+                if ($file->getClientOriginalExtension() !== 'pdf') {
+                    return response()->json(['success' => false, 'message' => 'Hanya file PDF yang diizinkan'], 422);
+                }
+                if ($file->getSize() > 2 * 1024 * 1024) {
+                    return response()->json(['success' => false, 'message' => 'Maksimal ukuran file 2 MB'], 422);
+                }
+
                 $filename = time() . '_' . $file->getClientOriginalName();
                 $path = $file->storeAs('uploads/persyaratan', $filename, 'public');
                 $linkFile = '/storage/' . $path;
 
                 $syarat = \App\Models\TSyaratSidang::find($idSyarat);
-                $tahapSyarat = $syarat ? $syarat->tahapan_sidang : $tahapan;
+                $tahapSyarat = $syarat ? $syarat->TAHAPAN_SIDANG : $tahapan;
 
-                $cek = \App\Models\TCekPersyaratan::where('id_judul', $idJudul)
-                    ->where('tahapan_sidang', $tahapSyarat)
-                    ->where('id_syarat_sidang', $idSyarat)
+                $cek = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+                    ->where('TAHAPAN_SIDANG', $tahapSyarat)
+                    ->where('ID_SYARAT_SIDANG', $idSyarat)
                     ->first();
 
                 if ($cek) {
-                    if ($cek->link_file) {
-                        $oldPath = str_replace('/storage/', '', $cek->link_file);
+                    if ($cek->LINK_FILE) {
+                        $oldPath = str_replace('/storage/', '', $cek->LINK_FILE);
                         if (\Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath)) {
                             \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
                         }
                     }
-                    $cek->link_file = $linkFile;
-                    $cek->status_lengkap = 'y';
-                    $cek->tgl_update = now();
+                    $cek->LINK_FILE = $linkFile;
+                    $cek->STATUS_LENGKAP = 'y';
+                    $cek->TGL_UPDATE = date('Y-m-d');
                     $cek->save();
                 } else {
-                    $allSyarat = \App\Models\TSyaratSidang::where('tahapan_sidang', $tahapSyarat)
-                        ->where('status_aktif', 'AKTIF')
-                        ->get();
+                    // Get prodi ID from judul's user for filtering syarat
+                    $prodiIdForSave = null;
+                    $judulForSave = \App\Models\TJudul::find($idJudul);
+                    if ($judulForSave && $judulForSave->user) {
+                        $prodiForSave = \App\Models\TProdi::where('kode_prodi', $judulForSave->user->KODE_PRODI)->first();
+                        $prodiIdForSave = $prodiForSave?->id;
+                    }
+
+                    $allSyarat = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapSyarat)
+                        ->where('STATUS_AKTIF', 'AKTIF');
+                    if ($prodiIdForSave) {
+                        $allSyarat->where('ID_PRODI', $prodiIdForSave);
+                    }
+                    $allSyarat = $allSyarat->get();
 
                     foreach ($allSyarat as $s) {
                         $newCek = new \App\Models\TCekPersyaratan();
-                        $newCek->id_judul = $idJudul;
-                        $newCek->tahapan_sidang = $tahapSyarat;
-                        $newCek->id_syarat_sidang = $s->id;
-                        $newCek->Persyaratan = $s->nama_persyaratan;
-                        $newCek->status_lengkap = ($s->id == $idSyarat) ? 'y' : 't';
+                        $newCek->ID_JUDUL = $idJudul;
+                        $newCek->TAHAPAN_SIDANG = $tahapSyarat;
+                        $newCek->ID_SYARAT_SIDANG = $s->id;
+                        $newCek->PERSYARATAN = $s->NAMA_PERSYARATAN;
+                        $newCek->STATUS_LENGKAP = ($s->id == $idSyarat) ? 'y' : 't';
                         if ($s->id == $idSyarat) {
-                            $newCek->link_file = $linkFile;
+                            $newCek->LINK_FILE = $linkFile;
                         }
-                        $newCek->tgl_buat = now();
+                        $newCek->TGL_BUAT = date('Y-m-d');
                         $newCek->save();
                     }
                 }
@@ -487,13 +661,22 @@ class MahasiswaController extends Controller
             'tahapan_sidang' => 'required',
             'id_user_penilai' => 'required',
             'status_tim_sidang' => 'required',
-            'urutan' => 'required',
+            'urutan' => 'nullable',
         ]);
 
         // Get user details from t_user table
         $userPenilai = \App\Models\TUser::find($request->id_user_penilai);
         if (!$userPenilai) {
             return response()->json(['success' => false, 'message' => 'User tidak ditemukan'], 404);
+        }
+
+        // Auto-calculate urutan if not provided
+        $urutan = $request->urutan;
+        if (!$urutan) {
+            $maxUrutan = \App\Models\TTimSidang::where('ID_JUDUL', $request->id_judul)
+                ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                ->max('URUTAN');
+            $urutan = ($maxUrutan ?: 0) + 1;
         }
 
         $timSidang = new \App\Models\TTimSidang();
@@ -503,7 +686,7 @@ class MahasiswaController extends Controller
         $timSidang->STATUS_TIM_SIDANG = $request->status_tim_sidang;
         $timSidang->NIP = $userPenilai->NIP_NIM;
         $timSidang->NAMA = $userPenilai->NAMA_LENGKAP;
-        $timSidang->URUTAN = $request->urutan;
+        $timSidang->URUTAN = $urutan;
         $timSidang->ID_SK = $request->id_sk;
         $timSidang->TGL_CREATE = date('Y-m-d');
         $timSidang->TGL_UPDATE = date('Y-m-d');
@@ -517,7 +700,7 @@ class MahasiswaController extends Controller
         $request->validate([
             'id_user_penilai' => 'required',
             'status_tim_sidang' => 'required',
-            'urutan' => 'required',
+            'urutan' => 'nullable',
         ]);
 
         $timSidang = \App\Models\TTimSidang::find($id);
@@ -531,11 +714,19 @@ class MahasiswaController extends Controller
             return response()->json(['success' => false, 'message' => 'User tidak ditemukan'], 404);
         }
 
+        $urutan = $request->urutan;
+        if (!$urutan) {
+            $maxUrutan = \App\Models\TTimSidang::where('ID_JUDUL', $timSidang->ID_JUDUL)
+                ->where('TAHAPAN_SIDANG', $timSidang->TAHAPAN_SIDANG)
+                ->max('URUTAN');
+            $urutan = ($maxUrutan ?: 0) + 1;
+        }
+
         $timSidang->ID_USER_PENILAI = $request->id_user_penilai;
         $timSidang->STATUS_TIM_SIDANG = $request->status_tim_sidang;
         $timSidang->NIP = $userPenilai->NIP_NIM;
         $timSidang->NAMA = $userPenilai->NAMA_LENGKAP;
-        $timSidang->URUTAN = $request->urutan;
+        $timSidang->URUTAN = $urutan;
         $timSidang->ID_SK = $request->id_sk;
         $timSidang->TGL_UPDATE = date('Y-m-d');
         $timSidang->save();
@@ -670,11 +861,22 @@ class MahasiswaController extends Controller
         }
 
         // Find existing ajuan or create new one
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        // If id_ajuan provided, update that specific record
+        if ($request->filled('id_ajuan')) {
+            $ajuan = TAjuanSidang::find($request->id_ajuan);
+            if (!$ajuan) {
+                return response()->json(['success' => false, 'message' => 'Data jadwal tidak ditemukan'], 404);
+            }
+        } else {
+            // If existing record has 'tidak lulus', create a new record (keep old for audit)
+            $ajuan = TAjuanSidang::where('id_judul', $idJudul)
+                ->where('tahapan_sidang', $tahapan)
+                ->latest('id')
+                ->first();
 
-        if (!$ajuan) {
+            $isTidakLulus = $ajuan && ($ajuan->STATUS_LULUS === 'tidak lulus');
+
+            if (!$ajuan || $isTidakLulus) {
             // Get judul info
             $judul = TJudul::find($idJudul);
             if (!$judul) {
@@ -702,6 +904,7 @@ class MahasiswaController extends Controller
             $ajuan->ID_PRODI = $prodi->id ?? null;
             $ajuan->KODE_PRODI = $mahasiswa->KODE_PRODI ?? $user['kode_prodi'];
             $ajuan->NAMA_PRODI = $prodi->NAMA_PRODI ?? $user['nama_prodi'];
+            }
         }
 
         // Update jadwal fields
@@ -726,6 +929,9 @@ class MahasiswaController extends Controller
         if ($request->filled('tgl_pemanggilan_penilai')) {
             $ajuan->TGL_PENGUMPULAN = $request->tgl_pemanggilan_penilai;
         }
+        if ($request->filled('tgl_hasil_penelahan')) {
+            $ajuan->TGL_HASIL_PENELAHAN = $request->tgl_hasil_penelahan;
+        }
         if ($request->filled('email_surat')) {
             $ajuan->EMAIL_SURAT = $request->email_surat;
         }
@@ -737,7 +943,9 @@ class MahasiswaController extends Controller
         }
 
         if ($request->is_ajukan_fs) {
+            $ajuan->STATUS_AJUKAN_PRODI = 'y';
             $ajuan->STATUS_AJUKAN_MHS = 'y';
+            $ajuan->STATUS_LULUS = 'diajukan';
         }
 
         $ajuan->TGL_UPDATE = now();
@@ -818,5 +1026,33 @@ class MahasiswaController extends Controller
             ->get();
 
         return view('mahasiswa.ubah-judul', compact('judul', 'history'));
+    }
+
+    public function ajukanProdi(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'id_judul' => 'required',
+            'tahapan_sidang' => 'required|string',
+        ]);
+
+        $user = session('auth_user');
+
+        $ajuan = TAjuanSidang::where('ID_JUDUL', $request->id_judul)
+            ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+            ->latest('id')
+            ->first();
+
+        if (!$ajuan) {
+            return response()->json(['error' => 'Data jadwal tidak ditemukan'], 404);
+        }
+
+        $ajuan->STATUS_AJUKAN_MHS = 'y';
+        if ($ajuan->STATUS_LULUS === 'tidak lulus') {
+            $ajuan->STATUS_LULUS = null;
+        }
+        $ajuan->TGL_UPDATE = now();
+        $ajuan->save();
+
+        return response()->json(['success' => true, 'message' => 'Berhasil diajukan ke Program Studi']);
     }
 }

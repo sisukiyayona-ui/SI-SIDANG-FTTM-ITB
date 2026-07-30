@@ -281,27 +281,7 @@
     }
 
     function showCustomToast(message, type) {
-        // Create toast element
-        let toast = document.createElement('div');
-        toast.className = 'toast show';
-        toast.style.position = 'fixed';
-        toast.style.top = '20px';
-        toast.style.right = '20px';
-        toast.style.zIndex = '9999';
-        toast.style.minWidth = '250px';
-        toast.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
-        toast.style.color = 'white';
-        toast.style.padding = '15px';
-        toast.style.borderRadius = '5px';
-        toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-        toast.textContent = message;
-
-        document.body.appendChild(toast);
-
-        // Remove after 3 seconds
-        setTimeout(function() {
-            toast.remove();
-        }, 3000);
+        showToast(type, message);
     }
 
     function savePersyaratan(tahapan) {

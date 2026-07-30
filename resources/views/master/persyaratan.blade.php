@@ -10,16 +10,102 @@
     </ol>
 @endsection
 
+@push('styles')
+<style>
+    /* Master Data Table Styles - Professional Dark/Light Mode */
+    .master-data-container {
+        --table-header-bg-light: #f8f9fa;
+        --table-header-text-light: #2d3748;
+        --table-header-border-light: #dee2e6;
+        --table-row-hover-light: #f8f9fa;
+        --table-border-light: #dee2e6;
+        
+        --table-header-bg-dark: #334155;
+        --table-header-text-dark: #f1f5f9;
+        --table-header-border-dark: #475569;
+        --table-row-hover-dark: #2d3748;
+        --table-border-dark: #475569;
+    }
+
+    .master-data-container .table thead th {
+        background-color: var(--table-header-bg-light) !important;
+        color: var(--table-header-text-light) !important;
+        border-color: var(--table-header-border-light) !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        padding: 14px 12px !important;
+        vertical-align: middle !important;
+    }
+
+    html.dark-mode .master-data-container .table thead th {
+        background-color: var(--table-header-bg-dark) !important;
+        color: var(--table-header-text-dark) !important;
+        border-color: var(--table-header-border-dark) !important;
+    }
+
+    .master-data-container .table tbody tr:hover {
+        background-color: var(--table-row-hover-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table tbody tr:hover {
+        background-color: var(--table-row-hover-dark) !important;
+    }
+
+    .master-data-container .table {
+        border-color: var(--table-border-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table {
+        border-color: var(--table-border-dark) !important;
+    }
+
+    .master-data-container .table td,
+    .master-data-container .table th {
+        border-color: var(--table-border-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table td,
+    html.dark-mode .master-data-container .table th {
+        border-color: var(--table-border-dark) !important;
+    }
+
+    /* Card Header Styling */
+    .master-data-container .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border: none;
+        padding: 16px 20px;
+    }
+
+    .master-data-container .card-header h5 {
+        color: white !important;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    html.dark-mode .master-data-container .card {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+    }
+
+    html.dark-mode .master-data-container .card-body {
+        background-color: #1e293b !important;
+    }
+</style>
+@endpush
+
 @section('content')
+<div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-file-alt mr-2"></i>Daftar Persyaratan</h5>
-            <button class="btn btn-sm btn-accent" onclick="openCreate()">
-                <i class="fas fa-plus mr-1"></i> Tambah Persyaratan
+            <button class="btn btn-sm btn-primary" onclick="openCreate()">
+                <i class="fas fa-plus mr-1"></i> Tambah
             </button>
         </div>
         <div class="card-body">
             <div class="table-responsive">
+                <form method="GET" action="{{ route('master.persyaratan.index') }}" id="filterForm" autocomplete="off">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
@@ -32,15 +118,15 @@
                         </tr>
                         <tr>
                             <th></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="1"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="2"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="3"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="4"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_persyaratan" placeholder="Cari..." value="{{ request('nama_persyaratan') }}"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="tahapan_sidang" placeholder="Cari..." value="{{ request('tahapan_sidang') }}"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="strata" placeholder="Cari..." value="{{ request('strata') }}"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." value="{{ request('nama_prodi') }}"></th>
                             <th>
-                                <select class="form-control form-control-sm column-search" data-col="5">
+                                <select class="form-control form-control-sm column-search" name="status_aktif">
                                     <option value="">Semua</option>
-                                    <option value="AKTIF">AKTIF</option>
-                                    <option value="NON AKTIF">NON AKTIF</option>
+                                    <option value="AKTIF" {{ request('status_aktif') == 'AKTIF' ? 'selected' : '' }}>AKTIF</option>
+                                    <option value="NON AKTIF" {{ request('status_aktif') == 'NON AKTIF' ? 'selected' : '' }}>NON AKTIF</option>
                                 </select>
                             </th>
                         </tr>
@@ -48,7 +134,7 @@
                     <tbody>
                         @foreach($persyaratan as $i => $item)
                             <tr>
-                                <td>{{ $i + 1 }}</td>
+                                <td>{{ $persyaratan->firstItem() + $i }}</td>
                                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
                                 <td>{{ $item['tahapan_sidang'] }}</td>
                                 <td>{{ $item['strata'] }}</td>
@@ -62,12 +148,14 @@
                         @endforeach
                     </tbody>
                 </table>
+                </form>
             </div>
             <div class="mt-3 d-flex justify-content-center">
                 {{ $persyaratan->links() }}
             </div>
         </div>
     </div>
+</div>
 
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
@@ -112,12 +200,18 @@
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="id_prodi" class="form-label fw-semibold text-secondary">Program Studi</label>
-                            <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
-                                @foreach($prodis as $p)
-                                    <option value="{{ $p->id }}">{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
-                                @endforeach
+                            <label for="f_id_prodi" class="form-label fw-semibold text-secondary">Program Studi</label>
+                            @php $isTuProdi = session('auth_user.role') === 'TU Prodi'; @endphp
+                            <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" {{ $isTuProdi ? 'disabled' : '' }}>
+                                @forelse($prodis as $p)
+                                    <option value="{{ $p->id }}" {{ $isTuProdi ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                                @empty
+                                    <option value="">Prodi tidak tersedia</option>
+                                @endforelse
                             </select>
+                            @if($isTuProdi)
+                                <input type="hidden" name="id_prodi" id="f_id_prodi_hidden" value="{{ $userProdiId }}">
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -167,6 +261,9 @@
 
 @push('scripts')
 <script>
+    const userProdiId = @json($userProdiId);
+    const isTuProdi = @json(session('auth_user.role')) === 'TU Prodi';
+
     function openCreate() {
         document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Persyaratan';
         document.getElementById('mainForm').action = '{{ route("master.persyaratan.store") }}';
@@ -175,8 +272,10 @@
         document.getElementById('f_nama').value = '';
         document.getElementById('f_tahapan_sidang').selectedIndex = 0;
         document.getElementById('f_strata').value = 'S3';
-        const prodiSelect = document.getElementById('f_id_prodi');
-        if (prodiSelect) prodiSelect.selectedIndex = 0;
+        if (isTuProdi && userProdiId) {
+            document.getElementById('f_id_prodi').value = userProdiId;
+            document.getElementById('f_id_prodi_hidden').value = userProdiId;
+        }
         document.getElementById('statusAktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
@@ -197,8 +296,12 @@
             document.getElementById('f_nama').value = item.nama;
             document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
             document.getElementById('f_strata').value = item.strata;
-            var prodiSelect = document.getElementById('f_id_prodi');
-            if (prodiSelect) prodiSelect.value = item.id_prodi;
+            if (isTuProdi && userProdiId) {
+                document.getElementById('f_id_prodi').value = userProdiId;
+                document.getElementById('f_id_prodi_hidden').value = userProdiId;
+            } else if (item.id_prodi) {
+                document.getElementById('f_id_prodi').value = item.id_prodi;
+            }
             (item.status_aktif === 'AKTIF' ? document.getElementById('statusAktif') : document.getElementById('statusNonaktif')).checked = true;
 
             document.getElementById('listContainer').style.display = 'none';
@@ -242,31 +345,15 @@
         });
     });
 
-    document.querySelectorAll('.column-search').forEach(input => {
-        input.addEventListener('input', filterTable);
-        input.addEventListener('change', filterTable);
-    });
-
-    function filterTable() {
-        const filters = Array.from(document.querySelectorAll('.column-search')).map(input => ({
-            colIndex: parseInt(input.dataset.col),
-            value: input.value.toLowerCase()
-        }));
-
-        document.querySelectorAll('table tbody tr').forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (!cells || cells.length === 0) return;
-            let isMatch = true;
-            filters.forEach(filter => {
-                if (filter.value && cells[filter.colIndex]) {
-                    const cellText = cells[filter.colIndex].textContent.toLowerCase();
-                    if (!cellText.includes(filter.value)) {
-                        isMatch = false;
-                    }
-                }
-            });
-            row.style.display = isMatch ? '' : 'none';
+    var filterTimeout;
+    document.querySelectorAll('.column-search').forEach(function(input) {
+        input.addEventListener('input', function() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(function() { document.getElementById('filterForm').submit(); }, 400);
         });
-    }
+        input.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    });
 </script>
 @endpush

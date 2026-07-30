@@ -9,18 +9,104 @@
     </ol>
 @endsection
 
+@push('styles')
+<style>
+    /* Master Data Table Styles - Professional Dark/Light Mode */
+    .master-data-container {
+        --table-header-bg-light: #f8f9fa;
+        --table-header-text-light: #2d3748;
+        --table-header-border-light: #dee2e6;
+        --table-row-hover-light: #f8f9fa;
+        --table-border-light: #dee2e6;
+        
+        --table-header-bg-dark: #334155;
+        --table-header-text-dark: #f1f5f9;
+        --table-header-border-dark: #475569;
+        --table-row-hover-dark: #2d3748;
+        --table-border-dark: #475569;
+    }
+
+    .master-data-container .table thead th {
+        background-color: var(--table-header-bg-light) !important;
+        color: var(--table-header-text-light) !important;
+        border-color: var(--table-header-border-light) !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        padding: 14px 12px !important;
+        vertical-align: middle !important;
+    }
+
+    html.dark-mode .master-data-container .table thead th {
+        background-color: var(--table-header-bg-dark) !important;
+        color: var(--table-header-text-dark) !important;
+        border-color: var(--table-header-border-dark) !important;
+    }
+
+    .master-data-container .table tbody tr:hover {
+        background-color: var(--table-row-hover-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table tbody tr:hover {
+        background-color: var(--table-row-hover-dark) !important;
+    }
+
+    .master-data-container .table {
+        border-color: var(--table-border-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table {
+        border-color: var(--table-border-dark) !important;
+    }
+
+    .master-data-container .table td,
+    .master-data-container .table th {
+        border-color: var(--table-border-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table td,
+    html.dark-mode .master-data-container .table th {
+        border-color: var(--table-border-dark) !important;
+    }
+
+    /* Card Header Styling */
+    .master-data-container .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border: none;
+        padding: 16px 20px;
+    }
+
+    .master-data-container .card-header h5 {
+        color: white !important;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    html.dark-mode .master-data-container .card {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+    }
+
+    html.dark-mode .master-data-container .card-body {
+        background-color: #1e293b !important;
+    }
+</style>
+@endpush
+
 @section('content')
+<div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-users mr-2"></i>Daftar User</h5>
-            <button class="btn btn-sm btn-accent" onclick="openCreate()">
-                <i class="fas fa-plus mr-1"></i> Tambah User
+            <button class="btn btn-sm btn-primary" onclick="openCreate()">
+                <i class="fas fa-plus mr-1"></i> Tambah
             </button>
         </div>
         <div class="card-body">
 
 
             <div class="table-responsive">
+                <form method="GET" action="{{ route('master.user.index') }}" id="filterForm" autocomplete="off">
                 <table class="table table-striped table-hover" id="userTable">
                     <thead>
                         <tr>
@@ -35,35 +121,35 @@
                         </tr>
                         <tr>
                             <th></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="1"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="2"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="3"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="nip_nim" placeholder="Cari..." data-col="1" value="{{ request('nip_nim') }}"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_lengkap" placeholder="Cari..." data-col="2" value="{{ request('nama_lengkap') }}"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="email" placeholder="Cari..." data-col="3" value="{{ request('email') }}"></th>
                             <th>
-                                <select class="form-control form-control-sm column-search" data-col="4">
+                                <select class="form-control form-control-sm column-search" name="status_pegawai" data-col="4">
                                     <option value="">Semua</option>
-                                    <option value="Tendik">Tendik</option>
-                                    <option value="Dosen">Dosen</option>
-                                    <option value="Mahasiswa">Mahasiswa</option>
+                                    <option value="Tendik" {{ request('status_pegawai') == 'Tendik' ? 'selected' : '' }}>Tendik</option>
+                                    <option value="Dosen" {{ request('status_pegawai') == 'Dosen' ? 'selected' : '' }}>Dosen</option>
+                                    <option value="Mahasiswa" {{ request('status_pegawai') == 'Mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
                                 </select>
                             </th>
                             <th>
-                                <select class="form-control form-control-sm column-search" data-col="5">
+                                <select class="form-control form-control-sm column-search" name="jenis_user" data-col="5">
                                     <option value="">Semua</option>
-                                    <option value="Admin">Admin</option>
-                                    <option value="TU Prodi">TU Prodi</option>
-                                    <option value="FS">FS</option>
-                                    <option value="Mahasiswa">Mahasiswa</option>
-                                    <option value="Pembimbing">Pembimbing</option>
-                                    <option value="Penguji">Penguji</option>
-                                    <option value="Monev">Monev</option>
+                                    <option value="Admin" {{ request('jenis_user') == 'Admin' ? 'selected' : '' }}>Admin</option>
+                                    <option value="TU Prodi" {{ request('jenis_user') == 'TU Prodi' ? 'selected' : '' }}>TU Prodi</option>
+                                    <option value="FS" {{ request('jenis_user') == 'FS' ? 'selected' : '' }}>FS</option>
+                                    <option value="Mahasiswa" {{ request('jenis_user') == 'Mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
+                                    <option value="Pembimbing" {{ request('jenis_user') == 'Pembimbing' ? 'selected' : '' }}>Pembimbing</option>
+                                    <option value="Penguji" {{ request('jenis_user') == 'Penguji' ? 'selected' : '' }}>Penguji</option>
+                                    <option value="Monev" {{ request('jenis_user') == 'Monev' ? 'selected' : '' }}>Monev</option>
                                 </select>
                             </th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="6"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." data-col="6" value="{{ request('nama_prodi') }}"></th>
                             <th>
-                                <select class="form-control form-control-sm column-search" data-col="7">
+                                <select class="form-control form-control-sm column-search" name="status_aktif" data-col="7">
                                     <option value="">Semua</option>
-                                    <option value="AKTIF">AKTIF</option>
-                                    <option value="NON AKTIF">NON AKTIF</option>
+                                    <option value="AKTIF" {{ request('status_aktif') == 'AKTIF' ? 'selected' : '' }}>AKTIF</option>
+                                    <option value="NON AKTIF" {{ request('status_aktif') == 'NON AKTIF' ? 'selected' : '' }}>NON AKTIF</option>
                                 </select>
                             </th>
                         </tr>
@@ -71,7 +157,7 @@
                     <tbody>
                         @foreach($users as $i => $item)
                             <tr>
-                                <td>{{ $i + 1 }}</td>
+                                <td>{{ $users->firstItem() + $i }}</td>
                                 <td>{{ $item['nip_nim'] }}</td>
                                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama_lengkap'] }}</a></td>
                                 <td>{{ $item['email'] }}</td>
@@ -87,13 +173,16 @@
                         @endforeach
                     </tbody>
                 </table>
+                </form>
             </div>
             <div class="mt-3 d-flex justify-content-center">
                 {{ $users->links() }}
             </div>
         </div>
     </div>
+</div>
 
+@php $user = session('auth_user'); @endphp
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
         <div class="card-header">
@@ -103,6 +192,9 @@
             <form id="formUser" method="POST">
                 @csrf
                 <input type="hidden" name="_method" id="methodUser" value="POST">
+                {{-- Hidden fields untuk FS (selalu 164 / FTTM) --}}
+                <input type="hidden" name="kode_fs" value="164">
+                <input type="hidden" name="nama_fs" value="FTTM">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NIP / NIM <span class="text-danger">*</span></label>
@@ -125,8 +217,8 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="username" id="f_username" class="form-control" placeholder="Username login">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" name="username" id="f_username" class="form-control" placeholder="Username login" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Password</label>
@@ -136,7 +228,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Jenis User <span class="text-danger">*</span></label>
-                        <select name="jenis_user" id="f_jenis_user" class="form-control" required>
+                        <select name="jenis_user" id="f_jenis_user" class="form-control" required onchange="onJenisUserChange()">
                             <option value="">-- Pilih --</option>
                             <option value="Admin">Admin</option>
                             <option value="TU Prodi">TU Prodi</option>
@@ -145,56 +237,66 @@
                             <option value="Pembimbing">Pembimbing</option>
                             <option value="Penguji">Penguji</option>
                             <option value="Monev">Monev</option>
+                            <option value="Dosen">Dosen</option>
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Status Pegawai <span class="text-danger">*</span></label>
-                        <select name="status_pegawai" id="f_status_pegawai" class="form-control" required>
+                        <label class="form-label">Status Pegawai</label>
+                        <select name="status_pegawai" id="f_status_pegawai" class="form-control" disabled onchange="onStatusPegawaiChange()">
                             <option value="">-- Pilih --</option>
                             <option value="Tendik">Tendik</option>
                             <option value="Dosen">Dosen</option>
                             <option value="Mahasiswa">Mahasiswa</option>
                         </select>
+                        <small class="text-muted">Aktif jika Jenis User bukan Mahasiswa</small>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Strata</label>
-                        <select name="strata" id="f_strata" class="form-control">
+                        <select name="strata" id="f_strata" class="form-control" disabled>
                             <option value="">-- Pilih --</option>
                             <option value="S1">S1</option>
                             <option value="S2">S2</option>
                             <option value="S3">S3</option>
                         </select>
+                        <small class="text-muted">Aktif jika Jenis User = Mahasiswa</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tahun Angkatan</label>
-                        <input type="number" name="thn_angkatan" id="f_thn_angkatan" class="form-control" placeholder="Contoh: 2026" min="2000" max="2099">
+                        <input type="number" name="thn_angkatan" id="f_thn_angkatan" class="form-control" placeholder="Contoh: 2026" min="2000" max="2099" disabled>
+                        <small class="text-muted">Aktif jika Jenis User = Mahasiswa</small>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Program Studi</label>
-                        <select name="id_prodi" id="f_id_prodi" class="form-control">
-                            <option value="">-- Tidak ada / Non Prodi --</option>
-                            @foreach($prodis as $p)
-                                <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" data-nama="{{ $p->nama_prodi }}">
-                                    {{ $p->nama_prodi }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted">Kode Prodi dan Nama Prodi akan diisi otomatis dari session user login</small>
+                        @if(session('auth_user.role') === 'TU Prodi')
+                            {{-- TU Prodi: prodi dari login, disable --}}
+                            @php
+                                $loginProdi = \App\Models\TProdi::where('kode_prodi', session('auth_user.kode_prodi'))->first();
+                            @endphp
+                            <input type="hidden" name="id_prodi" value="{{ $loginProdi?->id }}">
+                            <input type="text" class="form-control" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled style="background-color:#e9ecef;">
+                        @else
+                            <select name="id_prodi" id="f_id_prodi" class="form-control">
+                                <option value="">-- Tidak ada / Non Prodi --</option>
+                                @foreach($prodis as $p)
+                                    <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" data-nama="{{ $p->nama_prodi }}">
+                                        {{ $p->nama_prodi }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @endif
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Kode FS / Nama FS</label>
-                        <select name="id_fs_prodi" id="f_id_fs_prodi" class="form-control">
+                        <label class="form-label">Status Kaprodi</label>
+                        <select name="status_kaprodi" id="f_status_kaprodi" class="form-control" disabled>
                             <option value="">-- Pilih --</option>
-                            @foreach($prodis as $p)
-                                <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" data-nama="{{ $p->nama_prodi }}">
-                                    {{ $p->kode_prodi }} - {{ $p->nama_prodi }}
-                                </option>
-                            @endforeach
+                            <option value="y">Ya (Kaprodi)</option>
+                            <option value="t">Tidak</option>
                         </select>
+                        <small class="text-muted">Aktif jika Status Pegawai = Dosen</small>
                     </div>
                 </div>
                 <div class="row">
@@ -215,12 +317,12 @@
                         <label class="form-label">Status Approve <span class="text-danger">*</span></label>
                         <div class="d-flex gap-3">
                             <div class="form-check">
-                                <input type="radio" name="status_approve" value="y" class="form-check-input" id="spApprove" checked>
-                                <label class="form-check-label" for="spApprove">Approved (y)</label>
+                                <input type="radio" name="status_approve" value="t" class="form-check-input" id="spApprove" checked>
+                                <label class="form-check-label" for="spApprove">Approved (t)</label>
                             </div>
                             <div class="form-check">
-                                <input type="radio" name="status_approve" value="t" class="form-check-input" id="spTolak">
-                                <label class="form-check-label" for="spTolak">Pending (t)</label>
+                                <input type="radio" name="status_approve" value="f" class="form-check-input" id="spTolak">
+                                <label class="form-check-label" for="spTolak">Pending (f)</label>
                             </div>
                         </div>
                     </div>
@@ -256,6 +358,49 @@
 
 @push('scripts')
 <script>
+    // ─── Logika disable/enable berdasar Jenis User ───────────────────────────
+    function onJenisUserChange() {
+        var jenis = document.getElementById('f_jenis_user').value;
+        var isMhs   = (jenis === 'Mahasiswa');
+        var isDosen = (jenis === 'Dosen');
+        var isBukanMhs = (jenis !== '' && jenis !== 'Mahasiswa');
+
+        var strataField = document.getElementById('f_strata');
+        var thnField = document.getElementById('f_thn_angkatan');
+        var statusPegawaiField = document.getElementById('f_status_pegawai');
+
+        // Strata & thn angkatan: aktif hanya jika Mahasiswa
+        strataField.disabled = !isMhs;
+        thnField.disabled = !isMhs;
+
+        // Status pegawai: aktif jika BUKAN Mahasiswa
+        statusPegawaiField.disabled = !isBukanMhs;
+        if (!isBukanMhs) {
+            statusPegawaiField.value = '';
+        }
+
+        // Reset nilai kolom yg tidak aktif
+        if (!isMhs) {
+            strataField.value = '';
+            thnField.value = '';
+        }
+
+        // Trigger status pegawai change untuk update status kaprodi
+        onStatusPegawaiChange();
+    }
+
+    // ─── Logika disable/enable Status Kaprodi berdasar Status Pegawai ─────
+    function onStatusPegawaiChange() {
+        var statusPegawai = document.getElementById('f_status_pegawai').value;
+        var isDosen = (statusPegawai === 'Dosen');
+        var statusKaprodiField = document.getElementById('f_status_kaprodi');
+
+        statusKaprodiField.disabled = !isDosen;
+        if (!isDosen) {
+            statusKaprodiField.value = '';
+        }
+    }
+
     function openCreate() {
         document.getElementById('modalUserTitle').innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah User';
         document.getElementById('formUser').action = '{{ route("master.user.store") }}';
@@ -263,6 +408,14 @@
         document.getElementById('formUser').reset();
         document.getElementById('saAktif').checked = true;
         document.getElementById('spApprove').checked = true;
+        document.getElementById('f_password').required = false;
+        document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
+
+        // Reset semua disable sesuai state awal (belum ada jenis_user)
+        document.getElementById('f_strata').disabled         = true;
+        document.getElementById('f_thn_angkatan').disabled   = true;
+        document.getElementById('f_status_pegawai').disabled = true;
+        document.getElementById('f_status_kaprodi').disabled = true;
 
         document.getElementById('listContainer').style.display = 'none';
         document.getElementById('formContainer').style.display = 'block';
@@ -280,38 +433,40 @@
             document.getElementById('formUser').action = '{{ url("master/user") }}/' + id;
             document.getElementById('methodUser').value = 'PUT';
 
-            document.getElementById('f_nip_nim').value = item.nip_nim ?? '';
+            document.getElementById('f_nip_nim').value      = item.nip_nim ?? '';
             document.getElementById('f_nama_lengkap').value = item.nama_lengkap ?? '';
-            document.getElementById('f_email').value = item.email ?? '';
-            document.getElementById('f_akun_ina').value = item.akun_ina ?? '';
-            document.getElementById('f_username').value = item.username ?? '';
-            document.getElementById('f_password').value = '';
+            document.getElementById('f_email').value        = item.email ?? '';
+            document.getElementById('f_akun_ina').value     = item.akun_ina ?? '';
+            document.getElementById('f_username').value     = item.username ?? '';
+            document.getElementById('f_password').value     = '';
+            document.getElementById('f_password').required  = false;
+            document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
+
             document.getElementById('f_jenis_user').value = item.jenis_user ?? '';
-
-            var prodiSel = document.getElementById('f_id_prodi');
-            prodiSel.value = '';
-            for (var i = 0; i < prodiSel.options.length; i++) {
-                if (prodiSel.options[i].dataset.kode === item.kode_prodi) {
-                    prodiSel.options[i].selected = true;
-                    break;
-                }
-            }
-
-            var fsSel = document.getElementById('f_id_fs_prodi');
-            fsSel.value = '';
-            for (var i = 0; i < fsSel.options.length; i++) {
-                if (fsSel.options[i].dataset.kode === item.kode_fs) {
-                    fsSel.options[i].selected = true;
-                    break;
-                }
-            }
+            // Trigger disable/enable logic setelah set jenis_user
+            onJenisUserChange();
 
             document.getElementById('f_status_pegawai').value = item.status_pegawai ?? '';
-            document.getElementById('f_strata').value = item.strata ?? '';
-            document.getElementById('f_thn_angkatan').value = item.thn_angkatan ?? '';
+            onStatusPegawaiChange();
+            document.getElementById('f_strata').value         = item.strata ?? '';
+            document.getElementById('f_thn_angkatan').value   = item.thn_angkatan ?? '';
+            document.getElementById('f_status_kaprodi').value = item.status_kaprodi ?? '';
+
+            @if(session('auth_user.role') !== 'TU Prodi')
+            var prodiSel = document.getElementById('f_id_prodi');
+            if (prodiSel) {
+                prodiSel.value = '';
+                for (var i = 0; i < prodiSel.options.length; i++) {
+                    if (prodiSel.options[i].dataset.kode === item.kode_prodi) {
+                        prodiSel.options[i].selected = true;
+                        break;
+                    }
+                }
+            }
+            @endif
 
             document.getElementById(item.status_aktif === 'AKTIF' ? 'saAktif' : 'saNonAktif').checked = true;
-            document.getElementById(item.status_approve === 'y' ? 'spApprove' : 'spTolak').checked = true;
+            document.getElementById((item.status_approve === 't' || item.status_approve === 'y') ? 'spApprove' : 'spTolak').checked = true;
 
             document.getElementById('listContainer').style.display = 'none';
             document.getElementById('formContainer').style.display = 'block';
@@ -332,14 +487,25 @@
         e.preventDefault();
         fetch(this.action, {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json'
+            },
             body: new FormData(this)
-        }).then(r => r.json()).then(data => {
-            if (data.success) {
+        }).then(async r => {
+            const data = await r.json().catch(() => ({}));
+            if (r.ok && data.success) {
                 closeForm();
                 showToast('success', 'Data user berhasil disimpan.');
                 setTimeout(() => location.reload(), 1200);
+                return;
             }
+            if (r.status === 422 && data.errors) {
+                const firstError = Object.values(data.errors)[0];
+                showToast('error', Array.isArray(firstError) ? firstError[0] : firstError);
+                return;
+            }
+            showToast('error', data.message || 'Gagal menyimpan user. Periksa data form.');
         }).catch(() => {
             showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
@@ -360,32 +526,16 @@
         });
     });
 
-    document.querySelectorAll('.column-search').forEach(input => {
-        input.addEventListener('input', filterTable);
-        input.addEventListener('change', filterTable);
-    });
-
-    function filterTable() {
-        const filters = Array.from(document.querySelectorAll('.column-search')).map(input => ({
-            colIndex: parseInt(input.dataset.col),
-            value: input.value.toLowerCase()
-        }));
-
-        document.querySelectorAll('#userTable tbody tr').forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (!cells || cells.length === 0) return;
-            let isMatch = true;
-            filters.forEach(filter => {
-                if (filter.value && cells[filter.colIndex]) {
-                    const cellText = cells[filter.colIndex].textContent.toLowerCase();
-                    if (!cellText.includes(filter.value)) {
-                        isMatch = false;
-                    }
-                }
-            });
-            row.style.display = isMatch ? '' : 'none';
+    var filterTimeout;
+    document.querySelectorAll('.column-search').forEach(function(input) {
+        input.addEventListener('input', function() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(function() { document.getElementById('filterForm').submit(); }, 400);
         });
-    }
+        input.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    });
 
 </script>
 @endpush

@@ -17,7 +17,7 @@
                 <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Tracking Progress Sidang S3</h5>
                 <div class="d-flex align-items-center">
                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'FS']))
-                    <button type="button" class="btn btn-sm btn-success mr-2" data-toggle="modal" data-target="#tambahJudulModal">
+                    <button type="button" class="btn btn-sm btn-primary mr-2" data-toggle="modal" data-target="#tambahJudulModal">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
                 @endif
@@ -37,7 +37,7 @@
         <div class="card-body">
             <div class="table-responsive">
                 <!-- Table untuk semua strata (S1, S2, S3) -->
-                <table class="table table-bordered table-hover text-center">
+                <table id="trackingTable" class="table table-bordered table-hover text-center">
                     <thead style="background-color: #6998d3; color: white;">
                         <tr>
                             <th rowspan="2" class="align-middle" style="width: 50px;">No</th>
@@ -54,6 +54,68 @@
                             <th class="align-middle" style="background-color: #9fbce4; color: white;">SK II</th>
                             <th class="align-middle" style="background-color: #9fbce4; color: white;">SK III</th>
                             <th class="align-middle" style="background-color: #9fbce4; color: white;">SK IV</th>
+                        </tr>
+                        <tr class="tracking-filter-row" style="background-color: #f8f9fa;">
+                            <th></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="1" style="color: #495057;"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="2" style="color: #495057;"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="3" style="color: #495057;"></th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="4" style="color: #495057;">
+                                    <option value="">Semua</option>
+                                    <option value="belum diajukan">Belum diajukan</option>
+                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="lulus">Lulus</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="5" style="color: #495057;">
+                                    <option value="">Semua</option>
+                                    <option value="belum diajukan">Belum diajukan</option>
+                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="lulus">Lulus</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="6" style="color: #495057;">
+                                    <option value="">Semua</option>
+                                    <option value="belum diajukan">Belum diajukan</option>
+                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="lulus">Lulus</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="7" style="color: #495057;">
+                                    <option value="">Semua</option>
+                                    <option value="belum diajukan">Belum diajukan</option>
+                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="lulus">Lulus</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="8" style="color: #495057;">
+                                    <option value="">Semua</option>
+                                    <option value="belum diajukan">Belum diajukan</option>
+                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="lulus">Lulus</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="9" style="color: #495057;">
+                                    <option value="">Semua</option>
+                                    <option value="belum diajukan">Belum diajukan</option>
+                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="lulus">Lulus</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-control form-control-sm column-search" data-col="10" style="color: #495057;">
+                                    <option value="">Semua</option>
+                                    <option value="belum diajukan">Belum diajukan</option>
+                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="lulus">Lulus</option>
+                                </select>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -149,12 +211,12 @@
                     <div class="modal-body">
                         <div class="form-group">
                             <label>Nama Mahasiswa</label>
-                            <select name="id_user_mhs" id="mhsSelect" class="form-control" required onchange="document.getElementById('nipDisplay').value = this.options[this.selectedIndex].dataset.nip || ''">
-                                <option value="">-- Pilih Mahasiswa --</option>
-                                @foreach($mahasiswaList as $mhs)
-                                    <option value="{{ $mhs->id }}" data-nip="{{ $mhs->NIP_NIM }}">{{ $mhs->NAMA_LENGKAP }}</option>
-                                @endforeach
-                            </select>
+<select name="id_user_mhs" id="mhsSelect" class="form-control" required onchange="document.getElementById('nipDisplay').value = this.options[this.selectedIndex].dataset.nip || ''">
+                                 <option value="">-- Pilih Mahasiswa --</option>
+                                 @foreach($mahasiswaList as $mhs)
+                                     <option value="{{ $mhs->id }}" {{ old('id_user_mhs') == $mhs->id ? 'selected' : '' }} data-nip="{{ $mhs->NIP_NIM }}">{{ $mhs->NAMA_LENGKAP }}</option>
+                                 @endforeach
+                             </select>
                         </div>
                         <div class="form-group">
                             <label>NIP/NIM</label>
@@ -343,29 +405,63 @@
     }
 
     function showCustomToast(message, type) {
-        let toast = document.createElement('div');
-        toast.className = 'toast show';
-        toast.style.position = 'fixed';
-        toast.style.top = '20px';
-        toast.style.right = '20px';
-        toast.style.zIndex = '9999';
-        toast.style.minWidth = '250px';
-        toast.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
-        toast.style.color = 'white';
-        toast.style.padding = '15px';
-        toast.style.borderRadius = '5px';
-        toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-        toast.textContent = message;
-
-        document.body.appendChild(toast);
-
-        setTimeout(function() {
-            toast.remove();
-        }, 3000);
+        showToast(type, message);
     }
 
     function savePersyaratan(tahapan) {
-        showCustomToast('Persyaratan berhasil disimpan', 'success');
+        var formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('tahapan_sidang', tahapan);
+
+        var content = document.getElementById('tahapFormContent');
+        var idJudulInput = content ? content.querySelector('[name="id_judul"]') : null;
+        var idJudul = idJudulInput ? idJudulInput.value : '';
+
+        if (!idJudul) {
+            showCustomToast('ID Judul tidak ditemukan', 'error');
+            return;
+        }
+        formData.append('id_judul', idJudul);
+
+        var checkboxes = content ? content.querySelectorAll('input[type="checkbox"][onchange]') : [];
+        checkboxes.forEach(function(cb) {
+            var match = cb.getAttribute('onchange').match(/updateKelengkapan\((\d+)/);
+            if (match) {
+                formData.append('kelengkapan[' + match[1] + ']', cb.checked ? 'y' : 't');
+            }
+        });
+
+        if (typeof persyaratanFiles !== 'undefined') {
+            Object.keys(persyaratanFiles).forEach(function(id) {
+                formData.append('files[' + id + ']', persyaratanFiles[id]);
+            });
+        }
+
+        fetch('/mahasiswa/save-all-persyaratan', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showCustomToast('Persyaratan berhasil disimpan', 'success');
+                if (typeof persyaratanFiles !== 'undefined') persyaratanFiles = {};
+                if (typeof showTahapForm === 'function') {
+                    showTahapForm(tahapan, idJudul, 'persyaratan');
+                } else {
+                    location.reload();
+                }
+            } else {
+                showCustomToast(data.message || 'Gagal menyimpan persyaratan', 'error');
+            }
+        })
+        .catch(function(error) {
+            showCustomToast('Terjadi kesalahan: ' + error, 'error');
+        });
     }
 
     function submitTimSidang(event) {
@@ -533,6 +629,42 @@
         })
         .catch(error => {
             showCustomToast('Error: ' + error, 'error');
+        });
+    }
+
+    $('#tahapModal').on('hidden.bs.modal', function () {
+        location.reload();
+    });
+
+    document.querySelectorAll('#trackingTable .column-search').forEach(input => {
+        input.addEventListener('input', filterTrackingTable);
+        input.addEventListener('change', filterTrackingTable);
+    });
+
+    if (document.getElementById('mhsSelect') && document.getElementById('mhsSelect').value) {
+        document.getElementById('mhsSelect').dispatchEvent(new Event('change'));
+        $('#tambahJudulModal').modal('show');
+    }
+
+    function filterTrackingTable() {
+        const filters = Array.from(document.querySelectorAll('#trackingTable .column-search')).map(input => ({
+            colIndex: parseInt(input.dataset.col),
+            value: input.value.toLowerCase()
+        }));
+
+        document.querySelectorAll('#trackingTable tbody tr').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (!cells || cells.length === 0) return;
+            let isMatch = true;
+            filters.forEach(filter => {
+                if (filter.value && cells[filter.colIndex]) {
+                    const cellText = cells[filter.colIndex].textContent.toLowerCase().trim();
+                    if (!cellText.includes(filter.value)) {
+                        isMatch = false;
+                    }
+                }
+            });
+            row.style.display = isMatch ? '' : 'none';
         });
     }
 </script>

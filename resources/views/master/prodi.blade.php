@@ -10,35 +10,123 @@
     </ol>
 @endsection
 
+@push('styles')
+<style>
+    /* Master Data Table Styles - Professional Dark/Light Mode */
+    .master-data-container {
+        --table-header-bg-light: #f8f9fa;
+        --table-header-text-light: #2d3748;
+        --table-header-border-light: #dee2e6;
+        --table-row-hover-light: #f8f9fa;
+        --table-border-light: #dee2e6;
+        
+        --table-header-bg-dark: #334155;
+        --table-header-text-dark: #f1f5f9;
+        --table-header-border-dark: #475569;
+        --table-row-hover-dark: #2d3748;
+        --table-border-dark: #475569;
+    }
+
+    .master-data-container .table thead th {
+        background-color: var(--table-header-bg-light) !important;
+        color: var(--table-header-text-light) !important;
+        border-color: var(--table-header-border-light) !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        padding: 14px 12px !important;
+        vertical-align: middle !important;
+    }
+
+    html.dark-mode .master-data-container .table thead th {
+        background-color: var(--table-header-bg-dark) !important;
+        color: var(--table-header-text-dark) !important;
+        border-color: var(--table-header-border-dark) !important;
+    }
+
+    .master-data-container .table tbody tr:hover {
+        background-color: var(--table-row-hover-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table tbody tr:hover {
+        background-color: var(--table-row-hover-dark) !important;
+    }
+
+    .master-data-container .table {
+        border-color: var(--table-border-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table {
+        border-color: var(--table-border-dark) !important;
+    }
+
+    .master-data-container .table td,
+    .master-data-container .table th {
+        border-color: var(--table-border-light) !important;
+    }
+
+    html.dark-mode .master-data-container .table td,
+    html.dark-mode .master-data-container .table th {
+        border-color: var(--table-border-dark) !important;
+    }
+
+    /* Card Header Styling */
+    .master-data-container .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border: none;
+        padding: 16px 20px;
+    }
+
+    .master-data-container .card-header h5 {
+        color: white !important;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    html.dark-mode .master-data-container .card {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+    }
+
+    html.dark-mode .master-data-container .card-body {
+        background-color: #1e293b !important;
+    }
+</style>
+@endpush
+
 @section('content')
+<div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-university mr-2"></i>Daftar Program Studi</h5>
-            <button class="btn btn-sm btn-accent" onclick="openCreate()">
-                <i class="fas fa-plus mr-1"></i> Tambah Prodi
+            <button class="btn btn-sm btn-primary" onclick="openCreate()">
+                <i class="fas fa-plus mr-1"></i> Tambah
             </button>
         </div>
         <div class="card-body">
 
 
             <div class="table-responsive">
+                <form method="GET" action="{{ route('master.prodi.index') }}" id="filterForm" autocomplete="off">
                 <table class="table table-striped table-hover" id="prodiTable">
                     <thead>
                         <tr>
                             <th style="width: 50px;">No</th>
                             <th>Kode Prodi</th>
                             <th>Nama Prodi</th>
+                            <th>Strata</th>
                             <th>Status</th>
                         </tr>
                         <tr>
                             <th></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="1"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="2"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="kode_prodi" placeholder="Cari..." value="{{ request('kode_prodi') }}"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." value="{{ request('nama_prodi') }}"></th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="strata" placeholder="Cari..." value="{{ request('strata') }}"></th>
                             <th>
-                                <select class="form-control form-control-sm column-search" data-col="3">
+                                <select class="form-control form-control-sm column-search" name="status_aktif">
                                     <option value="">Semua</option>
-                                    <option value="AKTIF">AKTIF</option>
-                                    <option value="NON AKTIF">NON AKTIF</option>
+                                    <option value="AKTIF" {{ request('status_aktif') == 'AKTIF' ? 'selected' : '' }}>AKTIF</option>
+                                    <option value="NON AKTIF" {{ request('status_aktif') == 'NON AKTIF' ? 'selected' : '' }}>NON AKTIF</option>
                                 </select>
                             </th>
                         </tr>
@@ -46,9 +134,10 @@
                     <tbody>
                         @foreach($prodi as $i => $item)
                             <tr>
-                                <td>{{ $i + 1 }}</td>
+                                <td>{{ $prodi->firstItem() + $i }}</td>
                                 <td><span class="badge bg-info">{{ $item['kode'] }}</span></td>
                                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
+                                <td>{{ $item['strata'] ?? '-' }}</td>
                                 <td>
                                     <span class="badge bg-{{ $item['status'] === 'AKTIF' ? 'success' : 'danger' }}">
                                         {{ $item['status'] }}
@@ -58,6 +147,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </form>
             </div>
 
             <nav>
@@ -67,6 +157,7 @@
             </nav>
         </div>
     </div>
+</div>
 
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
@@ -238,32 +329,16 @@
         });
     });
 
-    document.querySelectorAll('.column-search').forEach(input => {
-        input.addEventListener('input', filterTable);
-        input.addEventListener('change', filterTable);
-    });
-
-    function filterTable() {
-        const filters = Array.from(document.querySelectorAll('.column-search')).map(input => ({
-            colIndex: parseInt(input.dataset.col),
-            value: input.value.toLowerCase()
-        }));
-
-        document.querySelectorAll('#prodiTable tbody tr').forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (!cells || cells.length === 0) return;
-            let isMatch = true;
-            filters.forEach(filter => {
-                if (filter.value && cells[filter.colIndex]) {
-                    const cellText = cells[filter.colIndex].textContent.toLowerCase();
-                    if (!cellText.includes(filter.value)) {
-                        isMatch = false;
-                    }
-                }
-            });
-            row.style.display = isMatch ? '' : 'none';
+    var filterTimeout;
+    document.querySelectorAll('.column-search').forEach(function(input) {
+        input.addEventListener('input', function() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(function() { document.getElementById('filterForm').submit(); }, 400);
         });
-    }
+        input.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    });
 
 </script>
 @endpush

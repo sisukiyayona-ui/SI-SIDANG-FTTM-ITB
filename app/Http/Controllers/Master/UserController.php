@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $authUser = session('auth_user');
         $query = TUser::query();
@@ -20,7 +20,30 @@ class UserController extends Controller
             $query->where('kode_prodi', $authUser['kode_prodi']);
         }
 
-        $users = $query->orderBy('id', 'desc')->paginate(10)->through(function ($u) {
+        // Server-side search/filter
+        if ($searchNip = $request->get('nip_nim')) {
+            $query->where('NIP_NIM', 'like', '%' . $searchNip . '%');
+        }
+        if ($searchNama = $request->get('nama_lengkap')) {
+            $query->where('NAMA_LENGKAP', 'like', '%' . $searchNama . '%');
+        }
+        if ($searchEmail = $request->get('email')) {
+            $query->where('EMAIL', 'like', '%' . $searchEmail . '%');
+        }
+        if ($searchStatusPegawai = $request->get('status_pegawai')) {
+            $query->where('STATUS_PEGAWAI', $searchStatusPegawai);
+        }
+        if ($searchJenisUser = $request->get('jenis_user')) {
+            $query->where('JENIS_USER', $searchJenisUser);
+        }
+        if ($searchProdi = $request->get('nama_prodi')) {
+            $query->where('NAMA_PRODI', 'like', '%' . $searchProdi . '%');
+        }
+        if ($searchStatusAktif = $request->get('status_aktif')) {
+            $query->where('STATUS_AKTIF', $searchStatusAktif);
+        }
+
+        $users = $query->orderBy('id', 'desc')->paginate(10)->withQueryString()->through(function ($u) {
             return [
                 'id'             => $u->id,
                 'nip_nim'        => $u->nip_nim,
@@ -71,6 +94,7 @@ class UserController extends Controller
             'thn_angkatan'   => $u->thn_angkatan,
             'status_aktif'   => $u->status_aktif,
             'status_approve' => $u->status_approve,
+            'status_kaprodi' => $u->status_kaprodi,
         ]);
     }
 
@@ -80,48 +104,39 @@ class UserController extends Controller
             'nip_nim'        => 'required',
             'nama_lengkap'   => 'required',
             'email'          => 'required|email',
+            'username'       => 'required|unique:t_user,USERNAME',
+            'password'       => 'nullable|min:4',
             'jenis_user'     => 'required',
-            'status_pegawai' => 'required',
+            'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
-            'status_approve' => 'required',
+            'status_approve' => 'required|in:t,f',
         ]);
 
-        // Resolve prodi
-        $kodeProdi = null;
-        $namaProdi = null;
-        if ($request->id_prodi) {
-            $prodi     = TProdi::find($request->id_prodi);
-            $kodeProdi = $prodi?->kode_prodi;
-            $namaProdi = $prodi?->nama_prodi;
-        }
+        [$kodeProdi, $namaProdi] = $this->resolveProdi($request);
+        [$kodeFs, $namaFs] = $this->resolveFs($request);
 
-        // Resolve FS prodi
-        $kodeFs = null;
-        $namaFs = null;
-        if ($request->id_fs_prodi) {
-            $fsProdi = TProdi::find($request->id_fs_prodi);
-            $kodeFs  = $fsProdi?->kode_prodi;
-            $namaFs  = $fsProdi?->nama_prodi;
-        }
+        $hashedPassword = $request->filled('password') ? Hash::make($request->password) : null;
 
         TUser::create([
-            'NIP_NIM'        => $request->nip_nim,
-            'NAMA_LENGKAP'   => $request->nama_lengkap,
-            'EMAIL'          => $request->email,
-            'AKUN_INA'       => $request->akun_ina,
-            'USERNAME'       => $request->username,
-            'PASSWORD'       => $request->password ? Hash::make($request->password) : null,
-            'JENIS_USER'     => $request->jenis_user,
-            'STATUS_PEGAWAI' => $request->status_pegawai,
-            'KODE_PRODI'     => $kodeProdi,
-            'NAMA_PRODI'     => $namaProdi,
-            'KODE_FS'        => $kodeFs,
-            'NAMA_FS'        => $namaFs,
-            'STRATA'         => $request->strata,
-            'THN_ANGKATAN'   => $request->thn_angkatan,
-            'STATUS_AKTIF'   => $request->status_aktif,
-            'STATUS_APPROVE' => $request->status_approve,
-            'TGL_CREATE'     => now(),
+            'NIP_NIM'         => $request->nip_nim,
+            'NAMA_LENGKAP'    => $request->nama_lengkap,
+            'EMAIL'           => $request->email,
+            'AKUN_INA'        => $request->akun_ina,
+            'USERNAME'        => $request->username,
+            'PASSWORD'        => $hashedPassword,
+            'JENIS_USER'      => $request->jenis_user,
+            'STATUS_PEGAWAI'  => $request->status_pegawai,
+            'KODE_PRODI'      => $kodeProdi,
+            'NAMA_PRODI'      => $namaProdi,
+            'KODE_FS'         => $kodeFs,
+            'NAMA_FS'         => $namaFs,
+            'STRATA'          => $request->strata,
+            'THN_ANGKATAN'    => $request->thn_angkatan,
+            'STATUS_AKTIF'    => $request->status_aktif,
+            'STATUS_APPROVE'  => $request->status_approve,
+            'STATUS_KAPRODI'  => $request->status_kaprodi,
+            'TGL_CREATE'      => now(),
+            'TGL_UPDATE'      => now(),
         ]);
 
         return response()->json(['success' => true]);
@@ -133,29 +148,18 @@ class UserController extends Controller
             'nip_nim'        => 'required',
             'nama_lengkap'   => 'required',
             'email'          => 'required|email',
+            'username'       => 'required|unique:t_user,USERNAME,' . (int) $id . ',id',
+            'password'       => 'nullable|min:4',
             'jenis_user'     => 'required',
-            'status_pegawai' => 'required',
+            'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
-            'status_approve' => 'required',
+            'status_approve' => 'required|in:t,f',
         ]);
 
         $user = TUser::find((int) $id);
         if ($user) {
-            $kodeProdi = $user->kode_prodi;
-            $namaProdi = $user->nama_prodi;
-            if ($request->id_prodi) {
-                $prodi     = TProdi::find($request->id_prodi);
-                $kodeProdi = $prodi?->kode_prodi;
-                $namaProdi = $prodi?->nama_prodi;
-            }
-
-            $kodeFs = $user->kode_fs;
-            $namaFs = $user->nama_fs;
-            if ($request->id_fs_prodi) {
-                $fsProdi = TProdi::find($request->id_fs_prodi);
-                $kodeFs  = $fsProdi?->kode_prodi;
-                $namaFs  = $fsProdi?->nama_prodi;
-            }
+            [$kodeProdi, $namaProdi] = $this->resolveProdi($request, $user);
+            [$kodeFs, $namaFs] = $this->resolveFs($request, $user);
 
             $data = [
                 'NIP_NIM'        => $request->nip_nim,
@@ -173,10 +177,11 @@ class UserController extends Controller
                 'THN_ANGKATAN'   => $request->thn_angkatan,
                 'STATUS_AKTIF'   => $request->status_aktif,
                 'STATUS_APPROVE' => $request->status_approve,
+                'STATUS_KAPRODI' => $request->status_kaprodi,
                 'TGL_UPDATE'     => now(),
             ];
 
-            if ($request->password) {
+            if ($request->filled('password')) {
                 $data['PASSWORD'] = Hash::make($request->password);
             }
 
@@ -205,6 +210,40 @@ class UserController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    private function resolveProdi(Request $request, ?TUser $existing = null): array
+    {
+        $authUser = session('auth_user');
+
+        if ($request->id_prodi) {
+            $prodi = TProdi::find($request->id_prodi);
+            return [$prodi?->kode_prodi, $prodi?->nama_prodi];
+        }
+
+        if ($existing && $existing->kode_prodi) {
+            return [$existing->kode_prodi, $existing->nama_prodi];
+        }
+
+        if (!empty($authUser['kode_prodi'])) {
+            return [$authUser['kode_prodi'], $authUser['nama_prodi'] ?? null];
+        }
+
+        return [null, null];
+    }
+
+    private function resolveFs(Request $request, ?TUser $existing = null): array
+    {
+        // Form selalu mengirim hidden kode_fs=164 dan nama_fs=FTTM
+        if ($request->filled('kode_fs')) {
+            return [$request->kode_fs, $request->nama_fs ?? 'FTTM'];
+        }
+
+        if ($existing && $existing->kode_fs) {
+            return [$existing->kode_fs, $existing->nama_fs ?: 'FTTM'];
+        }
+
+        return ['164', 'FTTM'];
     }
 
     public function destroy($id)

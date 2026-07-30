@@ -10,7 +10,8 @@
 @endsection
 
 @section('content')
-    <div class="row">
+    {{-- Stat Cards --}}
+    {{--<div class="row">
         <div class="col-lg-3 col-6">
             <div class="card stat-card">
                 <div class="card-body">
@@ -71,19 +72,24 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>--}}
 
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-lg-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Grafik Sidang & Seminar</h5>
+                    <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Grafik Sidang (Lulus) per Tahap</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="chartSidang" height="280"></canvas>
+                    <canvas id="chartSidang" height="120"></canvas>
                 </div>
             </div>
+        </div>
+    </div>
 
+    {{-- Progress Sidang --}}
+    {{--<div class="row">
+        <div class="col-lg-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Progress Sidang</h5>
@@ -106,7 +112,10 @@
                 </div>
             </div>
         </div>
+    </div>--}}
 
+    {{-- Aktivitas Terbaru & Informasi --}}
+    {{--<div class="row">
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-header">
@@ -156,35 +165,30 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>--}}
 @endsection
 
 @push('scripts')
 <script>
     $(function () {
+        var colors = ['#1e3a8a', '#3b82f6', '#f59e0b', '#ef4444'];
+        var datasets = [];
+        @foreach($chartTahapData as $tahap => $data)
+        datasets.push({
+            label: '{{ $tahap }}',
+            data: @json($data),
+            backgroundColor: colors[datasets.length],
+            borderColor: colors[datasets.length],
+            borderWidth: 1,
+        });
+        @endforeach
+
         const ctx = document.getElementById('chartSidang').getContext('2d');
         new Chart(ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
-                labels: @json($chartLabels),
-                datasets: [
-                    {
-                        label: 'Sidang',
-                        data: @json($chartSidang),
-                        borderColor: '#1e3a8a',
-                        backgroundColor: 'rgba(30, 58, 138, 0.1)',
-                        tension: .3,
-                        fill: true,
-                    },
-                    {
-                        label: 'Seminar',
-                        data: @json($chartSeminar),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: .3,
-                        fill: true,
-                    },
-                ],
+                labels: @json($chartYears),
+                datasets: datasets,
             },
             options: {
                 responsive: true,
@@ -192,7 +196,8 @@
                     legend: { position: 'top' },
                 },
                 scales: {
-                    y: { beginAtZero: true },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                    x: { grid: { display: false } },
                 },
             },
         });
