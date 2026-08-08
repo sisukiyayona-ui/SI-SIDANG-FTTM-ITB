@@ -32,6 +32,7 @@ class TAjuanSidang extends Model
         'STATUS_AJUKAN_MHS',
         'NO_UNDANGAN',
         'STATUS_AJUKAN_PRODI',
+        'STATUS_AJUKAN_KPPS',
         'NO_BA_SIDANG',
         'SK_LULUS',
         'TGL_CREATE',
@@ -47,6 +48,9 @@ class TAjuanSidang extends Model
         'TGL_PENELAAH',
         'NO_SURAT_PENELAAH',
         'EMAIL_SURAT',
+        'LINK_FILE_PENELAAH',
+        'WAKTU_SELESAI',
+        'TGL_HASIL_PENELAHAN',
     ];
 
     protected $casts = [

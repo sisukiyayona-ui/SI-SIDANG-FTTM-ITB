@@ -163,9 +163,9 @@
 
             <div class="mt-4 d-flex align-items-center mb-2" style="margin-left: 10px;">
                 <span class="mr-4">Status Lulus</span>
-                <div class="border d-flex align-items-center justify-content-center" style="width: 150px; height: 30px; font-size: 14px; font-weight: 500;">
+                <span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? 'belum diajukan') }}" style="width: 150px; height: 30px; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center;">
                     {{ $ajuan->status_lulus ?? 'Belum diajukan' }}
-                </div>
+                </span>
             </div>
             
         @else
@@ -189,7 +189,7 @@
                 {{-- TAB: PERSYARATAN --}}
                 <div class="tab-pane fade show active" id="persyaratan" role="tabpanel">
                     <div class="text-muted font-weight-bold mb-2 ml-1">
-                        Persyaratan Sidang <span class="text-danger text-decoration-underline">{{ str_replace('tahap', 'Tahap', $tahapan) }}</span>
+                        Persyaratan Sidang <span class="text-danger text-decoration-underline">{{ getTahapLabel($tahapan) }}</span>
                     </div>
 
                     <table class="table table-bordered table-sm text-center mb-4">
@@ -314,7 +314,7 @@
                     <div id="jadwalList">
                         <div class="d-flex justify-content-between align-items-center mb-2 mx-1">
                             <div class="text-muted font-weight-bold">
-                                Jadwal Sidang {{ str_replace('tahap', 'Tahap', $tahapan) }}
+                                Jadwal Sidang {{ getTahapLabel($tahapan) }}
                             </div>
                             <button type="button" class="btn btn-sm btn-primary" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} onclick="openJadwalForm()"><i class="fas fa-plus"></i> Tambah</button>
                         </div>
@@ -337,7 +337,7 @@
                                                 {{ \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') }}
                                             </span>
                                         </td>
-                                        <td>{{ $ajuan->status_lulus ?? 'Dalam Proses' }}</td>
+                                        <td><span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? 'Belum diajukan') }}">{{ $ajuan->status_lulus ?? 'Belum diajukan' }}</span></td>
                                         <td>
                                             <a href="#" style="text-decoration: none; color: #0066cc;"
                                                 onclick="event.preventDefault(); document.getElementById('jadwalList').style.display='none'; document.getElementById('penilaianView').style.display='block'; document.getElementById('penilaiViewSelect').value=''; document.getElementById('formViewSelect').value=''; filterPenilaianView();">Penilaian</a>
@@ -355,7 +355,7 @@
                     {{-- Form Penjadwalan --}}
                     <div id="jadwalForm" style="display: none;">
                         <div class="text-muted mb-3" style="font-size: 13px;">
-                            Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Tambah</span>/ Edit <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Jadwal Sidang</span> {{ str_replace('tahap', 'Tahap', $tahapan) }}
+                            Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Tambah</span>/ Edit <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Jadwal Sidang</span> {{ getTahapLabel($tahapan) }}
                         </div>
                         <div class="form-group row align-items-center mb-2 px-1">
                             <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tanggal</label>
@@ -377,15 +377,15 @@
                         </div>
                         <div class="form-group row align-items-center mb-3 px-1">
                             <label class="col-sm-4 mb-0" style="font-size: 13px; color: #555;">Status Lulus</label>
-                            <div class="col-sm-8 px-2">
-                                <input type="text" class="form-control form-control-sm border-dark rounded-0 bg-light" value="{{ isset($ajuan) ? $ajuan->status_lulus : '' }}" disabled>
-                            </div>
+                        <div class="col-sm-8 px-2">
+                            <span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? 'belum diajukan') }}">{{ $ajuan->status_lulus ?? 'Belum ditentukan' }}</span>
+                        </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-4">
                             <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('jadwalList').style.display='block'; document.getElementById('jadwalForm').style.display='none';">&larr; Kembali</button>
                             <div>
-                                <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="ajukanProdi('{{ $idJudul }}', '{{ $tahapan }}')">Ajukan Prodi</button>
-                                <button type="button" class="btn btn-outline-dark px-3 py-0 bg-white text-danger" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="saveJadwal()">Simpan</button>
+                                <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="ajukanProdi('{{ $idJudul }}', '{{ $tahapan }}')">Ajukan Prodi</button>
+                                <button type="button" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;">Simpan</button>
                             </div>
                         </div>
                     </div>
@@ -393,7 +393,7 @@
                     {{-- Penilaian View (read-only, with filter) --}}
                     <div id="penilaianView" style="display: none;">
                         <div class="text-muted font-weight-bold mb-3">
-                            Form <span class="text-danger" style="text-decoration: underline;">Penilaian</span> Seminar/Sidang {{ str_replace('tahap', 'Tahap', $tahapan) }}
+                            Form <span class="text-danger" style="text-decoration: underline;">Penilaian</span> Seminar/Sidang {{ getTahapLabel($tahapan) }}
                         </div>
                         <div class="row align-items-center mb-2">
                             <div class="col-md-4">
@@ -685,8 +685,35 @@ function ajukanProdi(idJudul, tahapan) {
         showToast('error', 'Error: ' + err);
     });
 }
-</script>
-</div>
-@if(!request()->ajax() && !request()->has('id_judul'))
-@endsection
-@endif
+ </script>
+ </div>
+ @if(!request()->ajax() && !request()->has('id_judul'))
+ @endsection
+ @endif
+
+  @php
+  function getTahapLabel($tahapan) {
+      $labels = [
+          'tahap I'  => 'Ujian Kualifikasi',
+          'tahap II' => 'Ujian Proposal',
+          'tahap IV' => 'Sidang Terbuka / Tertutup',
+      ];
+      return $labels[strtolower($tahapan)] ?? str_replace('tahap', 'Tahap', $tahapan);
+  }
+
+  function getStatusColor($status) {
+      $s = strtolower($status ?? '');
+      switch($s) {
+          case 'belum diajukan':
+              return 'secondary';
+          case 'dalam proses':
+              return 'warning';
+          case 'lulus':
+              return 'success';
+          case 'tidak lulus':
+              return 'danger';
+          default:
+              return 'info';
+      }
+  }
+  @endphp

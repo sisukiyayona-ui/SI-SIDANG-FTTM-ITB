@@ -35,7 +35,7 @@ class JadwalSidangController extends Controller
         } elseif ($user['role'] === 'FS') {
             // FS sees all prodi, only status_ajukan_prodi = 'y'
             $query->where('a.status_ajukan_prodi', 'y');
-        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
+        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji', 'KPPS'])) {
             // Filter by judul yang dibimbing/diuji
             $query->whereIn('a.id_judul', function($q) use ($user) {
                 $q->select('id_judul')

@@ -38,10 +38,10 @@
                             <th rowspan="2" class="align-middle">NIM</th>
                             <th rowspan="2" class="align-middle">Nama</th>
                             <th rowspan="2" class="align-middle" style="width: 25%;">Judul</th>
-                            <th rowspan="2" class="align-middle">Tahap I</th>
-                            <th rowspan="2" class="align-middle">Tahap II<br>(Proposal)</th>
+                            <th rowspan="2" class="align-middle">Ujian<br>Kualifikasi</th>
+                            <th rowspan="2" class="align-middle">Ujian<br>Proposal</th>
                             <th colspan="4" class="align-middle">Tahap III</th>
-                            <th rowspan="2" class="align-middle">Tahap IV<br>(Sidang Akhir)</th>
+                            <th rowspan="2" class="align-middle">Sidang<br>Terbuka /<br>Tertutup</th>
                         </tr>
                         <tr>
                             <th class="align-middle" style="background-color: #9fbce4; color: white;">SK I</th>
@@ -60,37 +60,37 @@
                                 <a href="#" class="text-decoration-none">{{ $item->Judul }}</a>
                             </td>
                             <td class="align-middle">
-                                    <span class="d-block mb-1 text-{{ getStatusColor($item->tahap1) == 'secondary' ? 'muted' : getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', {{ $item->id_judul }})">
+                                    <span class="badge bg-{{ getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', {{ $item->id_judul }})">
                                         {{ ucfirst($item->tahap1) }}
                                     </span>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="d-block mb-1 text-{{ getStatusColor($item->tahap2) == 'secondary' ? 'muted' : getStatusColor($item->tahap2) }}" role="button" onclick="showTahapForm('tahap II', {{ $item->id_judul }})">
+                                    <span class="badge bg-{{ getStatusColor($item->tahap2) }}" role="button" onclick="showTahapForm('tahap II', {{ $item->id_judul }})">
                                         {{ ucfirst($item->tahap2) }}
                                     </span>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="d-block mb-1 text-{{ getStatusColor($item->sk1) == 'secondary' ? 'muted' : getStatusColor($item->sk1) }}" role="button" onclick="showTahapForm('SK I', {{ $item->id_judul }})">
+                                    <span class="badge bg-{{ getStatusColor($item->sk1) }}" role="button" onclick="showTahapForm('SK I', {{ $item->id_judul }})">
                                         {{ ucfirst($item->sk1) }}
                                     </span>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="d-block mb-1 text-{{ getStatusColor($item->sk2) == 'secondary' ? 'muted' : getStatusColor($item->sk2) }}" role="button" onclick="showTahapForm('SK II', {{ $item->id_judul }})">
+                                    <span class="badge bg-{{ getStatusColor($item->sk2) }}" role="button" onclick="showTahapForm('SK II', {{ $item->id_judul }})">
                                         {{ ucfirst($item->sk2) }}
                                     </span>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="d-block mb-1 text-{{ getStatusColor($item->sk3) == 'secondary' ? 'muted' : getStatusColor($item->sk3) }}" role="button" onclick="showTahapForm('SK III', {{ $item->id_judul }})">
+                                    <span class="badge bg-{{ getStatusColor($item->sk3) }}" role="button" onclick="showTahapForm('SK III', {{ $item->id_judul }})">
                                         {{ ucfirst($item->sk3) }}
                                     </span>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="d-block mb-1 text-{{ getStatusColor($item->sk4) == 'secondary' ? 'muted' : getStatusColor($item->sk4) }}" role="button" onclick="showTahapForm('SK IV', {{ $item->id_judul }})">
+                                    <span class="badge bg-{{ getStatusColor($item->sk4) }}" role="button" onclick="showTahapForm('SK IV', {{ $item->id_judul }})">
                                         {{ ucfirst($item->sk4) }}
                                     </span>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="d-block mb-1 text-{{ getStatusColor($item->tahap4) == 'secondary' ? 'muted' : getStatusColor($item->tahap4) }}" role="button" onclick="showTahapForm('tahap IV', {{ $item->id_judul }})">
+                                    <span class="badge bg-{{ getStatusColor($item->tahap4) }}" role="button" onclick="showTahapForm('tahap IV', {{ $item->id_judul }})">
                                         {{ ucfirst($item->tahap4) }}
                                     </span>
                                 </td>
@@ -127,11 +127,20 @@
 
 @push('scripts')
 <script>
+    function getTahapLabelJS(tahapan) {
+        var labels = {
+            'tahap I': 'Ujian Kualifikasi',
+            'tahap II': 'Ujian Proposal',
+            'tahap IV': 'Sidang Terbuka / Tertutup'
+        };
+        return labels[tahapan] || tahapan;
+    }
+
     function showTahapForm(tahapan, idJudul, activeTab) {
         const title = document.getElementById('tahapTitle');
         const content = document.getElementById('tahapFormContent');
-        
-        title.textContent = tahapan;
+
+        title.textContent = getTahapLabelJS(tahapan);
         content.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 text-muted">Memuat...</p></div>';
         
         $('#tahapModal').modal('show');
@@ -402,20 +411,80 @@
             showCustomToast('Error: ' + error, 'error');
         });
     }
+
+    // Fallback openJadwalForm (in case the injected tahap scripts don't run)
+    if (typeof window.openJadwalForm !== 'function') {
+        window.openJadwalForm = function(el) {
+            var form = document.getElementById('jadwalFormTahap2Form');
+            if (!form) return;
+            var fields = ['tgl_sidang','waktu_sidang','waktu_selesai','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_hasil_penelahan','email_surat','no_sk_kelulusan'];
+            var idInput = document.getElementById('id_ajuan_tahap2');
+            var data = null;
+            if (el && el.dataset) {
+                data = {
+                    'id': el.dataset.id || '',
+                    'tgl_sidang': el.dataset.tglSidang || null,
+                    'waktu_sidang': el.dataset.waktuSidang || null,
+                    'waktu_selesai': el.dataset.waktuSelesai || null,
+                    'ruang_sidang': el.dataset.ruangSidang || null,
+                    'tgl_surat_undangan': el.dataset.tglSuratUndangan || null,
+                    'no_surat_undangan': el.dataset.noSuratUndangan || null,
+                    'tgl_surat_penelaah': el.dataset.tglSuratPenelaah || null,
+                    'no_surat_penelaah': el.dataset.noSuratPenelaah || null,
+                    'tgl_hasil_penelahan': el.dataset.tglHasilPenelahan || null,
+                    'email_surat': el.dataset.emailSurat || null,
+                    'no_sk_kelulusan': el.dataset.noSkKelulusan || null
+                };
+            }
+            if (data && data.id) {
+                fields.forEach(function(name) {
+                    var f = form.querySelector('[name="' + name + '"]');
+                    if (f && data[name] !== undefined && data[name] !== null && data[name] !== '') f.value = data[name];
+                });
+                if (idInput) idInput.value = data.id;
+            } else {
+                fields.forEach(function(name) {
+                    var f = form.querySelector('[name="' + name + '"]');
+                    if (f) f.value = '';
+                });
+                if (idInput) idInput.value = '';
+            }
+            var listEl = document.getElementById('jadwalListTahap2');
+            var frmEl = document.getElementById('jadwalFormTahap2');
+            if (listEl) listEl.style.display = 'none';
+            if (frmEl) frmEl.style.display = 'block';
+        };
+    }
+
+    // Delegated click for jadwal date links inside the tahap modal
+    document.addEventListener('click', function(e) {
+        var t = e.target;
+        var link = t && t.closest ? t.closest('.jadwal-date-link') : null;
+        if (!link) return;
+        var content = document.getElementById('tahapFormContent');
+        if (content && !content.contains(link)) return;
+        e.preventDefault();
+        if (typeof window.openJadwalForm === 'function') {
+            window.openJadwalForm(link);
+        }
+    });
 </script>
 @endpush
 
-@php
-function getStatusColor($status) {
-    switch($status) {
-        case 'belum diajukan':
-            return 'secondary';
-        case 'dalam proses':
-            return 'warning';
-        case 'Lulus':
-            return 'success';
-        default:
-            return 'info';
+    @php
+    function getStatusColor($status) {
+        $s = strtolower($status ?? '');
+        switch($s) {
+            case 'belum diajukan':
+                return 'secondary';
+            case 'dalam proses':
+                return 'warning';
+            case 'lulus':
+                return 'success';
+            case 'tidak lulus':
+                return 'danger';
+            default:
+                return 'info';
+        }
     }
-}
-@endphp
+    @endphp

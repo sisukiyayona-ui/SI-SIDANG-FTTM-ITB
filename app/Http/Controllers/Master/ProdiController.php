@@ -3,11 +3,39 @@
 namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
+use App\Models\TFs;
 use App\Models\TProdi;
+use App\Services\MasterExcelService;
+use App\Services\SpsiService;
 use Illuminate\Http\Request;
 
 class ProdiController extends Controller
 {
+    public function template()
+    {
+        return MasterExcelService::template('prodi');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        $result = MasterExcelService::import('prodi', $request->file('file'), session('auth_user'));
+
+        $message = 'Import selesai: ' . $result['inserted'] . ' data ditambahkan, ' . $result['skipped'] . ' dilewati.';
+        if (!empty($result['errors'])) {
+            $message .= ' Rincian: ' . implode(' | ', array_slice($result['errors'], 0, 10));
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => $message, 'errors' => $result['errors']]);
+        }
+
+        return redirect()->route('master.prodi.index')->with('success', $message);
+    }
+
     public function index(Request $request)
     {
         $query = TProdi::query();
@@ -134,5 +162,63 @@ class ProdiController extends Controller
             return response()->json(['success' => true]);
         }
         return redirect()->route('master.prodi.index')->with('success', 'Prodi berhasil dihapus.');
+    }
+
+    public function syncSpsi(Request $request)
+    {
+        try {
+            $items = SpsiService::fetch('mst_prodi');
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+
+        $namaFakultas = TFs::pluck('NAMA_FS', 'KODE_FS');
+
+        $inserted = 0;
+        $updated = 0;
+
+        foreach ($items as $item) {
+            $kode = trim((string) ($item['no_ps'] ?? ''));
+            $nama = trim((string) ($item['nama_id'] ?? ''));
+            $kdFak = trim((string) ($item['kd_fak'] ?? ''));
+
+            if ($kode === '' || $nama === '') {
+                continue;
+            }
+
+            $namaFak = $namaFakultas[$kdFak] ?? $kdFak;
+            $status = !empty($item['status_aktif_prodi']) ? 'AKTIF' : 'NON AKTIF';
+
+            $prodi = TProdi::where('KODE_PRODI', $kode)->first();
+
+            if ($prodi) {
+                $prodi->update([
+                    'NAMA_PRODI' => $nama,
+                    'STATUS_AKTIF' => $status,
+                    'KODE_FS' => $kdFak,
+                    'NAMA_FS' => $namaFak,
+                    'TGL_UPDATE' => now(),
+                ]);
+                $updated++;
+            } else {
+                TProdi::create([
+                    'KODE_PRODI' => $kode,
+                    'NAMA_PRODI' => $nama,
+                    'STATUS_AKTIF' => $status,
+                    'KODE_FS' => $kdFak,
+                    'NAMA_FS' => $namaFak,
+                    'TGL_CREATE' => now(),
+                    'TGL_UPDATE' => now(),
+                ]);
+                $inserted++;
+            }
+        }
+
+        $message = 'Tarik data SPSI selesai: ' . $inserted . ' prodi ditambahkan, ' . $updated . ' diperbarui.';
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+        return redirect()->route('master.prodi.index')->with('success', $message);
     }
 }

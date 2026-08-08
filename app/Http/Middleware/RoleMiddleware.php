@@ -16,7 +16,11 @@ class RoleMiddleware
                 ->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        if (!in_array($user['role'], $roles)) {
+        $roles = is_array($roles) ? $roles : [$roles];
+
+        $userRoles = $user['roles'] ?? [$user['role'] ?? null];
+
+        if (empty(array_intersect($roles, $userRoles))) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 

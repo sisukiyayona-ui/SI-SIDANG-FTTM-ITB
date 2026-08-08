@@ -49,7 +49,12 @@
     }
 
     function tahapLabel($tahapan) {
-        return str_replace('tahap', 'Tahap ', $tahapan);
+        $labels = [
+            'tahap I'  => 'Ujian Kualifikasi',
+            'tahap II' => 'Ujian Proposal',
+            'tahap IV' => 'Sidang Terbuka / Tertutup',
+        ];
+        return $labels[strtolower($tahapan)] ?? str_replace('tahap', 'Tahap ', $tahapan);
     }
 @endphp
 

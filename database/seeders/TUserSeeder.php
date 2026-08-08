@@ -22,6 +22,9 @@ class TUserSeeder extends Seeder
             'AKUN_INA' => null,
             'THN_ANGKATAN' => null,
             'STRATA' => null,
+            'SIGNATURE' => null,
+            'ASAL_INSTANSI' => null,
+            'INSTANSI' => null,
         ];
 
         // =============================================
@@ -40,7 +43,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'Admin',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             // 2. TU Prodi
             [
@@ -53,7 +56,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             // 3. TU FS
             [
@@ -66,7 +69,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'FS',
                 'KODE_PRODI' => null,
                 'NAMA_PRODI' => null,
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             // 4. Pembimbing
             [
@@ -79,7 +82,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'Pembimbing',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             // 5. Penguji
             [
@@ -92,7 +95,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'Penguji',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             // 6. Monev
             [
@@ -105,7 +108,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'Monev',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             // 7. Mahasiswa
             [
@@ -118,7 +121,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'Mahasiswa',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
                 'STRATA' => 'S3',
             ],
         ];
@@ -289,7 +292,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             [
                 'NIP_NIM' => '197812131980031001',
@@ -301,7 +304,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             [
                 'NIP_NIM' => '196204031980031001',
@@ -313,7 +316,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             [
                 'NIP_NIM' => '195911181980031001',
@@ -325,7 +328,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             [
                 'NIP_NIM' => '195901311980031001',
@@ -337,7 +340,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             [
                 'NIP_NIM' => '196208281980032001',
@@ -349,7 +352,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             [
                 'NIP_NIM' => '198506161980031001',
@@ -361,7 +364,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
             [
                 'NIP_NIM' => '196608151980031001',
@@ -373,7 +376,7 @@ class TUserSeeder extends Seeder
                 'JENIS_USER' => 'TU Prodi',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ],
         ];
 
@@ -388,7 +391,7 @@ class TUserSeeder extends Seeder
                 'STATUS_PEGAWAI' => 'Dosen',
                 'KODE_PRODI' => '322',
                 'NAMA_PRODI' => 'Teknik Perminyakan',
-                'KODE_FS' => '13321002',
+                'KODE_FS' => '164',
             ], $u));
         }
 

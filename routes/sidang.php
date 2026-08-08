@@ -12,6 +12,7 @@ use App\Http\Controllers\Sidang\SidangS1Controller;
 use App\Http\Controllers\Sidang\SidangS2Controller;
 use App\Http\Controllers\Sidang\SidangS3Controller;
 use App\Http\Controllers\Sidang\CetakController;
+use App\Http\Controllers\Sidang\ApproveAjuanSidangController;
 
 Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(function () {
     // Existing routes (general access)
@@ -35,6 +36,7 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::get('sk/next/{tahapan}', [\App\Http\Controllers\MahasiswaController::class, 'getNextSkNumber'])->name('sk.next');
         Route::put('tim-sidang/{id}', [\App\Http\Controllers\MahasiswaController::class, 'updateTimSidang'])->name('tim-sidang.update');
         Route::delete('tim-sidang/{id}', [\App\Http\Controllers\MahasiswaController::class, 'deleteTimSidang'])->name('tim-sidang.delete');
+        Route::delete('jadwal/{id}', [\App\Http\Controllers\MahasiswaController::class, 'deleteJadwal'])->name('jadwal-sidang.delete');
         
         Route::get('s1', [SidangS1Controller::class, 'index'])->name('s1');
         Route::get('s1/{id}', [SidangS1Controller::class, 'show'])->name('s1.show');
@@ -45,6 +47,8 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::put('s2/{id}', [SidangS2Controller::class, 'update'])->name('s2.update');
         
         Route::get('cetak-form/{idJudul}/{tahapan}', [CetakController::class, 'cetakForm'])->name('cetak-form');
+        Route::get('surat-kesediaan/{idJudul}/{tahapan}', [CetakController::class, 'suratKesediaanPenelaah'])->name('surat-kesediaan');
+        Route::get('cetak-undangan/{idJudul}/{tahapan}', [CetakController::class, 'cetakUndangan'])->name('cetak-undangan');
 
         Route::get('s3', [SidangS3Controller::class, 'index'])->name('s3');
         Route::get('s3/{id}', [SidangS3Controller::class, 'show'])->name('s3.show');
@@ -57,4 +61,11 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
     // Jadwal Sidang — accessible by all authenticated roles including Mahasiswa
     Route::get('jadwal-sidang', [\App\Http\Controllers\Sidang\JadwalSidangController::class, 'index'])->name('jadwal-sidang');
     Route::post('jadwal-sidang', [\App\Http\Controllers\MahasiswaController::class, 'storeJadwal'])->name('jadwal-sidang.store');
+
+    // Approve Ajuan Sidang — khusus role KPPS
+    Route::middleware(['role:KPPS'])->group(function () {
+        Route::get('approve-ajuan-sidang/{strata}', [ApproveAjuanSidangController::class, 'index'])->name('approve-ajuan.index');
+        Route::get('approve-ajuan-sidang/{strata}/{id}', [ApproveAjuanSidangController::class, 'show'])->name('approve-ajuan.show');
+        Route::post('approve-ajuan-sidang', [ApproveAjuanSidangController::class, 'store'])->name('approve-ajuan.store');
+    });
 });

@@ -115,7 +115,6 @@
                             <th>Nama Lengkap</th>
                             <th>Email</th>
                             <th>Status Pegawai</th>
-                            <th>Jenis User</th>
                             <th>Program Studi</th>
                             <th>Status Aktif</th>
                         </tr>
@@ -132,21 +131,9 @@
                                     <option value="Mahasiswa" {{ request('status_pegawai') == 'Mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
                                 </select>
                             </th>
+                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." data-col="5" value="{{ request('nama_prodi') }}"></th>
                             <th>
-                                <select class="form-control form-control-sm column-search" name="jenis_user" data-col="5">
-                                    <option value="">Semua</option>
-                                    <option value="Admin" {{ request('jenis_user') == 'Admin' ? 'selected' : '' }}>Admin</option>
-                                    <option value="TU Prodi" {{ request('jenis_user') == 'TU Prodi' ? 'selected' : '' }}>TU Prodi</option>
-                                    <option value="FS" {{ request('jenis_user') == 'FS' ? 'selected' : '' }}>FS</option>
-                                    <option value="Mahasiswa" {{ request('jenis_user') == 'Mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
-                                    <option value="Pembimbing" {{ request('jenis_user') == 'Pembimbing' ? 'selected' : '' }}>Pembimbing</option>
-                                    <option value="Penguji" {{ request('jenis_user') == 'Penguji' ? 'selected' : '' }}>Penguji</option>
-                                    <option value="Monev" {{ request('jenis_user') == 'Monev' ? 'selected' : '' }}>Monev</option>
-                                </select>
-                            </th>
-                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." data-col="6" value="{{ request('nama_prodi') }}"></th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" name="status_aktif" data-col="7">
+                                <select class="form-control form-control-sm column-search" name="status_aktif" data-col="6">
                                     <option value="">Semua</option>
                                     <option value="AKTIF" {{ request('status_aktif') == 'AKTIF' ? 'selected' : '' }}>AKTIF</option>
                                     <option value="NON AKTIF" {{ request('status_aktif') == 'NON AKTIF' ? 'selected' : '' }}>NON AKTIF</option>
@@ -162,7 +149,6 @@
                                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama_lengkap'] }}</a></td>
                                 <td>{{ $item['email'] }}</td>
                                 <td>{{ $item['status_pegawai'] ?? '-' }}</td>
-                                <td><span class="badge bg-info">{{ $item['jenis_user'] }}</span></td>
                                 <td>{{ $item['nama_prodi'] ?? '-' }}</td>
                                 <td>
                                     <span class="badge bg-{{ $item['status_aktif'] === 'AKTIF' ? 'success' : 'danger' }}">
@@ -192,9 +178,8 @@
             <form id="formUser" method="POST">
                 @csrf
                 <input type="hidden" name="_method" id="methodUser" value="POST">
-                {{-- Hidden fields untuk FS (selalu 164 / FTTM) --}}
-                <input type="hidden" name="kode_fs" value="164">
-                <input type="hidden" name="nama_fs" value="FTTM">
+                {{-- Fakultas selection --}}
+                <input type="hidden" name="nama_fs" id="f_nama_fs" value="FTTM">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NIP / NIM <span class="text-danger">*</span></label>
@@ -227,48 +212,80 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Jenis User <span class="text-danger">*</span></label>
-                        <select name="jenis_user" id="f_jenis_user" class="form-control" required onchange="onJenisUserChange()">
-                            <option value="">-- Pilih --</option>
-                            <option value="Admin">Admin</option>
-                            <option value="TU Prodi">TU Prodi</option>
-                            <option value="FS">FS</option>
-                            <option value="Mahasiswa">Mahasiswa</option>
-                            <option value="Pembimbing">Pembimbing</option>
-                            <option value="Penguji">Penguji</option>
-                            <option value="Monev">Monev</option>
-                            <option value="Dosen">Dosen</option>
-                        </select>
+                        <label class="form-label">Role User <span class="text-danger">*</span></label>
+                        <div id="roleList" class="border rounded p-2" style="max-height: 180px; overflow-y: auto; background: #fafafa;">
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="Admin">
+                                <span class="form-check-label">Admin</span>
+                            </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="TU Prodi">
+                                <span class="form-check-label">TU Prodi</span>
+                            </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="FS">
+                                <span class="form-check-label">Fakultas</span>
+                            </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="Mahasiswa">
+                                <span class="form-check-label">Mahasiswa</span>
+                            </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="Pembimbing">
+                                <span class="form-check-label">Pembimbing</span>
+                            </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="Penguji">
+                                <span class="form-check-label">Penguji</span>
+                            </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="Monev">
+                                <span class="form-check-label">Monev</span>
+                            </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="KPPS">
+                                <span class="form-check-label">KPPS</span>
+                            </label>
+                        </div>
+                        <small class="text-muted">Klik role untuk memilih lebih dari satu. Role pertama yang dipilih menjadi role default.</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Status Pegawai</label>
-                        <select name="status_pegawai" id="f_status_pegawai" class="form-control" disabled onchange="onStatusPegawaiChange()">
-                            <option value="">-- Pilih --</option>
+                        <select name="status_pegawai" id="f_status_pegawai" class="form-control">
+                            <option value="">-- Pilih Status Pegawai --</option>
                             <option value="Tendik">Tendik</option>
                             <option value="Dosen">Dosen</option>
                             <option value="Mahasiswa">Mahasiswa</option>
                         </select>
-                        <small class="text-muted">Aktif jika Jenis User bukan Mahasiswa</small>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Strata</label>
-                        <select name="strata" id="f_strata" class="form-control" disabled>
-                            <option value="">-- Pilih --</option>
+                        <select name="strata" id="f_strata" class="form-control">
+                            <option value="">-- Pilih Strata --</option>
                             <option value="S1">S1</option>
                             <option value="S2">S2</option>
                             <option value="S3">S3</option>
                         </select>
-                        <small class="text-muted">Aktif jika Jenis User = Mahasiswa</small>
+                        <small class="text-muted">Isi jika Role User Mahasiswa</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tahun Angkatan</label>
-                        <input type="number" name="thn_angkatan" id="f_thn_angkatan" class="form-control" placeholder="Contoh: 2026" min="2000" max="2099" disabled>
-                        <small class="text-muted">Aktif jika Jenis User = Mahasiswa</small>
+                        <input type="number" name="thn_angkatan" id="f_thn_angkatan" class="form-control" placeholder="Contoh: 2026" min="2000" max="2099">
+                        <small class="text-muted">Isi jika Role User Mahasiswa</small>
                     </div>
                 </div>
                 <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Fakultas *</label>
+                        <select name="kode_fs" id="f_kode_fs" class="form-control" onchange="setNamaFs(this)">
+                            <option value="">-- Pilih Fakultas --</option>
+                            @foreach($fakultas as $fs)
+                                <option value="{{ $fs->KODE_FS }}">{{ $fs->NAMA_FS }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Program Studi</label>
                         @if(session('auth_user.role') === 'TU Prodi')
@@ -280,7 +297,7 @@
                             <input type="text" class="form-control" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled style="background-color:#e9ecef;">
                         @else
                             <select name="id_prodi" id="f_id_prodi" class="form-control">
-                                <option value="">-- Tidak ada / Non Prodi --</option>
+                                <option value="">-- Pilih Program Studi --</option>
                                 @foreach($prodis as $p)
                                     <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" data-nama="{{ $p->nama_prodi }}">
                                         {{ $p->nama_prodi }}
@@ -289,14 +306,45 @@
                             </select>
                         @endif
                     </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Asal Instansi *</label>
+                        <select name="asal_instansi" id="f_asal_instansi" class="form-control">
+                            <option value="">-- Pilih Asal Instansi --</option>
+                            <option value="ITB">ITB</option>
+                            <option value="NON ITB">NON ITB</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3" id="instansiContainer">
+                        <label class="form-label">Instansi <span class="text-danger">*</span></label>
+                        <input type="text" name="instansi" id="f_instansi" class="form-control" placeholder="Nama instansi (untuk pengguna luar ITB)">
+                    </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Status Kaprodi</label>
-                        <select name="status_kaprodi" id="f_status_kaprodi" class="form-control" disabled>
-                            <option value="">-- Pilih --</option>
+                        <select name="status_kaprodi" id="f_status_kaprodi" class="form-control">
+                            <option value="">-- Pilih Status Kaprodi --</option>
                             <option value="y">Ya (Kaprodi)</option>
                             <option value="t">Tidak</option>
                         </select>
-                        <small class="text-muted">Aktif jika Status Pegawai = Dosen</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Status Dekan</label>
+                        <select name="status_dekan" id="f_status_dekan" class="form-control">
+                            <option value="">-- Pilih Status Dekan --</option>
+                            <option value="y">Ya</option>
+                            <option value="t">Tidak</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Status WDA</label>
+                        <select name="status_wda" id="f_status_wda" class="form-control">
+                            <option value="">-- Pilih Status WDA --</option>
+                            <option value="y">Ya</option>
+                            <option value="t">Tidak</option>
+                        </select>
                     </div>
                 </div>
                 <div class="row">
@@ -325,6 +373,27 @@
                                 <label class="form-check-label" for="spTolak">Pending (f)</label>
                             </div>
                         </div>
+                    </div>
+                </div>
+                {{-- Signature Canvas --}}
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Tanda Tangan</label>
+                        <input type="hidden" name="signature_data" id="f_signature_data">
+                        <div class="d-flex align-items-start" style="gap: 15px;">
+                            <div>
+                                <canvas id="signatureCanvas" width="300" height="100" style="border: 1px dashed #ccc; border-radius: 4px; background: #fafafa;"></canvas>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="clearSignature()">Hapus</button>
+                                    <input type="file" name="signature_file" id="f_signature_file" accept="image/*" style="display:none;">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('f_signature_file').click()">Upload File</button>
+                                </div>
+                            </div>
+                            <div id="signaturePreview" style="display: none; max-width: 150px; max-height: 100px; overflow: hidden; border: 1px solid #ddd; border-radius: 4px;">
+                                <img id="signatureImg" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                        </div>
+                        <small class="text-muted">Gambar tanda tangan di canvas atau upload file gambar</small>
                     </div>
                 </div>
                 <div class="mt-4 d-flex justify-content-end" style="gap: 10px;">
@@ -358,48 +427,106 @@
 
 @push('scripts')
 <script>
-    // ─── Logika disable/enable berdasar Jenis User ───────────────────────────
-    function onJenisUserChange() {
-        var jenis = document.getElementById('f_jenis_user').value;
-        var isMhs   = (jenis === 'Mahasiswa');
-        var isDosen = (jenis === 'Dosen');
-        var isBukanMhs = (jenis !== '' && jenis !== 'Mahasiswa');
-
-        var strataField = document.getElementById('f_strata');
-        var thnField = document.getElementById('f_thn_angkatan');
-        var statusPegawaiField = document.getElementById('f_status_pegawai');
-
-        // Strata & thn angkatan: aktif hanya jika Mahasiswa
-        strataField.disabled = !isMhs;
-        thnField.disabled = !isMhs;
-
-        // Status pegawai: aktif jika BUKAN Mahasiswa
-        statusPegawaiField.disabled = !isBukanMhs;
-        if (!isBukanMhs) {
-            statusPegawaiField.value = '';
-        }
-
-        // Reset nilai kolom yg tidak aktif
-        if (!isMhs) {
-            strataField.value = '';
-            thnField.value = '';
-        }
-
-        // Trigger status pegawai change untuk update status kaprodi
-        onStatusPegawaiChange();
+    function setNamaFs(select) {
+        var selected = select.options[select.selectedIndex];
+        var namaFs = selected.dataset.nama || selected.textContent.trim();
+        document.getElementById('f_nama_fs').value = namaFs;
     }
 
-    // ─── Logika disable/enable Status Kaprodi berdasar Status Pegawai ─────
-    function onStatusPegawaiChange() {
-        var statusPegawai = document.getElementById('f_status_pegawai').value;
-        var isDosen = (statusPegawai === 'Dosen');
-        var statusKaprodiField = document.getElementById('f_status_kaprodi');
+    var canvas, ctx;
+    var signatureData = null;
 
-        statusKaprodiField.disabled = !isDosen;
-        if (!isDosen) {
-            statusKaprodiField.value = '';
-        }
+    function initCanvas() {
+        canvas = document.getElementById('signatureCanvas');
+        if (!canvas) return;
+        ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        var isDrawing = false;
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDraw);
+        canvas.addEventListener('mouseout', stopDraw);
+
+        canvas.addEventListener('touchstart', function(e) { e.preventDefault(); startDraw(e); });
+        canvas.addEventListener('touchmove', function(e) { e.preventDefault(); draw(e); }, { passive: false });
+        canvas.addEventListener('touchend', function(e) { e.preventDefault(); stopDraw(e); });
     }
+
+    function getPos(canvas, evt) {
+        var rect = canvas.getBoundingClientRect();
+        var clientX, clientY;
+        if (evt.touches && evt.touches.length > 0) {
+            clientX = evt.touches[0].clientX;
+            clientY = evt.touches[0].clientY;
+        } else {
+            clientX = evt.clientX;
+            clientY = evt.clientY;
+        }
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function startDraw(evt) {
+        isDrawing = true;
+        var pos = getPos(canvas, evt);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+    }
+
+    function draw(evt) {
+        if (!isDrawing) return;
+        var pos = getPos(canvas, evt);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    }
+
+    function stopDraw() {
+        isDrawing = false;
+        signatureData = canvas.toDataURL('image/png');
+        document.getElementById('f_signature_data').value = signatureData;
+        document.getElementById('signatureImg').src = signatureData;
+        document.getElementById('signaturePreview').style.display = 'block';
+    }
+
+    function clearSignature() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('f_signature_data').value = '';
+        document.getElementById('signaturePreview').style.display = 'none';
+    }
+
+    function updateSignatureFromFile(imgSrc) {
+        document.getElementById('f_signature_data').value = imgSrc;
+        document.getElementById('signatureImg').src = imgSrc;
+        document.getElementById('signaturePreview').style.display = 'block';
+    }
+
+    document.getElementById('f_signature_file').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+            var img = new Image();
+            img.onload = function() {
+                var c = document.createElement('canvas');
+                c.width = 300; c.height = 100;
+                var cctx = c.getContext('2d');
+                cctx.fillStyle = '#fff';
+                cctx.fillRect(0, 0, c.width, c.height);
+                cctx.drawImage(img, 0, 0, c.width, c.height);
+                updateSignatureFromFile(c.toDataURL('image/png'));
+            };
+            img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
 
     function openCreate() {
         document.getElementById('modalUserTitle').innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah User';
@@ -411,11 +538,14 @@
         document.getElementById('f_password').required = false;
         document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
 
-        // Reset semua disable sesuai state awal (belum ada jenis_user)
-        document.getElementById('f_strata').disabled         = true;
-        document.getElementById('f_thn_angkatan').disabled   = true;
-        document.getElementById('f_status_pegawai').disabled = true;
-        document.getElementById('f_status_kaprodi').disabled = true;
+        document.getElementById('f_kode_fs').value = '';
+        document.getElementById('f_nama_fs').value = '';
+        document.getElementById('f_asal_instansi').value = '';
+        document.getElementById('f_status_dekan').value = '';
+        document.getElementById('f_status_wda').value = '';
+        document.getElementById('f_instansi').value = '';
+        clearSignature();
+        document.getElementById('signaturePreview').style.display = 'none';
 
         document.getElementById('listContainer').style.display = 'none';
         document.getElementById('formContainer').style.display = 'block';
@@ -442,15 +572,46 @@
             document.getElementById('f_password').required  = false;
             document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
 
-            document.getElementById('f_jenis_user').value = item.jenis_user ?? '';
-            // Trigger disable/enable logic setelah set jenis_user
-            onJenisUserChange();
+            var roles = item.roles && item.roles.length ? item.roles : (item.jenis_user ? [item.jenis_user] : []);
+            document.querySelectorAll('.role-check').forEach(function(cb) {
+                cb.checked = roles.indexOf(cb.value) !== -1;
+            });
 
             document.getElementById('f_status_pegawai').value = item.status_pegawai ?? '';
-            onStatusPegawaiChange();
             document.getElementById('f_strata').value         = item.strata ?? '';
             document.getElementById('f_thn_angkatan').value   = item.thn_angkatan ?? '';
+            document.getElementById('f_status_dekan').value = item.status_dekan ?? '';
+            document.getElementById('f_status_wda').value = item.status_wda ?? '';
             document.getElementById('f_status_kaprodi').value = item.status_kaprodi ?? '';
+
+            document.getElementById('f_kode_fs').value = item.kode_fs ?? '';
+            document.getElementById('f_nama_fs').value = item.nama_fs ?? '';
+            document.getElementById('f_asal_instansi').value = item.asal_instansi ?? '';
+            document.getElementById('f_instansi').value = item.instansi ?? '';
+
+            // Signature preview — data stored as raw base64, prepend data URI
+            var sigData = item.signature ? item.signature.trim() : '';
+            if (sigData) {
+                var sigUri = sigData.startsWith('data:image') ? sigData : 'data:image/png;base64,' + sigData;
+                document.getElementById('signatureImg').src = sigUri;
+                document.getElementById('signaturePreview').style.display = 'block';
+                document.getElementById('f_signature_data').value = sigUri;
+
+                // Restore canvas
+                if (canvas && ctx) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    var img = new Image();
+                    img.onload = function() {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                    img.src = sigUri;
+                }
+            } else {
+                document.getElementById('signaturePreview').style.display = 'none';
+                document.getElementById('f_signature_data').value = '';
+            }
 
             @if(session('auth_user.role') !== 'TU Prodi')
             var prodiSel = document.getElementById('f_id_prodi');
@@ -536,6 +697,12 @@
             document.getElementById('filterForm').submit();
         });
     });
+
+    // ─── Signature Canvas Init ─────────────────────────────────────────────
+    var isDrawing = false;
+    if (document.getElementById('signatureCanvas')) {
+        initCanvas();
+    }
 
 </script>
 @endpush

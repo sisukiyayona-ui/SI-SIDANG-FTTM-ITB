@@ -29,6 +29,7 @@ return new class extends Migration
             $table->date('TGL_CREATE')->nullable();
             $table->date('TGL_UPDATE')->nullable();
             $table->char('STATUS_KAPRODI', 1)->nullable();
+            $table->string('SIGNATURE', 500)->nullable();
         });
     }
 

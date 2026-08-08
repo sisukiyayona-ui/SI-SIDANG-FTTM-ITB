@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\TAjuanSidang;
 use App\Models\Notification;
 use App\Models\TUser;
+use App\Models\TUserRole;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -83,5 +85,32 @@ class DashboardController extends Controller
             'progress', 'recentActivities',
             'chartYears', 'chartTahapData'
         ));
+    }
+
+    public function gantiRolePage()
+    {
+        return view('ganti-role');
+    }
+
+    public function gantiRole(Request $request)
+    {
+        $user = session('auth_user');
+        $role = $request->input('role');
+
+        if ($user && $role) {
+            $hasRole = TUserRole::where('ID_USER', $user['id'])
+                ->where('ROLE', $role)
+                ->exists();
+
+            if ($hasRole) {
+                session(['auth_user.role' => $role]);
+                session(['auth_user.default_role' => $role]);
+                session()->flash('success', 'Role berhasil diganti menjadi ' . $role . '.');
+            } else {
+                session()->flash('error', 'Role tidak valid.');
+            }
+        }
+
+        return redirect()->back();
     }
 }

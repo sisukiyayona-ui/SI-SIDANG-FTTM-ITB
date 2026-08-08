@@ -13,6 +13,10 @@ Route::middleware(['auth.dummy'])->group(function () {
     Route::get('profile', function () {
         return view('profile.index');
     })->name('profile');
+
+    // Ganti role tanpa harus login ulang
+    Route::get('ganti-role', [DashboardController::class, 'gantiRolePage'])->name('ganti-role.index');
+    Route::post('ganti-role', [DashboardController::class, 'gantiRole'])->name('ganti-role');
     
     // Upload persyaratan - accessible by all authenticated roles (Mahasiswa, Admin, TU Prodi, etc.)
     Route::post('mahasiswa/upload-persyaratan', [MahasiswaController::class, 'uploadPersyaratan'])->name('mahasiswa.upload-persyaratan');

@@ -99,9 +99,18 @@
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-file-alt mr-2"></i>Daftar Persyaratan</h5>
-            <button class="btn btn-sm btn-primary" onclick="openCreate()">
-                <i class="fas fa-plus mr-1"></i> Tambah
-            </button>
+            <div class="d-flex align-items-center ml-auto" style="gap: 8px;">
+                <a class="btn btn-sm btn-light" href="{{ route('master.persyaratan.template') }}">
+                    <i class="fas fa-download mr-1"></i> Template
+                </a>
+                <button type="button" class="btn btn-sm btn-warning" onclick="document.getElementById('importFile').click()">
+                    <i class="fas fa-upload mr-1"></i> Upload
+                </button>
+                <input type="file" id="importFile" accept=".xlsx,.xls" hidden onchange="uploadImport(this)">
+                <button class="btn btn-sm btn-primary" onclick="openCreate()">
+                    <i class="fas fa-plus mr-1"></i> Tambah
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -150,7 +159,7 @@
                 </table>
                 </form>
             </div>
-            <div class="mt-3 d-flex justify-content-center">
+            <div class="mt-3 d-flex justify-content-end">
                 {{ $persyaratan->links() }}
             </div>
         </div>
@@ -261,6 +270,27 @@
 
 @push('scripts')
 <script>
+    function uploadImport(input) {
+        if (!input.files.length) return;
+        const file = input.files[0];
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('_token', document.querySelector('input[name="_token"]').value);
+        fetch('{{ route("master.persyaratan.import") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json'
+            },
+            body: fd
+        }).then(r => r.json()).then(data => {
+            const msg = data.message || (data.errors ? Object.values(data.errors).join('\n') : 'Terjadi kesalahan.');
+            showToast(data.success ? 'success' : 'error', msg);
+            setTimeout(() => location.reload(), 1500);
+        }).catch(() => showToast('error', 'Gagal mengupload file.'));
+        input.value = '';
+    }
+
     const userProdiId = @json($userProdiId);
     const isTuProdi = @json(session('auth_user.role')) === 'TU Prodi';
 

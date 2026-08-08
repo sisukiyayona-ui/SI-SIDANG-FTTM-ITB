@@ -6,10 +6,36 @@ use App\Http\Controllers\Controller;
 use App\Models\TSyaratSidang;
 use App\Models\TProdi;
 use App\Models\TTahapan;
+use App\Services\MasterExcelService;
 use Illuminate\Http\Request;
 
 class PersyaratanController extends Controller
 {
+    public function template()
+    {
+        return MasterExcelService::template('persyaratan');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        $result = MasterExcelService::import('persyaratan', $request->file('file'), session('auth_user'));
+
+        $message = 'Import selesai: ' . $result['inserted'] . ' data ditambahkan, ' . $result['skipped'] . ' dilewati.';
+        if (!empty($result['errors'])) {
+            $message .= ' Rincian: ' . implode(' | ', array_slice($result['errors'], 0, 10));
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => $message, 'errors' => $result['errors']]);
+        }
+
+        return redirect()->route('master.persyaratan.index')->with('success', $message);
+    }
+
     public function create()
     {
         [$prodis, $userProdiId] = $this->prodiFormContext();

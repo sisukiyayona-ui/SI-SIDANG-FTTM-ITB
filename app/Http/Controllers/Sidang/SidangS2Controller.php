@@ -92,6 +92,8 @@ class SidangS2Controller extends Controller
         } elseif ($user['role'] === 'FS') {
             // FS sees all prodi, only status_ajukan_prodi = 'y'
             $query->where('a.status_ajukan_prodi', 'y');
+        } elseif ($user['role'] === 'KPPS') {
+            $query->where('a.status_ajukan_prodi', 'y');
         }
 
         $tracking = $query->paginate(10);

@@ -25,6 +25,7 @@ return new class extends Migration
             $table->char('STATUS_AJUKAN_MHS', 1)->nullable();
             $table->string('NO_UNDANGAN', 250)->nullable();
             $table->char('STATUS_AJUKAN_PRODI', 1)->nullable();
+            $table->char('STATUS_AJUKAN_KPPS', 1)->nullable();
             $table->string('NO_BA_SIDANG', 250)->nullable();
             $table->string('SK_LULUS', 250)->nullable();
             $table->date('TGL_CREATE')->nullable();

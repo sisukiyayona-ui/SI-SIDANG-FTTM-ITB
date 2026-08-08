@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\TAjuanSidang;
 use App\Models\TJudul;
+use App\Models\TPenilaian;
 use App\Models\TProdi;
 use Illuminate\Support\Facades\DB;
 
@@ -662,6 +663,7 @@ class MahasiswaController extends Controller
             'id_user_penilai' => 'required',
             'status_tim_sidang' => 'required',
             'urutan' => 'nullable',
+            'file_penelaah' => 'nullable|file|mimes:pdf',
         ]);
 
         // Get user details from t_user table
@@ -690,6 +692,15 @@ class MahasiswaController extends Controller
         $timSidang->ID_SK = $request->id_sk;
         $timSidang->TGL_CREATE = date('Y-m-d');
         $timSidang->TGL_UPDATE = date('Y-m-d');
+
+        // Handle penelaah file upload (stored per tim row in t_tim_sidang)
+        if ($request->hasFile('file_penelaah')) {
+            $file = $request->file('file_penelaah');
+            $path = 'penelaah/' . time() . '_' . $file->getClientOriginalName();
+            \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
+            $timSidang->FILE_PENELAAH = '/storage/' . $path;
+        }
+
         $timSidang->save();
 
         return response()->json(['success' => true, 'message' => 'Tim Pembimbing berhasil ditambahkan']);
@@ -701,6 +712,7 @@ class MahasiswaController extends Controller
             'id_user_penilai' => 'required',
             'status_tim_sidang' => 'required',
             'urutan' => 'nullable',
+            'file_penelaah' => 'nullable|file|mimes:pdf',
         ]);
 
         $timSidang = \App\Models\TTimSidang::find($id);
@@ -729,6 +741,15 @@ class MahasiswaController extends Controller
         $timSidang->URUTAN = $urutan;
         $timSidang->ID_SK = $request->id_sk;
         $timSidang->TGL_UPDATE = date('Y-m-d');
+
+        // Handle penelaah file upload (stored per tim row in t_tim_sidang)
+        if ($request->hasFile('file_penelaah')) {
+            $file = $request->file('file_penelaah');
+            $path = 'penelaah/' . time() . '_' . $file->getClientOriginalName();
+            \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
+            $timSidang->FILE_PENELAAH = '/storage/' . $path;
+        }
+
         $timSidang->save();
 
         return response()->json(['success' => true, 'message' => 'Tim Pembimbing berhasil diupdate']);
@@ -911,6 +932,10 @@ class MahasiswaController extends Controller
         $ajuan->TGL_SIDANG = $tglSidang;
         $ajuan->WAKTU_SIDANG = $waktuSidang;
 
+        if ($request->filled('waktu_selesai')) {
+            $ajuan->WAKTU_SELESAI = $request->waktu_selesai;
+        }
+
         if ($request->filled('ruang_sidang')) {
             $ajuan->RUANG_SIDANG = $request->ruang_sidang;
         }
@@ -935,6 +960,17 @@ class MahasiswaController extends Controller
         if ($request->filled('email_surat')) {
             $ajuan->EMAIL_SURAT = $request->email_surat;
         }
+        if ($request->filled('link_file_penelaah')) {
+            $ajuan->LINK_FILE_PENELAAH = $request->link_file_penelaah;
+        }
+
+        // Handle file upload for kesediaaan penelaah (PDF)
+        if ($request->hasFile('file_penelaah')) {
+            $file = $request->file('file_penelaah');
+            $path = 'penelaah/' . time() . '_' . $file->getClientOriginalName();
+            \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
+            $ajuan->LINK_FILE_PENELAAH = '/storage/' . $path;
+        }
         if ($request->filled('no_sk_kelulusan')) {
             $ajuan->SK_LULUS = $request->no_sk_kelulusan;
         }
@@ -948,6 +984,14 @@ class MahasiswaController extends Controller
             $ajuan->STATUS_LULUS = 'diajukan';
         }
 
+        if ($request->is_ajukan_kpps) {
+            $ajuan->STATUS_AJUKAN_KPPS = 't';
+            $ajuan->STATUS_AJUKAN_PRODI = 'y';
+            $ajuan->STATUS_AJUKAN_MHS = 'y';
+            $ajuan->STATUS_SUBMIT = 'y';
+            $ajuan->STATUS_LULUS = 'diajukan';
+        }
+
         $ajuan->TGL_UPDATE = now();
         $ajuan->save();
 
@@ -955,7 +999,26 @@ class MahasiswaController extends Controller
             return response()->json(['success' => true, 'message' => 'Berhasil diajukan ke FS']);
         }
 
+        if ($request->is_ajukan_kpps) {
+            return response()->json(['success' => true, 'message' => 'Berhasil diajukan ke KPPS']);
+        }
+
         return response()->json(['success' => true, 'message' => 'Jadwal sidang berhasil disimpan']);
+    }
+
+    public function deleteJadwal(\Illuminate\Http\Request $request, $id)
+    {
+        $ajuan = TAjuanSidang::find((int) $id);
+
+        if (!$ajuan) {
+            return response()->json(['success' => false, 'message' => 'Data jadwal tidak ditemukan'], 404);
+        }
+
+        TPenilaian::where('ID_AJUAN', $ajuan->id)->delete();
+
+        $ajuan->delete();
+
+        return response()->json(['success' => true, 'message' => 'Jadwal sidang beserta penilaian terkait berhasil dihapus.']);
     }
 
     public function storeJudul(\Illuminate\Http\Request $request)

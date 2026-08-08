@@ -35,6 +35,11 @@ class TUser extends Authenticatable
         'TGL_CREATE',
         'TGL_UPDATE',
         'STATUS_KAPRODI',
+        'STATUS_DEKAN',
+        'STATUS_WDA',
+        'SIGNATURE',
+        'ASAL_INSTANSI',
+        'INSTANSI',
     ];
 
     protected $hidden = [
@@ -86,5 +91,24 @@ class TUser extends Authenticatable
     public function prodi()
     {
         return $this->belongsTo(TProdi::class, 'KODE_PRODI', 'KODE_PRODI');
+    }
+
+    public function userRoles()
+    {
+        return $this->hasMany(TUserRole::class, 'ID_USER', 'id');
+    }
+
+    public function roles(): array
+    {
+        return $this->userRoles->pluck('ROLE')->all();
+    }
+
+    public function defaultRole(): ?string
+    {
+        $default = $this->userRoles->firstWhere('STATUS_DEFAULT', 't');
+        if ($default) {
+            return $default->ROLE;
+        }
+        return $this->userRoles->isNotEmpty() ? $this->userRoles->first()->ROLE : null;
     }
 }

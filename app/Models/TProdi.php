@@ -20,6 +20,8 @@ class TProdi extends Model
         'TGL_CREATE',
         'TGL_UPDATE',
         'STATUS_AKTIF',
+        'KODE_FS',
+        'NAMA_FS',
     ];
 
     protected $casts = [

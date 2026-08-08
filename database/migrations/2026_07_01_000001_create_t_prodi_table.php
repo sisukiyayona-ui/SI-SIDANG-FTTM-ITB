@@ -15,6 +15,8 @@ return new class extends Migration
             $table->date('TGL_CREATE')->nullable();
             $table->date('TGL_UPDATE')->nullable();
             $table->string('STATUS_AKTIF', 50);
+            $table->string('KODE_FS', 50);
+            $table->string('NAMA_FS', 250);
         });
     }
 

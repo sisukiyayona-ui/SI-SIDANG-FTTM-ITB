@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\TUserRole;
 use App\Models\TUser;
 use App\Models\TProdi;
+use App\Models\TFs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -62,12 +65,17 @@ class UserController extends Controller
                 'status_aktif'   => $u->status_aktif,
                 'status_approve' => $u->status_approve,
                 'status_kaprodi' => $u->status_kaprodi,
+                'status_dekan'   => $u->status_dekan,
+                'status_wda'     => $u->status_wda,
+                'asal_instansi'  => $u->asal_instansi,
+                'instansi'       => $u->instansi,
             ];
         });
 
-        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        $prodis = TProdi::where('STATUS_AKTIF', 'AKTIF')->get();
+        $fakultas = TFs::all();
 
-        return view('master.user', compact('users', 'prodis'));
+        return view('master.user', compact('users', 'prodis', 'fakultas'));
     }
 
     public function edit($id)
@@ -95,6 +103,12 @@ class UserController extends Controller
             'status_aktif'   => $u->status_aktif,
             'status_approve' => $u->status_approve,
             'status_kaprodi' => $u->status_kaprodi,
+            'status_dekan'   => $u->status_dekan,
+            'status_wda'     => $u->status_wda,
+            'asal_instansi'  => $u->asal_instansi,
+            'instansi'       => $u->instansi,
+            'signature'      => $u->signature,
+            'roles'          => $u->roles(),
         ]);
     }
 
@@ -106,7 +120,7 @@ class UserController extends Controller
             'email'          => 'required|email',
             'username'       => 'required|unique:t_user,USERNAME',
             'password'       => 'nullable|min:4',
-            'jenis_user'     => 'required',
+            'jenis_user'     => 'required|array|min:1',
             'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
             'status_approve' => 'required|in:t,f',
@@ -115,16 +129,20 @@ class UserController extends Controller
         [$kodeProdi, $namaProdi] = $this->resolveProdi($request);
         [$kodeFs, $namaFs] = $this->resolveFs($request);
 
-        $hashedPassword = $request->filled('password') ? Hash::make($request->password) : null;
+        $roles = array_values(array_filter((array) $request->jenis_user));
+        $primaryRole = $roles[0] ?? 'Mahasiswa';
 
-        TUser::create([
+        $hashedPassword = $request->filled('password') ? Hash::make($request->password) : null;
+        $signature = $this->handleSignatureUpload($request);
+
+        $user = TUser::create([
             'NIP_NIM'         => $request->nip_nim,
             'NAMA_LENGKAP'    => $request->nama_lengkap,
             'EMAIL'           => $request->email,
             'AKUN_INA'        => $request->akun_ina,
             'USERNAME'        => $request->username,
             'PASSWORD'        => $hashedPassword,
-            'JENIS_USER'      => $request->jenis_user,
+            'JENIS_USER'      => $primaryRole,
             'STATUS_PEGAWAI'  => $request->status_pegawai,
             'KODE_PRODI'      => $kodeProdi,
             'NAMA_PRODI'      => $namaProdi,
@@ -135,9 +153,16 @@ class UserController extends Controller
             'STATUS_AKTIF'    => $request->status_aktif,
             'STATUS_APPROVE'  => $request->status_approve,
             'STATUS_KAPRODI'  => $request->status_kaprodi,
+            'STATUS_DEKAN'    => $request->status_dekan,
+            'STATUS_WDA'      => $request->status_wda,
+            'ASAL_INSTANSI'   => $request->asal_instansi,
+            'INSTANSI'        => $request->instansi,
+            'SIGNATURE'       => $signature,
             'TGL_CREATE'      => now(),
             'TGL_UPDATE'      => now(),
         ]);
+
+        $this->syncRoles($user->id, $roles);
 
         return response()->json(['success' => true]);
     }
@@ -150,7 +175,7 @@ class UserController extends Controller
             'email'          => 'required|email',
             'username'       => 'required|unique:t_user,USERNAME,' . (int) $id . ',id',
             'password'       => 'nullable|min:4',
-            'jenis_user'     => 'required',
+            'jenis_user'     => 'required|array|min:1',
             'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
             'status_approve' => 'required|in:t,f',
@@ -161,13 +186,16 @@ class UserController extends Controller
             [$kodeProdi, $namaProdi] = $this->resolveProdi($request, $user);
             [$kodeFs, $namaFs] = $this->resolveFs($request, $user);
 
+            $roles = array_values(array_filter((array) $request->jenis_user));
+            $primaryRole = $roles[0] ?? $user->JENIS_USER;
+
             $data = [
                 'NIP_NIM'        => $request->nip_nim,
                 'NAMA_LENGKAP'   => $request->nama_lengkap,
                 'EMAIL'          => $request->email,
                 'AKUN_INA'       => $request->akun_ina,
                 'USERNAME'       => $request->username,
-                'JENIS_USER'     => $request->jenis_user,
+                'JENIS_USER'     => $primaryRole,
                 'STATUS_PEGAWAI' => $request->status_pegawai,
                 'KODE_PRODI'     => $kodeProdi,
                 'NAMA_PRODI'     => $namaProdi,
@@ -178,6 +206,10 @@ class UserController extends Controller
                 'STATUS_AKTIF'   => $request->status_aktif,
                 'STATUS_APPROVE' => $request->status_approve,
                 'STATUS_KAPRODI' => $request->status_kaprodi,
+                'STATUS_DEKAN'   => $request->status_dekan,
+                'STATUS_WDA'     => $request->status_wda,
+                'ASAL_INSTANSI'  => $request->asal_instansi,
+                'INSTANSI'       => $request->instansi,
                 'TGL_UPDATE'     => now(),
             ];
 
@@ -185,8 +217,14 @@ class UserController extends Controller
                 $data['PASSWORD'] = Hash::make($request->password);
             }
 
+            $signature = $this->handleSignatureUpload($request);
+            if ($signature) {
+                $data['SIGNATURE'] = $signature;
+            }
+
             $oldStatus = $user->status_approve;
             $user->update($data);
+            $this->syncRoles($user->id, $roles);
 
             if ($oldStatus !== $user->status_approve) {
                 if ($user->status_approve === 't') {
@@ -234,9 +272,10 @@ class UserController extends Controller
 
     private function resolveFs(Request $request, ?TUser $existing = null): array
     {
-        // Form selalu mengirim hidden kode_fs=164 dan nama_fs=FTTM
         if ($request->filled('kode_fs')) {
-            return [$request->kode_fs, $request->nama_fs ?? 'FTTM'];
+            $fs = TFs::where('KODE_FS', $request->kode_fs)->first();
+            $namaFs = $fs ? $fs->NAMA_FS : ($request->nama_fs ?? 'FTTM');
+            return [$request->kode_fs, $namaFs];
         }
 
         if ($existing && $existing->kode_fs) {
@@ -244,6 +283,38 @@ class UserController extends Controller
         }
 
         return ['164', 'FTTM'];
+    }
+
+    private function syncRoles(int $userId, array $roles): void
+    {
+        TUserRole::where('ID_USER', $userId)->delete();
+
+        $now = now();
+        foreach (array_values($roles) as $i => $role) {
+            TUserRole::create([
+                'ID_USER' => $userId,
+                'ROLE' => $role,
+                'STATUS_DEFAULT' => $i === 0 ? 't' : 'f',
+                'TGL_CREATE' => $now,
+                'TGL_UPDATE' => $now,
+            ]);
+        }
+    }
+
+    private function handleSignatureUpload(Request $request): ?string
+    {
+        if ($request->filled('signature_data')) {
+            $base64 = $request->input('signature_data');
+
+            // Jika data dimulai dengan "data:image" atau sudah base64
+            if (str_starts_with($base64, 'data:image')) {
+                $base64 = substr($base64, strpos($base64, ',') + 1);
+            }
+
+            return $base64;
+        }
+
+        return null;
     }
 
     public function destroy($id)

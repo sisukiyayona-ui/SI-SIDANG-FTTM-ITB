@@ -20,6 +20,7 @@ return new class extends Migration
             $table->date('TGL_UPDATE')->nullable();
             $table->unsignedBigInteger('ID_SK')->nullable();
             $table->integer('URUTAN')->nullable();
+            $table->string('FILE_PENELAAH', 500)->nullable();
 
             $table->foreign('ID_JUDUL')->references('id')->on('t_judul')->onDelete('cascade');
             $table->foreign('ID_USER_PENILAI')->references('id')->on('t_user')->onDelete('cascade');

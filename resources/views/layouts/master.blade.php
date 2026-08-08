@@ -785,6 +785,48 @@
             border-color: #dc2626 !important;
         }
 
+        /* Simpan = black */
+        .btn-primary {
+            background-color: #212529 !important;
+            border-color: #212529 !important;
+        }
+
+        .btn-primary:hover {
+            background-color: #000000 !important;
+            border-color: #000000 !important;
+        }
+
+        /* Batal = red */
+        .btn-secondary {
+            background-color: #ef4444 !important;
+            border-color: #ef4444 !important;
+            color: #ffffff !important;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dc2626 !important;
+            border-color: #dc2626 !important;
+            color: #ffffff !important;
+        }
+
+        /* Tombol hitam untuk Cetak */
+        .btn-black {
+            background-color: #212529 !important;
+            border-color: #212529 !important;
+            color: #ffffff !important;
+        }
+
+        .btn-black:hover {
+            background-color: #000000 !important;
+            border-color: #000000 !important;
+        }
+
+        /* Ajukan = green */
+        .btn-success {
+            background-color: #16a34a !important;
+            border-color: #16a34a !important;
+        }
+
         /* Tables */
         .table thead th {
             background-color: var(--bg-light) !important;
@@ -809,6 +851,27 @@
 
         .table-hover tbody tr:hover {
             background-color: rgba(241, 245, 249, 0.5) !important;
+        }
+
+        /* Font size kecil di sidebar menu */
+        .sidebar .nav-sidebar .nav-link,
+        .nav-sidebar .nav-treeview .nav-link {
+            font-size: 0.8rem !important;
+        }
+
+        .sidebar .nav-sidebar .nav-link p,
+        .nav-sidebar .nav-treeview .nav-link p {
+            font-size: 0.8rem !important;
+        }
+
+        /* Font size kecil di navbar */
+        .main-header .navbar-nav .nav-link {
+            font-size: 0.8rem !important;
+        }
+
+        /* Font size kecil di table */
+        .table tbody td {
+            font-size: 0.8rem !important;
         }
 
         /* Breadcrumbs in navbar styling */
@@ -2121,12 +2184,18 @@
 
                     @if(session('auth_user.role') === 'Admin')
                     <!-- ADMIN NAVIGATION -->
-                    <li class="nav-item has-treeview {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*') ? 'menu-open' : '' }}">
-                        <a href="#" class="nav-link {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*') ? 'active' : '' }}">
+                    <li class="nav-item has-treeview {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*', 'master.fakultas*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*', 'master.fakultas*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>Data Master <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('master.fakultas.index') }}" class="nav-link {{ request()->routeIs('master.fakultas*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-landmark"></i>
+                                    <p>Fakultas</p>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href="{{ route('master.persyaratan.index') }}" class="nav-link {{ request()->routeIs('master.persyaratan*') ? 'active' : '' }}">
                                     <i class="nav-icon fas fa-file-alt"></i>
@@ -2146,6 +2215,13 @@
                                 </a>
                             </li>
                         </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('master.kpps.index') }}" class="nav-link {{ request()->routeIs('master.kpps*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-user-tie"></i>
+                            <p>Data KPPS</p>
+                        </a>
                     </li>
 
                     <li class="nav-item">
@@ -2180,6 +2256,13 @@
                     </li>
 
                     <li class="nav-item">
+                        <a href="{{ route('master.kpps.index') }}" class="nav-link {{ request()->routeIs('master.kpps*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-user-tie"></i>
+                            <p>Data KPPS</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
                         <a href="{{ route('master.user.index') }}" class="nav-link {{ request()->routeIs('master.user*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-users"></i>
                             <p>Data User</p>
@@ -2188,7 +2271,7 @@
 
                     <li class="nav-item has-treeview {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-gavel"></i>
+                             <i class="nav-icon fas fa-graduation-cap"></i>
                             <p>Sidang <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -2232,7 +2315,7 @@
                     <!-- TU FS NAVIGATION - Tanpa Data Master dan Approve User -->
                     <li class="nav-item has-treeview {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-gavel"></i>
+                            <i class="nav-icon fas fa-graduation-cap"></i>
                             <p>Sidang <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -2292,7 +2375,7 @@
                     <!-- PEMBIMBING & PENGUJI NAVIGATION -->
                     <li class="nav-item has-treeview {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-gavel"></i>
+                            <i class="nav-icon fas fa-graduation-cap"></i>
                             <p>Penilaian Sidang <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -2324,7 +2407,44 @@
                         </a>
                     </li>
                     @endif
-                    
+
+                    @if(session('auth_user.role') === 'KPPS')
+                    <!-- KPPS NAVIGATION - Approval Ajuan Sidang -->
+                    <li class="nav-item has-treeview {{ request()->routeIs('sidang.approve-ajuan*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('sidang.approve-ajuan*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-clipboard-check"></i>
+                            <p>Approve Ajuan Sidang <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.approve-ajuan.index', 'S1') }}" class="nav-link {{ request()->routeIs('sidang.approve-ajuan.index') && request()->route('strata') == 'S1' ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S1</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.approve-ajuan.index', 'S2') }}" class="nav-link {{ request()->routeIs('sidang.approve-ajuan.index') && request()->route('strata') == 'S2' ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S2</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('sidang.approve-ajuan.index', 'S3') }}" class="nav-link {{ request()->routeIs('sidang.approve-ajuan.index') && request()->route('strata') == 'S3' ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-graduation-cap"></i>
+                                    <p>S3</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('sidang.jadwal-sidang') }}" class="nav-link {{ request()->routeIs('sidang.jadwal-sidang') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-alt"></i>
+                            <p>Jadwal Sidang</p>
+                        </a>
+                    </li>
+                    @endif
+
                     <li class="nav-item">
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
@@ -2333,6 +2453,13 @@
                                 <p>Logout</p>
                             </button>
                         </form>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('ganti-role.index') }}" class="nav-link {{ request()->routeIs('ganti-role*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-exchange-alt"></i>
+                            <p>Ganti Role</p>
+                        </a>
                     </li>
 
                 </ul>

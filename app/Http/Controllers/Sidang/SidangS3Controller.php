@@ -101,7 +101,7 @@ class SidangS3Controller extends Controller
             $query->where('u.KODE_PRODI', $user['kode_prodi']);
         } elseif ($user['role'] === 'FS') {
             // FS sees all records
-        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
+        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji', 'KPPS'])) {
             $query->join('t_tim_sidang as ts', 'j.id', '=', 'ts.ID_JUDUL')
                   ->where('ts.ID_USER_PENILAI', $user['id']);
         }

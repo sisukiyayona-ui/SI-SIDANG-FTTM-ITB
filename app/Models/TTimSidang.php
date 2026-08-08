@@ -25,6 +25,7 @@ class TTimSidang extends Model
         'TGL_UPDATE',
         'ID_SK',
         'URUTAN',
+        'FILE_PENELAAH',
     ];
 
     protected $casts = [

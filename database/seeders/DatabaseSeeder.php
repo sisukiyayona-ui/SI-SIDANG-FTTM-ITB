@@ -14,8 +14,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            TFsSeeder::class,              // T_FS
             TProdiSeeder::class,           // T_PRODI
             TUserSeeder::class,            // T_USER
+            TUserRoleSeeder::class,        // T_USER_ROLE
             TTahapanSeeder::class,         // T_TAHAPAN
             TSyaratSidangSeeder::class,    // T_SYARAT_SIDANG
             TPointPenilaianSeeder::class,  // T_POINT_PENILAIAN

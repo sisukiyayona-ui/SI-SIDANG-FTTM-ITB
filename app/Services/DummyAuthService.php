@@ -66,11 +66,13 @@ class DummyAuthService
             return false;
         }
 
+        $userRoles = $user['roles'] ?? [$user['role'] ?? null];
+
         if (is_array($roles)) {
-            return in_array($user['role'], $roles);
+            return array_intersect($roles, $userRoles) !== [];
         }
 
-        return $user['role'] === $roles;
+        return in_array($roles, $userRoles, true);
     }
 
     public function allUsers(): array
@@ -114,13 +116,17 @@ class DummyAuthService
     {
         $nama = $user->NAMA_LENGKAP;
 
+        $roles = $user->roles();
+        $defaultRole = $user->defaultRole() ?? $user->JENIS_USER;
+
         return [
             'id' => $user->id,
             'nama_lengkap' => $nama,
             'nip_nim' => $user->NIP_NIM,
             'email' => $user->EMAIL,
             'Username' => $user->USERNAME,
-            'role' => $user->JENIS_USER,
+            'role' => $defaultRole,
+            'roles' => $roles,
             'strata' => $user->STRATA,
             'kode_prodi' => $user->KODE_PRODI,
             'nama_prodi' => $user->NAMA_PRODI,

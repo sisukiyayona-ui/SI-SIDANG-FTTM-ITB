@@ -36,7 +36,7 @@
                             <h3 class="mb-0 fw-bold">{{ $totalSidang }}</h3>
                         </div>
                         <div class="icon-bg" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                            <i class="fas fa-gavel"></i>
+                            <i class="fas fa-graduation-cap"></i>
                         </div>
                     </div>
                 </div>
