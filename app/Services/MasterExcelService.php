@@ -57,10 +57,11 @@ class MasterExcelService
         $sheet = $spreadsheet->getActiveSheet();
 
         foreach ($headers as $i => $header) {
-            $cell = $sheet->getCellByColumnAndRow($i + 1, 1);
-            $cell->setValue($header);
-            $sheet->getStyle($cell->getCoordinate())->getFont()->setBold(true);
-            $sheet->getStyle($cell->getCoordinate())
+            $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            $cellCoordinate = $columnLetter . '1';
+            $sheet->setCellValue($cellCoordinate, $header);
+            $sheet->getStyle($cellCoordinate)->getFont()->setBold(true);
+            $sheet->getStyle($cellCoordinate)
                 ->getFill()
                 ->setFillType(Fill::FILL_SOLID)
                 ->getStartColor()
@@ -68,7 +69,8 @@ class MasterExcelService
         }
 
         foreach ($headers as $i => $header) {
-            $sheet->getColumnDimensionByColumn($i + 1)->setWidth(25);
+            $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->getColumnDimension($columnLetter)->setWidth(25);
         }
 
         $sheet->freezePane('A2');
