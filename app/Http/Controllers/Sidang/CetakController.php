@@ -449,35 +449,34 @@ class CetakController extends Controller
 
     private function exportDocxToPdf(TemplateProcessor $tp, $filename, callable $postSave = null)
     {
+        // Prepare paths
         $docxPath = storage_path('app/uploads/' . str_replace('.pdf', '.docx', $filename));
-        $pdfPath = storage_path('app/uploads/' . $filename);
 
         try {
+            // Ensure directory exists
             if (!is_dir(dirname($docxPath))) {
                 \Illuminate\Support\Facades\File::makeDirectory(dirname($docxPath), 0775, true);
             }
+
+            // Save the generated DOCX
             $tp->saveAs($docxPath);
 
+            // Apply any post‑save modifications (e.g., inserting "kepada" rows)
             if ($postSave) {
                 $postSave($docxPath);
             }
 
-            if (!class_exists('COM')) {
-                abort(500, 'Ekstensi PHP COM tidak tersedia untuk konversi PDF.');
-            }
-
-            $word = new \COM('Word.Application');
-            $word->Visible = false;
-            $word->DisplayAlerts = 0;
-            $doc = $word->Documents->Open($docxPath, false, true);
-            $doc->ExportAsFixedFormat($pdfPath, 17);
-            $doc->Close(false);
-            $word->Quit();
-            unset($word);
+            // Always return the DOCX file to the client. The original $filename is a PDF name; we replace the extension.
+            $docxFilename = str_replace('.pdf', '.docx', $filename);
+            return response()->download($docxPath, $docxFilename)->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
-            return response()->download($docxPath, str_replace('.pdf', '.docx', $filename))->deleteFileAfterSend(true);
+            // In case of any error, fallback to sending the DOCX directly (if it exists).
+            if (file_exists($docxPath)) {
+                $docxFilename = str_replace('.pdf', '.docx', $filename);
+                return response()->download($docxPath, $docxFilename)->deleteFileAfterSend(true);
+            }
+            // If DOCX could not be generated, return a generic error response.
+            abort(500, 'Gagal menghasilkan dokumen: ' . $e->getMessage());
         }
-
-        return response()->download($pdfPath, $filename)->deleteFileAfterSend(true);
     }
 }
