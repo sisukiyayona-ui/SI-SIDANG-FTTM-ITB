@@ -48,7 +48,6 @@ class TAjuanSidang extends Model
         'TGL_PENELAAH',
         'NO_SURAT_PENELAAH',
         'EMAIL_SURAT',
-        'LINK_FILE_PENELAAH',
         'WAKTU_SELESAI',
         'TGL_HASIL_PENELAHAN',
     ];

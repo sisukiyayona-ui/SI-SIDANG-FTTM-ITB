@@ -935,6 +935,9 @@ class MahasiswaController extends Controller
         if ($request->filled('waktu_selesai')) {
             $ajuan->WAKTU_SELESAI = $request->waktu_selesai;
         }
+        if ($request->filled('jenis_sidang')) {
+            $ajuan->JENIS_SIDANG = $request->jenis_sidang;
+        }
 
         if ($request->filled('ruang_sidang')) {
             $ajuan->RUANG_SIDANG = $request->ruang_sidang;
@@ -960,17 +963,7 @@ class MahasiswaController extends Controller
         if ($request->filled('email_surat')) {
             $ajuan->EMAIL_SURAT = $request->email_surat;
         }
-        if ($request->filled('link_file_penelaah')) {
-            $ajuan->LINK_FILE_PENELAAH = $request->link_file_penelaah;
-        }
 
-        // Handle file upload for kesediaaan penelaah (PDF)
-        if ($request->hasFile('file_penelaah')) {
-            $file = $request->file('file_penelaah');
-            $path = 'penelaah/' . time() . '_' . $file->getClientOriginalName();
-            \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
-            $ajuan->LINK_FILE_PENELAAH = '/storage/' . $path;
-        }
         if ($request->filled('no_sk_kelulusan')) {
             $ajuan->SK_LULUS = $request->no_sk_kelulusan;
         }

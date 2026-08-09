@@ -912,11 +912,16 @@
                                     @if(!in_array(session('auth_user.role'), ['FS']))
                                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;">
                                         <option value="">Pilih Status</option>
-                                        <option value="Layak tanpa perbaikan" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak tanpa perbaikan') ? 'selected' : '' }}>1. Layak tanpa perbaikan</option>
-                                        <option value="Layak dengan perbaikan minor tanpa harus dibaca kembali" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak dengan perbaikan minor tanpa harus dibaca kembali') ? 'selected' : '' }}>2. Layak dengan perbaikan minor tanpa harus dibaca kembali</option>
-                                        <option value="Layak dengan perbaikan minor dan perbaikan harus dibaca kembali" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak dengan perbaikan minor dan perbaikan harus dibaca kembali') ? 'selected' : '' }}>3. Layak dengan perbaikan minor dan perbaikan harus dibaca kembali</option>
-                                        <option value="Layak dengan perbaikan major (substansial)" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak dengan perbaikan major (substansial)') ? 'selected' : '' }}>4. Layak dengan perbaikan major (substansial)</option>
-                                        <option value="Tidak layak" {{ (isset($ajuan) && $ajuan->status_lulus === 'Tidak layak') ? 'selected' : '' }}>5. Tidak layak</option>
+                                        @if(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv']))
+                                            <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>Lulus</option>
+                                            <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
+                                        @else
+                                            <option value="Layak tanpa perbaikan" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak tanpa perbaikan') ? 'selected' : '' }}>1. Layak tanpa perbaikan</option>
+                                            <option value="Layak dengan perbaikan minor tanpa harus dibaca kembali" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak dengan perbaikan minor tanpa harus dibaca kembali') ? 'selected' : '' }}>2. Layak dengan perbaikan minor tanpa harus dibaca kembali</option>
+                                            <option value="Layak dengan perbaikan minor dan perbaikan harus dibaca kembali" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak dengan perbaikan minor dan perbaikan harus dibaca kembali') ? 'selected' : '' }}>3. Layak dengan perbaikan minor dan perbaikan harus dibaca kembali</option>
+                                            <option value="Layak dengan perbaikan major (substansial)" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak dengan perbaikan major (substansial)') ? 'selected' : '' }}>4. Layak dengan perbaikan major (substansial)</option>
+                                            <option value="Tidak layak" {{ (isset($ajuan) && $ajuan->status_lulus === 'Tidak layak') ? 'selected' : '' }}>5. Tidak layak</option>
+                                        @endif
                                     </select>
                                     @else
                             <span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? '') }}">{{ $ajuan->status_lulus ?? 'Belum ditentukan' }}</span>
@@ -961,6 +966,18 @@
                             <input type="hidden" id="id_ajuan_tahap2" name="id_ajuan" value="">
                             <div class="row">
                                 <div class="col-md-6">
+                                    @if(strtolower($tahapan) === 'tahap iv')
+                                    <div class="form-group row align-items-center mb-2 px-1">
+                                        <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Jenis Sidang</label>
+                                        <div class="col-sm-6 px-2">
+                                            <select class="form-control form-control-sm border-dark rounded-0" name="jenis_sidang" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? 'disabled' : '' }}>
+                                                <option value="">Pilih Jenis</option>
+                                                <option value="Terbuka" {{ (isset($ajuan) && strtolower($ajuan->JENIS_SIDANG ?? '') == 'terbuka') ? 'selected' : '' }}>Terbuka</option>
+                                                <option value="Tertutup" {{ (isset($ajuan) && strtolower($ajuan->JENIS_SIDANG ?? '') == 'tertutup') ? 'selected' : '' }}>Tertutup</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    @endif
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tgl Seminar/Sidang</label>
                                         <div class="col-sm-6 px-2">
@@ -1029,16 +1046,6 @@
                                             <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_sk_kelulusan" value="{{ isset($ajuan) ? $ajuan->SK_LULUS : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? 'readonly' : '' }}>
                                         </div>
                                     </div> -->
-                                    <input type="hidden" name="link_file_penelaah" id="linkFilePenelaah" value="{{ isset($ajuan) ? $ajuan->LINK_FILE_PENELAAH : '' }}">
-                                    @if(isset($ajuan) && $ajuan->LINK_FILE_PENELAAH)
-                                    <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">File Kesediaaan Penelaah</label>
-                                        <div class="col-sm-6 px-2">
-                                            <a href="{{ $ajuan->LINK_FILE_PENELAAH }}" target="_blank" class="text-primary" style="font-size: 12px;">Lihat file</a>
-                                            <span class="text-success"><i class="fas fa-check-circle"></i></span>
-                                        </div>
-                                    </div>
-                                    @endif
                                 </div>
                             </div>
                              <div class="d-flex justify-content-between align-items-center mt-4">

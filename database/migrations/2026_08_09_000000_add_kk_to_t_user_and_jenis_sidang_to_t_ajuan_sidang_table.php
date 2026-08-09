@@ -8,15 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::table('t_user', function (Blueprint $table) {
+            $table->string('KK', 250)->nullable()->after('SIGNATURE');
+        });
+
         Schema::table('t_ajuan_sidang', function (Blueprint $table) {
-            $table->string('LINK_FILE_PENELAAH', 500)->nullable()->after('EMAIL_SURAT');
+            $table->string('JENIS_SIDANG', 250)->nullable()->after('EMAIL_SURAT');
         });
     }
 
     public function down(): void
     {
+        Schema::table('t_user', function (Blueprint $table) {
+            $table->dropColumn('KK');
+        });
+
         Schema::table('t_ajuan_sidang', function (Blueprint $table) {
-            $table->dropColumn('LINK_FILE_PENELAAH');
+            $table->dropColumn('JENIS_SIDANG');
         });
     }
 };

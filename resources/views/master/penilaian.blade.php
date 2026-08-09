@@ -95,6 +95,22 @@
 @endpush
 
 @section('content')
+@php
+    $tahapanLabels = [
+        'tahap 1' => 'Ujian Kualifikasi',
+        'tahap I' => 'Ujian Kualifikasi',
+        'tahap 2' => 'Ujian Proposal',
+        'tahap II' => 'Ujian Proposal',
+        'tahap 3' => 'Tahap III',
+        'tahap III' => 'Tahap III',
+        'tahap 4' => 'Sidang Terbuka / Tertutup',
+        'tahap IV' => 'Sidang Terbuka / Tertutup',
+        'SK I' => 'SK I',
+        'SK II' => 'SK II',
+        'SK III' => 'SK III',
+        'SK IV' => 'SK IV',
+    ];
+@endphp
 <div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -150,7 +166,7 @@
                                 <td>{{ $penilaian->firstItem() + $i }}</td>
                                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
                                 <td>{{ $item['no_form'] ?? '-' }}</td>
-                                <td>{{ $item['tahapan_sidang'] }}</td>
+                                <td>{{ $tahapanLabels[$item['tahapan_sidang']] ?? $item['tahapan_sidang'] }}</td>
                                 <td>{{ $item['strata'] }}</td>
                                 <td>{{ $item['kode_prodi'] }} - {{ $item['nama_prodi'] }}</td>
                                 <td>{{ $item['Keterangan'] ?? '-' }}</td>
@@ -208,7 +224,7 @@
                             <label for="f_tahapan_sidang" class="form-label fw-semibold text-secondary">Tahapan Sidang</label>
                             <select name="tahapan_sidang" id="f_tahapan_sidang" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
                                 @foreach($tahapans as $t)
-                                    <option value="{{ $t->Tahapan }}">{{ $t->Tahapan }}</option>
+                                    <option value="{{ $t->Tahapan }}">{{ $tahapanLabels[$t->Tahapan] ?? $t->Tahapan }}</option>
                                 @endforeach
                             </select>
                         </div>

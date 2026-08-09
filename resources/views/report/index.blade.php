@@ -26,7 +26,7 @@
                             <th>Nama Mahasiswa</th>
                             <th>Judul</th>
                             <th>NIP</th>
-                            <th>Pembimbing / Penguji</th>
+                            <th>Nama Dosen</th>
                             <th>Status Tim Sidang</th>
                             <th>Tahapan</th>
                             <th>Status lulus</th>

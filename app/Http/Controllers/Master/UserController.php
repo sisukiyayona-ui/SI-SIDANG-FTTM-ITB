@@ -107,6 +107,7 @@ class UserController extends Controller
             'status_wda'     => $u->status_wda,
             'asal_instansi'  => $u->asal_instansi,
             'instansi'       => $u->instansi,
+            'kk'             => $u->kk,
             'signature'      => $u->signature,
             'roles'          => $u->roles(),
         ]);
@@ -157,6 +158,7 @@ class UserController extends Controller
             'STATUS_WDA'      => $request->status_wda,
             'ASAL_INSTANSI'   => $request->asal_instansi,
             'INSTANSI'        => $request->instansi,
+            'KK'              => $request->kk,
             'SIGNATURE'       => $signature,
             'TGL_CREATE'      => now(),
             'TGL_UPDATE'      => now(),
@@ -210,6 +212,7 @@ class UserController extends Controller
                 'STATUS_WDA'     => $request->status_wda,
                 'ASAL_INSTANSI'  => $request->asal_instansi,
                 'INSTANSI'       => $request->instansi,
+                'KK'             => $request->kk,
                 'TGL_UPDATE'     => now(),
             ];
 

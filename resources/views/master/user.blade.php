@@ -307,6 +307,13 @@
                         @endif
                     </div>
                 </div>
+                <div class="row" id="kkRow" style="display:none;">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">KK</label>
+                        <input type="text" name="kk" id="f_kk" class="form-control" placeholder="Contoh: 322.1" maxlength="250">
+                        <small class="text-muted">Diisi jika Status Pegawai Dosen</small>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Asal Instansi *</label>
@@ -433,6 +440,11 @@
         document.getElementById('f_nama_fs').value = namaFs;
     }
 
+    function toggleKkRow() {
+        var statusPegawai = document.getElementById('f_status_pegawai').value;
+        document.getElementById('kkRow').style.display = statusPegawai === 'Dosen' ? 'block' : 'none';
+    }
+
     var canvas, ctx;
     var signatureData = null;
 
@@ -537,6 +549,7 @@
         document.getElementById('spApprove').checked = true;
         document.getElementById('f_password').required = false;
         document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
+        toggleKkRow();
 
         document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_nama_fs').value = '';
@@ -578,6 +591,8 @@
             });
 
             document.getElementById('f_status_pegawai').value = item.status_pegawai ?? '';
+            document.getElementById('f_kk').value = item.kk ?? '';
+            toggleKkRow();
             document.getElementById('f_strata').value         = item.strata ?? '';
             document.getElementById('f_thn_angkatan').value   = item.thn_angkatan ?? '';
             document.getElementById('f_status_dekan').value = item.status_dekan ?? '';
@@ -643,6 +658,8 @@
         document.getElementById('formDelete').action = '{{ url("master/user") }}/' + id;
         new bootstrap.Modal(document.getElementById('modalDelete')).show();
     }
+
+    document.getElementById('f_status_pegawai').addEventListener('change', toggleKkRow);
 
     document.getElementById('formUser').addEventListener('submit', function(e) {
         e.preventDefault();

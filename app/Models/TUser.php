@@ -40,6 +40,7 @@ class TUser extends Authenticatable
         'SIGNATURE',
         'ASAL_INSTANSI',
         'INSTANSI',
+        'KK',
     ];
 
     protected $hidden = [

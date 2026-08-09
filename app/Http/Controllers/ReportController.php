@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TAjuanSidang;
 use App\Models\TUser;
+use App\Models\VReportTipeI;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
@@ -12,33 +13,10 @@ class ReportController extends Controller
     {
         $user = session('auth_user');
 
-        $query = DB::table('t_ajuan_sidang as a')
-            ->select(
-                'a.id',
-                'j.id as id_judul',
-                DB::raw('YEAR(a.tgl_create) as tahun'),
-                'j.NIM',
-                'u.NAMA_LENGKAP as nama_mahasiswa',
-                'j.JUDUL',
-                'ts.NIP',
-                'ts.NAMA as pembimbing_penguji',
-                'ts.STATUS_TIM_SIDANG',
-                'a.tahapan_sidang',
-                'a.status_lulus'
-            )
-            ->join('t_judul as j', 'a.id_judul', '=', 'j.id')
-            ->join('t_user as u', 'j.id_user_mhs', '=', 'u.id')
-            ->join('t_tim_sidang as ts', function ($join) {
-                $join->on('ts.id_judul', '=', 'j.id')
-                     ->on('ts.tahapan_sidang', '=', 'a.tahapan_sidang');
-            })
-            ->where('a.strata', 'S3')
-            ->orderBy('j.id')
-            ->orderBy('a.tahapan_sidang')
-            ->orderBy('ts.URUTAN');
+        $query = VReportTipeI::query();
 
         if ($user['role'] === 'TU Prodi') {
-            $query->where('a.kode_prodi', $user['kode_prodi']);
+            $query->where('kode_prodi', $user['kode_prodi']);
         } elseif (in_array($user['role'], ['FS', 'Monev'])) {
             // sees all records
         }

@@ -2191,12 +2191,6 @@
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ route('master.fakultas.index') }}" class="nav-link {{ request()->routeIs('master.fakultas*') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-landmark"></i>
-                                    <p>Fakultas</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a href="{{ route('master.persyaratan.index') }}" class="nav-link {{ request()->routeIs('master.persyaratan*') ? 'active' : '' }}">
                                     <i class="nav-icon fas fa-file-alt"></i>
                                     <p>Persyaratan</p>
@@ -2206,6 +2200,12 @@
                                 <a href="{{ route('master.penilaian.index') }}" class="nav-link {{ request()->routeIs('master.penilaian*') ? 'active' : '' }}">
                                     <i class="nav-icon fas fa-chart-bar"></i>
                                     <p>Penilaian</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('master.fakultas.index') }}" class="nav-link {{ request()->routeIs('master.fakultas*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-landmark"></i>
+                                    <p>Fakultas</p>
                                 </a>
                             </li>
                             <li class="nav-item">
