@@ -613,7 +613,8 @@ class MahasiswaController extends Controller
                         }
                     }
                     $cek->LINK_FILE = $linkFile;
-                    $cek->STATUS_LENGKAP = 'y';
+                    // JANGAN set STATUS_LENGKAP otomatis, biarkan sesuai dengan checkbox user
+                    // $cek->STATUS_LENGKAP = 'y';
                     $cek->TGL_UPDATE = date('Y-m-d');
                     $cek->save();
                 } else {
@@ -638,7 +639,9 @@ class MahasiswaController extends Controller
                         $newCek->TAHAPAN_SIDANG = $tahapSyarat;
                         $newCek->ID_SYARAT_SIDANG = $s->id;
                         $newCek->PERSYARATAN = $s->NAMA_PERSYARATAN;
-                        $newCek->STATUS_LENGKAP = ($s->id == $idSyarat) ? 'y' : 't';
+                        // JANGAN set STATUS_LENGKAP otomatis jadi 'y' hanya karena upload file
+                        // Status lengkap hanya diset sesuai checkbox user atau default 't'
+                        $newCek->STATUS_LENGKAP = 't';
                         if ($s->id == $idSyarat) {
                             $newCek->LINK_FILE = $linkFile;
                         }
