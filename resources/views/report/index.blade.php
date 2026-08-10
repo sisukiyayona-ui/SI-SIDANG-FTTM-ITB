@@ -12,8 +12,11 @@
 
 @section('content')
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Report Tipe I</h5>
+            <a href="{{ route('report.export') }}" class="btn btn-success">
+                <i class="fas fa-file-excel mr-1"></i> Export Excel
+            </a>
         </div>
         <div class="card-body">
             <div class="table-responsive">

@@ -26,6 +26,92 @@ class ReportController extends Controller
         return view('report.index', compact('reports'));
     }
     
+    public function export()
+    {
+        $user = session('auth_user');
+
+        $query = VReportTipeI::query();
+
+        if ($user['role'] === 'TU Prodi') {
+            $query->where('kode_prodi', $user['kode_prodi']);
+        } elseif (in_array($user['role'], ['FS', 'Monev'])) {
+            // sees all records
+        }
+
+        $reports = $query->get();
+
+        // Create Excel file using PhpSpreadsheet
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Set header
+        $sheet->setCellValue('A1', 'No');
+        $sheet->setCellValue('B1', 'Tahun');
+        $sheet->setCellValue('C1', 'NIM');
+        $sheet->setCellValue('D1', 'Nama Mahasiswa');
+        $sheet->setCellValue('E1', 'Judul');
+        $sheet->setCellValue('F1', 'NIP');
+        $sheet->setCellValue('G1', 'Nama Dosen');
+        $sheet->setCellValue('H1', 'Status Tim Sidang');
+        $sheet->setCellValue('I1', 'Tahapan');
+        $sheet->setCellValue('J1', 'Tanggal Sidang');
+        $sheet->setCellValue('K1', 'Status Lulus');
+        
+        // Style header
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ];
+        $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
+        
+        // Set data
+        $row = 2;
+        foreach ($reports as $idx => $item) {
+            $sheet->setCellValue('A' . $row, $idx + 1);
+            $sheet->setCellValue('B' . $row, $item->tahun);
+            $sheet->setCellValue('C' . $row, $item->NIM);
+            $sheet->setCellValue('D' . $row, $item->nama_mahasiswa);
+            $sheet->setCellValue('E' . $row, $item->JUDUL);
+            $sheet->setCellValue('F' . $row, $item->NIP);
+            $sheet->setCellValue('G' . $row, $item->pembimbing_penguji);
+            $sheet->setCellValue('H' . $row, $item->STATUS_TIM_SIDANG);
+            $sheet->setCellValue('I' . $row, $item->tahapan_sidang);
+            $sheet->setCellValue('J' . $row, $item->tgl_sidang ? \Carbon\Carbon::parse($item->tgl_sidang)->format('d M Y') : '-');
+            $sheet->setCellValue('K' . $row, $item->status_lulus ?? 'belum diajukan');
+            $row++;
+        }
+        
+        // Auto size columns
+        foreach (range('A', 'K') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        
+        // Set borders
+        $styleArray = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:K' . ($row - 1))->applyFromArray($styleArray);
+        
+        // Generate filename
+        $filename = 'Report_Tipe_I_' . date('Y-m-d_His') . '.xlsx';
+        
+        // Create writer
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        
+        // Set headers for download
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer->save('php://output');
+        exit;
+    }
+    
     public function showDetail($idJudul, $tahapan)
     {
         $user = session('auth_user');
