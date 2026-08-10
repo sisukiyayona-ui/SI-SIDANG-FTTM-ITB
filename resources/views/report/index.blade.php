@@ -47,7 +47,7 @@
                                 <td>{{ $item->NIP }}</td>
                                 <td>{{ $item->pembimbing_penguji }}</td>
                                 <td>{{ $item->STATUS_TIM_SIDANG }}</td>
-                                <td>{{ $item->tahapan_sidang }}</td>
+                                <td>{{ formatTahapan($item->tahapan_sidang) }}</td>
                                 <td>
                                     @if(isset($item->tgl_sidang) && $item->tgl_sidang)
                                         {{ \Carbon\Carbon::parse($item->tgl_sidang)->translatedFormat('d M Y') }}
@@ -111,5 +111,20 @@ function getStatusColor($status) {
         default:
             return 'info';
     }
+}
+
+function formatTahapan($tahapan) {
+    $tahapanLower = strtolower($tahapan ?? '');
+    $labels = [
+        'tahap i'   => 'Ujian Kualifikasi',
+        'tahap ii'  => 'Ujian Proposal',
+        'tahap iii' => 'Tahap III',
+        'tahap iv'  => 'Sidang Terbuka / Tertutup',
+        'sk i'      => 'SK I',
+        'sk ii'     => 'SK II',
+        'sk iii'    => 'SK III',
+        'sk iv'     => 'SK IV',
+    ];
+    return $labels[$tahapanLower] ?? $tahapan;
 }
 @endphp

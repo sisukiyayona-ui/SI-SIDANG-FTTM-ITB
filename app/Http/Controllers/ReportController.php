@@ -39,6 +39,22 @@ class ReportController extends Controller
         }
 
         $reports = $query->get();
+        
+        // Helper function to format tahapan
+        $formatTahapan = function($tahapan) {
+            $tahapanLower = strtolower($tahapan ?? '');
+            $labels = [
+                'tahap i'   => 'Ujian Kualifikasi',
+                'tahap ii'  => 'Ujian Proposal',
+                'tahap iii' => 'Tahap III',
+                'tahap iv'  => 'Sidang Terbuka / Tertutup',
+                'sk i'      => 'SK I',
+                'sk ii'     => 'SK II',
+                'sk iii'    => 'SK III',
+                'sk iv'     => 'SK IV',
+            ];
+            return $labels[$tahapanLower] ?? $tahapan;
+        };
 
         // Create Excel file using PhpSpreadsheet
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -76,7 +92,7 @@ class ReportController extends Controller
             $sheet->setCellValue('F' . $row, $item->NIP);
             $sheet->setCellValue('G' . $row, $item->pembimbing_penguji);
             $sheet->setCellValue('H' . $row, $item->STATUS_TIM_SIDANG);
-            $sheet->setCellValue('I' . $row, $item->tahapan_sidang);
+            $sheet->setCellValue('I' . $row, $formatTahapan($item->tahapan_sidang));
             $sheet->setCellValue('J' . $row, $item->tgl_sidang ? \Carbon\Carbon::parse($item->tgl_sidang)->format('d M Y') : '-');
             $sheet->setCellValue('K' . $row, $item->status_lulus ?? 'belum diajukan');
             $row++;
