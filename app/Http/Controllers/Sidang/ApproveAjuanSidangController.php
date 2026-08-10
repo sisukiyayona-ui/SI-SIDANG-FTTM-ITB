@@ -114,16 +114,30 @@ class ApproveAjuanSidangController extends Controller
             ->where('tahapan_sidang', $tahapan)
             ->get();
 
-        $pointPenilaian = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
-            ->where('status_aktif', 'AKTIF')
-            ->select('no_form')
+        // Get mahasiswa's prodi from ajuan
+        $mahasiswaProdi = $ajuan->kode_prodi;
+        
+        // Filter point penilaian by prodi
+        $pointPenilaianQuery = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
+            ->where('status_aktif', 'AKTIF');
+        
+        if ($mahasiswaProdi) {
+            $pointPenilaianQuery->where('KODE_PRODI', $mahasiswaProdi);
+        }
+        
+        $pointPenilaian = $pointPenilaianQuery->select('no_form')
             ->distinct()
             ->orderBy('no_form')
             ->get();
 
-        $allPointPenilaian = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
-            ->where('status_aktif', 'AKTIF')
-            ->get();
+        $allPointPenilaianQuery = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
+            ->where('status_aktif', 'AKTIF');
+        
+        if ($mahasiswaProdi) {
+            $allPointPenilaianQuery->where('KODE_PRODI', $mahasiswaProdi);
+        }
+        
+        $allPointPenilaian = $allPointPenilaianQuery->get();
 
         if (request()->ajax()) {
             return view('sidang.kpps-tahap-content', compact(
