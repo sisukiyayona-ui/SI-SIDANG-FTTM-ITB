@@ -32,10 +32,15 @@ class JadwalSidangController extends Controller
             $query->where('a.id_user', $user['id']);
         } elseif ($user['role'] === 'TU Prodi') {
             $query->where('a.kode_prodi', $user['kode_prodi']);
+        } elseif ($user['role'] === 'KPPS') {
+            // KPPS sees all jadwal from their prodi
+            if (isset($user['kode_prodi']) && $user['kode_prodi']) {
+                $query->where('a.kode_prodi', $user['kode_prodi']);
+            }
         } elseif ($user['role'] === 'FS') {
             // FS sees all prodi, only status_ajukan_prodi = 'y'
             $query->where('a.status_ajukan_prodi', 'y');
-        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji', 'KPPS'])) {
+        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
             // Filter by judul yang dibimbing/diuji
             $query->whereIn('a.id_judul', function($q) use ($user) {
                 $q->select('id_judul')
