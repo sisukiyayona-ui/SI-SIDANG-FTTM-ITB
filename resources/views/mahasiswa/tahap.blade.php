@@ -385,7 +385,7 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('jadwalList').style.display='block'; document.getElementById('jadwalForm').style.display='none';">&larr; Kembali</button>
                             <div>
                                 <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="ajukanProdi('{{ $idJudul }}', '{{ $tahapan }}')">Ajukan Prodi</button>
-                                <button type="button" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;">Simpan</button>
+                                <button type="button" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="saveJadwal()">Simpan</button>
                             </div>
                         </div>
                     </div>
@@ -624,6 +624,13 @@ function saveJadwal() {
         showToast('error', 'Tanggal dan Waktu harus diisi');
         return;
     }
+    
+    var btn = document.querySelector('.btn-primary[onclick*="saveJadwal"]');
+    if (btn) { 
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; 
+    }
+    
     fetch('{{ route("sidang.jadwal-sidang.store") }}', {
         method: 'POST',
         headers: {
@@ -642,12 +649,25 @@ function saveJadwal() {
     .then(function(data) {
         if (data.success) {
             showToast('success', data.message || 'Jadwal sidang berhasil disimpan');
+            // Tetap di form, hanya update button state
+            if (btn) { 
+                btn.disabled = false; 
+                btn.innerHTML = 'Simpan'; 
+            }
         } else {
-            showToast('error', data.error || 'Gagal menyimpan jadwal sidang');
+            showToast('error', data.error || data.message || 'Gagal menyimpan jadwal sidang');
+            if (btn) { 
+                btn.disabled = false; 
+                btn.innerHTML = 'Simpan'; 
+            }
         }
     })
     .catch(function(err) {
         showToast('error', 'Terjadi kesalahan: ' + err);
+        if (btn) { 
+            btn.disabled = false; 
+            btn.innerHTML = 'Simpan'; 
+        }
     });
 }
 
@@ -664,6 +684,13 @@ document.addEventListener('click', function(e) {
 
 function ajukanProdi(idJudul, tahapan) {
     if (!confirm('Ajukan jadwal sidang ke Program Studi?')) return;
+    
+    var btn = document.querySelector('.btn-success[onclick*="ajukanProdi"]');
+    if (btn) { 
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Mengajukan...'; 
+    }
+    
     fetch('/mahasiswa/ajukan-prodi', {
         method: 'POST',
         headers: {
@@ -677,12 +704,31 @@ function ajukanProdi(idJudul, tahapan) {
     .then(function(data) {
         if (data.success) {
             showToast('success', data.message || 'Berhasil diajukan ke Prodi');
+            // Pindah ke jadwal list setelah berhasil ajukan
+            setTimeout(function() {
+                document.getElementById('jadwalForm').style.display = 'none';
+                document.getElementById('jadwalList').style.display = 'block';
+                // Refresh halaman untuk update status
+                if (typeof showTahapForm === 'function') {
+                    showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal'); 
+                } else {
+                    location.reload();
+                }
+            }, 800);
         } else {
             showToast('error', data.error || 'Gagal mengajukan');
+            if (btn) { 
+                btn.disabled = false; 
+                btn.innerHTML = 'Ajukan Prodi'; 
+            }
         }
     })
     .catch(function(err) {
         showToast('error', 'Error: ' + err);
+        if (btn) { 
+            btn.disabled = false; 
+            btn.innerHTML = 'Ajukan Prodi'; 
+        }
     });
 }
  </script>

@@ -850,7 +850,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <button type="button" class="btn btn-black px-2 py-0" style="font-size: 12px; border-radius: 0;" onclick="cetakForm()">Cetak Surat Penelahan</button>
+                                    <button type="button" class="btn btn-black px-2 py-0" style="font-size: 12px; border-radius: 0;" onclick="cetakForm()">Cetak Penilaian</button>
                                     <button type="button" class="btn btn-outline-dark px-2 py-0 bg-white text-danger ml-1" style="font-size: 12px; border-radius: 0;">Ba Sidang</button>
                                 </div>
                             </div>
@@ -1029,7 +1029,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Hasil Penelahan</label>
+                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Hasil Penilaian</label>
                                         <div class="col-sm-6 px-2">
                                             <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_hasil_penelahan" value="{{ isset($ajuan) ? $ajuan->TGL_HASIL_PENELAHAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? 'readonly' : '' }}>
                                         </div>

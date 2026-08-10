@@ -29,6 +29,7 @@
                             <th>Nama Dosen</th>
                             <th>Status Tim Sidang</th>
                             <th>Tahapan</th>
+                            <th>Tanggal Sidang</th>
                             <th>Status lulus</th>
                         </tr>
                     </thead>
@@ -45,6 +46,13 @@
                                 <td>{{ $item->STATUS_TIM_SIDANG }}</td>
                                 <td>{{ $item->tahapan_sidang }}</td>
                                 <td>
+                                    @if(isset($item->tgl_sidang) && $item->tgl_sidang)
+                                        {{ \Carbon\Carbon::parse($item->tgl_sidang)->translatedFormat('d M Y') }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
                                     <span class="badge bg-{{ getStatusColor($item->status_lulus) }}">
                                         {{ $item->status_lulus ?? 'belum diajukan' }}
                                     </span>
@@ -52,7 +60,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center text-muted">Tidak ada data</td>
+                                <td colspan="11" class="text-center text-muted">Tidak ada data</td>
                             </tr>
                         @endforelse
                     </tbody>
