@@ -16,6 +16,17 @@ class PenilaianController extends Controller
     {
         $user = session('auth_user');
         
+        // Allowed status lulus values based on tahapan
+        $allowedStatusLulus = [
+            'lulus',
+            'tidak lulus',
+            'Layak tanpa perbaikan',
+            'Layak dengan perbaikan minor tanpa harus dibaca kembali',
+            'Layak dengan perbaikan minor dan perbaikan harus dibaca kembali',
+            'Layak dengan perbaikan major (substansial)',
+            'Tidak layak'
+        ];
+        
         $request->validate([
             'id_judul' => 'required',
             'tahapan_sidang' => 'required',
@@ -23,7 +34,7 @@ class PenilaianController extends Controller
             'penilaian' => 'required|array',
             'penilaian.*.id_penilaian' => 'required',
             'penilaian.*.nilai' => 'nullable|numeric|min:1|max:5',
-            'status_lulus' => 'nullable|in:lulus,tidak lulus',
+            'status_lulus' => 'nullable|in:' . implode(',', $allowedStatusLulus),
         ]);
 
         $idJudul = $request->id_judul;
@@ -141,8 +152,19 @@ class PenilaianController extends Controller
     {
         $user = session('auth_user');
         
+        // Allowed status lulus values
+        $allowedStatusLulus = [
+            'lulus',
+            'tidak lulus',
+            'Layak tanpa perbaikan',
+            'Layak dengan perbaikan minor tanpa harus dibaca kembali',
+            'Layak dengan perbaikan minor dan perbaikan harus dibaca kembali',
+            'Layak dengan perbaikan major (substansial)',
+            'Tidak layak'
+        ];
+        
         $request->validate([
-            'status_lulus' => 'required|in:lulus,tidak lulus',
+            'status_lulus' => 'required|in:' . implode(',', $allowedStatusLulus),
         ]);
 
         $ajuan = TAjuanSidang::where('ID_JUDUL', $id)
