@@ -49,12 +49,18 @@
     }
 
     function tahapLabel($tahapan) {
+        $tahapanLower = strtolower($tahapan);
         $labels = [
-            'tahap I'  => 'Ujian Kualifikasi',
-            'tahap II' => 'Ujian Proposal',
-            'tahap IV' => 'Sidang Terbuka / Tertutup',
+            'tahap i'   => 'Ujian Kualifikasi',
+            'tahap ii'  => 'Ujian Proposal',
+            'tahap iii' => 'Tahap III',
+            'tahap iv'  => 'Sidang Terbuka / Tertutup',
+            'sk i'      => 'SK I',
+            'sk ii'     => 'SK II',
+            'sk iii'    => 'SK III',
+            'sk iv'     => 'SK IV',
         ];
-        return $labels[strtolower($tahapan)] ?? str_replace('tahap', 'Tahap ', $tahapan);
+        return $labels[$tahapanLower] ?? $tahapan;
     }
 @endphp
 
@@ -205,6 +211,11 @@
                                                     <td style="vertical-align: top;">NIM</td>
                                                     <td style="vertical-align: top;">:</td>
                                                     <td>{{ $item->Nim }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="vertical-align: top;">Tahapan</td>
+                                                    <td style="vertical-align: top;">:</td>
+                                                    <td><strong>{{ tahapLabel($item->tahapan_sidang) }}</strong></td>
                                                 </tr>
                                                 <tr>
                                                     <td style="vertical-align: top;">Judul</td>
