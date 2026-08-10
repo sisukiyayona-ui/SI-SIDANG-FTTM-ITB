@@ -382,7 +382,7 @@
                         </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-4">
-                            <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('jadwalList').style.display='block'; document.getElementById('jadwalForm').style.display='none';">&larr; Kembali</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="kembaliKeJadwalList()">&larr; Kembali</button>
                             <div>
                                 <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="ajukanProdi('{{ $idJudul }}', '{{ $tahapan }}')">Ajukan Prodi</button>
                                 <button type="button" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="saveJadwal()">Simpan</button>
@@ -731,6 +731,27 @@ function ajukanProdi(idJudul, tahapan) {
         }
     });
 }
+
+function kembaliKeJadwalList() {
+    // Reload list jadwal dengan data terbaru
+    if (typeof showTahapForm === 'function') {
+        showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal');
+    } else {
+        document.getElementById('jadwalForm').style.display = 'none';
+        document.getElementById('jadwalList').style.display = 'block';
+        location.reload();
+    }
+}
+
+// Event listener untuk reload dashboard ketika modal ditutup
+$(document).ready(function() {
+    $('#tahapModal').on('hidden.bs.modal', function() {
+        // Reload dashboard page untuk update status
+        if (window.location.href.includes('mahasiswa/dashboard')) {
+            location.reload();
+        }
+    });
+});
  </script>
  </div>
  @if(!request()->ajax() && !request()->has('id_judul'))

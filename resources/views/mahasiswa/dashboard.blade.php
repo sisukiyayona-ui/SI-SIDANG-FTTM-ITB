@@ -282,6 +282,12 @@
         input.addEventListener('input', filterTrackingTable);
         input.addEventListener('change', filterTrackingTable);
     });
+
+    // Event listener untuk reload dashboard ketika modal tahapan ditutup
+    $('#tahapModal').on('hidden.bs.modal', function() {
+        // Reload dashboard untuk update status terbaru
+        location.reload();
+    });
 </script>
 @endpush
 
