@@ -1050,7 +1050,7 @@
                             </div>
                              <div class="d-flex justify-content-between align-items-center mt-4">
                                  <div>
-                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('jadwalFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';">&larr; Kembali</button>
+                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="kembaliKeJadwalListTahap2()">&larr; Kembali</button>
                                  </div>
                                  <div>
 <input type="hidden" name="is_ajukan_fs" value="">
@@ -1058,7 +1058,7 @@
                                        <button type="button" class="btn btn-success px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);">Ajukan ke FS</button>
                                       @endif
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
-                                       <button type="submit" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0;">Simpan</button>
+                                       <button type="submit" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="submitJadwalTahap2(event)">Simpan</button>
                                       @endif
                                       @if(session('auth_user.role') === 'FS')
                                        <input type="hidden" name="is_ajukan_kpps" value="">
@@ -2386,8 +2386,12 @@ function submitJadwalTahap2(event) {
         return;
     }
 
+    // Check if this is "Ajukan" action (is_ajukan_fs or is_ajukan_kpps)
+    var isAjukan = formData.get('is_ajukan_fs') === '1' || formData.get('is_ajukan_kpps') === '1';
+
     // Disable submit button
-    var submitBtn = form.querySelector('button[type="submit"]');
+    var submitBtn = event.target;
+    var originalText = submitBtn.innerHTML;
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
@@ -2414,30 +2418,62 @@ function submitJadwalTahap2(event) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Jadwal sidang berhasil disimpan', 'success');
-            // Switch back to jadwal list view
-            document.getElementById('jadwalFormTahap2').style.display = 'none';
-            document.getElementById('jadwalListTahap2').style.display = 'block';
-            // Reload the tahap content to show updated data
-            var tahapan = formData.get('tahapan_sidang');
-            var idJudul = formData.get('id_judul');
-            if (typeof showTahapForm === 'function') {
-                showTahapForm(tahapan, idJudul, 'jadwal');
+            
+            // Jika "Ajukan", kembali ke list. Jika hanya "Simpan", tetap di form
+            if (isAjukan) {
+                // Switch back to jadwal list view
+                setTimeout(function() {
+                    document.getElementById('jadwalFormTahap2').style.display = 'none';
+                    document.getElementById('jadwalListTahap2').style.display = 'block';
+                    // Reload the tahap content to show updated data
+                    var tahapan = formData.get('tahapan_sidang');
+                    var idJudul = formData.get('id_judul');
+                    if (typeof showTahapForm === 'function') {
+                        showTahapForm(tahapan, idJudul, 'jadwal');
+                    } else {
+                        location.reload();
+                    }
+                }, 500);
             } else {
-                location.reload();
+                // Tetap di form, hanya re-enable tombol
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
             }
         } else {
             showToast(data.message || 'Gagal menyimpan jadwal sidang', 'error');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
         }
     })
     .catch(function(error) {
         showToast('Error: ' + error.message, 'error');
-    })
-    .finally(function() {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Simpan';
+            submitBtn.innerHTML = originalText;
         }
     });
+}
+
+function kembaliKeJadwalListTahap2() {
+    // Reload list jadwal dengan data terbaru
+    var form = document.getElementById('jadwalFormTahap2Form');
+    if (form) {
+        var formData = new FormData(form);
+        var tahapan = formData.get('tahapan_sidang');
+        var idJudul = formData.get('id_judul');
+        
+        if (typeof showTahapForm === 'function') {
+            showTahapForm(tahapan, idJudul, 'jadwal');
+        } else {
+            document.getElementById('jadwalFormTahap2').style.display = 'none';
+            document.getElementById('jadwalListTahap2').style.display = 'block';
+            location.reload();
+        }
+    }
 }
 
 function hapusJadwal(id, tahapan, idJudul) {
