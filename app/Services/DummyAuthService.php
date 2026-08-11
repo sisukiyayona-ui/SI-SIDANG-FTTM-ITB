@@ -130,6 +130,8 @@ class DummyAuthService
             'strata' => $user->STRATA,
             'kode_prodi' => $user->KODE_PRODI,
             'nama_prodi' => $user->NAMA_PRODI,
+            'kode_fs' => $user->KODE_FS,
+            'nama_fs' => $user->NAMA_FS,
             'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($nama) . '&background=2f5597&color=fff&size=128',
             'akun_ina' => $user->AKUN_INA,
             'status' => $pending ? 'pending' : ($user->STATUS_APPROVE === 't' ? 'approved' : 'pending'),

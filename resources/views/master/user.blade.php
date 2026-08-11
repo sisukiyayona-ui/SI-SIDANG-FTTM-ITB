@@ -279,12 +279,19 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Fakultas *</label>
-                        <select name="kode_fs" id="f_kode_fs" class="form-control" onchange="setNamaFs(this)">
-                            <option value="">-- Pilih Fakultas --</option>
-                            @foreach($fakultas as $fs)
-                                <option value="{{ $fs->KODE_FS }}">{{ $fs->NAMA_FS }}</option>
-                            @endforeach
-                        </select>
+                        @if(session('auth_user.role') === 'TU Prodi')
+                            {{-- TU Prodi: fakultas dari login, disable --}}
+                            <input type="hidden" name="kode_fs" id="f_kode_fs" value="{{ session('auth_user.kode_fs') }}">
+                            <input type="hidden" name="nama_fs" id="f_nama_fs" value="{{ session('auth_user.nama_fs') }}">
+                            <input type="text" class="form-control" value="{{ session('auth_user.nama_fs') }}" disabled style="background-color:#e9ecef;">
+                        @else
+                            <select name="kode_fs" id="f_kode_fs" class="form-control" onchange="setNamaFs(this)">
+                                <option value="">-- Pilih Fakultas --</option>
+                                @foreach($fakultas as $fs)
+                                    <option value="{{ $fs->KODE_FS }}" data-nama="{{ $fs->NAMA_FS }}">{{ $fs->NAMA_FS }}</option>
+                                @endforeach
+                            </select>
+                        @endif
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Program Studi</label>
@@ -317,7 +324,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Asal Instansi *</label>
-                        <select name="asal_instansi" id="f_asal_instansi" class="form-control">
+                        <select name="asal_instansi" id="f_asal_instansi" class="form-control" onchange="handleAsalInstansiChange()">
                             <option value="">-- Pilih Asal Instansi --</option>
                             <option value="ITB">ITB</option>
                             <option value="NON ITB">NON ITB</option>
@@ -434,6 +441,23 @@
 
 @push('scripts')
 <script>
+    function handleAsalInstansiChange() {
+        var asalInstansi = document.getElementById('f_asal_instansi').value;
+        var instansiField = document.getElementById('f_instansi');
+        
+        if (asalInstansi === 'ITB') {
+            instansiField.value = 'ITB';
+            instansiField.disabled = true;
+            instansiField.style.backgroundColor = '#e9ecef';
+        } else {
+            if (instansiField.value === 'ITB') {
+                instansiField.value = '';
+            }
+            instansiField.disabled = false;
+            instansiField.style.backgroundColor = '';
+        }
+    }
+
     function setNamaFs(select) {
         var selected = select.options[select.selectedIndex];
         var namaFs = selected.dataset.nama || selected.textContent.trim();
@@ -551,12 +575,18 @@
         document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
         toggleKkRow();
 
+        @if(session('auth_user.role') !== 'TU Prodi')
         document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_nama_fs').value = '';
+        @endif
+        
         document.getElementById('f_asal_instansi').value = '';
         document.getElementById('f_status_dekan').value = '';
         document.getElementById('f_status_wda').value = '';
         document.getElementById('f_instansi').value = '';
+        document.getElementById('f_instansi').disabled = false;
+        document.getElementById('f_instansi').style.backgroundColor = '';
+        
         clearSignature();
         document.getElementById('signaturePreview').style.display = 'none';
 
@@ -599,10 +629,14 @@
             document.getElementById('f_status_wda').value = item.status_wda ?? '';
             document.getElementById('f_status_kaprodi').value = item.status_kaprodi ?? '';
 
+            @if(session('auth_user.role') !== 'TU Prodi')
             document.getElementById('f_kode_fs').value = item.kode_fs ?? '';
             document.getElementById('f_nama_fs').value = item.nama_fs ?? '';
+            @endif
+            
             document.getElementById('f_asal_instansi').value = item.asal_instansi ?? '';
             document.getElementById('f_instansi').value = item.instansi ?? '';
+            handleAsalInstansiChange(); // Apply logic based on asal_instansi
 
             // Signature preview — data stored as raw base64, prepend data URI
             var sigData = item.signature ? item.signature.trim() : '';

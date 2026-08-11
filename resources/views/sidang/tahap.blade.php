@@ -851,7 +851,7 @@
                                 </div>
                                 <div>
                                     <button type="button" class="btn btn-black px-2 py-0" style="font-size: 12px; border-radius: 0;" onclick="cetakForm()">Cetak Penilaian</button>
-                                    <button type="button" class="btn btn-outline-dark px-2 py-0 bg-white text-danger ml-1" style="font-size: 12px; border-radius: 0;">Ba Sidang</button>
+                                    <button type="button" class="btn btn-outline-dark px-2 py-0 bg-white text-danger ml-1" style="font-size: 12px; border-radius: 0;" onclick="cetakBeritaAcara()">BA Sidang</button>
                                 </div>
                             </div>
                             {{-- REPORT TABLE --}}
@@ -1247,7 +1247,7 @@
                                     </div>
                                     <div class="col-sm-2 pl-0 d-flex align-items-center">
                                         <button type="button" class="btn btn-outline-dark py-0 px-1 bg-white" style="font-size: 12px; border-radius: 0;">Cari</button>
-                                        <a href="#" class="text-dark ml-2" style="font-size: 11px; text-decoration: underline;">BA Sidang</a>
+                                        <a href="#" onclick="cetakBeritaAcara()" class="text-dark ml-2" style="font-size: 11px; text-decoration: underline;">BA Sidang</a>
                                     </div>
                                 </div>
                                 
@@ -2679,11 +2679,23 @@ function cetakUndangan() {
 function cetakForm() {
     var idTimSidang = document.getElementById('selectedTimSidangTahap2').value;
     if (!idTimSidang) { alert('Pilih penilai terlebih dahulu.'); return; }
+    var noForm = document.getElementById('selectedNoFormTahap2').value;
+    if (!noForm) { alert('Pilih Form terlebih dahulu.'); return; }
     var idJudul = document.querySelector('#penilaianFormTahap2Form [name="id_judul"]').value;
     var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
     var url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
     url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
     url += '?id_tim_sidang=' + encodeURIComponent(idTimSidang);
+    url += '&no_form=' + encodeURIComponent(noForm);
+    window.open(url, '_blank');
+}
+
+function cetakBeritaAcara() {
+    var idJudul = document.querySelector('#penilaianFormTahap2Form [name="id_judul"]').value;
+    var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
+    if (!idJudul) { alert('ID Judul tidak ditemukan.'); return; }
+    var url = '{{ route("sidang.cetak-berita-acara", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+    url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
     window.open(url, '_blank');
 }
 </script>
