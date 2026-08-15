@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\Hash;
 
 class DummyAuthService
 {
-    public function attempt(string $username, string $password, bool $sso = false): ?array
+    public function attempt(string $username, ?string $password, bool $sso = false): ?array
     {
         $user = TUser::where('USERNAME', $username)
             ->where('STATUS_AKTIF', 'AKTIF')
             ->first();
 
-        if ($user && ($sso || Hash::check($password, $user->getAuthPassword()))) {
+        if ($user && ($sso || ($password !== null && Hash::check($password, $user->getAuthPassword())))) {
             $userData = $this->toSessionUser($user);
             session(['auth_user' => $userData]);
             return $userData;

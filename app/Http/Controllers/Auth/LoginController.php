@@ -52,6 +52,10 @@ class LoginController extends Controller
 
     public function redirectToSSO()
     {
+        if (!config('sso.enabled') || (string) config('sso.callback_token') === '') {
+            return redirect()->route('login')->with('error', 'Login SSO belum dikonfigurasi.');
+        }
+
         $ssoUrl = config('sso.url');
         $callback = route('sso.callback');
         return redirect($ssoUrl . '?callback=' . urlencode($callback));
@@ -59,8 +63,17 @@ class LoginController extends Controller
 
     public function handleSSOCallback(Request $request)
     {
-        // Placeholder: handle SSO callback from ITB SSO provider
-        // This will be implemented based on actual SSO protocol (CAS/OAuth/SAML)
+        // Keamanan: callback SSO hanya boleh diterima bila membawa token rahasia
+        // bersama (shared secret) yang juga diketahui server SSO. Tanpa token yang
+        // valid, endpoint ini ditolak — mencegah siapapun "login as" user lain
+        // cukup dengan mengetik /login/sso/callback?username=xxx.
+        $expected = (string) config('sso.callback_token');
+        $provided = (string) $request->input('token');
+
+        if ($expected === '' || !hash_equals($expected, $provided)) {
+            return redirect()->route('login')->withErrors(['username' => 'SSO login gagal.']);
+        }
+
         $username = $request->input('username');
 
         if (!$username) {

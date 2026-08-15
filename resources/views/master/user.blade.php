@@ -146,7 +146,7 @@
                             <tr>
                                 <td>{{ $users->firstItem() + $i }}</td>
                                 <td>{{ $item['nip_nim'] }}</td>
-                                <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama_lengkap'] }}</a></td>
+                                <td><a href="javascript:void(0)" onclick="openEdit('{{ $item['id'] }}')" class="text-decoration-none">{{ $item['nama_lengkap'] }}</a></td>
                                 <td>{{ $item['email'] }}</td>
                                 <td>{{ $item['status_pegawai'] ?? '-' }}</td>
                                 <td>{{ $item['nama_prodi'] ?? '-' }}</td>

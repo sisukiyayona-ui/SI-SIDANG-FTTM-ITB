@@ -8,7 +8,8 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login']);
+    // Throttle: maksimal 5 percobaan per menit per IP untuk mencegah brute force.
+    Route::post('login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 
     Route::get('login/sso', [LoginController::class, 'redirectToSSO'])->name('sso.redirect');
     Route::get('login/sso/callback', [LoginController::class, 'handleSSOCallback'])->name('sso.callback');

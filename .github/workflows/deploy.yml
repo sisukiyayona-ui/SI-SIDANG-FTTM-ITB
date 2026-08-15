@@ -1,0 +1,71 @@
+name: Deploy ke Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      APP_DIR: ${{ vars.APP_DIR }}
+      SCREEN_NAME: ${{ vars.SCREEN_NAME }}
+      APP_HOST: ${{ vars.APP_HOST }}
+      APP_PORT: ${{ vars.APP_PORT }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script_stop: true
+          script: |
+            set -e
+
+            APP_DIR="${APP_DIR:-/var/www/html/project/SI-SIDANG-FTTM-ITB}"
+            SCREEN_NAME="${SCREEN_NAME:-sisidang}"
+            APP_HOST="${APP_HOST:-0.0.0.0}"
+            APP_PORT="${APP_PORT:-8000}"
+
+            echo "==> cd $APP_DIR"
+            cd "$APP_DIR" || { echo "Folder $APP_DIR tidak ditemukan di server"; exit 1; }
+
+            echo "==> git pull dari origin/main"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "==> composer install"
+            if command -v composer >/dev/null 2>&1; then
+              composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
+            else
+              echo "composer tidak ditemukan di PATH"
+              exit 1
+            fi
+
+            echo "==> perbaiki izin folder storage"
+            chmod -R 775 storage bootstrap/cache
+
+            echo "==> artisan: bersihkan cache"
+            php artisan optimize:clear
+
+            echo "==> artisan: migrate database"
+            php artisan migrate --force
+
+            echo "==> artisan: cache config, route, event, view"
+            php artisan optimize
+
+            echo "==> restart artisan serve di screen ($SCREEN_NAME)"
+            if screen -ls "$SCREEN_NAME" 2>/dev/null | grep -q "$SCREEN_NAME"; then
+              screen -S "$SCREEN_NAME" -X quit
+              sleep 2
+            fi
+            screen -dmS "$SCREEN_NAME" php artisan serve --host="$APP_HOST" --port="$APP_PORT"
+
+            echo "==> SELESAI. Cek: screen -r $SCREEN_NAME  |  http://$APP_HOST:$APP_PORT"

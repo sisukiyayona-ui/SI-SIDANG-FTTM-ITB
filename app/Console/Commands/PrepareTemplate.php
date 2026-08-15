@@ -78,6 +78,25 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
+                'src' => base_path('template/SIDANG/form penilaian sidang akhir.docx'),
+                'dst' => base_path('template/SIDANG/form penilaian sidang akhir TEMPLATE.docx'),
+                'replacements' => [
+                    '(no form)' => '${no_form}',
+                    '(judul)' => '${judul}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(ruang)' => '${ruang_sidang}',
+                    '(nama penilaian)' => '${nama_penilaian}',
+                    '(keterangan)' => '${keterangan}',
+                    '(nilai)' => '${nilai}',
+                    '(nama penguji/pembimbing)' => '${nama_penilai}',
+                    '(nama penguji 1)' => '${nama_penilai}',
+                    '(catatan)' => '${catatan}',
+                    '(rata nilai)' => '${rata_nilai}',
+                ]
+            ],
+            [
                 'src' => base_path('template/SK-1/BA Penilaian SK I sd SK III.docx'),
                 'dst' => base_path('template/SK-1/BA Penilaian SK I sd SK III TEMPLATE.docx'),
                 'replacements' => [

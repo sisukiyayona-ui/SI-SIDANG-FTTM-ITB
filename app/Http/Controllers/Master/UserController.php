@@ -8,6 +8,7 @@ use App\Models\TUserRole;
 use App\Models\TUser;
 use App\Models\TProdi;
 use App\Models\TFs;
+use App\Support\EncryptedUuid;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -48,7 +49,7 @@ class UserController extends Controller
 
         $users = $query->orderBy('id', 'desc')->paginate(10)->withQueryString()->through(function ($u) {
             return [
-                'id'             => $u->id,
+                'id'             => EncryptedUuid::encode($u->id),
                 'nip_nim'        => $u->nip_nim,
                 'nama_lengkap'   => $u->nama_lengkap,
                 'email'          => $u->email,
@@ -80,13 +81,14 @@ class UserController extends Controller
 
     public function edit($id)
     {
-        $u = TUser::find((int) $id);
+        $id = EncryptedUuid::decode($id);
+        $u = $id === null ? null : TUser::find($id);
         if (!$u) {
             return response()->json(null, 404);
         }
 
         return response()->json([
-            'id'             => $u->id,
+            'id'             => EncryptedUuid::encode($u->id),
             'nip_nim'        => $u->nip_nim,
             'nama_lengkap'   => $u->nama_lengkap,
             'email'          => $u->email,
@@ -171,11 +173,16 @@ class UserController extends Controller
 
     public function update(Request $request, $id)
     {
+        $id = EncryptedUuid::decode($id);
+        if ($id === null) {
+            return response()->json(['success' => false, 'message' => 'User tidak ditemukan.'], 404);
+        }
+
         $request->validate([
             'nip_nim'        => 'required',
             'nama_lengkap'   => 'required',
             'email'          => 'required|email',
-            'username'       => 'required|unique:t_user,USERNAME,' . (int) $id . ',id',
+            'username'       => 'required|unique:t_user,USERNAME,' . $id . ',id',
             'password'       => 'nullable|min:4',
             'jenis_user'     => 'required|array|min:1',
             'status_pegawai' => 'nullable',
@@ -183,7 +190,7 @@ class UserController extends Controller
             'status_approve' => 'required|in:t,f',
         ]);
 
-        $user = TUser::find((int) $id);
+        $user = TUser::find($id);
         if ($user) {
             [$kodeProdi, $namaProdi] = $this->resolveProdi($request, $user);
             [$kodeFs, $namaFs] = $this->resolveFs($request, $user);
@@ -322,7 +329,8 @@ class UserController extends Controller
 
     public function destroy($id)
     {
-        $user = TUser::find((int) $id);
+        $id = EncryptedUuid::decode($id);
+        $user = $id === null ? null : TUser::find($id);
         if ($user) {
             $user->delete();
         }
