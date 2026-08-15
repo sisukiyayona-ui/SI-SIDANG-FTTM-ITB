@@ -37,30 +37,20 @@ jobs:
           git reset --hard origin/main
 
           echo "==> Composer install"
-          if command -v composer >/dev/null 2>&1; then
-            composer install \
-              --no-interaction \
-              --no-dev \
-              --prefer-dist \
-              --optimize-autoloader
-          else
-            echo "ERROR: composer tidak ditemukan"
-            exit 1
-          fi
-
-          echo "==> Permission Laravel"
-          chmod -R 775 storage bootstrap/cache
+          composer install \
+            --no-interaction \
+            --no-dev \
+            --prefer-dist \
+            --optimize-autoloader
 
           echo "==> Clear cache"
           php artisan optimize:clear
-
-          echo "==> Database migration"
-          php artisan migrate --force
 
           echo "==> Optimize Laravel"
           php artisan optimize
 
           echo "==> Restart Laravel"
+
           if screen -ls "$SCREEN_NAME" 2>/dev/null | grep -q "$SCREEN_NAME"; then
             screen -S "$SCREEN_NAME" -X quit
             sleep 2
