@@ -233,7 +233,7 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
+                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
                                                 <option value="">Pilih Nama</option>
                                                 @if(isset($users) && $users->count() > 0)
                                                     @foreach($users as $user)
@@ -351,7 +351,7 @@
                             <div class="form-group row align-items-center mb-2">
                                 <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                                 <div class="col-sm-8 px-1">
-                                    <select class="form-control form-control-sm" id="penilaianSelect" onchange="document.getElementById('formFilterSelect').value='';document.getElementById('selectedTimSidangTahap1').value=this.value;filterPenilaian();">
+                                    <select class="form-control form-control-sm select2-search" id="penilaianSelect" onchange="document.getElementById('formFilterSelect').value='';document.getElementById('selectedTimSidangTahap1').value=this.value;filterPenilaian();">
                                         <option value="">-- Pilih Penilai --</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
@@ -367,7 +367,7 @@
                             <div class="form-group row align-items-center mb-2">
                                 <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">No Form</label>
                                 <div class="col-sm-8 px-1">
-                                    <select class="form-control form-control-sm" id="formFilterSelect" onchange="filterPenilaian()">
+                                    <select class="form-control form-control-sm select2-search" id="formFilterSelect" onchange="filterPenilaian()">
                                         <option value="">-- Pilih No Form --</option>
                                         @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
                                             @foreach($pointPenilaian as $form)
@@ -661,7 +661,7 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
+                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
                                                 <option value="">Pilih Nama</option>
                                                 @if(isset($users) && $users->count() > 0)
                                                     @foreach($users as $user)
@@ -831,7 +831,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
                                 <div class="d-flex align-items-center">
                                     <label class="text-danger mb-0 text-nowrap mr-2" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Penilai</label>
-                                    <select class="form-control form-control-sm border-dark rounded-0" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('formTahap2').value='';document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value='';filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
+                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('formTahap2').value='';document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value='';filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
                                         <option value="">Pilih Penilai</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
@@ -840,7 +840,7 @@
                                         @endif
                                     </select>
                                     <label class="text-danger mb-0 text-nowrap mr-2 ml-3" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Form</label>
-                                    <select class="form-control form-control-sm border-dark rounded-0" id="formTahap2" name="no_form_display" style="width: 160px;" onchange="filterPenilaianTahap2(); document.getElementById('selectedNoFormTahap2').value = this.value">
+                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="formTahap2" name="no_form_display" style="width: 160px;" onchange="filterPenilaianTahap2(); document.getElementById('selectedNoFormTahap2').value = this.value">
                                         <option value="">Pilih Form</option>
                                         @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
                                             @foreach($pointPenilaian as $form)
@@ -1143,7 +1143,7 @@
                                     <div class="form-group row align-items-center mb-2">
                                         <label class="col-sm-2 text-danger mb-0 px-1 text-right" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                                         <div class="col-sm-4 px-1">
-                                            <select class="form-control form-control-sm border-dark rounded-0" id="penilaiSelect" onchange="document.getElementById('formSelect').value='';loadPenilaianForm();">
+                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiSelect" onchange="document.getElementById('formSelect').value='';loadPenilaianForm();">
                                                 <option value="">Pilih Penilai</option>
                                                 @if(isset($timSidang) && $timSidang->count() > 0)
                                                     @foreach($timSidang as $tim)
@@ -1154,7 +1154,7 @@
                                         </div>
                                         <label class="col-sm-2 mb-0 px-1 text-center" style="font-size: 13px; color: #555;">Form</label>
                                         <div class="col-sm-2 px-1">
-                                            <select class="form-control form-control-sm border-dark rounded-0" id="formSelect" onchange="loadPenilaianForm()">
+                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="formSelect" onchange="loadPenilaianForm()">
                                                 <option value="">Pilih Form</option>
                                                 @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
                                                     @foreach($pointPenilaian as $form)
@@ -1324,7 +1324,7 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
+                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
                                                 <option value="">Pilih Nama</option>
                                                 @if(isset($users) && $users->count() > 0)
                                                     @foreach($users as $user)
@@ -1910,7 +1910,9 @@ function showAddTimForm(formId, btnId) {
     if (btn) btn.style.display = 'none';
     form.querySelector('[name="id"]').value = '';
     form.querySelector('[name="id_sk"]').value = '';
-    form.querySelector('[name="id_user_penilai"]').value = '';
+    var penilaiSel = form.querySelector('[name="id_user_penilai"]');
+    penilaiSel.value = '';
+    if (window.jQuery && jQuery.fn.select2) jQuery(penilaiSel).val('').trigger('change');
     form.querySelector('[name="nip"]').value = '';
     form.querySelector('[name="status_tim_sidang"]').value = '';
 
@@ -1939,7 +1941,9 @@ function editTimSidang(btn) {
 
     form.querySelector('[name="id"]').value = id;
     form.querySelector('[name="id_sk"]').value = idSk || '';
-    form.querySelector('[name="id_user_penilai"]').value = idUserPenilai || '';
+    var penilaiSel = form.querySelector('[name="id_user_penilai"]');
+    penilaiSel.value = idUserPenilai || '';
+    if (window.jQuery && jQuery.fn.select2) jQuery(penilaiSel).val(idUserPenilai || '').trigger('change');
     form.querySelector('[name="nip"]').value = nip || '';
     form.querySelector('[name="status_tim_sidang"]').value = statusTimSidang || '';
     form.querySelector('[name="urutan"]').value = urutan || '';
@@ -2538,6 +2542,19 @@ $(document).ready(function() {
         e.preventDefault();
         $(this).tab('show');
     });
+
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('.select2-search').each(function() {
+            var $el = jQuery(this);
+            if ($el.data('select2')) return;
+            var hasInlineWidth = $el.attr('style') && /\bwidth\s*:/.test($el.attr('style'));
+            $el.select2({
+                theme: 'bootstrap',
+                allowClear: true,
+                width: hasInlineWidth ? 'resolve' : '100%'
+            });
+        });
+    }
 });
 
 $('#skModal').on('show.bs.modal', function () {

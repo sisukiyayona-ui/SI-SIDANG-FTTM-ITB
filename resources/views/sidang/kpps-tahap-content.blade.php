@@ -239,7 +239,7 @@
                         <div class="form-group row align-items-center mb-2">
                             <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                             <div class="col-sm-8 px-1">
-                                <select class="form-control form-control-sm" id="kppsPenilai" onchange="filterKppsPenilaian()">
+                                <select class="form-control form-control-sm select2-search" id="kppsPenilai" onchange="filterKppsPenilaian()">
                                     <option value="">-- Pilih Penilai --</option>
                                     @if($timSidang && $timSidang->count() > 0)
                                         @foreach($timSidang as $tim)
@@ -254,7 +254,7 @@
                         <div class="form-group row align-items-center mb-2">
                             <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Form</label>
                             <div class="col-sm-8 px-1">
-                                <select class="form-control form-control-sm" id="kppsForm" onchange="filterKppsPenilaian()">
+                                <select class="form-control form-control-sm select2-search" id="kppsForm" onchange="filterKppsPenilaian()">
                                     <option value="">-- Pilih Form --</option>
                                     @if($pointPenilaian && $pointPenilaian->count() > 0)
                                         @foreach($pointPenilaian as $form)
@@ -355,9 +355,41 @@
                         if (show) hasVisible = true;
                     });
 
-                    if (emptyRow) { emptyRow.style.display = hasVisible ? 'none' : ''; }
+                if (emptyRow) { emptyRow.style.display = hasVisible ? 'none' : ''; }
+                }
+
+                // Select2 untuk dropdown Penilai / Form (bisa dicari)
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(document).ready(function() {
+                        jQuery('.select2-search', '#kpps-tahap-container').each(function() {
+                            var $el = jQuery(this);
+                            if ($el.data('select2')) return;
+                            $el.select2({
+                                theme: 'bootstrap',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                        });
+                    });
                 }
             </script>
+            @push('scripts')
+            <script>
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(document).ready(function() {
+                        jQuery('.select2-search', '#kpps-tahap-container').each(function() {
+                            var $el = jQuery(this);
+                            if ($el.data('select2')) return;
+                            $el.select2({
+                                theme: 'bootstrap',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                        });
+                    });
+                }
+            </script>
+            @endpush
         </div>
     </div>
 </div>

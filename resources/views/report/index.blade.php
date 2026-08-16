@@ -1,19 +1,19 @@
 @extends('layouts.master')
 
-@section('title', 'Report Tipe I - SI SIDANG FTTM ITB')
-@section('page_title', 'Report Tipe I')
+@section('title', 'Report Sidang S3 - SI SIDANG FTTM ITB')
+@section('page_title', 'Report Sidang S3')
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item active">Report Tipe I</li>
+        <li class="breadcrumb-item active">Report Sidang S3</li>
     </ol>
 @endsection
 
 @section('content')
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Report Tipe I</h5>
+            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Report Sidang S3</h5>
             <a href="{{ route('report.export') }}" class="btn btn-success">
                 <i class="fas fa-file-excel mr-1"></i> Export Excel
             </a>
@@ -34,6 +34,7 @@
                             <th>Tahapan</th>
                             <th>Tanggal Sidang</th>
                             <th>Status lulus</th>
+                            <th>Nilai</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -60,10 +61,11 @@
                                         {{ $item->status_lulus ?? 'belum diajukan' }}
                                     </span>
                                 </td>
+                                <td>{{ $item->nilai_rata2 ?? '-' }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="text-center text-muted">Tidak ada data</td>
+                                <td colspan="12" class="text-center text-muted">Tidak ada data</td>
                             </tr>
                         @endforelse
                     </tbody>

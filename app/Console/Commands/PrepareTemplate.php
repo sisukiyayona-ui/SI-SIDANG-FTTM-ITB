@@ -64,6 +64,25 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
+                'src' => base_path('template/cetak form penilain tipe text.docx'),
+                'dst' => base_path('template/cetak form penilain tipe text TEMPLATE.docx'),
+                'replacements' => [
+                    '(No form)' => '${no_form}',
+                    '(judul)' => '${judul}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(jumlah total dibagi 5)' => '${rata_nilai}',
+                    '(Nama penilaian)' => '${nama_penilaian}',
+                    '(catatan)' => '${catatan}',
+                    '(tgl create penilaian)' => '${tgl_create_penilaian}',
+                    '(Nama penilai)' => '${nama_penilai}',
+                    '(nip penilai)' => '${nip_penilai}',
+                ]
+            ],
+            [
                 'src' => base_path('template/SIDANG/BA sidang akhir.docx'),
                 'dst' => base_path('template/SIDANG/BA sidang akhir TEMPLATE.docx'),
                 'replacements' => [

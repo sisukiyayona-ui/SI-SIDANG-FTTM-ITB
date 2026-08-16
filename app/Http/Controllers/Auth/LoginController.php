@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\DummyAuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class LoginController extends Controller
 {
+    protected const MAX_ATTEMPTS = 5;
+    protected const LOCK_MINUTES = 15;
+
     protected DummyAuthService $auth;
 
     public function __construct(DummyAuthService $auth)
@@ -27,9 +31,27 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
+        $usernameKey = 'login_attempts:' . strtolower(trim($request->username));
+
+        $lockUntil = Cache::get($usernameKey . ':lock');
+        if ($lockUntil) {
+            $minutes = (int) ceil(($lockUntil - now()->getTimestamp()) / 60);
+            return back()->withErrors([
+                'username' => "Terlalu banyak percobaan login. Coba lagi dalam {$minutes} menit.",
+            ])->withInput();
+        }
+
         $user = $this->auth->attempt($request->username, $request->password);
 
         if (!$user) {
+            $attempts = (int) Cache::get($usernameKey . ':count', 0) + 1;
+            Cache::put($usernameKey . ':count', $attempts, now()->addMinutes(15));
+            if ($attempts >= self::MAX_ATTEMPTS) {
+                $lock = now()->addMinutes(self::LOCK_MINUTES);
+                Cache::put($usernameKey . ':lock', $lock->getTimestamp(), $lock);
+                Cache::forget($usernameKey . ':count');
+            }
+
             $existing = \App\Models\TUser::where('USERNAME', $request->username)->first();
             if ($existing && ($existing->STATUS_AKTIF ?? $existing->status_aktif) !== 'AKTIF') {
                 return back()->withErrors([
@@ -46,6 +68,9 @@ class LoginController extends Controller
                 'username' => 'Username atau password salah.',
             ])->withInput();
         }
+
+        Cache::forget($usernameKey . ':count');
+        Cache::forget($usernameKey . ':lock');
 
         return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
     }

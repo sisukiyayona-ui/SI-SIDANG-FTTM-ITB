@@ -72,6 +72,7 @@ class ReportController extends Controller
         $sheet->setCellValue('I1', 'Tahapan');
         $sheet->setCellValue('J1', 'Tanggal Sidang');
         $sheet->setCellValue('K1', 'Status Lulus');
+        $sheet->setCellValue('L1', 'Nilai');
         
         // Style header
         $headerStyle = [
@@ -79,7 +80,7 @@ class ReportController extends Controller
             'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ];
-        $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
         
         // Set data
         $row = 2;
@@ -95,11 +96,12 @@ class ReportController extends Controller
             $sheet->setCellValue('I' . $row, $formatTahapan($item->tahapan_sidang));
             $sheet->setCellValue('J' . $row, $item->tgl_sidang ? \Carbon\Carbon::parse($item->tgl_sidang)->format('d M Y') : '-');
             $sheet->setCellValue('K' . $row, $item->status_lulus ?? 'belum diajukan');
+            $sheet->setCellValue('L' . $row, $item->nilai_rata2 ?? '-');
             $row++;
         }
         
         // Auto size columns
-        foreach (range('A', 'K') as $col) {
+        foreach (range('A', 'L') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
@@ -114,7 +116,7 @@ class ReportController extends Controller
         $sheet->getStyle('A1:K' . ($row - 1))->applyFromArray($styleArray);
         
         // Generate filename
-        $filename = 'Report_Tipe_I_' . date('Y-m-d_His') . '.xlsx';
+        $filename = 'Report_Sidang_S3_' . date('Y-m-d_His') . '.xlsx';
         
         // Create writer
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);

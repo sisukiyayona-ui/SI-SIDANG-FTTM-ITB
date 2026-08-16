@@ -400,7 +400,7 @@
                                 <div class="form-group row align-items-center mb-0 px-1">
                                     <label class="col-sm-4 text-danger mb-0 pr-0" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                                     <div class="col-sm-8 px-1">
-                                        <select class="form-control form-control-sm border-dark rounded-0" id="penilaiViewSelect" onchange="filterPenilaianView()">
+                                        <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiViewSelect" onchange="filterPenilaianView()">
                                             <option value="">-- Pilih Penilai --</option>
                                             @if(isset($timSidang) && $timSidang->count() > 0)
                                                 @foreach($timSidang as $tim)
@@ -415,7 +415,7 @@
                                 <div class="form-group row align-items-center mb-0 px-1">
                                     <label class="col-sm-4 text-danger mb-0 pr-0" style="font-size: 13px; text-decoration: underline;">Form</label>
                                     <div class="col-sm-8 px-1">
-                                        <select class="form-control form-control-sm border-dark rounded-0" id="formViewSelect" onchange="filterPenilaianView()">
+                                        <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="formViewSelect" onchange="filterPenilaianView()">
                                             <option value="">-- Pilih Form --</option>
                                             @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
                                                 @foreach($pointPenilaian as $form)
@@ -752,11 +752,44 @@ $(document).ready(function() {
         }
     });
 });
+
+// Select2 untuk dropdown Penilai / Form (bisa dicari)
+if (window.jQuery && jQuery.fn.select2) {
+    jQuery(document).ready(function() {
+        jQuery('.select2-search').each(function() {
+            var $el = jQuery(this);
+            if ($el.data('select2')) return;
+            $el.select2({
+                theme: 'bootstrap',
+                allowClear: true,
+                width: '100%'
+            });
+        });
+    });
+}
  </script>
  </div>
  @if(!request()->ajax() && !request()->has('id_judul'))
  @endsection
  @endif
+
+ @push('scripts')
+ <script>
+     if (window.jQuery && jQuery.fn.select2) {
+         jQuery(document).ready(function() {
+             jQuery('.select2-search').each(function() {
+                 var $el = jQuery(this);
+                 if ($el.data('select2')) return;
+                 $el.select2({
+                     theme: 'bootstrap',
+                     allowClear: true,
+                     width: '100%'
+                 });
+             });
+         });
+     }
+ </script>
+ @endpush
 
   @php
   function getTahapLabel($tahapan) {
