@@ -109,9 +109,13 @@ class CetakController extends Controller
             ]);
         }
 
-        // Rata-rata nilai
-        $nilaiValues = $penilaianRows->pluck('NILAI')->filter(fn($v) => $v !== '' && $v !== null);
-        $rataNilai   = $nilaiValues->count() > 0 ? number_format($nilaiValues->avg(), 2) : '';
+        // Rata-rata nilai (jumlah total skor dibagi 5, sesuai catatan pada form)
+        // Baris "Usulan Perbaikan" bukan kriteria penilaian ber-skala — jangan dihitung.
+        $nilaiValues = $penilaianRows
+            ->filter(fn($r) => strtolower(trim((string) ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? ''))) !== 'usulan perbaikan')
+            ->pluck('NILAI')
+            ->filter(fn($v) => $v !== '' && $v !== null);
+        $rataNilai   = $nilaiValues->count() > 0 ? number_format($nilaiValues->sum() / 5, 2) : '';
 
         // Info penilai & tanggal
         $firstRow    = $penilaianRows->first();
@@ -198,7 +202,7 @@ class CetakController extends Controller
         // Isi baris penilaian via manipulasi XML
         if ($isSk) {
             // Template SK: isi nomor form, heading romawi, dan expand baris detail penilaian
-            $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $penilaianRows->values()->toArray());
+            $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $penilaianRows->values()->toArray(), $rataNilai);
         } elseif ($isSidangDoktor) {
             // Template form penilaian sidang doktor: isi baris detail penilaian (5 baris) + rata-rata
             $this->postProcessSidangForm($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
@@ -302,7 +306,7 @@ class CetakController extends Controller
      * Post-process template SK: isi nomor form, ganti heading romawi (I/II/III),
      * dan isi/expand baris detail penilaian sesuai jumlah record di database.
      */
-    private function postProcessSkForm(string $docxPath, string $noForm, string $skRomawi, array $rows): void
+    private function postProcessSkForm(string $docxPath, string $noForm, string $skRomawi, array $rows, string $rataNilai): void
     {
         $zip = new \ZipArchive();
         if ($zip->open($docxPath) !== true) {
@@ -327,6 +331,9 @@ class CetakController extends Controller
 
         // Expand + isi baris detail penilaian
         $xml = $this->fillSkDetailRows($xml, $rows);
+
+        // Nilai Rata-Rata (jumlah total skor dibagi 5)
+        $xml = preg_replace('/\$\{rata_nilai[^}]*\}/i', htmlspecialchars($rataNilai, ENT_XML1, 'UTF-8'), $xml);
 
         // Bersihkan sisa placeholder baris detail yang belum terganti
         $xml = preg_replace('/\$\{(nama_penilaian|keterangan|nilai)\}/i', '', $xml);
@@ -506,25 +513,23 @@ class CetakController extends Controller
         $penilaiCount = 0;
 
         foreach ($penilaiList as $penilai) {
-            // Get all penilaian records for this penilai
-            $penilaianRecords = TPenilaian::where('id_judul', $idJudul)
-                ->where('tahapan_sidang', $tahapan)
-                ->where('id_tim_sidang', $penilai->id)
-                ->get();
+            // Rata-rata nilai dari view v_ba_nilai_penilai (SUM(NILAI)/5 per penilai per ID_AJUAN)
+            $penilaianRow = DB::table('v_ba_nilai_penilai')
+                ->where('ID_AJUAN', $ajuan->id)
+                ->where('ID_TIM_SIDANG', $penilai->id)
+                ->first();
 
-            if ($penilaianRecords->isNotEmpty()) {
-                // Calculate average for this penilai
-                $nilaiValues = $penilaianRecords->pluck('NILAI')->filter(fn($v) => $v !== '' && $v !== null && $v !== 0);
-                $rataNilai = $nilaiValues->count() > 0 ? number_format($nilaiValues->avg(), 2) : '0.00';
-                
+            if ($penilaianRow) {
+                $rataNilai = number_format((float) $penilaianRow->NILAI_RATA2, 2);
+
                 $penilaiAverages[] = [
                     'nama' => $penilai->NAMA ?? '-',
                     'nip' => $penilai->NIP ?? '-',
                     'rata_nilai' => $rataNilai,
-                    'jumlah_nilai' => $nilaiValues->sum(),
-                    'jumlah_item' => $nilaiValues->count()
+                    'jumlah_nilai' => (float) $penilaianRow->TOTAL_NILAI,
+                    'jumlah_item' => (int) $penilaianRow->JUMLAH_ITEM
                 ];
-                
+
                 $totalAllScores += (float)$rataNilai;
                 $penilaiCount++;
             }
@@ -593,10 +598,6 @@ class CetakController extends Controller
             $tp->setValue('nilai_akhir_rata_rata', $rataRataKeseluruhan);
             $tp->setValue('nilai akhir rata rata', $rataRataKeseluruhan);
             
-            // Set the specific placeholder from template
-            $tp->setValue(' Jumlah nilai dibagi dengan jumlah semua penilai ', $rataRataKeseluruhan);
-            $tp->setValue('Jumlah nilai dibagi dengan jumlah semua penilai', $rataRataKeseluruhan);
-
             // Set individual penilai averages (up to 3 penilai)
             for ($i = 0; $i < 3; $i++) {
                 $penilaiNum = $i + 1;
@@ -637,8 +638,6 @@ class CetakController extends Controller
             'nilai akhir rata rata' => $rataRataKeseluruhan,
             'nilai_rata2' => $rataRataKeseluruhan,
             'nilai rata2' => $rataRataKeseluruhan,
-            ' Jumlah nilai dibagi dengan jumlah semua penilai ' => $rataRataKeseluruhan,
-            'Jumlah nilai dibagi dengan jumlah semua penilai' => $rataRataKeseluruhan,
         ];
         $this->replaceInDocx($docxPath, $replacements);
 
@@ -692,13 +691,12 @@ class CetakController extends Controller
             $tim = $timByStatus[$st] ?? null;
             $rata = '';
             if ($tim) {
-                $vals = TPenilaian::where('id_judul', $idJudul)
-                    ->where('tahapan_sidang', $tahapan)
-                    ->where('id_tim_sidang', $tim->id)
-                    ->pluck('NILAI')
-                    ->filter(fn($v) => $v !== '' && $v !== null);
-                if ($vals->count() > 0) {
-                    $rata = number_format((float) $vals->avg(), 2);
+                $nilaiRata2 = DB::table('v_ba_nilai_penilai')
+                    ->where('ID_AJUAN', $ajuan->id)
+                    ->where('ID_TIM_SIDANG', $tim->id)
+                    ->value('NILAI_RATA2');
+                if ($nilaiRata2 !== null) {
+                    $rata = number_format((float) $nilaiRata2, 2);
                 }
             }
             $nilaiRows[] = $rata;
@@ -827,14 +825,16 @@ class CetakController extends Controller
         }
 
         // Nilai Akhir Rata-rata (NA) & Indeks.
-        // Template hasil regenerate: sisa placeholder ${nilai_rata2} (setelah 5 baris) -> NA & Indeks.
-        $xml = preg_replace('/\$\{nilai_rata2\}/', $esc($data['na']), $xml, 1);
-        $xml = preg_replace('/\$\{nilai_rata2\}/', $esc($data['indeks']), $xml, 1);
+        // Template hasil regenerate: placeholder ${nilai_akhir_rata_rata} & ${nilai_akhir_indeks}.
+        $xml = preg_replace('/\$\{nilai_akhir_rata_rata\}/', $esc($data['na']), $xml, 1);
+        $xml = preg_replace('/\$\{nilai_akhir_indeks\}/', $esc($data['indeks']), $xml, 1);
         // Template lama: placeholder $(Nilai rata2) -> NA & Indeks.
         $xml = $this->fuzzyReplaceOnce($xml, '$(Nilai rata2)', $esc($data['na']));
         $xml = $this->fuzzyReplaceOnce($xml, '$(Nilai rata2)', $esc($data['indeks']));
         // Bersihkan sisa placeholder agar tidak bocor ke output.
         $xml = preg_replace('/\$\{nilai_rata2\}/', '', $xml);
+        $xml = preg_replace('/\$\{nilai_akhir_rata_rata\}/', '', $xml);
+        $xml = preg_replace('/\$\{nilai_akhir_indeks\}/', '', $xml);
 
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
@@ -889,13 +889,12 @@ class CetakController extends Controller
             $tim = $timByStatus[$st] ?? null;
             $rata = '';
             if ($tim) {
-                $vals = TPenilaian::where('id_judul', $idJudul)
-                    ->where('tahapan_sidang', $tahapan)
-                    ->where('id_tim_sidang', $tim->id)
-                    ->pluck('NILAI')
-                    ->filter(fn($v) => $v !== '' && $v !== null);
-                if ($vals->count() > 0) {
-                    $rata = number_format((float) $vals->avg(), 2);
+                $nilaiRata2 = DB::table('v_ba_nilai_penilai')
+                    ->where('ID_AJUAN', $ajuan->id)
+                    ->where('ID_TIM_SIDANG', $tim->id)
+                    ->value('NILAI_RATA2');
+                if ($nilaiRata2 !== null) {
+                    $rata = number_format((float) $nilaiRata2, 2);
                 }
             }
             $nilaiRows[] = $rata;
@@ -994,13 +993,15 @@ class CetakController extends Controller
             $xml = preg_replace('/\$\{nilai_rata2\}/', $esc($v), $xml, 1);
         }
 
-        // Bersihkan sisa placeholder (baris 7-10 dibiarkan kosong untuk isian manual KPPs)
-        $xml = preg_replace('/\$\{nilai_rata2\}/', '', $xml);
+        // Nilai Rata-Rata (baris 7) = rata-rata nilai pembimbing
+        $xml = str_replace('${nilai_rata_rata}', $esc($data['rata_rata'] ?? ''), $xml);
+        // Baris 8 (Nilai Publikasi), 9 (Nilai Akhir) & 10 (Indeks) diisi manual KPPs -> kosongkan
+        $xml = str_replace('${nilai_publikasi}', '', $xml);
+        $xml = str_replace('${nilai_akhir}', '', $xml);
+        $xml = str_replace('${indeks_akhir}', '', $xml);
 
-        // Nilai Rata-Rata (baris 7) -> injeksi ke sel kosong
-        if ($data['rata_rata'] !== '') {
-            $xml = $this->insertValueIntoSk4Row($xml, '7', $esc($data['rata_rata']));
-        }
+        // Bersihkan sisa placeholder agar tidak bocor ke output
+        $xml = preg_replace('/\$\{nilai_rata2\}/', '', $xml);
 
         // Daftar nama penilai: ganti literal "Nama penguji I/II/III/IV" -> nama asli
         $np = $data['nama_penguji'];
@@ -1017,36 +1018,6 @@ class CetakController extends Controller
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
         $zip->close();
-    }
-
-    /**
-     * Injeksi nilai ke sel kosong (kolom nilai, lebar 1303) pada baris dengan nomor tertentu.
-     */
-    private function insertValueIntoSk4Row(string $xml, string $rowNum, string $value): string
-    {
-        $pos = strpos($xml, '<w:t>' . $rowNum . '</w:t>');
-        if ($pos === false) {
-            return $xml;
-        }
-        $trEnd = strpos($xml, '</w:tr>', $pos);
-        if ($trEnd === false) {
-            return $xml;
-        }
-        $cellStart = strpos($xml, '<w:tcW w:w="1303"', $pos);
-        if ($cellStart === false || $cellStart > $trEnd) {
-            return $xml;
-        }
-        $cellEnd = strpos($xml, '</w:tc>', $cellStart);
-        if ($cellEnd === false) {
-            return $xml;
-        }
-        $pprEnd = strpos($xml, '</w:pPr>', $cellStart);
-        if ($pprEnd === false || $pprEnd > $cellEnd) {
-            return $xml;
-        }
-        $inject = '<w:r><w:rPr><w:color w:val="000000" w:themeColor="text1"/></w:rPr><w:t>' . $value . '</w:t></w:r>';
-        $after  = $pprEnd + strlen('</w:pPr>');
-        return substr($xml, 0, $after) . $inject . substr($xml, $after);
     }
 
     /**
@@ -1131,13 +1102,12 @@ class CetakController extends Controller
             $tim = $timByStatus[$st] ?? null;
             $rata = '';
             if ($tim) {
-                $vals = TPenilaian::where('id_judul', $idJudul)
-                    ->where('tahapan_sidang', $tahapan)
-                    ->where('id_tim_sidang', $tim->id)
-                    ->pluck('NILAI')
-                    ->filter(fn($v) => $v !== '' && $v !== null);
-                if ($vals->count() > 0) {
-                    $rata = number_format((float) $vals->avg(), 2);
+                $nilaiRata2 = DB::table('v_ba_nilai_penilai')
+                    ->where('ID_AJUAN', $ajuan->id)
+                    ->where('ID_TIM_SIDANG', $tim->id)
+                    ->value('NILAI_RATA2');
+                if ($nilaiRata2 !== null) {
+                    $rata = number_format((float) $nilaiRata2, 2);
                 }
             }
             $nilaiRows[] = $rata;
@@ -1236,18 +1206,14 @@ class CetakController extends Controller
         $xml = $zip->getFromName('word/document.xml');
         $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
 
-        // Nilai kolom (3) per baris 1-6 ("Nilai rata2", 6 kemunculan, nilai bisa beda)
+        // Nilai kolom (3) per baris 1-6 ("${nilai_rata2}", 6 kemunculan, nilai bisa beda)
         foreach ($data['nilai_rows'] as $v) {
-            $xml = preg_replace('/Nilai rata2/', $esc($v), $xml, 1);
+            $xml = preg_replace('/\$\{nilai_rata2\}/', $esc($v), $xml, 1);
         }
 
-        // Nilai Rata-Rata (baris 7) & Nilai akhir Index (baris 8) -> injeksi ke sel kosong
-        if ($data['rata_rata'] !== '') {
-            $xml = $this->insertSidangValueIntoRow($xml, '7', $esc($data['rata_rata']));
-        }
-        if ($data['indeks'] !== '') {
-            $xml = $this->insertSidangValueIntoRow($xml, '8', $esc($data['indeks']));
-        }
+        // Nilai Rata-Rata (baris 7) & Nilai akhir Index (baris 8)
+        $xml = str_replace('${nilai_rata_rata}', $esc($data['rata_rata'] ?? ''), $xml);
+        $xml = str_replace('${nilai_akhir_index}', $esc($data['indeks'] ?? ''), $xml);
 
         // Daftar nama tanda tangan: ganti literal "(nama penguji I/II/III/IV)" -> nama asli
         $np = $data['nama_penguji'];
@@ -1274,36 +1240,6 @@ class CetakController extends Controller
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
         $zip->close();
-    }
-
-    /**
-     * Injeksi nilai ke sel kosong (kolom nilai, lebar 1303) pada baris penilaian dengan nomor tertentu.
-     */
-    private function insertSidangValueIntoRow(string $xml, string $rowNum, string $value): string
-    {
-        $pos = strpos($xml, '<w:t>' . $rowNum . '</w:t>');
-        if ($pos === false) {
-            return $xml;
-        }
-        $trEnd = strpos($xml, '</w:tr>', $pos);
-        if ($trEnd === false) {
-            return $xml;
-        }
-        $cellStart = strpos($xml, '<w:tcW w:w="1303"', $pos);
-        if ($cellStart === false || $cellStart > $trEnd) {
-            return $xml;
-        }
-        $cellEnd = strpos($xml, '</w:tc>', $cellStart);
-        if ($cellEnd === false) {
-            return $xml;
-        }
-        $pprEnd = strpos($xml, '</w:pPr>', $cellStart);
-        if ($pprEnd === false || $pprEnd > $cellEnd) {
-            return $xml;
-        }
-        $inject = '<w:r><w:rPr><w:color w:val="000000" w:themeColor="text1"/></w:rPr><w:t>' . $value . '</w:t></w:r>';
-        $after  = $pprEnd + strlen('</w:pPr>');
-        return substr($xml, 0, $after) . $inject . substr($xml, $after);
     }
 
     /**
@@ -1930,15 +1866,26 @@ class CetakController extends Controller
         if ($zip->open($docxPath) === true) {
             $xml = $zip->getFromName('word/document.xml');
             
-            // Replace individual penilai values - one occurrence per penilai
+            // Placeholder nilai_rata2_dari_form_penilaian: urutan pertama = "Nilai Rata-rata"
+            // (rata-rata keseluruhan), urutan berikutnya = baris "Penilai 1..N" per penilai
+            $placeholderPatterns = [
+                '/\$\{nilai_rata2_dari_form_penilaian\}/',
+                '/\$\(nilai_rata2_dari_form_penilaian\)/',
+                '/\$\{nilai rata2 dari form penilaian\}/',
+                '/\$\(nilai rata2 dari form penilaian\)/',
+            ];
+
+            $safeRataRata = htmlspecialchars($rataRataKeseluruhan, ENT_XML1, 'UTF-8');
+            foreach ($placeholderPatterns as $pattern) {
+                $xml = preg_replace($pattern, $safeRataRata, $xml, 1);
+            }
+
+            // Replace individual penilai values - satu occurrence per penilai
             foreach ($penilaiAverages as $penilai) {
                 $nilai = htmlspecialchars($penilai['rata_nilai'], ENT_XML1, 'UTF-8');
-                
-                // Replace first occurrence of each format
-                $xml = preg_replace('/\$\{nilai_rata2_dari_form_penilaian\}/', $nilai, $xml, 1);
-                $xml = preg_replace('/\$\(nilai_rata2_dari_form_penilaian\)/', $nilai, $xml, 1);
-                $xml = preg_replace('/\$\{nilai rata2 dari form penilaian\}/', $nilai, $xml, 1);
-                $xml = preg_replace('/\$\(nilai rata2 dari form penilaian\)/', $nilai, $xml, 1);
+                foreach ($placeholderPatterns as $pattern) {
+                    $xml = preg_replace($pattern, $nilai, $xml, 1);
+                }
             }
             
             // Replace overall average (Nilai Akhir Rata-rata) - multiple variations

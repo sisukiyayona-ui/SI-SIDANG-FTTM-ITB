@@ -22,7 +22,7 @@ class PrepareTemplate extends Command
                     'Prof. Dr. Satria Bijaksana.' => '${pembimbing_utama}',
                     'Dr. Irwan Iskandar' => '${pembimbing_1}',
                     '----' => '${pembimbing_2}',
-                    '_______________ (jumlah total dibagi 5)' => '${rata_nilai}',
+                    '_______________ (jumlah total dibagi 5)' => '${rata_nilai} (jumlah total dibagi 5)',
                     'Diagram alur yang digunakan masih tidak sesuai dengan deskripsi dan ada kesalahan. Selain itu juga ada diagram alur yang membingungkan. Masih banyak ketidak konsitenan dalam penulisan. Komentar untuk perbaikan lebih detail dituliskan di formulir di bawah.' => '${catatan}',
                 ]
             ],
@@ -37,6 +37,8 @@ class PrepareTemplate extends Command
                     '$(nama pembimbing I)' => '${nama_pembimbing_i}',
                     '$(nama pembimbing II)' => '${nama_pembimbing_ii}',
                     '$(nilai rata2 dari form penilaian)' => '${nilai_rata2_dari_form_penilaian}',
+                    '$(nilai akhir rata rata)' => '${nilai_akhir_rata_rata}',
+                    '$(nilai akhir indeks)' => '${nilai_akhir_indeks}',
                     '$(tgl create penilaian)' => '${tgl_create_penilaian}',
                     '$(Nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
                     '$(nip ketua pembimbing)' => '${nip_ketua_pembimbing}',
@@ -61,6 +63,7 @@ class PrepareTemplate extends Command
                     '$((Keterangan)' => '${keterangan}',
                     '$(Nama Penilai)' => '${nama_penilai}',
                     '$(nip)' => '${nip}',
+                    '_______________ (jumlah total dibagi 5)' => '${rata_nilai} (jumlah total dibagi 5)',
                 ]
             ],
             [
@@ -74,7 +77,7 @@ class PrepareTemplate extends Command
                     '(nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
                     '(nama pembimbing I)' => '${nama_pembimbing_i}',
                     '(nama pembimbing II)' => '${nama_pembimbing_ii}',
-                    '(jumlah total dibagi 5)' => '${rata_nilai}',
+                    '_______________ (jumlah total dibagi 5)' => '${rata_nilai} (jumlah total dibagi 5)',
                     '(Nama penilaian)' => '${nama_penilaian}',
                     '(catatan)' => '${catatan}',
                     '(tgl create penilaian)' => '${tgl_create_penilaian}',
@@ -94,6 +97,7 @@ class PrepareTemplate extends Command
                     '$(waktu selesai)' => '${waktu_selesai}',
                     '$(nama kaprodi)' => '${nama_kaprodi}',
                     '$(nama ketua sidang)' => '${nama_ketua_sidang}',
+                    'Nilai rata2' => '${nilai_rata2}',
                 ]
             ],
             [
@@ -150,6 +154,7 @@ class PrepareTemplate extends Command
                     '$(tgl create penilaian)' => '${tgl_create_penilaian}',
                     '$(Nama_penilai)' => '${nama_penilai}',
                     '$(nip penilai)' => '${nip_penilai}',
+                    'Nilai Rata-Rata : /skala 5 (jumlah skor detail dibagi 5)' => 'Nilai Rata-Rata : ${rata_nilai} /skala 5 (jumlah skor detail dibagi 5)',
                 ]
             ],
             [
