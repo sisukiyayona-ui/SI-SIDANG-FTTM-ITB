@@ -199,17 +199,14 @@ class LoginController extends Controller
         $azureName    = $payload['name'] ?? '';
         $azureUpn     = $payload['preferred_username'] ?? '';
 
-        // ── Cocokkan dengan database ──
-        // Prioritas: EMAIL → USERNAME (UPN tanpa domain)
-        $user = TUser::where('EMAIL', $azureEmail)
-            ->orWhere('USERNAME', $azureUpn)
-            ->orWhere('USERNAME', $azureEmail)
-            ->where('STATUS_AKTIF', 'AKTIF')
+        // ── Cocokkan dengan database via AKUN_INA ──
+        $user = TUser::where('AKUN_INA', $azureEmail)
+            ->orWhere('AKUN_INA', $azureUpn)
             ->first();
 
         if (!$user) {
             return redirect()->route('login')->withErrors([
-                'username' => "Akun SSO tidak ditemukan di database. Email/UPN: {$azureEmail}",
+                'username' => "Akun SSO tidak ditemukan. Email tidak cocok dengan AKUN_INA di database.",
             ]);
         }
 
