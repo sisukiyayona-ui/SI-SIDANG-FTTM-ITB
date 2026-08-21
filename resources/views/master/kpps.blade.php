@@ -239,7 +239,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-6 mb-3" style="display:none;">
                     <label class="form-label">ID User (Opsional)</label>
                     <select name="id_user" id="f_id_user" class="form-control">
                         <option value="">-- Pilih --</option>

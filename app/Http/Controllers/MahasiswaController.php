@@ -981,7 +981,8 @@ class MahasiswaController extends Controller
         }
 
         if ($request->is_ajukan_kpps) {
-            $ajuan->STATUS_AJUKAN_KPPS = 't';
+            $ajuan->STATUS_AJUKAN_KPPS = 'y';
+            $ajuan->TGL_AJUKAN_KPPS = now()->toDateString();
             $ajuan->STATUS_AJUKAN_PRODI = 'y';
             $ajuan->STATUS_AJUKAN_MHS = 'y';
             $ajuan->STATUS_SUBMIT = 'y';

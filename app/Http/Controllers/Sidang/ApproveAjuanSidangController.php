@@ -21,7 +21,7 @@ class ApproveAjuanSidangController extends Controller
                     ->where('app.STATUS_APPROVE', '=', 't');
             })
             ->where('a.STRATA', $strata)
-            ->where('a.STATUS_AJUKAN_KPPS', 't')
+            ->where('a.STATUS_AJUKAN_KPPS', 'y')
             ->where('a.TAHAPAN_SIDANG', '!=', 'tahap I')
             ->select(
                 'a.id',

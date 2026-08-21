@@ -68,7 +68,7 @@
                         <td>
                             @if($row->approved)
                                 <span class="badge bg-success">Approved</span>
-                            @elseif($row->STATUS_AJUKAN_KPPS === 't')
+                            @elseif($row->STATUS_AJUKAN_KPPS === 'y')
                                 <span class="badge bg-warning">Diajukan</span>
                             @else
                                 <span class="badge bg-secondary">{{ $row->STATUS_AJUKAN_KPPS ?? '-' }}</span>

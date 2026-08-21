@@ -1063,7 +1063,7 @@
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
                                        <button type="submit" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="submitJadwalTahap2(event)">Simpan</button>
                                       @endif
-                                      @if(session('auth_user.role') === 'FS')
+                                      @if(session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
                                        <input type="hidden" name="is_ajukan_kpps" value="">
                                        <button type="button" class="btn btn-success px-3 py-0 ml-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan ke KPPS</button>
                                       @endif

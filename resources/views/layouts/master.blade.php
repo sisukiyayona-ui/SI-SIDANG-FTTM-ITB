@@ -1660,6 +1660,29 @@
         .teams-notif-item.read .teams-notif-desc {
             color: rgba(255,255,255,0.4);
         }
+        .notif-read-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            align-self: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: auto;
+            transition: all 0.15s;
+        }
+        .notif-read-btn:hover {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+            color: #fff;
+        }
 
         /* ---- Teams Profile Dropdown ---- */
         .profile-dropdown-teams {
@@ -1825,6 +1848,19 @@
         html:not(.dark-mode) body .teams-notif-item,
         body:not(.dark-mode) .teams-notif-item {
             color: #1f2937 !important;
+        }
+        
+        html:not(.dark-mode) body .notif-read-btn,
+        body:not(.dark-mode) .notif-read-btn {
+            color: #6b7280 !important;
+            border-color: #d1d5db !important;
+        }
+        
+        html:not(.dark-mode) body .notif-read-btn:hover,
+        body:not(.dark-mode) .notif-read-btn:hover {
+            color: #fff !important;
+            background-color: #3b82f6 !important;
+            border-color: #3b82f6 !important;
         }
         
         html:not(.dark-mode) body .notif-empty-message,
@@ -2707,7 +2743,7 @@
                 groups[group].forEach(function(n) {
                     var initial = (n.title || 'N').charAt(0).toUpperCase();
                     var colors = ['#2f5597', '#9B870C', '#8A2BE2', '#E9967A', '#2563EB', '#059669', '#D97706'];
-                    var color = colors[n.id % colors.length];
+                    var color = colors[Math.abs(n.id) % colors.length];
                     var notifClass = n.is_read ? 'teams-notif-item read' : 'teams-notif-item unread';
                     var link = n.link || '#';
                     html += '<a href="' + link + '" class="' + notifClass + '" data-id="' + n.id + '" onclick="markRead(' + n.id + ')">';
@@ -2724,6 +2760,7 @@
                         html += '<div class="teams-notif-desc">' + n.message + '</div>';
                     }
                     html += '</div>';
+                    html += '<button type="button" class="notif-read-btn" title="Tandai sudah dibaca" onclick="event.preventDefault(); event.stopPropagation(); markRead(' + n.id + ');"><i class="fas fa-check"></i></button>';
                     html += '</a>';
                 });
             });

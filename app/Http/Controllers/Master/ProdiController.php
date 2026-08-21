@@ -89,10 +89,14 @@ class ProdiController extends Controller
             'status_aktif' => 'required',
         ]);
 
+        $authUser = session('auth_user');
+
         TProdi::create([
             'KODE_PRODI' => $request->kode_prodi,
             'NAMA_PRODI' => $request->nama_prodi,
             'STATUS_AKTIF' => $request->status_aktif,
+            'KODE_FS' => $authUser['kode_fs'] ?? '',
+            'NAMA_FS' => $authUser['nama_fs'] ?? '',
             'TGL_CREATE' => now(),
         ]);
 
