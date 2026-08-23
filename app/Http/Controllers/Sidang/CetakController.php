@@ -17,6 +17,41 @@ use Illuminate\Support\Facades\Storage;
 class CetakController extends Controller
 {
     /**
+     * Ambil ajuan sidang untuk judul+tahapan.
+     * Jika baris ajuan belum ada untuk tahapan tersebut (mis. SK/tahap IV
+     * yang jadwalnya belum dibuat), gunakan data identitas dari ajuan lain
+     * pada judul yang sama agar dokumen tetap bisa dicetak.
+     */
+    private function resolveAjuan($idJudul, string $tahapan): ?TAjuanSidang
+    {
+        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->first();
+        if ($ajuan) {
+            return $ajuan;
+        }
+
+        $base = TAjuanSidang::where('id_judul', $idJudul)
+            ->orderByDesc('id')
+            ->first();
+        if (!$base) {
+            return null;
+        }
+
+        $stub = new TAjuanSidang();
+        $stub->setRawAttributes([
+            'ID_JUDUL'       => $base->ID_JUDUL,
+            'TAHAPAN_SIDANG' => $tahapan,
+            'JUDUL'          => $base->JUDUL,
+            'NAMA_MHS'       => $base->NAMA_MHS,
+            'NIM'            => $base->NIM,
+            'NAMA_PRODI'     => $base->NAMA_PRODI,
+        ], true);
+
+        return $stub;
+    }
+
+    /**
      * Cetak form penilaian untuk penilai yang dipilih.
      * Menggunakan template: cetak form penilaian proposal tipe nilai TEMPLATE.docx
      * Mengisi data per-baris (nama_penilaian, keterangan, nilai, catatan) dari DB.
@@ -35,11 +70,9 @@ class CetakController extends Controller
             return response()->json(['error' => 'Judul tidak ditemukan.'], 404);
         }
 
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
         if (!$ajuan) {
-            return response()->json(['error' => 'Ajuan sidang tidak ditemukan.'], 404);
+            return response()->json(['error' => 'Data judul/ajuan tidak ditemukan.'], 404);
         }
 
         $idTimSidang = $request->input('id_tim_sidang');
@@ -117,12 +150,16 @@ class CetakController extends Controller
             ->filter(fn($v) => $v !== '' && $v !== null);
         $rataNilai   = $nilaiValues->count() > 0 ? number_format($nilaiValues->sum() / 5, 2) : '';
 
-        // Info penilai & tanggal
+        // Info penilai & tanggal (tanggal penilaian = tgl create penilaian)
         $firstRow    = $penilaianRows->first();
-        $tgl         = $firstRow?->TGL_UPDATE ?? $firstRow?->TGL_CREATE ?? null;
+        $tgl         = $firstRow?->TGL_CREATE ?? $firstRow?->TGL_UPDATE ?? null;
         $tanggal     = $tgl ? \Carbon\Carbon::parse($tgl)->translatedFormat('d F Y') : '';
-        $penilaiNama = $firstRow?->NAMA ?? $timSidangRecord?->NAMA ?? ($user['nama_lengkap'] ?? '-');
-        $penilaiNip  = $firstRow?->NIP  ?? $timSidangRecord?->NIP  ?? ($user['nip_nim']      ?? '-');
+        $penilaiNama = (isset($firstRow->NAMA) && trim((string) $firstRow->NAMA) !== '')
+            ? $firstRow->NAMA
+            : ($timSidangRecord?->NAMA ?: ($user['nama_lengkap'] ?? '-'));
+        $penilaiNip  = (isset($firstRow->NIP) && trim((string) $firstRow->NIP) !== '')
+            ? $firstRow->NIP
+            : ($timSidangRecord?->NIP ?: ($user['nip_nim'] ?? '-'));
 
         // Deteksi tahapan SK (SK I, SK II, SK III, SK IV) -> gunakan template SK
         // Deteksi tahapan Sidang Doktor (tahap IV / Sidang Terbuka/Tertutup) -> template form penilaian sidang akhir
@@ -207,10 +244,98 @@ class CetakController extends Controller
             // Template form penilaian sidang doktor: isi baris detail penilaian (5 baris) + rata-rata
             $this->postProcessSidangForm($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
         } else {
-            $this->fillPenilaianRows($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
+            $this->fillPenilaianRows($docxPath, $penilaianRows->values()->toArray(), $rataNilai, $tanggal);
         }
 
+        // Sisipkan tanda tangan penilai (base64 dari t_user.SIGNATURE)
+        $this->embedSignature($docxPath, $timSidangRecord?->id_user_penilai, $penilaiNip, $penilaiNama);
+
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Sisipkan gambar tanda tangan penilai ke dokumen form penilaian.
+     * Sumber: t_user.SIGNATURE (longtext base64 tanpa prefix data:image).
+     * Pass 1: sisipkan paragraf placeholder ${ttd_penilai} sebelum paragraf
+     *         yang memuat anchor (NIP penilai, fallback nama penilai).
+     * Pass 2: isi placeholder dengan gambar via TemplateProcessor::setImageValue.
+     */
+    private function embedSignature(string $docxPath, $idUserPenilai, string $anchorNip = '', string $anchorNama = ''): void
+    {
+        $signature = null;
+        if ($idUserPenilai) {
+            $signature = TUser::where('id', (int) $idUserPenilai)->value('SIGNATURE');
+        }
+        if (empty($signature)) {
+            return;
+        }
+
+        $binary = base64_decode($signature, true);
+        if ($binary === false || strlen($binary) < 100) {
+            return;
+        }
+
+        // Deteksi tipe gambar dari magic bytes (hanya png/jpg yang didukung)
+        if (substr($binary, 0, 4) === "\x89PNG") {
+            $ext = 'png';
+        } elseif (substr($binary, 0, 3) === "\xFF\xD8\xFF") {
+            $ext = 'jpg';
+        } else {
+            return;
+        }
+
+        $tmpPath = storage_path('app/uploads/ttd_' . uniqid() . '.' . $ext);
+        file_put_contents($tmpPath, $binary);
+
+        try {
+            // Pass 1: sisipkan placeholder sebelum paragraf anchor
+            $zip = new \ZipArchive();
+            if ($zip->open($docxPath) !== true) {
+                return;
+            }
+            $xml = $zip->getFromName('word/document.xml');
+            $pos = false;
+            foreach (array_filter([$anchorNip, $anchorNama]) as $anchor) {
+                if ($anchor !== '' && ($pos = strpos($xml, $anchor)) !== false) {
+                    break;
+                }
+                $pos = false;
+            }
+            if ($pos !== false && strpos($xml, '${ttd_penilai}') === false) {
+                // Cari awal paragraf sebenarnya ('<w:p>' atau '<w:p '), bukan '<w:pPr'
+                $pStart = false;
+                foreach (['<w:p>', '<w:p '] as $needle) {
+                    $i = strrpos(substr($xml, 0, $pos), $needle);
+                    if ($i !== false && ($pStart === false || $i > $pStart)) {
+                        $pStart = $i;
+                    }
+                }
+                if ($pStart !== false) {
+                    $placeholder = '<w:p><w:r><w:t>${ttd_penilai}</w:t></w:r></w:p>';
+                    $xml = substr($xml, 0, $pStart) . $placeholder . substr($xml, $pStart);
+                    $zip->deleteName('word/document.xml');
+                    $zip->addFromString('word/document.xml', $xml);
+                }
+            }
+            $zip->close();
+
+            // Pass 2: isi gambar
+            if ($pos !== false && strpos($xml, '${ttd_penilai}') !== false) {
+                $tp2 = new TemplateProcessor($docxPath);
+                $tp2->setImageValue('ttd_penilai', [
+                    'path'   => $tmpPath,
+                    'width'  => 110,
+                    'height' => 55,
+                ]);
+                $tp2->saveAs($docxPath);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Gagal menyisipkan tanda tangan penilai: ' . $e->getMessage());
+        } finally {
+            if (isset($tmpPath) && file_exists($tmpPath)) {
+                @unlink($tmpPath);
+            }
+        }
     }
 
     /**
@@ -218,7 +343,7 @@ class CetakController extends Controller
      * Template memiliki ${nama_penilaian}, ${keterangan}, ${nilai}, ${catatan}
      * berulang (satu per baris) — ganti SATU occurrence per iterasi row.
      */
-    private function fillPenilaianRows(string $docxPath, array $rows, string $rataNilai): void
+    private function fillPenilaianRows(string $docxPath, array $rows, string $rataNilai, string $tanggal = ''): void
     {
         $zip = new \ZipArchive();
         if ($zip->open($docxPath) !== true) {
@@ -230,6 +355,15 @@ class CetakController extends Controller
         // Rata-rata nilai
         $xml = preg_replace('/\$\{rata_nilai[^}]*\}/i', htmlspecialchars($rataNilai, ENT_XML1, 'UTF-8'), $xml);
         $xml = preg_replace('/\$\{nilai_rata2[^}]*\}/i', htmlspecialchars($rataNilai, ENT_XML1, 'UTF-8'), $xml);
+
+        // Tanggal penilaian (template proposal tidak memiliki placeholder ${tanggal})
+        if ($tanggal !== '') {
+            $xml = $this->fuzzyReplaceOnce(
+                $xml,
+                'Tanggal penilaian:',
+                'Tanggal penilaian: ' . htmlspecialchars($tanggal, ENT_XML1, 'UTF-8')
+            );
+        }
 
         // Map field name → kemungkinan key di array/object
         $placeholders = [
@@ -479,11 +613,9 @@ class CetakController extends Controller
             return response()->json(['error' => 'Judul tidak ditemukan.'], 404);
         }
 
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
         if (!$ajuan) {
-            return response()->json(['error' => 'Ajuan sidang tidak ditemukan.'], 404);
+            return response()->json(['error' => 'Data judul/ajuan tidak ditemukan.'], 404);
         }
 
         // Semua tim sidang untuk header pembimbing
@@ -664,11 +796,9 @@ class CetakController extends Controller
             return response()->json(['error' => 'Judul tidak ditemukan.'], 404);
         }
 
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
         if (!$ajuan) {
-            return response()->json(['error' => 'Ajuan sidang tidak ditemukan.'], 404);
+            return response()->json(['error' => 'Data judul/ajuan tidak ditemukan.'], 404);
         }
 
         // Nomor BA & nomor form penilaian sumber per tahapan: I=1, II=2, III=3, IV=4
@@ -859,11 +989,9 @@ class CetakController extends Controller
             return response()->json(['error' => 'Judul tidak ditemukan.'], 404);
         }
 
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
         if (!$ajuan) {
-            return response()->json(['error' => 'Ajuan sidang tidak ditemukan.'], 404);
+            return response()->json(['error' => 'Data judul/ajuan tidak ditemukan.'], 404);
         }
 
         // Tim sidang per status
@@ -1072,11 +1200,9 @@ class CetakController extends Controller
             return response()->json(['error' => 'Judul tidak ditemukan.'], 404);
         }
 
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
         if (!$ajuan) {
-            return response()->json(['error' => 'Ajuan sidang tidak ditemukan.'], 404);
+            return response()->json(['error' => 'Data judul/ajuan tidak ditemukan.'], 404);
         }
 
         // Tim sidang per status
@@ -1340,11 +1466,9 @@ class CetakController extends Controller
         }
 
         $tahapan = str_replace('_', ' ', $tahapan);
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
         if (!$ajuan) {
-            abort(404, 'Ajuan sidang tidak ditemukan.');
+            abort(404, 'Data judul/ajuan tidak ditemukan.');
         }
 
         $timSidang = TTimSidang::where('id_judul', $idJudul)
@@ -1438,7 +1562,19 @@ class CetakController extends Controller
         ];
         
         $this->replaceInDocx($docxPath, $replacements);
-        
+
+        // NIP penandatangan dipindah ke baris sendiri di bawah nama
+        // ("Nama M.T. NIP. xxx" -> "Nama M.T." / baris baru / "NIP. xxx")
+        $zipNip = new \ZipArchive();
+        if ($zipNip->open($docxPath) === true) {
+            $xml = $zipNip->getFromName('word/document.xml');
+            $break = '</w:t></w:r></w:p><w:p><w:r><w:t xml:space="preserve">';
+            $xml = $this->fuzzyReplaceOnce($xml, 'M.T. NIP.', 'M.T.' . $break . 'NIP.');
+            $zipNip->deleteName('word/document.xml');
+            $zipNip->addFromString('word/document.xml', $xml);
+            $zipNip->close();
+        }
+
         // Handle penguji and pembimbing separately with direct XML manipulation
         $this->handlePengujiAndPembimbingInXml($docxPath, $pembimbingNames, $pengujiList->toArray(), $prodi);
 
@@ -1543,11 +1679,9 @@ class CetakController extends Controller
         }
 
         $tahapan = str_replace('_', ' ', $tahapan);
-        $ajuan = TAjuanSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->first();
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
         if (!$ajuan) {
-            abort(404, 'Ajuan sidang tidak ditemukan.');
+            abort(404, 'Data judul/ajuan tidak ditemukan.');
         }
 
         $timSidang = TTimSidang::where('id_judul', $idJudul)
@@ -1794,13 +1928,28 @@ class CetakController extends Controller
 
         $filename = 'Undangan_' . str_replace(' ', '_', $perihal) . '_' . str_replace(' ', '_', $ajuan->NAMA_MHS ?? '') . '_' . ($ajuan->NIM ?? '') . '.pdf';
 
-        $postSave = null;
-        if ($kepadaParagraphs !== '') {
-            $postSave = function ($docxPath) use ($kepadaParagraphs) {
-                $z = new \ZipArchive();
-                if ($z->open($docxPath) === true) {
-                    $xml = $z->getFromName('word/document.xml');
+        // Nama tahapan pada template masih statis ("Seminar Kemajuan IV") —
+        // ganti dinamis sesuai tahapan yang dicetak.
+        $postSave = function ($docxPath) use ($kepadaParagraphs, $perihal, $seminar) {
+            $z = new \ZipArchive();
+            if ($z->open($docxPath) === true) {
+                $xml = $z->getFromName('word/document.xml');
 
+                // Perihal: "Undangan Seminar Kemajuan IV" -> sesuai tahapan
+                $xml = $this->fuzzyReplaceOnce(
+                    $xml,
+                    'Undangan Seminar Kemajuan IV',
+                    'Undangan ' . htmlspecialchars($perihal, ENT_XML1, 'UTF-8')
+                );
+
+                // Isi undangan: "... Seminar Kemajuan IV (SK-IV) ..." -> sesuai tahapan
+                $xml = $this->fuzzyReplaceOnce(
+                    $xml,
+                    'Seminar Kemajuan IV (SK-IV)',
+                    htmlspecialchars($seminar, ENT_XML1, 'UTF-8')
+                );
+
+                if ($kepadaParagraphs !== '') {
                     // Replace the entire <w:p> that contains the {kepada} placeholder
                     // with multiple <w:p> rows (one per tim sidang member)
                     $xml = preg_replace(
@@ -1813,13 +1962,13 @@ class CetakController extends Controller
                     if (strpos($xml, '{kepada}') !== false) {
                         $xml = str_replace('{kepada}', $kepadaParagraphs, $xml);
                     }
-
-                    $z->deleteName('word/document.xml');
-                    $z->addFromString('word/document.xml', $xml);
-                    $z->close();
                 }
-            };
-        }
+
+                $z->deleteName('word/document.xml');
+                $z->addFromString('word/document.xml', $xml);
+                $z->close();
+            }
+        };
 
         return $this->exportDocxToPdf($tp, $filename, $postSave);
     }

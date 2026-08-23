@@ -15,15 +15,36 @@ class ApproveAjuanSidangController extends Controller
             abort(404);
         }
 
-        $rows = DB::table('t_ajuan_sidang as a')
+        $q = DB::table('t_ajuan_sidang as a')
             ->leftJoin('t_app_ajuan_sidang as app', function ($join) {
                 $join->on('app.ID_AJUAN_SIDANG', '=', 'a.id')
                     ->where('app.STATUS_APPROVE', '=', 't');
             })
             ->where('a.STRATA', $strata)
             ->where('a.STATUS_AJUKAN_KPPS', 'y')
-            ->where('a.TAHAPAN_SIDANG', '!=', 'tahap I')
-            ->select(
+            ->where('a.TAHAPAN_SIDANG', '!=', 'tahap I');
+
+        // Filter pencarian
+        $search = trim((string) request()->query('search', ''));
+        if ($search !== '') {
+            $q->where(function ($sub) use ($search) {
+                $sub->where('a.NIM', 'like', "%{$search}%")
+                    ->orWhere('a.NAMA_MHS', 'like', "%{$search}%")
+                    ->orWhere('a.JUDUL', 'like', "%{$search}%");
+            });
+        }
+        $tahapan = trim((string) request()->query('tahapan', ''));
+        if ($tahapan !== '') {
+            $q->where('a.TAHAPAN_SIDANG', $tahapan);
+        }
+        $status = trim((string) request()->query('status', ''));
+        if ($status === 'approved') {
+            $q->whereNotNull('app.id');
+        } elseif ($status === 'belum') {
+            $q->whereNull('app.id');
+        }
+
+        $rows = $q->select(
                 'a.id',
                 'a.NIM',
                 'a.NAMA_MHS',

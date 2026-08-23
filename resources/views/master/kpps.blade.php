@@ -92,6 +92,10 @@
 @endpush
 
 @section('content')
+@php
+    $authUserKpps = session('auth_user');
+    $isTuProdiKpps = ($authUserKpps['role'] ?? null) === 'TU Prodi';
+@endphp
 <div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -109,6 +113,7 @@
                             <th style="width:50px;">No</th>
                             <th>NIP</th>
                             <th>Nama Lengkap</th>
+                            <th>Status Tim</th>
                             <th>Fakultas</th>
                             <th>Program Studi</th>
                             <th style="width:100px;">Status</th>
@@ -117,6 +122,7 @@
                             <th></th>
                             <th><input type="text" class="form-control form-control-sm column-search" name="nip" placeholder="Cari..." data-col="1" value="{{ request('nip') }}"></th>
                             <th><input type="text" class="form-control form-control-sm column-search" name="nama" placeholder="Cari..." data-col="2" value="{{ request('nama') }}"></th>
+                            <th></th>
                             <th>
                                 <select class="form-control form-control-sm column-search" name="kode_fs" data-col="3">
                                     <option value="">Semua</option>
@@ -140,7 +146,6 @@
                                     <option value="NON AKTIF" {{ request('status_aktif') == 'NON AKTIF' ? 'selected' : '' }}>NON AKTIF</option>
                                 </select>
                             </th>
-                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -149,6 +154,13 @@
                                 <td>{{ $kpps->firstItem() + $i }}</td>
                                 <td>{{ $item->NIP ?? '-' }}</td>
                                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item->id }})" class="text-decoration-none">{{ $item->NAMA }}</a></td>
+                                <td>
+                                    @if($item->STATUS_TIM)
+                                        <span class="badge bg-info">{{ $item->STATUS_TIM }}</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td>{{ $item->NAMA_FS ?? '-' }}</td>
                                 <td>{{ $item->NAMA_PRODI ?? '-' }}</td>
                                 <td>
@@ -158,7 +170,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="text-center text-muted">Tidak ada data KPPS</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted">Tidak ada data KPPS</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -207,20 +219,52 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Fakultas *</label>
-                    <select name="kode_fs" id="f_kode_fs" class="form-control" onchange="setNamaFs(this)">
+                    @if($isTuProdiKpps)
+                        <input type="hidden" name="kode_fs" value="{{ $authUserKpps['kode_fs'] }}">
+                        <input type="hidden" name="nama_fs" value="{{ $authUserKpps['nama_fs'] }}">
+                    @endif
+                    <select name="kode_fs" id="f_kode_fs" class="form-control" onchange="setNamaFs(this)" {{ $isTuProdiKpps ? 'disabled' : '' }}>
                         <option value="">-- Pilih Fakultas --</option>
+                        @if($isTuProdiKpps)
+                            <option value="{{ $authUserKpps['kode_fs'] }}" data-nama="{{ $authUserKpps['nama_fs'] }}" selected>{{ $authUserKpps['nama_fs'] }}</option>
+                        @endif
                         @foreach($fakultas as $fs)
-                            <option value="{{ $fs->KODE_FS }}" data-nama="{{ $fs->NAMA_FS }}">{{ $fs->NAMA_FS }}</option>
+                            <option value="{{ $fs->KODE_FS }}" data-nama="{{ $fs->NAMA_FS }}" {{ !$isTuProdiKpps && request('kode_fs') == $fs->KODE_FS ? 'selected' : '' }}>{{ $fs->NAMA_FS }}</option>
                         @endforeach
                     </select>
+                    @if($isTuProdiKpps)
+                        <small class="text-muted">Mengikuti fakultas user login ({{ $authUserKpps['nama_fs'] }})</small>
+                    @endif
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Program Studi</label>
-                    <select name="kode_prodi" id="f_kode_prodi" class="form-control">
+                    @if($isTuProdiKpps)
+                        <input type="hidden" name="kode_prodi" value="{{ $authUserKpps['kode_prodi'] }}">
+                        <input type="hidden" name="nama_prodi" value="{{ $authUserKpps['nama_prodi'] }}">
+                    @endif
+                    <select name="kode_prodi" id="f_kode_prodi" class="form-control" {{ $isTuProdiKpps ? 'disabled' : '' }}>
                         <option value="">-- Tidak ada / Non Prodi --</option>
+                        @if($isTuProdiKpps)
+                            <option value="{{ $authUserKpps['kode_prodi'] }}" data-nama="{{ $authUserKpps['nama_prodi'] }}" selected>{{ $authUserKpps['nama_prodi'] }}</option>
+                        @endif
                         @foreach($prodis as $p)
                             <option value="{{ $p->KODE_PRODI }}" data-nama="{{ $p->NAMA_PRODI }}">{{ $p->NAMA_PRODI }}</option>
                         @endforeach
+                    </select>
+                    @if($isTuProdiKpps)
+                        <small class="text-muted">Mengikuti prodi user login ({{ $authUserKpps['nama_prodi'] }})</small>
+                    @endif
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Status Tim</label>
+                    <select name="status_tim" id="f_status_tim" class="form-control">
+                        <option value="">-- Pilih Status Tim --</option>
+                        <option value="Ketua">Ketua</option>
+                        <option value="Sekretaris">Sekretaris</option>
+                        <option value="Anggota">Anggota</option>
                     </select>
                 </div>
             </div>
@@ -291,17 +335,22 @@
     function fillFromNip() {
         var nipEl = document.getElementById('f_nip');
         var opt = nipEl.options[nipEl.selectedIndex];
+        var locked = document.getElementById('f_kode_fs').disabled;
         if (!opt || !opt.value) {
             document.getElementById('f_nama').value = '';
-            document.getElementById('f_kode_fs').value = '';
-            document.getElementById('f_nama_fs').value = 'FTTM';
-            document.getElementById('f_kode_prodi').value = '';
+            if (!locked) {
+                document.getElementById('f_kode_fs').value = '';
+                document.getElementById('f_nama_fs').value = 'FTTM';
+                document.getElementById('f_kode_prodi').value = '';
+            }
             return;
         }
         document.getElementById('f_nama').value = opt.dataset.nama || '';
-        document.getElementById('f_kode_fs').value = opt.dataset.kodeFs || '';
-        document.getElementById('f_nama_fs').value = opt.dataset.namaFs || 'FTTM';
-        document.getElementById('f_kode_prodi').value = opt.dataset.kodeProdi || '';
+        if (!locked) {
+            document.getElementById('f_kode_fs').value = opt.dataset.kodeFs || '';
+            document.getElementById('f_nama_fs').value = opt.dataset.namaFs || 'FTTM';
+            document.getElementById('f_kode_prodi').value = opt.dataset.kodeProdi || '';
+        }
     }
 
     jQuery(document).ready(function() {
@@ -327,9 +376,16 @@
         document.getElementById('methodKpps').value = 'POST';
         document.getElementById('formKpps').reset();
         document.getElementById('saAktifKpps').checked = true;
+        document.getElementById('f_status_tim').value = '';
+@if($isTuProdiKpps)
+        document.getElementById('f_kode_fs').value = '{{ $authUserKpps['kode_fs'] }}';
+        document.getElementById('f_nama_fs').value = @js($authUserKpps['nama_fs']);
+        document.getElementById('f_kode_prodi').value = '{{ $authUserKpps['kode_prodi'] }}';
+@else
         document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_nama_fs').value = 'FTTM';
         document.getElementById('f_kode_prodi').value = '';
+@endif
         document.getElementById('f_id_user').value = '';
         document.getElementById('f_nip').value = '';
         if (window.jQuery && jQuery.fn.select2) {
@@ -354,6 +410,7 @@
 
             document.getElementById('f_nip').value          = item.nip ?? '';
             document.getElementById('f_nama').value         = item.nama ?? '';
+            document.getElementById('f_status_tim').value   = item.status_tim ?? '';
             document.getElementById('f_kode_fs').value      = item.kode_fs ?? '';
             document.getElementById('f_nama_fs').value      = item.nama_fs ?? '';
             document.getElementById('f_kode_prodi').value   = item.kode_prodi ?? '';

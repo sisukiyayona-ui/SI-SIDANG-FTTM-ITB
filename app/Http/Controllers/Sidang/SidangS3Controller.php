@@ -22,6 +22,19 @@ class SidangS3Controller extends Controller
             return '(SELECT x.* FROM t_ajuan_sidang x INNER JOIN (SELECT id_judul, MAX(id) as max_id FROM t_ajuan_sidang WHERE tahapan_sidang = "' . $tahapan . '" GROUP BY id_judul) y ON x.id = y.max_id AND x.id_judul = y.id_judul)';
         };
 
+        // Status progress bertahap per tahapan sidang
+        $caseSql = function ($alias) {
+            return "
+                CASE
+                    WHEN MAX({$alias}.status_lulus) IS NOT NULL THEN MAX({$alias}.status_lulus)
+                    WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.status_ajukan_mhs), 't') != 'y' THEN 'belum diajukan'
+                    WHEN COALESCE(MAX({$alias}.status_ajukan_prodi), 't') != 'y' THEN 'diproses di TU Prodi'
+                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') != 'y' THEN 'diproses di fakultas'
+                    WHEN MAX({$alias}.tgl_sidang) IS NULL THEN 'menunggu jadwal sidang'
+                    ELSE 'terjadwal'
+                END";
+        };
+
         $query = DB::table('t_judul as j')
             ->leftJoin('t_user as u', 'j.ID_USER_MHS', '=', 'u.id')
             ->select(
@@ -29,62 +42,13 @@ class SidangS3Controller extends Controller
                 'j.JUDUL as Judul',
                 'j.NIM as Nim',
                 'u.NAMA_LENGKAP as nama_mhs',
-                DB::raw("
-                    CASE
-                        WHEN MAX(a1.id) IS NULL THEN 'belum diajukan'
-                        WHEN COALESCE(MAX(a1.status_ajukan_mhs), 't') != 'y' AND COALESCE(MAX(a1.status_ajukan_prodi), 't') != 'y' THEN 'belum diajukan'
-                        WHEN MAX(a1.status_lulus) IS NULL THEN 'dalam proses'
-                        ELSE MAX(a1.status_lulus)
-                    END as tahap1
-                "),
-                DB::raw("
-                    CASE
-                        WHEN MAX(a2.id) IS NULL THEN 'belum diajukan'
-                        WHEN COALESCE(MAX(a2.status_ajukan_mhs), 't') != 'y' AND COALESCE(MAX(a2.status_ajukan_prodi), 't') != 'y' THEN 'belum diajukan'
-                        WHEN MAX(a2.status_lulus) IS NULL THEN 'dalam proses'
-                        ELSE MAX(a2.status_lulus)
-                    END as tahap2
-                "),
-                DB::raw("
-                    CASE
-                        WHEN MAX(a3.id) IS NULL THEN 'belum diajukan'
-                        WHEN COALESCE(MAX(a3.status_ajukan_mhs), 't') != 'y' AND COALESCE(MAX(a3.status_ajukan_prodi), 't') != 'y' THEN 'belum diajukan'
-                        WHEN MAX(a3.status_lulus) IS NULL THEN 'dalam proses'
-                        ELSE MAX(a3.status_lulus)
-                    END as sk1
-                "),
-                DB::raw("
-                    CASE
-                        WHEN MAX(a4.id) IS NULL THEN 'belum diajukan'
-                        WHEN COALESCE(MAX(a4.status_ajukan_mhs), 't') != 'y' AND COALESCE(MAX(a4.status_ajukan_prodi), 't') != 'y' THEN 'belum diajukan'
-                        WHEN MAX(a4.status_lulus) IS NULL THEN 'dalam proses'
-                        ELSE MAX(a4.status_lulus)
-                    END as sk2
-                "),
-                DB::raw("
-                    CASE
-                        WHEN MAX(a5.id) IS NULL THEN 'belum diajukan'
-                        WHEN COALESCE(MAX(a5.status_ajukan_mhs), 't') != 'y' AND COALESCE(MAX(a5.status_ajukan_prodi), 't') != 'y' THEN 'belum diajukan'
-                        WHEN MAX(a5.status_lulus) IS NULL THEN 'dalam proses'
-                        ELSE MAX(a5.status_lulus)
-                    END as sk3
-                "),
-                DB::raw("
-                    CASE
-                        WHEN MAX(a6.id) IS NULL THEN 'belum diajukan'
-                        WHEN COALESCE(MAX(a6.status_ajukan_mhs), 't') != 'y' AND COALESCE(MAX(a6.status_ajukan_prodi), 't') != 'y' THEN 'belum diajukan'
-                        WHEN MAX(a6.status_lulus) IS NULL THEN 'dalam proses'
-                        ELSE MAX(a6.status_lulus)
-                    END as sk4
-                "),
-                DB::raw("
-                    CASE
-                        WHEN MAX(a7.id) IS NULL THEN 'belum diajukan'
-                        WHEN COALESCE(MAX(a7.status_ajukan_mhs), 't') != 'y' AND COALESCE(MAX(a7.status_ajukan_prodi), 't') != 'y' THEN 'belum diajukan'
-                        WHEN MAX(a7.status_lulus) IS NULL THEN 'dalam proses'
-                        ELSE MAX(a7.status_lulus)
-                    END as tahap4
-                ")
+                DB::raw($caseSql('a1') . ' as tahap1'),
+                DB::raw($caseSql('a2') . ' as tahap2'),
+                DB::raw($caseSql('a3') . ' as sk1'),
+                DB::raw($caseSql('a4') . ' as sk2'),
+                DB::raw($caseSql('a5') . ' as sk3'),
+                DB::raw($caseSql('a6') . ' as sk4'),
+                DB::raw($caseSql('a7') . ' as tahap4')
             )
             ->leftJoin(DB::raw($tahapSub('tahap I') . ' as a1'), 'j.id', '=', 'a1.id_judul')
             ->leftJoin(DB::raw($tahapSub('tahap II') . ' as a2'), 'j.id', '=', 'a2.id_judul')

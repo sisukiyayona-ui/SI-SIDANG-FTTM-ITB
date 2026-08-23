@@ -17,6 +17,7 @@ class TKpps extends Model
         'ID_USER',
         'NIP',
         'NAMA',
+        'STATUS_TIM',
         'KODE_PRODI',
         'NAMA_PRODI',
         'KODE_FS',

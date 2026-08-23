@@ -17,13 +17,26 @@ class ReportController extends Controller
 
         if ($user['role'] === 'TU Prodi') {
             $query->where('kode_prodi', $user['kode_prodi']);
-        } elseif (in_array($user['role'], ['FS', 'Monev'])) {
-            // sees all records
+        } elseif ($user['role'] === 'Monev') {
+            // Monev hanya melihat data dalam fakultasnya
+            $query->whereIn('kode_prodi', $this->prodiKodeByFs($user['kode_fs'] ?? null));
         }
 
         $reports = $query->get();
 
         return view('report.index', compact('reports'));
+    }
+
+    /**
+     * Daftar kode prodi dalam satu fakultas (untuk scoping Monev).
+     */
+    private function prodiKodeByFs($kodeFs)
+    {
+        if (empty($kodeFs)) {
+            return ['-1'];
+        }
+
+        return \App\Models\TProdi::where('KODE_FS', $kodeFs)->pluck('KODE_PRODI')->all();
     }
     
     public function export()
@@ -34,8 +47,9 @@ class ReportController extends Controller
 
         if ($user['role'] === 'TU Prodi') {
             $query->where('kode_prodi', $user['kode_prodi']);
-        } elseif (in_array($user['role'], ['FS', 'Monev'])) {
-            // sees all records
+        } elseif ($user['role'] === 'Monev') {
+            // Monev hanya melihat data dalam fakultasnya
+            $query->whereIn('kode_prodi', $this->prodiKodeByFs($user['kode_fs'] ?? null));
         }
 
         $reports = $query->get();

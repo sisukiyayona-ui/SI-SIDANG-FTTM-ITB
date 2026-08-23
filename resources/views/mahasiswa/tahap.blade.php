@@ -163,8 +163,8 @@
 
             <div class="mt-4 d-flex align-items-center mb-2" style="margin-left: 10px;">
                 <span class="mr-4">Status Lulus</span>
-                <span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? 'belum diajukan') }}" style="width: 150px; height: 30px; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center;">
-                    {{ $ajuan->status_lulus ?? 'Belum diajukan' }}
+                <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan ?? null)) }}" style="width: 150px; height: 30px; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center;">
+                    {{ getAjuanDisplayStatus($ajuan ?? null) }}
                 </span>
             </div>
             
@@ -337,7 +337,7 @@
                                                 {{ \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') }}
                                             </span>
                                         </td>
-                                        <td><span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? 'Belum diajukan') }}">{{ $ajuan->status_lulus ?? 'Belum diajukan' }}</span></td>
+                                        <td><span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span></td>
                                         <td>
                                             <a href="#" style="text-decoration: none; color: #0066cc;"
                                                 onclick="event.preventDefault(); document.getElementById('jadwalList').style.display='none'; document.getElementById('penilaianView').style.display='block'; document.getElementById('penilaiViewSelect').value=''; document.getElementById('formViewSelect').value=''; filterPenilaianView();">Penilaian</a>
@@ -378,7 +378,7 @@
                         <div class="form-group row align-items-center mb-3 px-1">
                             <label class="col-sm-4 mb-0" style="font-size: 13px; color: #555;">Status Lulus</label>
                         <div class="col-sm-8 px-2">
-                            <span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? 'belum diajukan') }}">{{ $ajuan->status_lulus ?? 'Belum ditentukan' }}</span>
+                            <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                         </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-4">
@@ -807,13 +807,26 @@ if (window.jQuery && jQuery.fn.select2) {
           case 'belum diajukan':
               return 'secondary';
           case 'dalam proses':
+          case 'menunggu persetujuan prodi':
               return 'warning';
           case 'lulus':
               return 'success';
           case 'tidak lulus':
               return 'danger';
+          case 'terjadwal':
+              return 'primary';
           default:
               return 'info';
       }
+  }
+
+  function getAjuanDisplayStatus($ajuan) {
+      if (!$ajuan) return 'Belum diajukan';
+      if (!empty($ajuan->status_lulus)) return ucfirst($ajuan->status_lulus);
+      if (!empty($ajuan->tgl_sidang)) return 'Terjadwal';
+      if (($ajuan->status_ajukan_kpps ?? null) === 'y') return 'Disetujui KPPS';
+      if (($ajuan->status_ajukan_prodi ?? null) === 'y') return 'Disetujui Prodi';
+      if (($ajuan->status_ajukan_mhs ?? null) === 'y') return 'Menunggu Persetujuan Prodi';
+      return 'Belum diajukan';
   }
   @endphp

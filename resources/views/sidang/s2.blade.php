@@ -29,15 +29,36 @@
             </div>
         </div>
         <div class="card-body">
+            <style>
+                #trackingCard .badge {
+                    white-space: normal;
+                }
+                #trackingCard td {
+                    word-break: break-word;
+                }
+            </style>
             <div class="table-responsive">
                 <!-- Table untuk semua strata (S1, S2, S3) -->
-                <table class="table table-bordered table-hover text-center">
+                <table class="table table-bordered table-hover text-center" style="table-layout: fixed;">
+                    <colgroup>
+                        <col style="width: 60px;">
+                        <col style="width: 140px;">
+                        <col style="width: 140px;">
+                        <col style="width: 300px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                    </colgroup>
                     <thead style="background-color: #6998d3; color: white;">
                         <tr>
                             <th rowspan="2" class="align-middle" style="width: 50px;">No</th>
                             <th rowspan="2" class="align-middle">NIM</th>
                             <th rowspan="2" class="align-middle">Nama</th>
-                            <th rowspan="2" class="align-middle" style="width: 25%;">Judul</th>
+                            <th rowspan="2" class="align-middle">Judul</th>
                             <th rowspan="2" class="align-middle">Ujian<br>Kualifikasi</th>
                             <th rowspan="2" class="align-middle">Ujian<br>Proposal</th>
                             <th colspan="4" class="align-middle">Tahap III</th>

@@ -3,6 +3,25 @@
         .tahap-container {
             color: #1e293b;
         }
+
+        /* Select2 full-width (mis. dropdown Nama di form Tim) */
+        .tahap-container .form-group .select2-container {
+            width: 100% !important;
+        }
+        .tahap-container .select2-container .select2-selection--single {
+            height: calc(1.8125rem + 2px);
+            display: flex;
+            align-items: center;
+        }
+        .tahap-container .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {
+            flex: 1;
+            line-height: 1.5;
+            padding-left: 12px;
+        }
+        .tahap-container .select2-container--bootstrap .select2-selection--single .select2-selection__arrow {
+            height: calc(1.8125rem + 2px);
+        }
+
         .tahap-container .text-muted {
             color: #64748b;
         }
@@ -325,10 +344,12 @@
                                                      @endif
                                                  </td>
                                                  @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
-                                                 <td>
-                                                     <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
-                                                     <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                 </td>
+                                                  <td>
+                                                      <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
+                                                      @if(session('auth_user.role') === 'TU Prodi')
+                                                      <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                      @endif
+                                                  </td>
                                                  @endif
                                              </tr>
                                          @endforeach
@@ -351,7 +372,7 @@
                             <div class="form-group row align-items-center mb-2">
                                 <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                                 <div class="col-sm-8 px-1">
-                                    <select class="form-control form-control-sm select2-search" id="penilaianSelect" onchange="document.getElementById('formFilterSelect').value='';document.getElementById('selectedTimSidangTahap1').value=this.value;filterPenilaian();">
+                                    <select class="form-control form-control-sm select2-search" id="penilaianSelect" onchange="document.getElementById('selectedTimSidangTahap1').value=this.value;clearReferenceRows('penilaianReportBody');filterPenilaian();">
                                         <option value="">-- Pilih Penilai --</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
@@ -754,10 +775,12 @@
                                                      @endif
                                                  </td>
                                                  @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
-                                                 <td>
-                                                     <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
-                                                     <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                 </td>
+                                                  <td>
+                                                      <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
+                                                      @if(session('auth_user.role') === 'TU Prodi')
+                                                      <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                      @endif
+                                                  </td>
                                                  @endif
                                              </tr>
                                          @endforeach
@@ -804,7 +827,11 @@
                                             <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
                                         </td>
                                         <td>
-                                            <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" style="font-size: 12px; border-radius: 4px;" onclick="hapusJadwal({{ $a->id }}, '{{ $tahapan }}', {{ $idJudul }})" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) || ($a->status_lulus ?? '') === 'lulus' ? 'disabled' : '' }}><i class="fas fa-trash mr-1"></i> Hapus</button>
+                                            @if(session('auth_user.role') === 'TU Prodi' && ($a->status_lulus ?? '') !== 'lulus')
+                                            <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" style="font-size: 12px; border-radius: 4px;" onclick="hapusJadwal({{ $a->id }}, '{{ $tahapan }}', {{ $idJudul }})"><i class="fas fa-trash mr-1"></i> Hapus</button>
+                                            @else
+                                            -
+                                            @endif
                                         </td>
                                     </tr>
                                     @endforeach
@@ -831,7 +858,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
                                 <div class="d-flex align-items-center">
                                     <label class="text-danger mb-0 text-nowrap mr-2" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Penilai</label>
-                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('formTahap2').value='';document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value='';filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
+                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
                                         <option value="">Pilih Penilai</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
@@ -1417,10 +1444,12 @@
                                                      @endif
                                                  </td>
                                                  @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
-                                                 <td>
-                                                     <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
-                                                     <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
-                                                 </td>
+                                                  <td>
+                                                      <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
+                                                      @if(session('auth_user.role') === 'TU Prodi')
+                                                      <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
+                                                      @endif
+                                                  </td>
                                                  @endif
                                              </tr>
                                          @endforeach
@@ -1499,11 +1528,6 @@ function savePersyaratanTahap() {
         if (data.success) {
             showToast('Persyaratan berhasil disimpan', 'success');
             persyaratanFiles = {};
-            if (typeof showTahapForm === 'function') {
-                showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'persyaratan');
-            } else {
-                location.reload();
-            }
         } else {
             showToast(data.message || 'Gagal menyimpan persyaratan', 'error');
         }
@@ -1519,10 +1543,10 @@ function savePersyaratanTahap() {
 function updateStatusLulus(idAjuan) {
     const statusLulus = document.getElementById('statusLulus').value;
     if (!statusLulus) {
-        alert('Silakan pilih status kelulusan');
+        showToast('Silakan pilih status kelulusan', 'error');
         return;
     }
-    
+
     fetch(`/sidang/status-lulus/${idAjuan}`, {
         method: 'PUT',
         headers: {
@@ -1535,14 +1559,13 @@ function updateStatusLulus(idAjuan) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Status kelulusan berhasil diperbarui');
-            location.reload();
+            showToast('Status kelulusan berhasil diperbarui', 'success');
         } else {
-            alert('Error: ' + (data.error || 'Terjadi kesalahan'));
+            showToast('Error: ' + (data.error || 'Terjadi kesalahan'), 'error');
         }
     })
     .catch(error => {
-        alert('Error: ' + error);
+        showToast('Error: ' + error, 'error');
     });
 }
 
@@ -1597,6 +1620,21 @@ function submitPenilaian(event) {
     })
     .catch(function(error) {
         showToast('Error: ' + error.message, 'error');
+    });
+}
+
+/**
+ * Kosongkan isian pada baris referensi (baris tanpa data-id-penilai).
+ * Dipanggil saat GANTI penilai supaya tidak ada sisa isian penilai sebelumnya.
+ * Baris existing (milik penilai tertentu dari database) tidak disentuh.
+ */
+function clearReferenceRows(tbodyId) {
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    tbody.querySelectorAll('tr.penilaian-tahap2-row:not([data-id-penilai]), tr.penilaian-data-row:not([data-id-penilai])').forEach(function (row) {
+        row.querySelectorAll('.nilai-input, .catatan-input').forEach(function (inp) {
+            inp.value = '';
+        });
     });
 }
 
@@ -1790,19 +1828,13 @@ function updateKelengkapan(idSyarat, isChecked) {
     }).then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log('Status kelengkapan updated');
-            // Reload to show updated database status
-            if (typeof showTahapForm === 'function') {
-                showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'persyaratan');
-            } else {
-                location.reload();
-            }
+            showToast('Status kelengkapan diperbarui', 'success');
         } else {
-            alert('Gagal update status kelengkapan');
+            showToast('Gagal update status kelengkapan', 'error');
         }
     }).catch(error => {
         console.error('Error:', error);
-        alert('Terjadi kesalahan');
+        showToast('Terjadi kesalahan', 'error');
     });
 }
 
@@ -1839,17 +1871,12 @@ function savePersyaratan(tahapan) {
         if (data.success) {
             showToast('Persyaratan berhasil disimpan', 'success');
             persyaratanFiles = {};
-            if (typeof showTahapForm === 'function') {
-                showTahapForm(tahapan, '{{ $idJudul }}', 'persyaratan');
-            } else {
-                location.reload();
-            }
         } else {
-            alert(data.message || 'Gagal menyimpan persyaratan');
+            showToast(data.message || 'Gagal menyimpan persyaratan', 'error');
         }
     })
     .catch(function(error) {
-        alert('Terjadi kesalahan: ' + error);
+        showToast('Terjadi kesalahan: ' + error, 'error');
     })
     .finally(function() {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan'; }
@@ -1955,8 +1982,14 @@ function editTimSidang(btn) {
     if (btnEl) btnEl.style.display = 'none';
 }
 
-function deleteTimSidang(id) {
-    if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) return;
+async function deleteTimSidang(id) {
+    var ok = await showConfirmDialog({
+        title: 'Hapus Data',
+        message: 'Apakah Anda yakin ingin menghapus data ini?',
+        confirmText: 'Ya, Hapus',
+        type: 'danger'
+    });
+    if (!ok) return;
 
     fetch('/sidang/tim-sidang/' + id, {
         method: 'DELETE',
@@ -1969,13 +2002,13 @@ function deleteTimSidang(id) {
     .then(data => {
         if (data.success) {
             showToast('Data berhasil dihapus', 'success');
-            var tahapan = document.querySelector('[name="tahapan_sidang"]').value;
-            var idJudul = document.querySelector('[name="id_judul"]').value;
-            if (typeof showTahapForm === 'function') {
-                showTahapForm(tahapan, idJudul, 'tim');
-            } else {
-                location.reload();
-            }
+            // Hapus baris secara lokal — tanpa reload konten modal
+            var row = document.querySelector('tr[data-id="' + id + '"]');
+            var pane = row ? row.closest('.tab-pane') : null;
+            if (row) row.remove();
+            if (pane) renumberTimRows(pane);
+            // Hapus juga option penilai di dropdown tab penilaian
+            removePenilaiOption(id);
         } else {
             showToast(data.message || 'Gagal menghapus data', 'error');
         }
@@ -2008,19 +2041,21 @@ function submitTimSidang(event) {
     .then(data => {
         if (data.success) {
             showToast('Tim Pembimbing berhasil disimpan', 'success');
+            // Update baris tabel secara lokal — tanpa reload konten modal
+            upsertTimSidangRow(form, formData, data.tim || null);
+            // Sinkronkan dropdown Penilai di tab penilaian
+            if (data.tim) {
+                syncPenilaiDropdowns(data.tim);
+            }
+            // Form tetap terlihat — hanya bersihkan isian agar siap input berikutnya
             form.reset();
-            var isTahap2 = form.id === 'timSidangFormTahap2';
-            var formEl = document.getElementById(isTahap2 ? 'timFormTahap2' : 'timForm');
-            var btnEl = document.getElementById(isTahap2 ? 'timAddBtnTahap2' : 'timAddBtn');
-            if (formEl) formEl.style.display = 'none';
-            if (btnEl) btnEl.style.display = 'block';
-            // Reload the tahap content to show updated table
-            const tahapan = formData.get('tahapan_sidang');
-            const idJudul = formData.get('id_judul');
-            if (typeof showTahapForm === 'function') {
-                showTahapForm(tahapan, idJudul, 'tim');
-            } else {
-                location.reload();
+            form.querySelector('[name="id"]').value = '';
+            var urutanInput = form.querySelector('[name="urutan"]');
+            if (urutanInput) urutanInput.value = '';
+            var nipInput = form.querySelector('[name="nip"]');
+            if (nipInput) nipInput.value = '';
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery(form).find('select[name="id_user_penilai"]').val('').trigger('change');
             }
         } else {
             showToast(data.message || 'Gagal menyimpan tim pembimbing', 'error');
@@ -2028,6 +2063,154 @@ function submitTimSidang(event) {
     })
     .catch(error => {
         showToast('Terjadi kesalahan: ' + error, 'error');
+    });
+}
+
+/**
+ * Tambah/update baris tabel Tim Pembimbing & Penguji secara lokal
+ * (tanpa fetch ulang konten modal).
+ */
+function upsertTimSidangRow(form, formData, tim) {
+    var pane = form.closest('.tab-pane');
+    if (!pane) return;
+    var tbody = pane.querySelector('table tbody');
+    if (!tbody) return;
+
+    var id          = (tim && tim.id) || formData.get('id') || '';
+    var nip         = (tim && tim.nip) || formData.get('nip') || '';
+    var statusTim   = (tim && tim.status_tim_sidang) || formData.get('status_tim_sidang') || '';
+    var urutan      = (tim && tim.urutan) || formData.get('urutan') || '';
+    var idSk        = (tim && tim.id_sk) || formData.get('id_sk') || '';
+    var idPenilai   = formData.get('id_user_penilai') || '';
+
+    // Nama penilai dari option select yang terpilih
+    var nama = (tim && tim.nama) || '';
+    if (!nama) {
+        var selPenilai = form.querySelector('[name="id_user_penilai"]');
+        if (selPenilai && selPenilai.selectedOptions[0]) nama = selPenilai.selectedOptions[0].textContent.trim();
+    }
+
+    // No SK dari option select yang terpilih
+    var noSk = '-';
+    var selSk = form.querySelector('[name="id_sk"]');
+    if (selSk && selSk.value && selSk.selectedOptions[0]) noSk = selSk.selectedOptions[0].textContent.trim();
+
+    var canAksi  = {{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? 'true' : 'false' }};
+    var isTuProdi = {{ session('auth_user.role') === 'TU Prodi' ? 'true' : 'false' }};
+
+    var row = id ? tbody.querySelector('tr[data-id="' + id + '"]') : null;
+
+    if (!row) {
+        // Hapus baris "Belum ada tim penguji" bila ada
+        var emptyTd = tbody.querySelector('td.text-center.text-muted');
+        if (emptyTd) emptyTd.closest('tr').remove();
+
+        row = document.createElement('tr');
+        row.style.backgroundColor = '#dbe5f1';
+        var html =
+            '<td></td>' +
+            '<td></td>' +
+            '<td class="text-left text-primary" style="text-decoration:underline;"></td>' +
+            '<td class="text-danger" style="text-decoration:underline;"></td>' +
+            '<td></td>' +
+            '<td>-</td>';
+        if (canAksi) {
+            html += '<td>' +
+                '<button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button> ' +
+                (isTuProdi ? '<button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang(this.closest(\'tr\').dataset.id)" title="Hapus"><i class="fas fa-trash"></i></button>' : '') +
+                '</td>';
+        }
+        row.innerHTML = html;
+        tbody.appendChild(row);
+    }
+
+    row.setAttribute('data-id', id);
+    row.setAttribute('data-id-sk', idSk);
+    row.setAttribute('data-id-user-penilai', idPenilai);
+    row.setAttribute('data-nip', nip);
+    row.setAttribute('data-nama', nama);
+    row.setAttribute('data-status-tim-sidang', statusTim);
+    row.setAttribute('data-urutan', urutan);
+
+    var tds = row.querySelectorAll('td');
+    if (tds.length >= 5) {
+        tds[1].textContent = nip;
+        tds[2].textContent = nama;
+        tds[3].textContent = statusTim;
+        tds[4].textContent = noSk;
+    }
+
+    renumberTimRows(pane);
+}
+
+/**
+ * Rapikan ulang nomor urut baris tabel tim pada satu tab.
+ */
+function renumberTimRows(pane) {
+    if (!pane) return;
+    pane.querySelectorAll('table tbody tr[data-id]').forEach(function (tr, i) {
+        var td = tr.querySelector('td');
+        if (td) td.textContent = i + 1;
+    });
+}
+
+/**
+ * Sinkronkan dropdown Penilai (tab penilaian semua tahapan) dengan data tim
+ * — dipanggil setelah simpan/edit tim tanpa reload konten modal.
+ */
+function syncPenilaiDropdowns(tim) {
+    if (!tim || !tim.id) return;
+    var container = document.querySelector('.tahap-container');
+    if (!container) return;
+
+    ['penilaianSelect', 'penilaiSelect', 'penilaiTahap2'].forEach(function (sid) {
+        var sel = container.querySelector('select#' + sid);
+        if (!sel) return;
+
+        var opt = sel.querySelector('option[value="' + tim.id + '"]');
+        if (!opt) {
+            opt = document.createElement('option');
+            opt.value = tim.id;
+            sel.appendChild(opt);
+        }
+        opt.textContent = (sid === 'penilaianSelect')
+            ? ((tim.nama || '') + ' (' + (tim.nip || '') + ')')
+            : (tim.nama || '');
+        opt.setAttribute('data-keterangan', tim.status_tim_sidang || '');
+    });
+}
+
+/**
+ * Hapus option penilai dari semua dropdown saat tim dihapus.
+ */
+function removePenilaiOption(id) {
+    var container = document.querySelector('.tahap-container');
+    if (!container) return;
+
+    ['penilaianSelect', 'penilaiSelect', 'penilaiTahap2'].forEach(function (sid) {
+        var sel = container.querySelector('select#' + sid);
+        if (!sel) return;
+        var opt = sel.querySelector('option[value="' + id + '"]');
+        if (opt) {
+            // Bila option terpilih, reset dulu
+            if (String(sel.value) === String(id)) {
+                sel.value = '';
+                if (window.jQuery && jQuery.fn.select2 && jQuery(sel).data('select2')) {
+                    jQuery(sel).val('').trigger('change');
+                }
+                // Bersihkan filter penilaian terkait bila ada
+                ['formFilterSelect', 'formSelect', 'formTahap2'].forEach(function (fid) {
+                    var fs = container.querySelector('select#' + fid);
+                    if (fs) {
+                        fs.value = '';
+                        if (window.jQuery && jQuery.fn.select2 && jQuery(fs).data('select2')) {
+                            jQuery(fs).val('').trigger('change');
+                        }
+                    }
+                });
+            }
+            opt.remove();
+        }
     });
 }
 
@@ -2205,10 +2388,14 @@ function toggleLockButton(tbodyId, btnId) {
     if (statusEl) statusEl.disabled = !enabled;
 }
 
-function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
-    if (!confirm('Apakah Anda yakin ingin mengunci nilai? Setelah dikunci, nilai tidak dapat diubah.')) {
-        return;
-    }
+async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
+    var ok = await showConfirmDialog({
+        title: 'Kunci Nilai',
+        message: 'Apakah Anda yakin ingin mengunci nilai? Setelah dikunci, nilai tidak dapat diubah.',
+        confirmText: 'Ya, Kunci',
+        type: 'warning'
+    });
+    if (!ok) return;
     var statusLulus = document.getElementById(statusLulusId);
     var statusLulusVal = statusLulus ? statusLulus.value : '';
     var idJudul = '{{ $idJudul }}';
@@ -2428,18 +2615,11 @@ function submitJadwalTahap2(event) {
             
             // Jika "Ajukan", kembali ke list. Jika hanya "Simpan", tetap di form
             if (isAjukan) {
-                // Switch back to jadwal list view
+                // Switch back to jadwal list view — instan, refresh senyap di belakang
                 setTimeout(function() {
                     document.getElementById('jadwalFormTahap2').style.display = 'none';
                     document.getElementById('jadwalListTahap2').style.display = 'block';
-                    // Reload the tahap content to show updated data
-                    var tahapan = formData.get('tahapan_sidang');
-                    var idJudul = formData.get('id_judul');
-                    if (typeof showTahapForm === 'function') {
-                        showTahapForm(tahapan, idJudul, 'jadwal');
-                    } else {
-                        location.reload();
-                    }
+                    refreshJadwalListQuiet();
                 }, 500);
             } else {
                 // Tetap di form, hanya re-enable tombol
@@ -2465,26 +2645,51 @@ function submitJadwalTahap2(event) {
     });
 }
 
-function kembaliKeJadwalListTahap2() {
-    // Reload list jadwal dengan data terbaru
-    var form = document.getElementById('jadwalFormTahap2Form');
-    if (form) {
-        var formData = new FormData(form);
-        var tahapan = formData.get('tahapan_sidang');
-        var idJudul = formData.get('id_judul');
-        
-        if (typeof showTahapForm === 'function') {
-            showTahapForm(tahapan, idJudul, 'jadwal');
-        } else {
-            document.getElementById('jadwalFormTahap2').style.display = 'none';
-            document.getElementById('jadwalListTahap2').style.display = 'block';
-            location.reload();
+/**
+ * Refresh isi list jadwal secara senyap di belakang layar — tanpa spinner.
+ * Konten lama tetap tampil sampai data baru siap, lalu ditukar instan.
+ */
+function refreshJadwalListQuiet() {
+    var tahapanEl = document.querySelector('[name="tahapan_sidang"]');
+    var tahapan = (tahapanEl && tahapanEl.value) || '{{ $tahapan }}';
+    var idJudulEl = document.querySelector('[name="id_judul"]');
+    var idJudul = (idJudulEl && idJudulEl.value) || '{{ $idJudul }}';
+
+    fetch('/sidang/tahap/' + encodeURIComponent(tahapan) + '?id_judul=' + encodeURIComponent(idJudul) + '&_=' + new Date().getTime(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function (r) { return r.text(); })
+    .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var src = doc.getElementById('jadwalListTahap2');
+        var dst = document.getElementById('jadwalListTahap2');
+        if (src && dst && !dst.contains(src)) {
+            src.style.display = 'block';
+            dst.replaceWith(src);
         }
-    }
+    })
+    .catch(function () {});
 }
 
-function hapusJadwal(id, tahapan, idJudul) {
-    if (!confirm('Yakin ingin menghapus jadwal sidang ini beserta semua penilaiannya?')) return;
+function kembaliKeJadwalListTahap2() {
+    // Tampilkan list langsung — transisi instan tanpa loading
+    var formEl = document.getElementById('jadwalFormTahap2');
+    var listEl = document.getElementById('jadwalListTahap2');
+    if (formEl) formEl.style.display = 'none';
+    if (listEl) listEl.style.display = 'block';
+
+    // Data terbaru diambil senyap di belakang layar
+    refreshJadwalListQuiet();
+}
+
+async function hapusJadwal(id, tahapan, idJudul) {
+    var ok = await showConfirmDialog({
+        title: 'Hapus Jadwal Sidang',
+        message: 'Yakin ingin menghapus jadwal sidang ini beserta semua penilaiannya?',
+        confirmText: 'Ya, Hapus',
+        type: 'danger'
+    });
+    if (!ok) return;
 
     fetch('/sidang/jadwal/' + id, {
         method: 'POST',
@@ -2501,10 +2706,11 @@ function hapusJadwal(id, tahapan, idJudul) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Jadwal sidang berhasil dihapus', 'success');
-            if (typeof showTahapForm === 'function') {
-                showTahapForm(tahapan, idJudul, 'jadwal');
-            } else {
-                location.reload();
+            // Hapus baris jadwal secara lokal — tanpa reload konten modal
+            var btnEl = document.querySelector('button[onclick*="hapusJadwal(' + id + ',"]');
+            if (btnEl) {
+                var tr = btnEl.closest('tr');
+                if (tr) tr.remove();
             }
         } else {
             showToast(data.message || 'Gagal menghapus jadwal sidang', 'error');
@@ -2543,16 +2749,29 @@ $(document).ready(function() {
         $(this).tab('show');
     });
 
+    // Cegah interaksi select2 dianggap klik-luar oleh Bootstrap modal
+    // (mencegah modal tertutup sendiri saat memilih penilai/form)
+    if (!window.__select2ModalGuard) {
+        window.__select2ModalGuard = true;
+        jQuery(document).on('mousedown mouseup click touchend',
+            '.select2-dropdown, .select2-selection, .select2-search__field, li.select2-results__option',
+            function (e) { e.stopPropagation(); }
+        );
+    }
+
     if (window.jQuery && jQuery.fn.select2) {
         jQuery('.select2-search').each(function() {
             var $el = jQuery(this);
             if ($el.data('select2')) return;
             var hasInlineWidth = $el.attr('style') && /\bwidth\s*:/.test($el.attr('style'));
-            $el.select2({
+            var opts = {
                 theme: 'bootstrap',
                 allowClear: true,
                 width: hasInlineWidth ? 'resolve' : '100%'
-            });
+            };
+            var $modal = $el.closest('.modal');
+            if ($modal.length) opts.dropdownParent = $modal;
+            $el.select2(opts);
         });
     }
 });

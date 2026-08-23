@@ -10,6 +10,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // migrate:fresh hanya drop BASE TABLE — view harus di-drop manual
+        // agar migrasi idempotent.
+        DB::statement("DROP VIEW IF EXISTS v_report_tipe_i");
         DB::statement("
             CREATE VIEW v_report_tipe_i AS
             SELECT 

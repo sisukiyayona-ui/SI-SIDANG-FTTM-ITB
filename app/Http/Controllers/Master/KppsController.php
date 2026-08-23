@@ -65,7 +65,10 @@ class KppsController extends Controller
             'kode_fs'       => 'nullable',
             'kode_prodi'    => 'nullable',
             'status_aktif'  => 'required',
+            'status_tim'    => 'nullable|in:Ketua,Sekretaris,Anggota',
         ]);
+
+        $this->applyTuProdiScope($request);
 
         $fs = null;
         if ($request->filled('kode_fs')) {
@@ -81,6 +84,7 @@ class KppsController extends Controller
             'ID_USER'       => $request->id_user,
             'NIP'           => $request->nip,
             'NAMA'          => $request->nama,
+            'STATUS_TIM'    => $request->status_tim,
             'KODE_PRODI'    => $prodi ? $prodi->KODE_PRODI : $request->kode_prodi,
             'NAMA_PRODI'    => $prodi ? $prodi->NAMA_PRODI : $request->nama_prodi,
             'KODE_FS'       => $fs ? $fs->KODE_FS : ($request->kode_fs ?? '164'),
@@ -114,6 +118,7 @@ class KppsController extends Controller
             'id_user'       => $kpps->ID_USER,
             'nip'           => $kpps->NIP,
             'nama'          => $kpps->NAMA,
+            'status_tim'    => $kpps->STATUS_TIM,
             'kode_prodi'    => $kpps->KODE_PRODI,
             'nama_prodi'    => $kpps->NAMA_PRODI,
             'kode_fs'       => $kpps->KODE_FS,
@@ -130,7 +135,10 @@ class KppsController extends Controller
             'kode_fs'       => 'nullable',
             'kode_prodi'    => 'nullable',
             'status_aktif'  => 'required',
+            'status_tim'    => 'nullable|in:Ketua,Sekretaris,Anggota',
         ]);
+
+        $this->applyTuProdiScope($request);
 
         $kpps = TKpps::find((int) $id);
         if ($kpps) {
@@ -148,6 +156,7 @@ class KppsController extends Controller
                 'ID_USER'       => $request->id_user ?: null,
                 'NIP'           => $request->nip,
                 'NAMA'          => $request->nama,
+                'STATUS_TIM'    => $request->status_tim,
                 'KODE_PRODI'    => $prodi ? $prodi->KODE_PRODI : $request->kode_prodi,
                 'NAMA_PRODI'    => $prodi ? $prodi->NAMA_PRODI : $request->nama_prodi,
                 'KODE_FS'       => $fs ? $fs->KODE_FS : ($request->kode_fs ?? '164'),
@@ -158,6 +167,20 @@ class KppsController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    private function applyTuProdiScope(Request $request): void
+    {
+        $authUser = session('auth_user');
+
+        if ($authUser && ($authUser['role'] ?? null) === 'TU Prodi') {
+            $request->merge([
+                'kode_prodi' => $authUser['kode_prodi'] ?? null,
+                'nama_prodi' => $authUser['nama_prodi'] ?? null,
+                'kode_fs'    => $authUser['kode_fs'] ?? null,
+                'nama_fs'    => $authUser['nama_fs'] ?? null,
+            ]);
+        }
     }
 
     public function destroy($id)

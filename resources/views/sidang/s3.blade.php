@@ -35,15 +35,44 @@
             </div>
         </div>
         <div class="card-body">
+            <style>
+                #trackingCard .badge {
+                    white-space: normal;
+                }
+                #trackingCard td {
+                    word-break: break-word;
+                }
+                /* Scroll dikendalikan modal-body agar stabil saat tinggi konten berubah */
+                #tahapModal .modal-body {
+                    max-height: calc(100vh - 140px);
+                    overflow-y: auto;
+                }
+                #tahapModal .select2-dropdown {
+                    z-index: 1056;
+                }
+            </style>
             <div class="table-responsive">
                 <!-- Table untuk semua strata (S1, S2, S3) -->
-                <table id="trackingTable" class="table table-bordered table-hover text-center">
+                <table id="trackingTable" class="table table-bordered table-hover text-center" style="table-layout: fixed;">
+                    <colgroup>
+                        <col style="width: 60px;">
+                        <col style="width: 140px;">
+                        <col style="width: 140px;">
+                        <col style="width: 300px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                        <col style="width: 125px;">
+                    </colgroup>
                     <thead style="background-color: #6998d3; color: white;">
                         <tr>
                             <th rowspan="2" class="align-middle" style="width: 50px;">No</th>
                             <th rowspan="2" class="align-middle">NIM</th>
                             <th rowspan="2" class="align-middle">Nama</th>
-                            <th rowspan="2" class="align-middle" style="width: 25%;">Judul</th>
+                            <th rowspan="2" class="align-middle">Judul</th>
                             <th rowspan="2" class="align-middle">Ujian<br>Kualifikasi</th>
                             <th rowspan="2" class="align-middle">Ujian<br>Proposal</th>
                             <th colspan="4" class="align-middle">Tahap III</th>
@@ -64,7 +93,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="4" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di fakultas</option>
+                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
                             </th>
@@ -72,7 +104,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="5" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di fakultas</option>
+                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
                             </th>
@@ -80,7 +115,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="6" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di fakultas</option>
+                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
                             </th>
@@ -88,7 +126,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="7" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di fakultas</option>
+                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
                             </th>
@@ -96,7 +137,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="8" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di fakultas</option>
+                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
                             </th>
@@ -104,7 +148,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="9" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di fakultas</option>
+                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
                             </th>
@@ -112,7 +159,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="10" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di fakultas</option>
+                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
                             </th>
@@ -315,13 +365,13 @@
         }).then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log('Status kelengkapan updated');
+                showCustomToast('Status kelengkapan diperbarui', 'success');
             } else {
-                alert('Gagal update status kelengkapan');
+                showCustomToast('Gagal update status kelengkapan', 'error');
             }
         }).catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan');
+            showCustomToast('Terjadi kesalahan', 'error');
         });
     }
 
@@ -491,16 +541,23 @@
         .then(data => {
             if (data.success) {
                 showCustomToast('Tim Pembimbing berhasil disimpan', 'success');
-                form.reset();
-                var isTahap2 = form.id === 'timSidangFormTahap2';
-                var formEl = document.getElementById(isTahap2 ? 'timFormTahap2' : 'timForm');
-                var btnEl = document.getElementById(isTahap2 ? 'timAddBtnTahap2' : 'timAddBtn');
-                if (formEl) formEl.style.display = 'none';
-                if (btnEl) btnEl.style.display = 'block';
-                // Reload the tahap content to show updated table
-                const tahapan = formData.get('tahapan_sidang');
-                const idJudul = formData.get('id_judul');
-                showTahapForm(tahapan, idJudul);
+                // Update baris lokal bila helper tersedia; fallback refresh konten
+                if (typeof upsertTimSidangRow === 'function') {
+                    upsertTimSidangRow(form, formData, data.tim || null);
+                    form.reset();
+                    var idInput = form.querySelector('[name="id"]');
+                    if (idInput) idInput.value = '';
+                    var nipInput = form.querySelector('[name="nip"]');
+                    if (nipInput) nipInput.value = '';
+                    if (window.jQuery && jQuery.fn.select2) {
+                        jQuery(form).find('select[name="id_user_penilai"]').val('').trigger('change');
+                    }
+                } else {
+                    form.reset();
+                    const tahapan = formData.get('tahapan_sidang');
+                    const idJudul = formData.get('id_judul');
+                    showTahapForm(tahapan, idJudul);
+                }
             } else {
                 showCustomToast(data.message || 'Gagal menyimpan tim pembimbing', 'error');
             }
@@ -578,16 +635,22 @@
             .then(data => {
                 if (data.success) {
                     showCustomToast('Tim Pembimbing berhasil disimpan', 'success');
-                    form.reset();
-                    var isTahap2 = form.id === 'timSidangFormTahap2';
-                    var formEl = document.getElementById(isTahap2 ? 'timFormTahap2' : 'timForm');
-                    var btnEl = document.getElementById(isTahap2 ? 'timAddBtnTahap2' : 'timAddBtn');
-                    if (formEl) formEl.style.display = 'none';
-                    if (btnEl) btnEl.style.display = 'block';
-                    // Reload the tahap content to show updated table
-                    const tahapan = formData.get('tahapan_sidang');
-                    const idJudul = formData.get('id_judul');
-                    showTahapForm(tahapan, idJudul);
+                    if (typeof upsertTimSidangRow === 'function') {
+                        upsertTimSidangRow(form, formData, data.tim || null);
+                        form.reset();
+                        var idInput = form.querySelector('[name="id"]');
+                        if (idInput) idInput.value = '';
+                        var nipInput = form.querySelector('[name="nip"]');
+                        if (nipInput) nipInput.value = '';
+                        if (window.jQuery && jQuery.fn.select2) {
+                            jQuery(form).find('select[name="id_user_penilai"]').val('').trigger('change');
+                        }
+                    } else {
+                        form.reset();
+                        const tahapan = formData.get('tahapan_sidang');
+                        const idJudul = formData.get('id_judul');
+                        showTahapForm(tahapan, idJudul);
+                    }
                 } else {
                     showCustomToast(data.message || 'Gagal menyimpan tim pembimbing', 'error');
                 }
@@ -698,8 +761,38 @@
         }
     });
 
+    // Refresh tabel tracking TANPA reload halaman penuh
+    async function refreshTrackingTable() {
+        try {
+            const res = await fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newTable = doc.getElementById('trackingTable');
+            const oldTable = document.getElementById('trackingTable');
+            if (newTable && oldTable) {
+                oldTable.replaceWith(newTable);
+                newTable.querySelectorAll('.column-search').forEach(input => {
+                    input.addEventListener('input', filterTrackingTable);
+                    input.addEventListener('change', filterTrackingTable);
+                });
+            }
+        } catch (e) {
+            console.error('Gagal refresh tabel tracking:', e);
+        }
+    }
+
     $('#tahapModal').on('hidden.bs.modal', function () {
-        location.reload();
+        refreshTrackingTable();
+        // Bersihkan sisa scroll-lock backdrop/select2 agar modal berikutnya
+        // tidak macet scroll (mis. modal tertutup saat dropdown select2 aktif)
+        setTimeout(function () {
+            if (!$('.modal.show').length) {
+                $('body').removeClass('modal-open');
+                $('body').css('padding-right', '');
+                $('.modal-backdrop').remove();
+            }
+            if (document.activeElement) document.activeElement.blur();
+        }, 300);
     });
 
     document.querySelectorAll('#trackingTable .column-search').forEach(input => {
@@ -742,6 +835,14 @@
         switch($s) {
             case 'belum diajukan':
                 return 'secondary';
+            case 'diproses di tu prodi':
+                return 'warning';
+            case 'diproses di fakultas':
+                return 'orange';
+            case 'menunggu jadwal sidang':
+                return 'purple';
+            case 'terjadwal':
+                return 'primary';
             case 'dalam proses':
                 return 'warning';
             case 'lulus':

@@ -29,6 +29,25 @@
             <i class="fas fa-check-circle mr-1"></i> Approve
         </button>
     </div>
+    <div class="card-body py-2">
+        <form method="GET" action="{{ request()->url() }}" id="filterForm" class="form-inline">
+            @csrf
+            <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm mr-2 mb-1"
+                   placeholder="Cari NIM / Nama / Judul..." style="min-width: 240px;">
+            <select name="tahapan" class="form-control form-control-sm mr-2 mb-1 auto-submit" style="min-width: 200px;">
+                <option value="">Semua Tahapan</option>
+                @foreach($strata === 'S3' ? ['SK I', 'SK II', 'SK III', 'SK IV', 'tahap IV'] : ['tahap II', 'tahap IV'] as $tp)
+                    <option value="{{ $tp }}" {{ request('tahapan') === $tp ? 'selected' : '' }}>{{ $tahapDisplay[$tp] ?? $tp }}</option>
+                @endforeach
+            </select>
+            <select name="status" class="form-control form-control-sm mr-2 mb-1 auto-submit" style="min-width: 150px;">
+                <option value="">Semua Status</option>
+                <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approved</option>
+                <option value="belum" {{ request('status') === 'belum' ? 'selected' : '' }}>Belum Approved</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary mb-1"><i class="fas fa-search"></i> Cari</button>
+        </form>
+    </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-bordered table-hover table-sm text-center mb-0">
             <thead style="background-color: #6998d3; color: white;">
@@ -111,6 +130,12 @@
 
 @push('scripts')
 <script>
+    document.querySelectorAll('#filterForm .auto-submit').forEach(function (el) {
+        el.addEventListener('change', function () {
+            document.getElementById('filterForm').submit();
+        });
+    });
+
     function getKppsTahapLabel(tahapan) {
         var labels = {
             'tahap I': 'Ujian Kualifikasi',

@@ -17,30 +17,31 @@ class DashboardController extends Controller
         $totalPenguji   = TUser::where('JENIS_USER', 'Penguji')->count();
 
         $totalSidang  = TAjuanSidang::whereIn('TAHAPAN_SIDANG', [
-            'Sidang Akhir', 'Sidang Proposal', 'Ujian Kualifikasi'
+            'tahap I', 'tahap II', 'SK I', 'SK II', 'SK III', 'SK IV', 'tahap IV',
         ])->count();
 
-        $totalSeminar = TAjuanSidang::where('TAHAPAN_SIDANG', 'like', 'Seminar Kemajuan%')->count();
+        $totalSeminar = TAjuanSidang::whereIn('TAHAPAN_SIDANG', ['SK I', 'SK II', 'SK III', 'SK IV'])->count();
 
         $mahasiswaAktif   = TUser::where('JENIS_USER', 'Mahasiswa')->where('STATUS_AKTIF', 'AKTIF')->count();
         $sidangSelesai    = TAjuanSidang::whereNotNull('STATUS_LULUS')->count();
-        $seminarBerjalan  = TAjuanSidang::where('TAHAPAN_SIDANG', 'like', 'Seminar Kemajuan%')
+        $seminarBerjalan  = TAjuanSidang::whereIn('TAHAPAN_SIDANG', ['SK I', 'SK II', 'SK III', 'SK IV'])
                             ->whereNull('STATUS_LULUS')
                             ->where('STATUS_AJUKAN_PRODI', 'y')
                             ->count();
 
+        // Nilai TAHAPAN_SIDANG di DB -> label tampilan
+        $tahapanGroups = [
+            'Ujian Kualifikasi'          => ['tahap I'],
+            'Ujian Proposal'             => ['tahap II'],
+            'Tahap III (SK)'             => ['SK I', 'SK II', 'SK III', 'SK IV'],
+            'Sidang Terbuka / Tertutup'  => ['tahap IV'],
+        ];
+
         $progress = [];
-        $tahapanList = ['Ujian Kualifikasi', 'Sidang Proposal', 'Seminar Kemajuan', 'Sidang Akhir'];
-        foreach ($tahapanList as $label) {
-            if ($label === 'Seminar Kemajuan') {
-                $total = TAjuanSidang::where('TAHAPAN_SIDANG', 'like', 'Seminar Kemajuan%')->count();
-                $completed = TAjuanSidang::where('TAHAPAN_SIDANG', 'like', 'Seminar Kemajuan%')
-                    ->whereNotNull('STATUS_LULUS')->count();
-            } else {
-                $total = TAjuanSidang::where('TAHAPAN_SIDANG', $label)->count();
-                $completed = TAjuanSidang::where('TAHAPAN_SIDANG', $label)
-                    ->whereNotNull('STATUS_LULUS')->count();
-            }
+        foreach ($tahapanGroups as $label => $values) {
+            $total = TAjuanSidang::whereIn('TAHAPAN_SIDANG', $values)->count();
+            $completed = TAjuanSidang::whereIn('TAHAPAN_SIDANG', $values)
+                ->whereNotNull('STATUS_LULUS')->count();
             $progress[] = [
                 'label'     => $label,
                 'total'     => $total ?: 1,
@@ -59,23 +60,22 @@ class DashboardController extends Controller
 
         $user = session('auth_user');
 
-        $tahapLabels = ['Tahap I', 'Tahap II', 'Tahap III', 'Tahap IV'];
         $chartYears = [];
         $chartTahapData = [];
         $currentYear = (int)Carbon::now()->format('Y');
-        foreach ($tahapLabels as $tahap) {
-            $chartTahapData[$tahap] = [];
+        foreach ($tahapanGroups as $label => $values) {
+            $chartTahapData[$label] = [];
         }
         for ($y = $currentYear - 2; $y <= $currentYear; $y++) {
             $chartYears[] = $y;
-            foreach ($tahapLabels as $tahap) {
-                $q = TAjuanSidang::where('TAHAPAN_SIDANG', $tahap)
+            foreach ($tahapanGroups as $label => $values) {
+                $q = TAjuanSidang::whereIn('TAHAPAN_SIDANG', $values)
                     ->where('STATUS_LULUS', 'lulus')
                     ->whereYear('TGL_SIDANG', $y);
                 if ($user['role'] === 'TU Prodi') {
                     $q->where('KODE_PRODI', $user['kode_prodi']);
                 }
-                $chartTahapData[$tahap][] = $q->count();
+                $chartTahapData[$label][] = $q->count();
             }
         }
 

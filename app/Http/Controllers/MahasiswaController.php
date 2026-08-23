@@ -706,7 +706,19 @@ class MahasiswaController extends Controller
 
         $timSidang->save();
 
-        return response()->json(['success' => true, 'message' => 'Tim Pembimbing berhasil ditambahkan']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Tim Pembimbing berhasil ditambahkan',
+            'tim' => [
+                'id' => $timSidang->id,
+                'nip' => $timSidang->NIP,
+                'nama' => $timSidang->NAMA,
+                'status_tim_sidang' => $timSidang->STATUS_TIM_SIDANG,
+                'urutan' => $timSidang->URUTAN,
+                'id_sk' => $timSidang->ID_SK,
+                'file_penelaah' => $timSidang->FILE_PENELAAH,
+            ],
+        ]);
     }
 
     public function updateTimSidang(\Illuminate\Http\Request $request, $id)
@@ -755,11 +767,27 @@ class MahasiswaController extends Controller
 
         $timSidang->save();
 
-        return response()->json(['success' => true, 'message' => 'Tim Pembimbing berhasil diupdate']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Tim Pembimbing berhasil diupdate',
+            'tim' => [
+                'id' => $timSidang->id,
+                'nip' => $timSidang->NIP,
+                'nama' => $timSidang->NAMA,
+                'status_tim_sidang' => $timSidang->STATUS_TIM_SIDANG,
+                'urutan' => $timSidang->URUTAN,
+                'id_sk' => $timSidang->ID_SK,
+                'file_penelaah' => $timSidang->FILE_PENELAAH,
+            ],
+        ]);
     }
 
     public function deleteTimSidang($id)
     {
+        if ((session('auth_user.role') ?? '') !== 'TU Prodi') {
+            abort(403, 'Hanya TU Prodi yang dapat menghapus tim sidang.');
+        }
+
         $timSidang = \App\Models\TTimSidang::find($id);
         if (!$timSidang) {
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
@@ -1005,6 +1033,10 @@ class MahasiswaController extends Controller
 
     public function deleteJadwal(\Illuminate\Http\Request $request, $id)
     {
+        if ((session('auth_user.role') ?? '') !== 'TU Prodi') {
+            abort(403, 'Hanya TU Prodi yang dapat menghapus jadwal sidang.');
+        }
+
         $ajuan = TAjuanSidang::find((int) $id);
 
         if (!$ajuan) {

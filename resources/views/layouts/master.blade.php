@@ -2391,6 +2391,16 @@
                     </li>
                     @endif
 
+                    @if(session('auth_user.role') === 'Monev')
+                    <!-- MONEV NAVIGATION - Hanya Report -->
+                    <li class="nav-item">
+                        <a href="{{ route('report.index') }}" class="nav-link {{ request()->routeIs('report.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-file-export"></i>
+                            <p>Report Sidang S3</p>
+                        </a>
+                    </li>
+                    @endif
+
                     @if(session('auth_user.role') === 'Mahasiswa')
                     <!-- MAHASISWA NAVIGATION - Semua Strata -->
                     <li class="nav-item">
@@ -2800,6 +2810,67 @@
             setTimeout(loadNotifications, 100);
         });
     });
+</script>
+
+<div class="modal fade" id="globalConfirmModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index:1060;">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius:12px; overflow:hidden; border:none; box-shadow:0 .5rem 1.5rem rgba(0,0,0,.2);">
+            <div class="modal-body text-center pt-4 pb-2 px-4">
+                <div id="gcmIcon" class="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                     style="width:72px;height:72px;border-radius:50%;background:#fdecea;">
+                    <i class="fas fa-trash-alt" style="font-size:28px;color:#e74a3b;"></i>
+                </div>
+                <h5 id="gcmTitle" class="font-weight-bold mb-2">Hapus Data</h5>
+                <p id="gcmMessage" class="text-muted mb-1" style="font-size:14px;">Apakah Anda yakin?</p>
+            </div>
+            <div class="modal-footer border-top-0 justify-content-center pb-4 pt-2">
+                <button type="button" class="btn btn-light px-4 font-weight-bold" data-dismiss="modal">Batal</button>
+                <button type="button" id="gcmConfirmBtn" class="btn btn-danger px-4 font-weight-bold">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showConfirmDialog(opts) {
+    opts = opts || {};
+    var $modal = $('#globalConfirmModal');
+
+    $('#gcmTitle').text(opts.title || 'Konfirmasi');
+    $('#gcmMessage').text(opts.message || 'Apakah Anda yakin?');
+
+    var themes = {
+        danger:  { bg: '#fdecea', color: '#e74a3b', icon: 'fa-trash-alt',             btn: 'btn-danger'  },
+        warning: { bg: '#fff8e1', color: '#f6c23e', icon: 'fa-exclamation-triangle', btn: 'btn-warning' },
+        primary: { bg: '#e8f0fe', color: '#4e73df', icon: 'fa-check-circle',          btn: 'btn-primary' }
+    };
+    var t = themes[opts.type] || themes.danger;
+
+    $('#gcmIcon').css('background', t.bg)
+                 .find('i').attr('class', 'fas ' + t.icon).css('color', t.color);
+    $('#gcmConfirmBtn').attr('class', 'btn px-4 font-weight-bold ' + t.btn)
+                       .text(opts.confirmText || 'Ya, Lanjutkan');
+
+    return new Promise(function (resolve) {
+        var settled = false;
+        var done = function (val) {
+            if (settled) return;
+            settled = true;
+            resolve(val);
+        };
+
+        $('#gcmConfirmBtn').off('click').on('click', function () {
+            done(true);
+            $modal.modal('hide');
+        });
+
+        $modal.off('hidden.bs.modal.gcm').on('hidden.bs.modal.gcm', function () {
+            done(false);
+        });
+
+        $modal.modal('show');
+    });
+}
 </script>
 
 @stack('scripts')

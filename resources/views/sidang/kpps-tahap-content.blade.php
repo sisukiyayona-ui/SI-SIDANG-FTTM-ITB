@@ -364,11 +364,14 @@
                         jQuery('.select2-search', '#kpps-tahap-container').each(function() {
                             var $el = jQuery(this);
                             if ($el.data('select2')) return;
-                            $el.select2({
+                            var opts = {
                                 theme: 'bootstrap',
                                 allowClear: true,
                                 width: '100%'
-                            });
+                            };
+                            var $modal = $el.closest('.modal');
+                            if ($modal.length) opts.dropdownParent = $modal;
+                            $el.select2(opts);
                         });
                     });
                 }
@@ -380,11 +383,14 @@
                         jQuery('.select2-search', '#kpps-tahap-container').each(function() {
                             var $el = jQuery(this);
                             if ($el.data('select2')) return;
-                            $el.select2({
+                            var opts = {
                                 theme: 'bootstrap',
                                 allowClear: true,
                                 width: '100%'
-                            });
+                            };
+                            var $modal = $el.closest('.modal');
+                            if ($modal.length) opts.dropdownParent = $modal;
+                            $el.select2(opts);
                         });
                     });
                 }

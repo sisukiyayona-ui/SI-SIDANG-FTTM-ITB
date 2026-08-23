@@ -268,16 +268,7 @@ class LoginController extends Controller
 
     public function logout()
     {
-        $provider = config('sso.provider');
         $this->auth->logout();
-
-        // Jika pakai Azure AD, redirect ke Microsoft logout juga
-        if (config('sso.enabled') && $provider === 'azure_ad') {
-            $tenantId = config('sso.azure.tenant_id');
-            $postLogoutUri = config('sso.azure.logout_uri', route('login'));
-            $logoutUrl = "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/logout?post_logout_redirect_uri=" . urlencode($postLogoutUri);
-            return redirect($logoutUrl);
-        }
 
         return redirect()->route('login')->with('success', 'Anda telah berhasil logout.');
     }
