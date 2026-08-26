@@ -185,9 +185,11 @@ class PrepareTemplate extends Command
                     '$(Nama Mahaiswa)' => '${nama_mahaiswa}',
                     '$(nim)' => '${nim}',
                     '$(Judul)' => '${judul}',
+                    '$(pembimbing)' => '${pembimbing}',
                     '$(tgl hasil penelaahan)' => '${tgl_hasil_penelaahan}',
                     '$(dari tabel t user, status dekan \'y\')' => '${dari_tabel_t_user_status_dekan_y}',
                     '$(nip)' => '${nip}',
+                    '$(email)' => '${email}',
                 ]
             ],
             [

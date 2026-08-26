@@ -33,45 +33,66 @@ class MahasiswaController extends Controller
                 j.JUDUL as Judul,
                 MAX(CASE
                     WHEN a1.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a1.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a1.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a1.STATUS_LULUS IS NULL THEN 'dalam proses'
-                    ELSE a1.STATUS_LULUS
+                    WHEN a1.STATUS_LULUS IS NOT NULL THEN a1.STATUS_LULUS
+                    WHEN a1.STATUS_AJUKAN_MHS IS NULL OR a1.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
+                    WHEN a1.STATUS_AJUKAN_MHS = 'y' AND (a1.STATUS_AJUKAN_PRODI IS NULL OR a1.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
+                    WHEN a1.STATUS_AJUKAN_PRODI = 'y' AND (a1.STATUS_AJUKAN_FS IS NULL OR a1.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
+                    WHEN a1.STATUS_AJUKAN_FS = 'y' AND (a1.STATUS_APPROVE_KPPS IS NULL OR a1.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
+                    ELSE 'Menunggu Jadwal Sidang'
                 END) as tahap1,
                 MAX(CASE
                     WHEN a2.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a2.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a2.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a2.STATUS_LULUS IS NULL THEN 'dalam proses'
-                    ELSE a2.STATUS_LULUS
+                    WHEN a2.STATUS_LULUS IS NOT NULL THEN a2.STATUS_LULUS
+                    WHEN a2.STATUS_AJUKAN_MHS IS NULL OR a2.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
+                    WHEN a2.STATUS_AJUKAN_MHS = 'y' AND (a2.STATUS_AJUKAN_PRODI IS NULL OR a2.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
+                    WHEN a2.STATUS_AJUKAN_PRODI = 'y' AND (a2.STATUS_AJUKAN_FS IS NULL OR a2.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
+                    WHEN a2.STATUS_AJUKAN_FS = 'y' AND (a2.STATUS_APPROVE_KPPS IS NULL OR a2.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
+                    ELSE 'Menunggu Jadwal Sidang'
                 END) as tahap2,
                 MAX(CASE
                     WHEN a3.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a3.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a3.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a3.STATUS_LULUS IS NULL THEN 'dalam proses'
-                    ELSE a3.STATUS_LULUS
+                    WHEN a3.STATUS_LULUS IS NOT NULL THEN a3.STATUS_LULUS
+                    WHEN a3.STATUS_AJUKAN_MHS IS NULL OR a3.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
+                    WHEN a3.STATUS_AJUKAN_MHS = 'y' AND (a3.STATUS_AJUKAN_PRODI IS NULL OR a3.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
+                    WHEN a3.STATUS_AJUKAN_PRODI = 'y' AND (a3.STATUS_AJUKAN_FS IS NULL OR a3.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
+                    WHEN a3.STATUS_AJUKAN_FS = 'y' AND (a3.STATUS_APPROVE_KPPS IS NULL OR a3.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
+                    ELSE 'Menunggu Jadwal Sidang'
                 END) as sk1,
                 MAX(CASE
                     WHEN a4.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a4.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a4.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a4.STATUS_LULUS IS NULL THEN 'dalam proses'
-                    ELSE a4.STATUS_LULUS
+                    WHEN a4.STATUS_LULUS IS NOT NULL THEN a4.STATUS_LULUS
+                    WHEN a4.STATUS_AJUKAN_MHS IS NULL OR a4.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
+                    WHEN a4.STATUS_AJUKAN_MHS = 'y' AND (a4.STATUS_AJUKAN_PRODI IS NULL OR a4.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
+                    WHEN a4.STATUS_AJUKAN_PRODI = 'y' AND (a4.STATUS_AJUKAN_FS IS NULL OR a4.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
+                    WHEN a4.STATUS_AJUKAN_FS = 'y' AND (a4.STATUS_APPROVE_KPPS IS NULL OR a4.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
+                    ELSE 'Menunggu Jadwal Sidang'
                 END) as sk2,
                 MAX(CASE
                     WHEN a5.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a5.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a5.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a5.STATUS_LULUS IS NULL THEN 'dalam proses'
-                    ELSE a5.STATUS_LULUS
+                    WHEN a5.STATUS_LULUS IS NOT NULL THEN a5.STATUS_LULUS
+                    WHEN a5.STATUS_AJUKAN_MHS IS NULL OR a5.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
+                    WHEN a5.STATUS_AJUKAN_MHS = 'y' AND (a5.STATUS_AJUKAN_PRODI IS NULL OR a5.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
+                    WHEN a5.STATUS_AJUKAN_PRODI = 'y' AND (a5.STATUS_AJUKAN_FS IS NULL OR a5.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
+                    WHEN a5.STATUS_AJUKAN_FS = 'y' AND (a5.STATUS_APPROVE_KPPS IS NULL OR a5.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
+                    ELSE 'Menunggu Jadwal Sidang'
                 END) as sk3,
                 MAX(CASE
                     WHEN a6.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a6.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a6.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a6.STATUS_LULUS IS NULL THEN 'dalam proses'
-                    ELSE a6.STATUS_LULUS
+                    WHEN a6.STATUS_LULUS IS NOT NULL THEN a6.STATUS_LULUS
+                    WHEN a6.STATUS_AJUKAN_MHS IS NULL OR a6.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
+                    WHEN a6.STATUS_AJUKAN_MHS = 'y' AND (a6.STATUS_AJUKAN_PRODI IS NULL OR a6.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
+                    WHEN a6.STATUS_AJUKAN_PRODI = 'y' AND (a6.STATUS_AJUKAN_FS IS NULL OR a6.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
+                    WHEN a6.STATUS_AJUKAN_FS = 'y' AND (a6.STATUS_APPROVE_KPPS IS NULL OR a6.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
+                    ELSE 'Menunggu Jadwal Sidang'
                 END) as sk4,
                 MAX(CASE
                     WHEN a7.id IS NULL THEN 'belum diajukan'
-                    WHEN COALESCE(a7.STATUS_AJUKAN_MHS, 't') != 'y' AND COALESCE(a7.STATUS_AJUKAN_PRODI, 't') != 'y' THEN 'belum diajukan'
-                    WHEN a7.STATUS_LULUS IS NULL THEN 'dalam proses'
-                    ELSE a7.STATUS_LULUS
+                    WHEN a7.STATUS_LULUS IS NOT NULL THEN a7.STATUS_LULUS
+                    WHEN a7.STATUS_AJUKAN_MHS IS NULL OR a7.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
+                    WHEN a7.STATUS_AJUKAN_MHS = 'y' AND (a7.STATUS_AJUKAN_PRODI IS NULL OR a7.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
+                    WHEN a7.STATUS_AJUKAN_PRODI = 'y' AND (a7.STATUS_AJUKAN_FS IS NULL OR a7.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
+                    WHEN a7.STATUS_AJUKAN_FS = 'y' AND (a7.STATUS_APPROVE_KPPS IS NULL OR a7.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
+                    ELSE 'Menunggu Jadwal Sidang'
                 END) as tahap4
             FROM t_judul j
             LEFT JOIN t_user u ON j.ID_USER_MHS = u.id
@@ -317,9 +338,19 @@ class MahasiswaController extends Controller
         $skList = collect();
         
         if (in_array($tahapan, ['tahap I', 'tahap II', 'SK I', 'SK II', 'SK III', 'SK IV', 'tahap IV']) && in_array($user['role'], ['TU Prodi', 'Admin', 'FS'])) {
-            // Get users for dropdown (dosen only)
-            $users = \App\Models\TUser::where('STATUS_PEGAWAI', 'Dosen')
+            // Get users for dropdown (dosen OR users with role Pembimbing/Penguji)
+            $dosenUsers = \App\Models\TUser::where('STATUS_PEGAWAI', 'Dosen')
                 ->select('ID', 'NAMA_LENGKAP', 'NIP_NIM')
+                ->pluck('ID')
+                ->toArray();
+            $pembimbingPengujiIds = \App\Models\TUserRole::whereIn('ROLE', ['Pembimbing', 'Penguji'])
+                ->pluck('ID_USER')
+                ->unique()
+                ->toArray();
+            $allUserIds = array_unique(array_merge($dosenUsers, $pembimbingPengujiIds));
+            $users = \App\Models\TUser::whereIn('ID', $allUserIds)
+                ->select('ID', 'NAMA_LENGKAP', 'NIP_NIM')
+                ->orderBy('NAMA_LENGKAP')
                 ->get();
             
             // Get all SK records for this judul+tahapan

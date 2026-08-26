@@ -82,6 +82,16 @@
         margin: 0;
     }
 
+    /* Dark mode: card header adapt */
+    html.dark-mode .master-data-container .card-header {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+        color: #f1f5f9 !important;
+        border-bottom: 1px solid #334155 !important;
+    }
+    html.dark-mode .master-data-container .card-header h5 {
+        color: #f1f5f9 !important;
+    }
+
     html.dark-mode .master-data-container .card {
         background-color: #1e293b !important;
         border-color: #334155 !important;
@@ -89,6 +99,54 @@
 
     html.dark-mode .master-data-container .card-body {
         background-color: #1e293b !important;
+    }
+
+    /* Dark mode: form container */
+    html.dark-mode #formContainer .card-body {
+        background-color: #1e293b !important;
+    }
+    html.dark-mode #formContainer .form-label {
+        color: #e2e8f0 !important;
+    }
+    html.dark-mode #formContainer .form-control {
+        background-color: #334155 !important;
+        border-color: #475569 !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark-mode #formContainer select.form-control option {
+        background-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark-mode #formContainer .form-check-label {
+        color: #e2e8f0 !important;
+    }
+    html.dark-mode #formContainer small.text-muted {
+        color: #94a3b8 !important;
+    }
+    /* Dark mode: role list box */
+    html.dark-mode #roleList {
+        background-color: #1e293b !important;
+        border-color: #475569 !important;
+    }
+    html.dark-mode #roleList .form-check-label {
+        color: #e2e8f0 !important;
+    }
+    /* Dark mode: footer/main-footer */
+    html.dark-mode .main-footer {
+        background-color: #0f172a !important;
+        color: #94a3b8 !important;
+        border-top: 1px solid #1e293b !important;
+    }
+    html.dark-mode .main-footer a {
+        color: #60a5fa !important;
+    }
+    /* Dark mode: signature canvas */
+    html.dark-mode #signatureCanvas {
+        background-color: #1e293b !important;
+        border-color: #475569 !important;
+    }
+    html.dark-mode #signaturePreview {
+        border-color: #475569 !important;
     }
 </style>
 @endpush
@@ -213,7 +271,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Role User <span class="text-danger">*</span></label>
-                        <div id="roleList" class="border rounded p-2" style="max-height: 180px; overflow-y: auto; background: #fafafa;">
+                        <div id="roleList" class="border rounded p-2" style="max-height: 180px; overflow-y: auto;" class="role-list-box">
                             <label class="form-check d-block mb-1" style="cursor: pointer;">
                                 <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="Admin">
                                 <span class="form-check-label">Admin</span>
@@ -329,10 +387,12 @@
                             <option value="ITB">ITB</option>
                             <option value="NON ITB">NON ITB</option>
                         </select>
+                        <small class="text-muted">Isi jika role untuk Pembimbing atau Penguji</small>
                     </div>
                     <div class="col-md-6 mb-3" id="instansiContainer">
                         <label class="form-label">Instansi <span class="text-danger">*</span></label>
                         <input type="text" name="instansi" id="f_instansi" class="form-control" placeholder="Nama instansi (untuk pengguna luar ITB)">
+                        <small class="text-muted">Isi jika role untuk Pembimbing atau Penguji</small>
                     </div>
                 </div>
                 <div class="row">
@@ -396,7 +456,7 @@
                         <input type="hidden" name="signature_data" id="f_signature_data">
                         <div class="d-flex align-items-start" style="gap: 15px;">
                             <div>
-                                <canvas id="signatureCanvas" width="300" height="100" style="border: 1px dashed #ccc; border-radius: 4px; background: #fafafa;"></canvas>
+                                <canvas id="signatureCanvas" width="300" height="100" class="signature-canvas" style="border: 1px dashed #ccc; border-radius: 4px; background: #fafafa;"></canvas>
                                 <div class="d-flex justify-content-between mt-2">
                                     <button type="button" class="btn btn-sm btn-danger" onclick="clearSignature()">Hapus</button>
                                     <input type="file" name="signature_file" id="f_signature_file" accept="image/*" style="display:none;">
@@ -469,14 +529,54 @@
         document.getElementById('kkRow').style.display = statusPegawai === 'Dosen' ? 'block' : 'none';
     }
 
+    // Item 14: Toggle field aktif berdasarkan status_pegawai
+    function toggleUserFormFields() {
+        var statusPegawai = document.getElementById('f_status_pegawai').value;
+        var isMahasiswa = (statusPegawai === 'Mahasiswa');
+        var isDosen = (statusPegawai === 'Dosen');
+
+        // Strata & Tahun Angkatan: aktif jika Mahasiswa
+        var fStrata = document.getElementById('f_strata');
+        var fThnAngkatan = document.getElementById('f_thn_angkatan');
+        if (fStrata) {
+            fStrata.disabled = !isMahasiswa;
+            fStrata.style.backgroundColor = isMahasiswa ? '' : '#e9ecef';
+        }
+        if (fThnAngkatan) {
+            fThnAngkatan.disabled = !isMahasiswa;
+            fThnAngkatan.style.backgroundColor = isMahasiswa ? '' : '#e9ecef';
+        }
+
+        // Status Kaprodi, Dekan, WDA: aktif jika Dosen
+        var fKaprodi = document.getElementById('f_status_kaprodi');
+        var fDekan = document.getElementById('f_status_dekan');
+        var fWda = document.getElementById('f_status_wda');
+        if (fKaprodi) {
+            fKaprodi.disabled = !isDosen;
+            fKaprodi.style.backgroundColor = isDosen ? '' : '#e9ecef';
+        }
+        if (fDekan) {
+            fDekan.disabled = !isDosen;
+            fDekan.style.backgroundColor = isDosen ? '' : '#e9ecef';
+        }
+        if (fWda) {
+            fWda.disabled = !isDosen;
+            fWda.style.backgroundColor = isDosen ? '' : '#e9ecef';
+        }
+    }
+
     var canvas, ctx;
     var signatureData = null;
+
+    function getCanvasBg() {
+        return document.documentElement.classList.contains('dark-mode') ? '#1e293b' : '#fff';
+    }
 
     function initCanvas() {
         canvas = document.getElementById('signatureCanvas');
         if (!canvas) return;
         ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = getCanvasBg();
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
@@ -531,7 +631,7 @@
 
     function clearSignature() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = getCanvasBg();
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         document.getElementById('f_signature_data').value = '';
         document.getElementById('signaturePreview').style.display = 'none';
@@ -553,7 +653,7 @@
                 var c = document.createElement('canvas');
                 c.width = 300; c.height = 100;
                 var cctx = c.getContext('2d');
-                cctx.fillStyle = '#fff';
+                cctx.fillStyle = getCanvasBg();
                 cctx.fillRect(0, 0, c.width, c.height);
                 cctx.drawImage(img, 0, 0, c.width, c.height);
                 updateSignatureFromFile(c.toDataURL('image/png'));
@@ -574,6 +674,7 @@
         document.getElementById('f_password').required = false;
         document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
         toggleKkRow();
+        toggleUserFormFields();
 
         @if(session('auth_user.role') !== 'TU Prodi')
         document.getElementById('f_kode_fs').value = '';
@@ -623,6 +724,7 @@
             document.getElementById('f_status_pegawai').value = item.status_pegawai ?? '';
             document.getElementById('f_kk').value = item.kk ?? '';
             toggleKkRow();
+            toggleUserFormFields();
             document.getElementById('f_strata').value         = item.strata ?? '';
             document.getElementById('f_thn_angkatan').value   = item.thn_angkatan ?? '';
             document.getElementById('f_status_dekan').value = item.status_dekan ?? '';
@@ -651,7 +753,7 @@
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     var img = new Image();
                     img.onload = function() {
-                        ctx.fillStyle = '#fff';
+                        ctx.fillStyle = getCanvasBg();
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     };
@@ -693,7 +795,10 @@
         new bootstrap.Modal(document.getElementById('modalDelete')).show();
     }
 
-    document.getElementById('f_status_pegawai').addEventListener('change', toggleKkRow);
+    document.getElementById('f_status_pegawai').addEventListener('change', function() {
+        toggleKkRow();
+        toggleUserFormFields();
+    });
 
     document.getElementById('formUser').addEventListener('submit', function(e) {
         e.preventDefault();

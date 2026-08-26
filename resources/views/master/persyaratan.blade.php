@@ -91,6 +91,38 @@
     html.dark-mode .master-data-container .card-body {
         background-color: #1e293b !important;
     }
+
+    /* Dark mode: card header adapt */
+    html.dark-mode .master-data-container .card-header {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+        color: #f1f5f9 !important;
+        border-bottom: 1px solid #334155 !important;
+    }
+    html.dark-mode .master-data-container .card-header h5 {
+        color: #f1f5f9 !important;
+    }
+    /* Dark mode: form container */
+    html.dark-mode #formContainer .card-body {
+        background-color: #1e293b !important;
+    }
+    html.dark-mode #formContainer .form-label {
+        color: #e2e8f0 !important;
+    }
+    html.dark-mode #formContainer .form-control {
+        background-color: #334155 !important;
+        border-color: #475569 !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark-mode #formContainer select.form-control option {
+        background-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark-mode #formContainer .form-check-label {
+        color: #e2e8f0 !important;
+    }
+    html.dark-mode #formContainer small.text-muted {
+        color: #94a3b8 !important;
+    }
 </style>
 @endpush
 
@@ -202,11 +234,11 @@
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="tahapan_sidang" class="form-label fw-semibold text-secondary">Tahapan Sidang</label>
-                            <select name="tahapan_sidang" id="f_tahapan_sidang" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
-                                @foreach($tahapans as $t)
-                                    <option value="{{ $t->Tahapan }}">{{ $tahapanLabels[$t->Tahapan] ?? $t->Tahapan }}</option>
-                                @endforeach
+                            <label for="strata" class="form-label fw-semibold text-secondary">Strata</label>
+                            <select name="strata" id="f_strata" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required onchange="filterTahapanByStrata()">
+                                <option value="S3" selected>S3</option>
+                                <option value="S1">S1</option>
+                                <option value="S2">S2</option>
                             </select>
                         </div>
                     </div>
@@ -215,11 +247,8 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="strata" class="form-label fw-semibold text-secondary">Strata</label>
-                            <select name="strata" id="f_strata" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
-                                <option value="S1">S1</option>
-                                <option value="S2">S2</option>
-                                <option value="S3" selected>S3</option>
+                            <label for="tahapan_sidang" class="form-label fw-semibold text-secondary">Tahapan Sidang</label>
+                            <select name="tahapan_sidang" id="f_tahapan_sidang" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
                             </select>
                         </div>
                     </div>
@@ -310,14 +339,58 @@
     const userProdiId = @json($userProdiId);
     const isTuProdi = @json(session('auth_user.role')) === 'TU Prodi';
 
+    // Item 15: Mapping strata -> tahapan options
+    var tahapanByStrata = {
+        'S1': [
+            { value: 'TA 1', label: 'TA 1' },
+            { value: 'TA 2', label: 'TA 2' }
+        ],
+        'S2': [
+            { value: 'TA 1', label: 'TA 1' },
+            { value: 'TA 2', label: 'TA 2' }
+        ],
+        'S3': [
+            { value: 'tahap I', label: 'Ujian Kualifikasi' },
+            { value: 'tahap II', label: 'Ujian Proposal' },
+            { value: 'SK I', label: 'SK I' },
+            { value: 'SK II', label: 'SK II' },
+            { value: 'SK III', label: 'SK III' },
+            { value: 'SK IV', label: 'SK IV' },
+            { value: 'tahap IV', label: 'Sidang Terbuka / Tertutup' }
+        ]
+    };
+
+    function filterTahapanByStrata() {
+        var strata = document.getElementById('f_strata').value;
+        var tahapanSelect = document.getElementById('f_tahapan_sidang');
+        var currentVal = tahapanSelect.value;
+        var options = tahapanByStrata[strata] || [];
+        tahapanSelect.innerHTML = '';
+        options.forEach(function(opt) {
+            var el = document.createElement('option');
+            el.value = opt.value;
+            el.textContent = opt.label;
+            tahapanSelect.appendChild(el);
+        });
+        // Restore previous value if still available
+        if (currentVal) {
+            for (var i = 0; i < tahapanSelect.options.length; i++) {
+                if (tahapanSelect.options[i].value === currentVal) {
+                    tahapanSelect.value = currentVal;
+                    break;
+                }
+            }
+        }
+    }
+
     function openCreate() {
         document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Persyaratan';
         document.getElementById('mainForm').action = '{{ route("master.persyaratan.store") }}';
         document.getElementById('methodField').value = 'POST';
         document.getElementById('dataId').value = '';
         document.getElementById('f_nama').value = '';
-        document.getElementById('f_tahapan_sidang').selectedIndex = 0;
         document.getElementById('f_strata').value = 'S3';
+        filterTahapanByStrata();
         if (isTuProdi && userProdiId) {
             document.getElementById('f_id_prodi').value = userProdiId;
             document.getElementById('f_id_prodi_hidden').value = userProdiId;
@@ -340,8 +413,9 @@
             document.getElementById('methodField').value = 'PUT';
             document.getElementById('dataId').value = id;
             document.getElementById('f_nama').value = item.nama;
-            document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
             document.getElementById('f_strata').value = item.strata;
+            filterTahapanByStrata();
+            document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
             if (isTuProdi && userProdiId) {
                 document.getElementById('f_id_prodi').value = userProdiId;
                 document.getElementById('f_id_prodi_hidden').value = userProdiId;

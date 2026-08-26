@@ -52,6 +52,7 @@ class VReportTipeI extends Model
         'ruang_sidang',
         'tgl_create',
         'tgl_update',
+        'nilai_rata2',
     ];
 
     /**

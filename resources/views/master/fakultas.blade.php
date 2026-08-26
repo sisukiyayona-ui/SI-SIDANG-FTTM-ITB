@@ -91,6 +91,38 @@
     html.dark-mode .master-data-container .card-body {
         background-color: #1e293b !important;
     }
+
+    /* Dark mode: card header adapt */
+    html.dark-mode .master-data-container .card-header {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+        color: #f1f5f9 !important;
+        border-bottom: 1px solid #334155 !important;
+    }
+    html.dark-mode .master-data-container .card-header h5 {
+        color: #f1f5f9 !important;
+    }
+    /* Dark mode: form container */
+    html.dark-mode #formContainer .card-body {
+        background-color: #1e293b !important;
+    }
+    html.dark-mode #formContainer .form-label {
+        color: #e2e8f0 !important;
+    }
+    html.dark-mode #formContainer .form-control {
+        background-color: #334155 !important;
+        border-color: #475569 !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark-mode #formContainer select.form-control option {
+        background-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark-mode #formContainer .form-check-label {
+        color: #e2e8f0 !important;
+    }
+    html.dark-mode #formContainer small.text-muted {
+        color: #94a3b8 !important;
+    }
 </style>
 @endpush
 

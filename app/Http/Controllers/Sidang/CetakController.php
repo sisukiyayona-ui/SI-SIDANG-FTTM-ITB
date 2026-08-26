@@ -773,6 +773,12 @@ class CetakController extends Controller
         ];
         $this->replaceInDocx($docxPath, $replacements);
 
+        // Item 25b: Sisipkan tanda tangan kaprodi ke BA
+        $kaprodiUser = TUser::where('STATUS_KAPRODI', 't')->first();
+        if ($kaprodiUser) {
+            $this->embedSignature($docxPath, $kaprodiUser->ID, $kaprodiUser->NIP_NIM, $kaprodiUser->NAMA_LENGKAP);
+        }
+
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
 
@@ -1475,48 +1481,56 @@ class CetakController extends Controller
             ->where('tahapan_sidang', $tahapan)
             ->get();
 
-        // Filter pembimbing - HANYA ambil Pembimbing I, II, III (exclude Ketua Pembimbing dan Ketua Sidang)
+        // Item 23: Hanya tampilkan pembimbing (bukan Ketua Pembimbing) berdasarkan Keterangan/role
+        // Ketua Pembimbing TIDAK ditampilkan di daftar pembimbing surat penelaah
         $pembimbings = $timSidang->filter(function ($tim) {
-            $status = strtolower($tim->status_tim_sidang ?? '');
-            $nama = trim($tim->NAMA ?? '');
-            
-            // Hanya ambil yang status "Pembimbing I", "Pembimbing II", dll
-            // TIDAK ambil "Ketua Pembimbing" atau "Ketua Sidang"
-            return (str_contains($status, 'pembimbing i') 
-                    || str_contains($status, 'pembimbing ii') 
-                    || str_contains($status, 'pembimbing iii')
-                    || ($status === 'pembimbing' && !str_contains($status, 'ketua')))
-                && $nama !== '' 
-                && $nama !== 'Pembimbing';
+            $status = preg_replace('/[\r\n]+/', '', strtolower(trim($tim->status_tim_sidang ?? '')));
+            // Hanya ambil Pembimbing I, Pembimbing II, Pembimbing III (bukan "Ketua Pembimbing")
+            return preg_match('/^pembimbing\s+(i{1,3}|iv|v)$/i', $status);
         })->values();
-
-        $pengujis = $timSidang->filter(function ($tim) {
-            $status = strtolower($tim->status_tim_sidang ?? '');
+        // Ambil nama dari userPenilai jika kolom NAMA kosong/generic/NIP
+        $pembimbings = $pembimbings->map(function ($tim) {
             $nama = trim($tim->NAMA ?? '');
-            
-            // Hanya ambil Penguji I, II, III
-            return (str_contains($status, 'penguji i') 
-                    || str_contains($status, 'penguji ii') 
-                    || str_contains($status, 'penguji iii')
-                    || ($status === 'penguji'))
-                && $nama !== ''
-                && $nama !== 'Penguji';
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji']) || preg_match('/^\d{5,}$/', $nama)) {
+                $tim->NAMA = trim(optional($tim->userPenilai)->NAMA_LENGKAP ?? '') ?: $nama;
+            }
+            return $tim;
         })->values();
-
-        $pembimbingNames = $pembimbings->map(fn($t) => $t->NAMA ?? '-')->values();
-        if ($pembimbingNames->isEmpty()) {
-            $pembimbingNames->push('-');
+        if ($pembimbings->isEmpty()) {
+            $pembimbingNames = collect(['-']);
+        } else {
+            $pembimbingNames = $pembimbings->pluck('NAMA')->values();
         }
 
+        $pengujis = $timSidang->filter(function ($tim) {
+            $status = preg_replace('/[\r\n]+/', '', strtolower(trim($tim->status_tim_sidang ?? '')));
+            // Hanya ambil Penguji I, II, III (bukan "Ketua Sidang" dll)
+            return preg_match('/^penguji\s+(i{1,3}|iv|v)$/i', $status) || $status === 'penguji';
+        })->values();
+
+        // Item 23: Tampilkan nama instansi, bukan "non ITB"
         $pengujiList = $pengujis->map(function ($t) {
-            $institusi = optional($t->userPenilai)->ASAL_INSTANSI
-                ?: optional($t->userPenilai)->INSTANSI
-                ?: '';
+            // Selalu ambil nama dari userPenilai (lebih reliable dari kolom NAMA)
+            $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
+            // Fallback ke kolom NAMA jika userPenilai tidak ada
+            if ($nama === '') {
+                $nama = trim($t->NAMA ?? '');
+            }
+            // Tampilkan nama instansi (bukan literal "NON ITB")
+            $asal = trim(optional($t->userPenilai)->ASAL_INSTANSI ?? '');
+            $instansi = '';
+            if ($asal === 'NON ITB') {
+                $instansi = trim(optional($t->userPenilai)->INSTANSI ?? '');
+            } elseif ($asal === 'ITB') {
+                $instansi = 'ITB';
+            }
             return [
-                'nama' => $t->NAMA ?? '-',
-                'institusi' => $institusi,
+                'nama' => $nama ?: '-',
+                'institusi' => $instansi,
             ];
         })->values();
+
+        // pembimbingNames sudah diinisialisasi di atas bersamaan dengan filter pembimbing
 
         $dekan = TUser::where('STATUS_DEKAN', 't')->first();
 
@@ -1559,20 +1573,30 @@ class CetakController extends Controller
             'tgl_hasil_penelaahan' => $fmt($ajuan->TGL_HASIL_PENELAHAN),
             'dari_tabel_t_user_status_dekan_y' => $dekan->NAMA_LENGKAP ?? '',
             'nip' => $dekan->NIP_NIM ?? '',
+            'email' => $ajuan->EMAIL_SURAT ?? $dekan->EMAIL ?? '',
         ];
         
         $this->replaceInDocx($docxPath, $replacements);
 
-        // NIP penandatangan dipindah ke baris sendiri di bawah nama
-        // ("Nama M.T. NIP. xxx" -> "Nama M.T." / baris baru / "NIP. xxx")
-        $zipNip = new \ZipArchive();
-        if ($zipNip->open($docxPath) === true) {
-            $xml = $zipNip->getFromName('word/document.xml');
-            $break = '</w:t></w:r></w:p><w:p><w:r><w:t xml:space="preserve">';
-            $xml = $this->fuzzyReplaceOnce($xml, 'M.T. NIP.', 'M.T.' . $break . 'NIP.');
-            $zipNip->deleteName('word/document.xml');
-            $zipNip->addFromString('word/document.xml', $xml);
-            $zipNip->close();
+        // Hapus tandatangan (nama + NIP penandatangan) dari template
+        $zipSig = new \ZipArchive();
+        if ($zipSig->open($docxPath) === true) {
+            $xml = $zipSig->getFromName('word/document.xml');
+            
+            // Hapus baris nama penandatangan (e.g. "Administrator M.T.")
+            $xml = $this->removeSignatureBlock($xml);
+            
+            // Replace hardcoded email dengan email dari form jadwal (email_surat), fallback ke email dekan
+            $emailSurat = $ajuan->EMAIL_SURAT ?? '';
+            $emailFallback = $emailSurat ?: ($dekan->EMAIL ?? '');
+            if ($emailFallback) {
+                $xml = str_replace('sitijenab@fttm.itb.ac.id', $emailFallback, $xml);
+                $xml = str_replace('lilik@itb.ac.id', $emailFallback, $xml);
+            }
+            
+            $zipSig->deleteName('word/document.xml');
+            $zipSig->addFromString('word/document.xml', $xml);
+            $zipSig->close();
         }
 
         // Handle penguji and pembimbing separately with direct XML manipulation
@@ -1581,6 +1605,29 @@ class CetakController extends Controller
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
     
+    /**
+     * Helper: Format penguji name with instansi (Item 24)
+     */
+    private function pengujiWithInstansi($penguji): string
+    {
+        if (!$penguji) return '-';
+        $nama = trim($penguji->NAMA ?? '');
+        if ($nama === '' || $nama === 'Penguji') return '-';
+        
+        // Get instansi from userPenilai relationship
+        $instansi = '';
+        if ($penguji->userPenilai) {
+            $asal = trim($penguji->userPenilai->ASAL_INSTANSI ?? '');
+            if ($asal === 'NON ITB') {
+                $instansi = trim($penguji->userPenilai->INSTANSI ?? '');
+            } elseif ($asal === 'ITB') {
+                $instansi = 'ITB';
+            }
+        }
+        
+        return $nama . ($instansi ? ' (' . $instansi . ')' : '');
+    }
+
     /**
      * Handle pembimbing list in docx - each row separately
      */
@@ -1703,20 +1750,36 @@ class CetakController extends Controller
 
     private function cetakUndanganSidang($judul, $ajuan, $timSidang)
     {
-        $namaUnik = function ($statusRule) use ($timSidang) {
-            return $timSidang
-                ->filter(fn($t) => str_contains($t->status_tim_sidang ?? '', $statusRule))
-                ->filter(fn($t) => trim((string) ($t->NAMA ?? '')) !== '' && trim((string) ($t->NAMA ?? '')) !== 'Pembimbing' && trim((string) ($t->NAMA ?? '')) !== 'Penguji')
-                ->unique(fn($t) => ($t->NIP ?? '') ?: ($t->NAMA ?? ''))
-                ->values();
+        // Normalize: strip \r\n, trim whitespace
+        $normalizeStatus = fn($s) => preg_replace('/[\r\n]+/', '', strtolower(trim($s ?? '')));
+
+        // Helper: resolve nama dari userPenilai jika NAMA kosong/generic/NIP
+        $resolveNama = function ($t) {
+            $nama = trim($t->NAMA ?? '');
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing']) || preg_match('/^\d{5,}$/', $nama)) {
+                $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '') ?: $nama;
+            }
+            return $nama;
         };
 
-        $pembimbing = $namaUnik('Pembimbing');
-        $penguji = $namaUnik('Penguji');
+        // Ketua Pembimbing (Ketua)
+        $ketuaPembimbing = $timSidang
+            ->filter(fn($t) => $normalizeStatus($t->status_tim_sidang) === 'ketua pembimbing')
+            ->first();
 
+        // Pembimbing Anggota (I, II, III)
+        $pembimbingAnggota = $timSidang
+            ->filter(fn($t) => preg_match('/^pembimbing\s+(i{1,3}|iv|v)$/i', $normalizeStatus($t->status_tim_sidang)))
+            ->values();
+
+        // Penguji (I, II, III)
+        $pengujis = $timSidang
+            ->filter(fn($t) => preg_match('/^penguji\s+(i{1,3}|iv|v)$/i', $normalizeStatus($t->status_tim_sidang)))
+            ->values();
+
+        // Ketua Sidang
         $ketua = $timSidang
-            ->filter(fn($t) => trim((string) ($t->status_tim_sidang ?? '')) === 'Ketua Sidang')
-            ->filter(fn($t) => trim((string) ($t->NAMA ?? '')) !== '' && trim((string) ($t->NAMA ?? '')) !== 'Penguji')
+            ->filter(fn($t) => $normalizeStatus($t->status_tim_sidang) === 'ketua sidang')
             ->first();
 
         $dekan = TUser::where('STATUS_DEKAN', 't')->first();
@@ -1765,13 +1828,13 @@ class CetakController extends Controller
             'nama prodi' => $prodi,
             'prodi' => $prodi,
             'judul' => $ajuan->JUDUL ?? $judul->JUDUL ?? '',
-            'nama ketua pembimbing' => $pembimbing->get(0)->NAMA ?? '-',
-            'nama pembimbing I' => $pembimbing->get(1)->NAMA ?? '-',
-            'nama pembimbing II' => $pembimbing->get(2)->NAMA ?? '-',
-            'nama penguji I' => $penguji->get(0)->NAMA ?? '-',
-            'nama penguji II' => $penguji->get(1)->NAMA ?? '-',
-            'nama penguji III' => $penguji->get(2)->NAMA ?? '-',
-            'ketua sidang' => $ketua->NAMA ?? '-',
+            'nama ketua pembimbing' => $resolveNama($ketuaPembimbing) ?? '-',
+            'nama pembimbing I' => $pembimbingAnggota->get(0) ? $resolveNama($pembimbingAnggota->get(0)) : '-',
+            'nama pembimbing II' => $pembimbingAnggota->get(1) ? $resolveNama($pembimbingAnggota->get(1)) : '-',
+            'nama penguji I' => $pengujis->get(0) ? $this->pengujiWithInstansi($pengujis->get(0)) : '-',
+            'nama penguji II' => $pengujis->get(1) ? $this->pengujiWithInstansi($pengujis->get(1)) : '-',
+            'nama penguji III' => $pengujis->get(2) ? $this->pengujiWithInstansi($pengujis->get(2)) : '-',
+            'ketua sidang' => $resolveNama($ketua) ?? '-',
             'tgl sidang' => $tglSidang,
             'waktu_waktu_selesai' => $pukulPendahuluan,
             'ruang' => $tempat,
@@ -1782,6 +1845,16 @@ class CetakController extends Controller
         ];
         
         $this->replaceInDocx($docxPath, $replacements);
+
+        // Item 24: Hapus tandatangan (cap ITB + Administrator NIP) dari undangan sidang
+        $xmlSig = new \ZipArchive();
+        if ($xmlSig->open($docxPath) === true) {
+            $xml = $xmlSig->getFromName('word/document.xml');
+            $xml = $this->removeSignatureBlock($xml);
+            $xmlSig->deleteName('word/document.xml');
+            $xmlSig->addFromString('word/document.xml', $xml);
+            $xmlSig->close();
+        }
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
@@ -1804,46 +1877,80 @@ class CetakController extends Controller
             $seminar = $perihal;
         }
 
+        // Normalize: strip \r\n, trim whitespace
+        $normalizeStatus = fn($s) => preg_replace('/[\r\n]+/', '', strtolower(trim($s ?? '')));
+
+        // Helper: resolve nama dari userPenilai jika NAMA kosong/generic/NIP
+        $resolveNama = function ($t) {
+            $nama = trim($t->NAMA ?? '');
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing']) || preg_match('/^\d{5,}$/', $nama)) {
+                $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '') ?: $nama;
+            }
+            return $nama;
+        };
+
+        // Helper: resolve instansi dari userPenilai (bukan literal "NON ITB")
+        $resolveInstansi = function ($t) {
+            $asal = trim(optional($t->userPenilai)->ASAL_INSTANSI ?? '');
+            if ($asal === 'NON ITB') {
+                return trim(optional($t->userPenilai)->INSTANSI ?? '');
+            } elseif ($asal === 'ITB') {
+                return 'ITB';
+            }
+            return '';
+        };
+
+        // Ketua Sidang
         $ketua = $timSidang
-            ->filter(fn($x) => trim((string) ($x->status_tim_sidang ?? '')) === 'Ketua Sidang')
-            ->filter(fn($x) => trim((string) ($x->NAMA ?? '')) !== '' && trim((string) ($x->NAMA ?? '')) !== 'Penguji')
+            ->filter(fn($x) => $normalizeStatus($x->status_tim_sidang) === 'ketua sidang')
             ->first();
 
-        $pembimbing = $timSidang
-            ->filter(fn($x) => str_contains($x->status_tim_sidang ?? '', 'Pembimbing'))
-            ->filter(fn($x) => trim((string) ($x->NAMA ?? '')) !== '' && trim((string) ($x->NAMA ?? '')) !== 'Pembimbing')
-            ->unique(fn($x) => ($x->NIP ?? '') ?: ($x->NAMA ?? ''))
+        // Pembimbing (Ketua + Anggota) - urutkan: Ketua Pembimbing dulu, lalu I, II, III
+        $pembimbingKetua = $timSidang
+            ->filter(fn($x) => $normalizeStatus($x->status_tim_sidang) === 'ketua pembimbing')
+            ->first();
+        $pembimbingAnggota = $timSidang
+            ->filter(fn($x) => preg_match('/^pembimbing\s+(i{1,3}|iv|v)$/i', $normalizeStatus($x->status_tim_sidang)))
             ->values();
 
-        $penguji = $timSidang
-            ->filter(fn($x) => str_contains($x->status_tim_sidang ?? '', 'Penguji'))
-            ->filter(fn($x) => trim((string) ($x->NAMA ?? '')) !== '' && trim((string) ($x->NAMA ?? '')) !== 'Penguji')
-            ->unique(fn($x) => ($x->NIP ?? '') ?: ($x->NAMA ?? ''))
+        // Penguji - urutkan: Penguji I, II, III
+        $pengujis = $timSidang
+            ->filter(fn($x) => preg_match('/^penguji\s+(i{1,3}|iv|v)$/i', $normalizeStatus($x->status_tim_sidang)))
             ->values();
 
-        $rows = [];
-        if ($ketua) {
-            $rows[] = ['nama' => $ketua->NAMA, 'jabatan' => 'Ketua Sidang'];
-        }
-        foreach ($pembimbing->values() as $i => $p) {
-            $rows[] = ['nama' => $p->NAMA, 'jabatan' => $i === 0 ? 'Pembimbing (Ketua)' : 'Pembimbing (Anggota)'];
-        }
-        foreach ($penguji->values() as $p) {
-            $inst = optional($p->userPenilai)->ASAL_INSTANSI
-                ?: optional($p->userPenilai)->INSTANSI
-                ?: '';
-            $rows[] = ['nama' => $p->NAMA, 'jabatan' => $inst ? "Penguji ($inst)" : 'Penguji'];
-        }
-
+        // KPPS members (deduplicated by name)
         $kppsIds = DB::table('t_user_role')->where('ROLE', 'KPPS')->pluck('ID_USER');
+        $kppsUsers = collect();
         if ($kppsIds->isNotEmpty()) {
             $kppsUsers = TUser::whereIn('id', $kppsIds)
                 ->where('NAMA_LENGKAP', '!=', '')
                 ->orderBy('NAMA_LENGKAP')
-                ->get();
-            foreach ($kppsUsers as $ku) {
-                $rows[] = ['nama' => $ku->NAMA_LENGKAP, 'jabatan' => 'Anggota KPPs'];
-            }
+                ->get()
+                ->unique('NAMA_LENGKAP')
+                ->values();
+        }
+
+        // Build rows
+        $rows = [];
+        if ($ketua) {
+            $rows[] = ['nama' => $resolveNama($ketua), 'jabatan' => 'Ketua Sidang'];
+        }
+        // Ketua Pembimbing
+        if ($pembimbingKetua) {
+            $rows[] = ['nama' => $resolveNama($pembimbingKetua), 'jabatan' => 'Pembimbing (Ketua)'];
+        }
+        // Pembimbing Anggota (I, II, III)
+        foreach ($pembimbingAnggota as $p) {
+            $rows[] = ['nama' => $resolveNama($p), 'jabatan' => 'Pembimbing (Anggota)'];
+        }
+        // Penguji dengan instansi
+        foreach ($pengujis as $p) {
+            $inst = $resolveInstansi($p);
+            $rows[] = ['nama' => $resolveNama($p), 'jabatan' => $inst ? "Penguji ($inst)" : 'Penguji'];
+        }
+        // KPPS (sudah di-deduplicate di atas)
+        foreach ($kppsUsers as $ku) {
+            $rows[] = ['nama' => $ku->NAMA_LENGKAP, 'jabatan' => 'Anggota KPPs'];
         }
 
         // Build kepada paragraphs – each row becomes a separate <w:p> so columns align properly
@@ -1963,6 +2070,10 @@ class CetakController extends Controller
                         $xml = str_replace('{kepada}', $kepadaParagraphs, $xml);
                     }
                 }
+
+                // Catatan: tandatangan di undangan di-handle oleh template placeholders
+                // ${nama_wda} dan ${nip_wda} sudah di-replace oleh replaceInDocx()
+                // TIDAK perlu removeSignatureBlock karena template perlu nama + NIP WDA
 
                 $z->deleteName('word/document.xml');
                 $z->addFromString('word/document.xml', $xml);
@@ -2163,6 +2274,51 @@ class CetakController extends Controller
         }
     }
     
+    /**
+     * Hapus blok tandatangan (nama penandatangan + NIP) dari XML.
+     * Pola: paragraf yang berisi nama + "M.T." atau "NIP." di sekitar
+     * bagian "a.n Dekan" / "Wakil Dekan Bidang Akademik"
+     */
+    private function removeSignatureBlock(string $xml): string
+    {
+        // Hapus baris "Administrator M.T." (nama penandatangan) - hanya literal, bukan placeholder
+        $xml = preg_replace(
+            '/<w:p[^>]*>\s*(?:<[^>]*>)*\s*Administrator\s*M\.T\..*?<\/w:p>/is',
+            '',
+            $xml
+        );
+        
+        // Hapus baris "NIP. <angka>" (NIP penandatangan) - hanya literal angka, bukan ${nip_xxx}
+        $xml = preg_replace(
+            '/<w:p[^>]*>\s*(?:<[^>]*>)*\s*NIP\.\s*\d{5,20}\s*<\/w:p>/is',
+            '',
+            $xml
+        );
+        
+        // Hapus baris yang hanya berisi angka NIP (e.g. "112000021") - hanya angka, bukan placeholder
+        $xml = preg_replace(
+            '/<w:p[^>]*>\s*(?:<[^>]*>)*\s*\d{5,20}\s*<\/w:p>/is',
+            '',
+            $xml
+        );
+        
+        // Hapus baris "a.n Dekan" (jika ada)
+        $xml = preg_replace(
+            '/<w:p[^>]*>\s*(?:<[^>]*>)*\s*a\.n\s*Dekan.*?<\/w:p>/is',
+            '',
+            $xml
+        );
+        
+        // Hapus baris "Wakil Dekan Bidang Akademik" (jika ada)
+        $xml = preg_replace(
+            '/<w:p[^>]*>\s*(?:<[^>]*>)*\s*Wakil\s+Dekan\s+Bidang\s+Akademik.*?<\/w:p>/is',
+            '',
+            $xml
+        );
+        
+        return $xml;
+    }
+
     /**
      * Handle both penguji and pembimbing in one method - simpler approach
      */

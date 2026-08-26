@@ -250,8 +250,25 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
         }
         
-        /* SIDEBAR NAVIGATION - DARK MODE FIX */
-        /* Parent Menu (Data Master) when expanded/opened - MUST BE BLUE! */
+        /* ================================================================
+           SIDEBAR DARK MODE - CLEAN VERSION (matching light mode)
+           ================================================================ */
+
+        /* NUCLEAR OVERRIDE: Remove ALL AdminLTE sidebar-dark-primary backgrounds in dark mode */
+        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link {
+            background-color: transparent !important;
+        }
+        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active {
+            background-color: transparent !important;
+        }
+        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link:hover {
+            background-color: rgba(96, 165, 250, 0.1) !important;
+        }
+        html.dark-mode .sidebar-dark-primary .nav-treeview > .nav-item > .nav-link {
+            background-color: transparent !important;
+        }
+
+        /* Parent Menu expanded (Sidang, Data Master) - transparent bg, blue text */
         html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link,
         html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link,
         html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item.menu-open > .nav-link,
@@ -259,126 +276,75 @@
             background-color: transparent !important;
             color: #60a5fa !important;
         }
-        
-        /* Parent menu icons when expanded */
+
+        /* Parent menu icons & arrows when expanded */
         html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link .nav-icon,
         html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link i,
         html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link .right {
             color: #60a5fa !important;
         }
-        
+
         /* Parent menu hover when expanded */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link:hover {
-            background-color: rgba(96, 165, 250, 0.15) !important;
-            color: #60a5fa !important;
-        }
-        
-        /* Child menu items (Persyaratan, Penilaian, etc) */
-        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link,
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link {
-            color: rgba(255, 255, 255, 0.65) !important;
-        }
-        
-        /* Child menu active state */
-        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active,
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link.active {
-            background-color: var(--body-bg) !important;
-            color: #60a5fa !important;
-        }
-        
-        /* Child menu hover */
-        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link:hover,
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link:hover {
-            background-color: rgba(96, 165, 250, 0.1) !important;
-            color: #60a5fa !important;
-        }
-        
-        /* Override any AdminLTE default that makes it black */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
-            background: var(--body-bg) !important;
-            color: var(--accent) !important;
-        }
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::before {
-            box-shadow: 15px 15px 0 15px var(--body-bg) !important;
-        }
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::after {
-            box-shadow: 15px -15px 0 15px var(--body-bg) !important;
-        }
-
-        /* Fix Parent Menu (has-treeview) Active State in Dark Mode */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link,
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link {
-            background: transparent !important;
-            color: var(--accent) !important;
-        }
-
         html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link:hover,
         html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link:hover {
-            background: rgba(96, 165, 250, 0.1) !important;
-            color: var(--accent) !important;
+            background-color: rgba(96, 165, 250, 0.1) !important;
+            color: #60a5fa !important;
         }
 
-        /* Fix Child Menu Active State in Dark Mode */
-        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active {
-            background: var(--body-bg) !important;
-            color: var(--accent) !important;
+        /* Parent with active submenu - CUTOUT EFFECT (like light mode) */
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active {
+            background: #2d3a4f !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            position: relative;
+            z-index: 0;
+        }
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::before {
+            box-shadow: 15px 15px 0 15px #0f172a !important;
+        }
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::after {
+            display: none !important;
         }
 
-        /* Sidebar Child Menu in Dark Mode */
+        /* Submenu items (S1, S2, S3) */
+        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link,
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link,
         html.dark-mode .sidebar .nav-treeview > .nav-item > .nav-link {
             color: rgba(255, 255, 255, 0.65) !important;
+            background: rgba(255, 255, 255, 0.05) !important;
         }
 
+        /* Submenu hover */
+        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link:hover,
+        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link:hover,
         html.dark-mode .sidebar .nav-treeview > .nav-item > .nav-link:hover {
-            color: var(--accent) !important;
-            background: rgba(96, 165, 250, 0.1) !important;
-        }
-
-        /* More Specific Rules for Parent Menu with Dropdown (has-treeview) */
-        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item.menu-open > .nav-link,
-        html.dark-mode [class*="sidebar-dark"] .nav-sidebar > .nav-item.menu-open > .nav-link,
-        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link {
-            background-color: transparent !important;
-            color: #60a5fa !important;
-        }
-
-        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item.menu-is-opening > .nav-link,
-        html.dark-mode [class*="sidebar-dark"] .nav-sidebar > .nav-item.menu-is-opening > .nav-link,
-        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-is-opening > .nav-link {
-            background-color: transparent !important;
-            color: #60a5fa !important;
-        }
-
-        /* Parent menu hover when expanded */
-        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link:hover {
             background-color: rgba(96, 165, 250, 0.15) !important;
             color: #60a5fa !important;
         }
 
-        /* Icon color for parent menu when expanded */
-        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link .nav-icon,
-        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link i {
-            color: #60a5fa !important;
-        }
-
-        /* Arrow icon for parent menu */
-        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link .right {
-            color: #60a5fa !important;
-        }
-
-        /* Override AdminLTE default dark sidebar */
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link {
-            color: rgba(255, 255, 255, 0.65) !important;
-        }
-
+        /* Active submenu (S3 selected) - CLEAR INDICATOR */
+        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active,
         html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link.active {
-            background-color: var(--body-bg) !important;
-            color: #60a5fa !important;
+            background-color: #2d3a4f !important;
+            color: #ffffff !important;
+            font-weight: 600;
         }
 
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link:hover {
-            background-color: rgba(96, 165, 250, 0.1) !important;
-            color: #60a5fa !important;
+        /* Single active menu (Dashboard, no submenu) - CUTOUT EFFECT */
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
+            background: #2d3a4f !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::before {
+            box-shadow: 15px 15px 0 15px #0f172a !important;
+            background: transparent !important;
+        }
+        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::after {
+            box-shadow: 15px -15px 0 15px #0f172a !important;
+            background: transparent !important;
         }
 
         .dark-mode-toggle {

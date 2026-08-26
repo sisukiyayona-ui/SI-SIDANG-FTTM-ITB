@@ -151,6 +151,10 @@
                 </li>
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
+                    <a class="nav-link font-weight-bold p-0 text-primary" id="kpps-tab" data-toggle="tab" href="#kpps-voting" role="tab" style="text-decoration: underline;">Hasil Voting Tim KPPS</a>
+                </li>
+                <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
+                <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="jadwal-tab" data-toggle="tab" href="#jadwal" role="tab" style="text-decoration: underline;">Jadwal Sidang & Penilaian</a>
                 </li>
             </ul>
@@ -292,9 +296,9 @@
                                         </div>
                                     </div>
                                     @endif
-                                    <div class="text-right mt-4">
-                                        <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
+                                    <div class="d-flex justify-content-between align-items-center mt-4">
                                         <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timForm').style.display='none'; document.getElementById('timAddBtn').style.display='block';">Batal</button>
+                                        <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
                                 </form>
                             </div>
@@ -362,6 +366,61 @@
                             </table>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {{-- TAB: HASIL VOTING TIM KPPS --}}
+                <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
+                    <div class="text-muted font-weight-bold mb-3" style="font-size: 14px;">
+                        Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
+                    </div>
+                    @php
+                        $appAjuan = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
+                            ->where('tahapan_sidang', $tahapan)
+                            ->where('status_ajukan_kpps', 'y')
+                            ->first();
+                        $kppsApps = collect();
+                        if ($appAjuan) {
+                            $kppsApps = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
+                                ->join('t_user as u', 'app.ID_USER', '=', 'u.ID')
+                                ->where('app.ID_AJUAN_SIDANG', $appAjuan->id)
+                                ->select('app.*', 'u.NIP_NIM', 'u.NAMA_LENGKAP')
+                                ->get();
+                        }
+                    @endphp
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm text-center mb-0">
+                            <thead style="background-color: #6998d3; color: white;">
+                                <tr>
+                                    <th style="width: 8%;">No</th>
+                                    <th style="width: 20%;">NIP</th>
+                                    <th style="width: 30%;">Nama KPPS</th>
+                                    <th style="width: 20%;">Status Tim</th>
+                                    <th style="width: 22%;">Status Approve</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if($kppsApps->count() > 0)
+                                    @foreach($kppsApps as $idx => $app)
+                                        <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
+                                            <td>{{ $idx + 1 }}</td>
+                                            <td>{{ $app->NIP_NIM ?? '-' }}</td>
+                                            <td class="text-left">{{ $app->NAMA_LENGKAP ?? '-' }}</td>
+                                            <td>{{ $app->STATUS_TIM ?? '-' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'success' : 'secondary' }}">
+                                                    {{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'Disetujui' : 'Menunggu' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    <tr style="background-color: #dbe5f1;">
+                                        <td colspan="5" class="text-center text-muted">Belum ada data voting KPPS</td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -464,9 +523,17 @@
                             @endif
                         </div>
                         @if(!in_array(session('auth_user.role'), ['FS']))
+                        @php
+                            // Item 16: Cek apakah penilai sudah mengunci nilai
+                            $isTUKunci = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
+                            $isNilaiTerkunci = false;
+                            if (!$isTUKunci && isset($penilaian) && $penilaian->count() > 0) {
+                                $isNilaiTerkunci = $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
+                            }
+                        @endphp
                         <div class="d-flex align-items-center">
-                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
-                            <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()">Simpan</button>
+                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" {{ $isNilaiTerkunci ? 'disabled' : '' }}><i class="fas fa-lock"></i> Kunci Nilai</button>
+                            <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                         </div>
                         @endif
                     </div>

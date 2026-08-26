@@ -70,6 +70,33 @@
             color: #ffffff !important;
         }
     </style>
+    {{-- Item 19: Modal Konfirmasi Ajukan --}}
+    <div class="modal fade" id="modalAjukan" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius: 12px; border: none;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1e3a5f, #1a1f6e); color: white; border-radius: 12px 12px 0 0;">
+                    <h5 class="modal-title"><i class="fas fa-paper-plane mr-2"></i>Konfirmasi Pengajuan</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <input type="hidden" id="ajukanIdJudul" value="">
+                    <input type="hidden" id="ajukanTahapan" value="">
+                    <div class="mb-3">
+                        <i class="fas fa-clipboard-check" style="font-size: 3rem; color: #2563eb; opacity: 0.7;"></i>
+                    </div>
+                    <p id="ajukanJudulText" style="font-size: 1rem; color: #333; margin-bottom: 8px;"></p>
+                    <p class="text-muted" style="font-size: 0.85rem;">Data akan dikirim ke TU Prodi untuk diproses.</p>
+                </div>
+                <div class="modal-footer justify-content-center border-0 pt-0" style="gap: 10px;">
+                    <button type="button" class="btn btn-secondary px-4" data-dismiss="modal" style="border-radius: 8px;">Batal</button>
+                    <button type="button" class="btn btn-primary px-4" onclick="confirmAjukanProdi()" style="border-radius: 8px; background: #2563eb; border-color: #2563eb;"><i class="fas fa-paper-plane mr-1"></i> Ya, Ajukan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @php
         $isTahap1 = strtolower($tahapan) === 'tahap i';
         $nama = $ajuan->nama_mhs ?? session('auth_user.nama_lengkap');
@@ -683,7 +710,21 @@ document.addEventListener('click', function(e) {
 });
 
 function ajukanProdi(idJudul, tahapan) {
-    if (!confirm('Ajukan jadwal sidang ke Program Studi?')) return;
+    // Item 19: Tampilkan modal konfirmasi yang lebih rapi
+    var modal = document.getElementById('modalAjukan');
+    if (!modal) return;
+    document.getElementById('ajukanIdJudul').value = idJudul;
+    document.getElementById('ajukanTahapan').value = tahapan;
+    var modalJudul = document.getElementById('ajukanJudulText');
+    if (modalJudul) modalJudul.textContent = 'Ajukan jadwal sidang ' + (document.querySelector('.badge')?.textContent || tahapan) + ' ke Program Studi?';
+    new bootstrap.Modal(modal).show();
+}
+
+function confirmAjukanProdi() {
+    var idJudul = document.getElementById('ajukanIdJudul').value;
+    var tahapan = document.getElementById('ajukanTahapan').value;
+    var modal = bootstrap.Modal.getInstance(document.getElementById('modalAjukan'));
+    if (modal) modal.hide();
     
     var btn = document.querySelector('.btn-success[onclick*="ajukanProdi"]');
     if (btn) { 
@@ -704,11 +745,9 @@ function ajukanProdi(idJudul, tahapan) {
     .then(function(data) {
         if (data.success) {
             showToast('success', data.message || 'Berhasil diajukan ke Prodi');
-            // Pindah ke jadwal list setelah berhasil ajukan
             setTimeout(function() {
                 document.getElementById('jadwalForm').style.display = 'none';
                 document.getElementById('jadwalList').style.display = 'block';
-                // Refresh halaman untuk update status
                 if (typeof showTahapForm === 'function') {
                     showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal'); 
                 } else {
@@ -820,13 +859,15 @@ if (window.jQuery && jQuery.fn.select2) {
       }
   }
 
+  // Item 21: Sync status dengan progress sidang
   function getAjuanDisplayStatus($ajuan) {
       if (!$ajuan) return 'Belum diajukan';
       if (!empty($ajuan->status_lulus)) return ucfirst($ajuan->status_lulus);
-      if (!empty($ajuan->tgl_sidang)) return 'Terjadwal';
-      if (($ajuan->status_ajukan_kpps ?? null) === 'y') return 'Disetujui KPPS';
-      if (($ajuan->status_ajukan_prodi ?? null) === 'y') return 'Disetujui Prodi';
-      if (($ajuan->status_ajukan_mhs ?? null) === 'y') return 'Menunggu Persetujuan Prodi';
-      return 'Belum diajukan';
+      if (empty($ajuan->status_ajukan_mhs) || $ajuan->status_ajukan_mhs === 't') return 'Belum diajukan';
+      if ($ajuan->status_ajukan_mhs === 'y' && (empty($ajuan->status_ajukan_prodi) || $ajuan->status_ajukan_prodi === 't')) return 'Diproses di TU Prodi';
+      if ($ajuan->status_ajukan_prodi === 'y' && (empty($ajuan->status_ajukan_fs) || $ajuan->status_ajukan_fs === 't')) return 'Diproses di Fakultas';
+      if (($ajuan->status_ajukan_kpps ?? null) === 'y') return 'Menunggu Jadwal Sidang';
+      if (!empty($ajuan->tgl_sidang)) return 'Menunggu Jadwal Sidang';
+      return 'Menunggu Jadwal Sidang';
   }
   @endphp
