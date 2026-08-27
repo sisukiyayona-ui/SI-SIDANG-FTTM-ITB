@@ -3,40 +3,35 @@
 @section('title', 'Lupa Password - SI SIDANG FTTM ITB')
 
 @section('auth-content')
-    <div class="card auth-card">
-        <div class="card-header text-center">
-            <img src="{{ asset('images/itb-logo.svg') }}"
-                 alt="ITB Logo" class="auth-logo">
-            <h3 class="text-white">SI SIDANG FTTM ITB</h3>
-            <p class="text-white mb-0">Lupa Password</p>
-        </div>
-        <div class="card-body">
-            <form action="{{ route('password.email') }}" method="POST">
-                @csrf
-
-                <div class="mb-4">
-                    <label for="email" class="form-label">Email</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                        <input type="email" name="email" id="email"
-                               class="form-control @error('email') is-invalid @enderror"
-                               value="{{ old('email') }}" placeholder="email@fttm.itb.ac.id" required>
-                    </div>
-                    @error('email') <small class="text-danger">{{ $message }}</small> @enderror
-                </div>
-
-                <button type="submit" class="btn btn-auth text-white w-100">
-                    <i class="fas fa-paper-plane mr-2"></i> Kirim Tautan Reset
-                </button>
-            </form>
-
-            <div class="text-center mt-4">
-                <p class="mb-0">
-                    <a href="{{ route('login') }}" class="text-decoration-none" style="color: var(--accent);">
-                        <i class="fas fa-arrow-left mr-1"></i> Kembali ke Login
-                    </a>
-                </p>
-            </div>
-        </div>
+    <div style="margin-bottom: 24px; text-align: center;">
+        <h2 style="font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 8px;">Lupa Password</h2>
+        <p style="font-size: 0.85rem; color: var(--muted); line-height: 1.4;">Masukkan email Anda untuk menerima tautan reset password.</p>
     </div>
+
+    <form action="{{ route('password.email') }}" method="POST" autocomplete="off">
+        @csrf
+
+        <div class="form-group">
+            <label for="email" class="form-label">Email</label>
+            <div class="input-wrap">
+                <i class="fas fa-envelope icon-left"></i>
+                <input type="email" name="email" id="email"
+                       class="form-control @error('email') is-invalid @enderror"
+                       value="{{ old('email') }}" placeholder="email@fttm.itb.ac.id" required autofocus>
+            </div>
+            @error('email')
+                <span class="text-danger"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span>
+            @enderror
+        </div>
+
+        <button type="submit" class="btn-submit" style="margin-top: 12px;">
+            <i class="fas fa-paper-plane"></i> Kirim Tautan Reset
+        </button>
+
+        <div class="register-row" style="margin-top: 24px;">
+            <a href="{{ route('login') }}">
+                <i class="fas fa-arrow-left mr-1"></i> Kembali ke Login
+            </a>
+        </div>
+    </form>
 @endsection

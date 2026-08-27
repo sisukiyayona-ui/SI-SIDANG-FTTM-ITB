@@ -6,6 +6,14 @@
     <title>Sistem Informasi Penjadwalan Sidang - FTTM ITB</title>
     <meta name="description" content="Jadwal Sidang Mahasiswa - FTTM ITB">
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/itb-logo.svg') }}">
+    <script nonce="{{ request()->attributes->get('csp_nonce') ?? '' }}">
+        (function() {
+            var saved = localStorage.getItem('darkMode');
+            if (saved === 'true') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">

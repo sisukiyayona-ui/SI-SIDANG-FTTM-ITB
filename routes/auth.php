@@ -15,13 +15,13 @@ Route::middleware('guest')->group(function () {
     Route::get('login/sso/callback', [LoginController::class, 'handleSSOCallback'])->name('sso.callback');
 
     Route::get('register', [RegisterController::class, 'showRegisterForm'])->name('register');
-    Route::post('register', [RegisterController::class, 'register']);
+    Route::post('register', [RegisterController::class, 'register'])->middleware('throttle:3,1');
 
     Route::get('forgot-password', [ForgotPasswordController::class, 'showForgotForm'])->name('password.request');
-    Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLink'])->name('password.email')->middleware('throttle:3,1');
 
     Route::get('reset-password/{token?}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-    Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
+    Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update')->middleware('throttle:3,1');
 });
 
 Route::post('logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth.dummy');

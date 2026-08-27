@@ -14,7 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.dummy' => \App\Http\Middleware\DummyAuthMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'ownership' => \App\Http\Middleware\OwnershipMiddleware::class,
         ]);
+
+        $middleware->prepend(\App\Http\Middleware\SecurityHeadersMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -6,6 +6,14 @@
     <title>@yield('title', 'Login - SI SIDANG FTTM ITB')</title>
     <meta name="description" content="Masuk ke Sistem Informasi Penjadwalan Sidang FTTM ITB">
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/itb-logo.svg') }}">
+    <script nonce="{{ request()->attributes->get('csp_nonce') ?? '' }}">
+        (function() {
+            var saved = localStorage.getItem('darkMode');
+            if (saved === 'true') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -83,20 +91,6 @@
         html.dark-mode .forgot-link {
             color: var(--link) !important;
         }
-        html.dark-mode .demo-card {
-            background: var(--bg3) !important;
-            border-color: var(--border) !important;
-        }
-        html.dark-mode .demo-card-role {
-            color: var(--text) !important;
-        }
-        html.dark-mode .demo-card-username,
-        html.dark-mode .demo-card-password {
-            color: var(--muted) !important;
-        }
-        html.dark-mode .divider {
-            border-top-color: var(--border) !important;
-        }
         html.dark-mode .toast {
             background: var(--bg2) !important;
             border-color: var(--border) !important;
@@ -119,9 +113,6 @@
         }
         html.dark-mode .btn-toggle-pass:hover {
             color: var(--text) !important;
-        }
-        html.dark-mode .demo-header {
-            color: var(--muted) !important;
         }
 
         body {
@@ -362,12 +353,6 @@
             box-shadow: 0 8px 28px rgba(37,99,235,0.35);
         }
 
-        .divider {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin: 22px 0;
-        }
-
         .register-row {
             text-align: center;
             font-size: 0.82rem;
@@ -381,81 +366,7 @@
         }
         .register-row a:hover { text-decoration: underline; }
 
-        /* ── DEMO CARDS ── */
-        .demo-section {
-            margin-top: 28px;
-        }
-        .demo-header {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--muted);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .demo-cards {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        @media (min-width: 520px) {
-            .demo-cards { grid-template-columns: repeat(3, 1fr); }
-        }
-        .demo-card {
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .demo-card:hover {
-            border-color: var(--accent);
-            background: rgba(37,99,235,0.04);
-            transform: translateY(-2px);
-        }
-        .demo-card-icon {
-            width: 36px;
-            height: 36px;
-            background: rgba(37,99,235,0.1);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent);
-            font-size: 0.9rem;
-        }
-        .demo-card-content {
-            flex: 1;
-        }
-        .demo-card-role {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 2px;
-        }
-        .demo-card-username {
-            font-size: 0.7rem;
-            color: var(--muted);
-            margin-bottom: 1px;
-        }
-        .demo-card-password {
-            font-size: 0.7rem;
-            color: var(--muted);
-        }
-        .demo-card-action {
-            color: var(--muted);
-            font-size: 0.75rem;
-            transition: color 0.2s;
-        }
-        .demo-card:hover .demo-card-action {
-            color: var(--accent);
-        }
+
 
         /* Toast */
         .toast-wrap {
@@ -551,7 +462,6 @@
             .nav-brand-name { font-size: 0.85rem; }
             .nav-brand-sub { font-size: 0.62rem; }
             .login-box { max-width: 100%; }
-            .demo-cards { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -567,7 +477,7 @@
                 </div>
             </a>
             <div class="nav-actions">
-                <button class="btn-nav btn-nav-ghost" id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="border:none; font-size:1rem;">
+                <button class="btn-nav btn-nav-ghost" id="darkModeToggle" title="Toggle Dark Mode" style="border:none; font-size:1rem;">
                     <i class="fas fa-moon" id="darkModeIcon"></i>
                 </button>
                 <a href="{{ url('/') }}" class="btn-nav btn-nav-ghost">
@@ -600,7 +510,7 @@
                 <div class="toast-content">
                     <i class="fas fa-check-circle toast-icon"></i>
                     <span class="toast-msg">{{ session('success') }}</span>
-                    <button type="button" class="toast-close" onclick="this.closest('[data-toast]').remove()">&times;</button>
+                    <button type="button" class="toast-close">&times;</button>
                 </div>
             </div>
         @endif
@@ -609,7 +519,7 @@
                 <div class="toast-content">
                     <i class="fas fa-exclamation-circle toast-icon"></i>
                     <span class="toast-msg">{{ session('error') }}</span>
-                    <button type="button" class="toast-close" onclick="this.closest('[data-toast]').remove()">&times;</button>
+                    <button type="button" class="toast-close">&times;</button>
                 </div>
             </div>
         @endif
@@ -617,7 +527,24 @@
 
     @stack('scripts')
 
-    <script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
+        // Dark mode toggle
+        document.getElementById('darkModeToggle').addEventListener('click', function() {
+            var html = document.documentElement;
+            var icon = document.getElementById('darkModeIcon');
+            var isDark = html.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        });
+
+        // Toast dismiss buttons
+        document.querySelectorAll('.toast-close').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                this.closest('[data-toast]').remove();
+            });
+        });
+
+        // Auto-dismiss toasts
         document.querySelectorAll('[data-toast]').forEach(function(el) {
             var timer = setTimeout(function() {
                 if (el.parentNode) el.remove();

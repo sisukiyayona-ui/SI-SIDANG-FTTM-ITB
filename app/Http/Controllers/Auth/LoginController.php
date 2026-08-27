@@ -62,20 +62,8 @@ class LoginController extends Controller
                 Cache::forget($usernameKey . ':count');
             }
 
-            $existing = TUser::where('USERNAME', $request->username)->first();
-            if ($existing && ($existing->STATUS_AKTIF ?? $existing->status_aktif) !== 'AKTIF') {
-                return back()->withErrors([
-                    'username' => 'Akun ini nonaktif. Hubungi admin.',
-                ])->withInput();
-            }
-            if ($existing && !in_array($existing->STATUS_APPROVE ?? $existing->status_approve, ['t', 'y'], true)) {
-                return back()->withErrors([
-                    'username' => 'Akun belum disetujui admin.',
-                ])->withInput();
-            }
-
             return back()->withErrors([
-                'username' => 'Username atau password salah.',
+                'username' => 'Username atau password yang Anda masukkan salah.',
             ])->withInput();
         }
 

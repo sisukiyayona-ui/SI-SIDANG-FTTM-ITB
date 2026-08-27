@@ -115,9 +115,9 @@ class MahasiswaController extends Controller
                     GROUP BY id_judul
                 ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
             ) a7 ON j.id = a7.ID_JUDUL
-            WHERE j.ID_USER_MHS = " . $user['id'] . " AND u.STRATA = '" . $strata . "'
+            WHERE j.ID_USER_MHS = ? AND u.STRATA = ?
             GROUP BY j.id, j.JUDUL
-        ");
+        ", [$user['id'], $strata]);
         
         return view('mahasiswa.dashboard', compact('tracking', 'juduls', 'activeJudulId', 'strata'));
     }
@@ -354,7 +354,7 @@ class MahasiswaController extends Controller
         $request->validate([
             'id_syarat_sidang' => 'required',
             'tahapan_sidang' => 'required',
-            'file' => 'required|file|max:10240', // Max 10MB
+            'file' => 'required|file|max:10240|mimetypes:application/pdf',
         ]);
 
         $tahapan = $request->tahapan_sidang;
@@ -363,7 +363,14 @@ class MahasiswaController extends Controller
         // Handle file upload
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->file($file->getRealPath());
+            if ($mimeType !== 'application/pdf') {
+                return response()->json(['success' => false, 'message' => 'Hanya file PDF yang diizinkan'], 422);
+            }
+
+            $filename = time() . '_' . bin2hex(random_bytes(16)) . '.pdf';
             $path = $file->storeAs('uploads/persyaratan', $filename, 'public');
             $linkFile = '/storage/' . $path;
 
@@ -571,16 +578,18 @@ class MahasiswaController extends Controller
 
         // Simpan file upload
         if ($request->hasFile('files')) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+
             foreach ($request->file('files') as $idSyarat => $file) {
-                // Validate file type and size
-                if ($file->getClientOriginalExtension() !== 'pdf') {
+                $mimeType = $finfo->file($file->getRealPath());
+                if ($mimeType !== 'application/pdf') {
                     return response()->json(['success' => false, 'message' => 'Hanya file PDF yang diizinkan'], 422);
                 }
                 if ($file->getSize() > 2 * 1024 * 1024) {
                     return response()->json(['success' => false, 'message' => 'Maksimal ukuran file 2 MB'], 422);
                 }
 
-                $filename = time() . '_' . $file->getClientOriginalName();
+                $filename = time() . '_' . bin2hex(random_bytes(16)) . '.pdf';
                 $path = $file->storeAs('uploads/persyaratan', $filename, 'public');
                 $linkFile = '/storage/' . $path;
 
@@ -700,7 +709,8 @@ class MahasiswaController extends Controller
         // Handle penelaah file upload (stored per tim row in t_tim_sidang)
         if ($request->hasFile('file_penelaah')) {
             $file = $request->file('file_penelaah');
-            $path = 'penelaah/' . time() . '_' . $file->getClientOriginalName();
+            $filename = time() . '_' . bin2hex(random_bytes(16)) . '.' . $file->getClientOriginalExtension();
+            $path = 'penelaah/' . $filename;
             \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
             $timSidang->FILE_PENELAAH = '/storage/' . $path;
         }
@@ -775,7 +785,8 @@ class MahasiswaController extends Controller
         // Handle penelaah file upload (stored per tim row in t_tim_sidang)
         if ($request->hasFile('file_penelaah')) {
             $file = $request->file('file_penelaah');
-            $path = 'penelaah/' . time() . '_' . $file->getClientOriginalName();
+            $filename = time() . '_' . bin2hex(random_bytes(16)) . '.' . $file->getClientOriginalExtension();
+            $path = 'penelaah/' . $filename;
             \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
             $timSidang->FILE_PENELAAH = '/storage/' . $path;
         }

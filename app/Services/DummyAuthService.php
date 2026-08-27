@@ -15,6 +15,11 @@ class DummyAuthService
 
         if ($user && ($sso || ($password !== null && Hash::check($password, $user->getAuthPassword())))) {
             $userData = $this->toSessionUser($user);
+            $userData['session_created_at'] = now()->timestamp;
+            $userData['session_last_activity'] = now()->timestamp;
+            $userData['session_duration'] = 21600;
+            $userData['session_login_at'] = now()->timestamp;
+            $userData['session_renewal_count'] = 0;
             session(['auth_user' => $userData]);
             return $userData;
         }
@@ -34,7 +39,8 @@ class DummyAuthService
 
     public function logout(): void
     {
-        session()->forget('auth_user');
+        session()->invalidate();
+        session()->regenerateToken();
     }
 
     public function register(array $data): array

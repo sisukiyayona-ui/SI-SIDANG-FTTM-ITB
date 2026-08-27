@@ -7,6 +7,16 @@
 
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/itb-logo.svg') }}">
 
+    <script nonce="{{ request()->attributes->get('csp_nonce') ?? '' }}">
+        (function() {
+            var saved = localStorage.getItem('darkMode');
+            var isDark = saved === 'true' || (saved === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDark) {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -128,7 +138,14 @@
         html.dark-mode .wrapper {
             background: var(--body-bg) !important;
         }
-        html.dark-mode html,
+        
+        /* OVERRIDE AdminLTE .dark-mode hardcoded background */
+        .dark-mode {
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+        
+        html.dark-mode,
         html.dark-mode body {
             background: var(--body-bg) !important;
         }
@@ -381,6 +398,12 @@
         .wrapper {
             background-color: var(--primary-blue) !important;
             min-height: 100vh;
+            animation: fadeInPage 0.25s ease-in-out;
+        }
+
+        @keyframes fadeInPage {
+            0% { opacity: 0; transform: translateY(5px); }
+            100% { opacity: 1; transform: translateY(0); }
         }
 
         /* Main Header (Navbar) Styling */
@@ -2109,12 +2132,13 @@
             <li class="nav-item dropdown d-flex align-items-center">
                 <a class="nav-link navbar-icon-btn" data-toggle="dropdown" href="#" role="button" id="notifBell">
                     <i class="far fa-bell" style="font-size:1.05rem;"></i>
-                    <span class="notif-badge" id="notifBadge">0</span>
+                    <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right dropdown-menu-teams" id="notifDropdown">
                     <div class="teams-dropdown-header">
                         <h5>Notifications</h5>
                         <div class="teams-header-actions">
+                            <button title="Refresh" onclick="event.preventDefault(); event.stopPropagation(); loadNotifications();"><i class="fas fa-sync-alt"></i></button>
                             <button title="Mark all read" onclick="markAllRead()"><i class="fas fa-check-double"></i></button>
                             <button title="Close" onclick="$(this).closest('.dropdown-menu').parent().find('.nav-link').dropdown('toggle'); return false;"><i class="fas fa-times"></i></button>
                         </div>
@@ -2534,14 +2558,14 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/dist/overlayscrollbars.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/dist/overlayscrollbars.min.js"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
     var toastTimer = null;
 
     function showToast(type, message) {
@@ -2797,7 +2821,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 function showConfirmDialog(opts) {
     opts = opts || {};
     var $modal = $('#globalConfirmModal');
@@ -2837,6 +2861,153 @@ function showConfirmDialog(opts) {
         $modal.modal('show');
     });
 }
+</script>
+
+<div class="modal fade" id="sessionRenewalModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false" style="z-index:1060;">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius:12px; overflow:hidden; border:none; box-shadow:0 .5rem 1.5rem rgba(0,0,0,.2);">
+            <div class="modal-body text-center pt-4 pb-2 px-4">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:72px;height:72px;border-radius:50%;background:#fff8e1;">
+                    <i class="fas fa-clock" style="font-size:28px;color:#f6c23e;"></i>
+                </div>
+                <h5 class="font-weight-bold mb-2">Perpanjangan Session</h5>
+                <p class="text-muted mb-1" style="font-size:14px;">Session Anda akan habis dalam <strong id="sessionCountdown" class="text-danger">00:00</strong></p>
+                <p class="text-muted mb-3" style="font-size:13px;">Apakah Anda ingin memperpanjang session?</p>
+            </div>
+            <div class="modal-footer border-top-0 justify-content-center pb-4 pt-2">
+                <button type="button" id="sessionRenewBtn" class="btn btn-success px-4 font-weight-bold">Ya, Perpanjang</button>
+                <button type="button" id="sessionLogoutBtn" class="btn btn-danger px-4 font-weight-bold">Tidak</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="sessionToast" class="position-fixed" style="bottom:20px;right:20px;z-index:1050;display:none;">
+    <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" style="min-width:300px;">
+        <div class="toast-header bg-warning text-dark">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <strong class="mr-auto">Session</strong>
+            <small>Baru saja</small>
+        </div>
+        <div class="toast-body">
+            <span id="sessionToastMsg">Session telah habis. Silakan login kembali.</span>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
+(function() {
+    var SESSION_CHECK_URL = '{{ route("session.check") }}';
+    var SESSION_RENEW_URL = '{{ route("session.renew") }}';
+    var LOGOUT_URL = '{{ route("logout") }}';
+    var csrfToken = '{{ csrf_token() }}';
+    var logoutForm = document.createElement('form');
+    logoutForm.method = 'POST';
+    logoutForm.action = LOGOUT_URL;
+    logoutForm.style.display = 'none';
+    var csrfField = document.createElement('input');
+    csrfField.type = 'hidden';
+    csrfField.name = '_token';
+    csrfField.value = csrfToken;
+    logoutForm.appendChild(csrfField);
+    document.body.appendChild(logoutForm);
+    var CHECK_INTERVAL = 30000;
+    var WARNING_SECONDS = 300;
+
+    var modalTimer = null;
+    var countdownInterval = null;
+    var warningShown = false;
+
+    function formatTime(seconds) {
+        var m = Math.floor(seconds / 60);
+        var s = seconds % 60;
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    function showToast(msg) {
+        $('#sessionToastMsg').text(msg);
+        $('#sessionToast').show();
+    }
+
+    function hideToast() {
+        $('#sessionToast').hide();
+    }
+
+    function checkSession() {
+        $.ajax({
+            url: SESSION_CHECK_URL,
+            method: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                if (data.expired) {
+                    showToast('Session telah habis. Silakan login kembali.');
+                    setTimeout(function() { logoutForm.submit(); }, 3000);
+                    return;
+                }
+
+                if (data.show_warning && !warningShown) {
+                    warningShown = true;
+                    showRenewalModal(data.remaining);
+                }
+            },
+            error: function() {
+                showToast('Gagal memeriksa session. Mengarahkan ke login...');
+                setTimeout(function() { logoutForm.submit(); }, 3000);
+            }
+        });
+    }
+
+    function showRenewalModal(remaining) {
+        if (remaining <= 0) {
+            logoutForm.submit();
+            return;
+        }
+
+        $('#sessionCountdown').text(formatTime(remaining));
+        $('#sessionRenewalModal').modal('show');
+
+        countdownInterval = setInterval(function() {
+            remaining--;
+            $('#sessionCountdown').text(formatTime(remaining));
+
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                $('#sessionRenewalModal').modal('hide');
+                showToast('Session telah habis. Silakan login kembali.');
+                setTimeout(function() { logoutForm.submit(); }, 2000);
+            }
+        }, 1000);
+    }
+
+    $('#sessionRenewBtn').on('click', function() {
+        $.ajax({
+            url: SESSION_RENEW_URL,
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken },
+            dataType: 'json',
+            success: function(data) {
+                if (data.success) {
+                    $('#sessionRenewalModal').modal('hide');
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    warningShown = false;
+                    hideToast();
+                    showToast('Session berhasil diperpanjang.');
+                    setTimeout(hideToast, 3000);
+                }
+            },
+            error: function() {
+                showToast('Gagal memperpanjang session.');
+            }
+        });
+    });
+
+    $('#sessionLogoutBtn').on('click', function() {
+        logoutForm.submit();
+    });
+
+    setInterval(checkSession, CHECK_INTERVAL);
+    checkSession();
+})();
 </script>
 
 @stack('scripts')
