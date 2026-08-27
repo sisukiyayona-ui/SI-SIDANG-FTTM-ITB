@@ -1,4 +1,18 @@
 <div class="card-body tahap-container" id="kpps-tahap-container">
+    @php
+    function getAjuanDisplayStatusKpps($a) {
+        $sl = $a->status_lulus ?? $a->STATUS_LULUS ?? null;
+        if (!empty($sl) && strtolower($sl) !== 'diajukan') return ucfirst($sl);
+        $mhs = $a->status_ajukan_mhs ?? $a->STATUS_AJUKAN_MHS ?? 't';
+        if (empty($mhs) || $mhs === 't') return 'Belum Diajukan';
+        $prodi = $a->status_ajukan_prodi ?? $a->STATUS_AJUKAN_PRODI ?? 't';
+        if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
+        $kpps = $a->status_ajukan_kpps ?? $a->STATUS_AJUKAN_KPPS ?? 't';
+        if ($prodi === 'y' && (empty($kpps) || $kpps === 't')) return 'Diproses di Fakultas';
+        if (($kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
+        return 'Menunggu Pelaksanaan Sidang';
+    }
+    @endphp
     <style>
         .tahap-container {
             color: #1e293b;
@@ -216,7 +230,7 @@
                                                 -
                                             @endif
                                         </td>
-                                        <td>{{ $a->status_lulus ?? '-' }}</td>
+                                        <td>{{ getAjuanDisplayStatusKpps($a) }}</td>
                                         <td>
                                             <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="showKppsPenilaian()">Penilaian</button>
                                         </td>

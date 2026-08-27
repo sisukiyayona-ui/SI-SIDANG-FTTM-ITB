@@ -650,16 +650,30 @@ class MahasiswaController extends Controller
         $request->validate([
             'id_judul' => 'required',
             'tahapan_sidang' => 'required',
-            'id_user_penilai' => 'required',
             'status_tim_sidang' => 'required',
             'urutan' => 'nullable',
             'file_penelaah' => 'nullable|file|mimes:pdf',
         ]);
 
-        // Get user details from t_user table
-        $userPenilai = \App\Models\TUser::find($request->id_user_penilai);
-        if (!$userPenilai) {
-            return response()->json(['success' => false, 'message' => 'User tidak ditemukan'], 404);
+        // External penguji (manual input)
+        $manualNama = $request->input('manual_nama');
+        $manualNip = $request->input('manual_nip');
+
+        if ($manualNama) {
+            $timNama = $manualNama;
+            $timNip = $manualNip ?: '';
+            $idUserPenilai = null;
+        } else {
+            $request->validate([
+                'id_user_penilai' => 'required',
+            ]);
+            $userPenilai = \App\Models\TUser::find($request->id_user_penilai);
+            if (!$userPenilai) {
+                return response()->json(['success' => false, 'message' => 'User tidak ditemukan'], 404);
+            }
+            $timNama = $userPenilai->NAMA_LENGKAP;
+            $timNip = $userPenilai->NIP_NIM;
+            $idUserPenilai = $request->id_user_penilai;
         }
 
         // Auto-calculate urutan if not provided
@@ -674,10 +688,10 @@ class MahasiswaController extends Controller
         $timSidang = new \App\Models\TTimSidang();
         $timSidang->ID_JUDUL = $request->id_judul;
         $timSidang->TAHAPAN_SIDANG = $request->tahapan_sidang;
-        $timSidang->ID_USER_PENILAI = $request->id_user_penilai;
+        $timSidang->ID_USER_PENILAI = $idUserPenilai;
         $timSidang->STATUS_TIM_SIDANG = $request->status_tim_sidang;
-        $timSidang->NIP = $userPenilai->NIP_NIM;
-        $timSidang->NAMA = $userPenilai->NAMA_LENGKAP;
+        $timSidang->NIP = $timNip;
+        $timSidang->NAMA = $timNama;
         $timSidang->URUTAN = $urutan;
         $timSidang->ID_SK = $request->id_sk;
         $timSidang->TGL_CREATE = date('Y-m-d');
@@ -711,7 +725,6 @@ class MahasiswaController extends Controller
     public function updateTimSidang(\Illuminate\Http\Request $request, $id)
     {
         $request->validate([
-            'id_user_penilai' => 'required',
             'status_tim_sidang' => 'required',
             'urutan' => 'nullable',
             'file_penelaah' => 'nullable|file|mimes:pdf',
@@ -722,10 +735,25 @@ class MahasiswaController extends Controller
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
-        // Get user details from t_user table
-        $userPenilai = \App\Models\TUser::find($request->id_user_penilai);
-        if (!$userPenilai) {
-            return response()->json(['success' => false, 'message' => 'User tidak ditemukan'], 404);
+        // External penguji (manual input)
+        $manualNama = $request->input('manual_nama');
+        $manualNip = $request->input('manual_nip');
+
+        if ($manualNama) {
+            $timNama = $manualNama;
+            $timNip = $manualNip ?: '';
+            $idUserPenilai = null;
+        } else {
+            $request->validate([
+                'id_user_penilai' => 'required',
+            ]);
+            $userPenilai = \App\Models\TUser::find($request->id_user_penilai);
+            if (!$userPenilai) {
+                return response()->json(['success' => false, 'message' => 'User tidak ditemukan'], 404);
+            }
+            $timNama = $userPenilai->NAMA_LENGKAP;
+            $timNip = $userPenilai->NIP_NIM;
+            $idUserPenilai = $request->id_user_penilai;
         }
 
         $urutan = $request->urutan;
@@ -736,10 +764,10 @@ class MahasiswaController extends Controller
             $urutan = ($maxUrutan ?: 0) + 1;
         }
 
-        $timSidang->ID_USER_PENILAI = $request->id_user_penilai;
+        $timSidang->ID_USER_PENILAI = $idUserPenilai;
         $timSidang->STATUS_TIM_SIDANG = $request->status_tim_sidang;
-        $timSidang->NIP = $userPenilai->NIP_NIM;
-        $timSidang->NAMA = $userPenilai->NAMA_LENGKAP;
+        $timSidang->NIP = $timNip;
+        $timSidang->NAMA = $timNama;
         $timSidang->URUTAN = $urutan;
         $timSidang->ID_SK = $request->id_sk;
         $timSidang->TGL_UPDATE = date('Y-m-d');

@@ -256,20 +256,29 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
-                                                <option value="">Pilih Nama</option>
-                                                @if(isset($users) && $users->count() > 0)
-                                                    @foreach($users as $user)
-                                                        <option value="{{ $user->ID }}" data-nip="{{ $user->NIP_NIM }}">{{ $user->NAMA_LENGKAP }} ({{ $user->NIP_NIM }})</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
+                                            <div id="namaSelectWrapper">
+                                                <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
+                                                    <option value="">Pilih Nama</option>
+                                                    @if(isset($users) && $users->count() > 0)
+                                                        @foreach($users as $user)
+                                                            <option value="{{ $user->ID }}" data-nip="{{ $user->NIP_NIM }}">{{ $user->NAMA_LENGKAP }} ({{ $user->NIP_NIM }})</option>
+                                                        @endforeach
+                                                    @endif
+                                                </select>
+                                            </div>
+                                            <div id="namaManualWrapper" style="display:none;">
+                                                <input type="text" class="form-control form-control-sm border-dark rounded-0" name="manual_nama" placeholder="Nama Lengkap">
+                                            </div>
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input" type="checkbox" id="isPengujiLuar" onchange="togglePengujiLuar(this)">
+                                                <label class="form-check-label" for="isPengujiLuar" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">NIP</label>
                                         <div class="col-sm-8 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" readonly>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" id="nipField" readonly>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
@@ -519,7 +528,7 @@
                                 <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
                             </select>
                             @else
-                            <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? $ajuan->status_lulus : 'Belum ditentukan' }}</span>
+                            <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
                             @endif
                         </div>
                         @if(!in_array(session('auth_user.role'), ['FS']))
@@ -605,7 +614,7 @@
             <div class="mt-4 d-flex align-items-center mb-2" style="margin-left: 10px;">
                 <span class="mr-4">Status Lulus</span>
                 @if(isset($ajuan) && $ajuan->status_lulus)
-                    <span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? '') }}">{{ $ajuan->status_lulus ?? 'Belum ditentukan' }}</span>
+                    <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                 @else
                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay2" style="width: 150px;">
                         <option value="lulus">Lulus</option>
@@ -623,6 +632,10 @@
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="tim-tab" data-toggle="tab" href="#tim" role="tab" style="text-decoration: underline;">Tim Pembimbing dan Penguji</a>
+                </li>
+                <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
+                <li class="nav-item">
+                    <a class="nav-link font-weight-bold p-0 text-primary" id="kpps-tab" data-toggle="tab" href="#kpps-voting" role="tab" style="text-decoration: underline;">Hasil Voting Tim KPPS</a>
                 </li>
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
@@ -749,20 +762,29 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
-                                                <option value="">Pilih Nama</option>
-                                                @if(isset($users) && $users->count() > 0)
-                                                    @foreach($users as $user)
-                                                        <option value="{{ $user->ID }}" data-nip="{{ $user->NIP_NIM }}">{{ $user->NAMA_LENGKAP }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
+                                            <div id="namaSelectWrapper">
+                                                <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
+                                                    <option value="">Pilih Nama</option>
+                                                    @if(isset($users) && $users->count() > 0)
+                                                        @foreach($users as $user)
+                                                            <option value="{{ $user->ID }}" data-nip="{{ $user->NIP_NIM }}">{{ $user->NAMA_LENGKAP }}</option>
+                                                        @endforeach
+                                                    @endif
+                                                </select>
+                                            </div>
+                                            <div id="namaManualWrapper" style="display:none;">
+                                                <input type="text" class="form-control form-control-sm border-dark rounded-0" name="manual_nama" placeholder="Nama Lengkap">
+                                            </div>
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input" type="checkbox" id="isPengujiLuar" onchange="togglePengujiLuar(this)">
+                                                <label class="form-check-label" for="isPengujiLuar" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">NIP</label>
                                         <div class="col-sm-8 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" readonly>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" id="nipField" readonly>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
@@ -789,9 +811,9 @@
                                         </div>
                                     </div>
                                     @endif
-                                    <div class="text-right mt-4">
-                                        <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
+                                    <div class="d-flex justify-content-between align-items-center mt-4">
                                         <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timFormTahap2').style.display='none'; document.getElementById('timAddBtnTahap2').style.display='block';">Batal</button>
+                                        <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
                                 </form>
                             </div>
@@ -863,6 +885,60 @@
                     </div>
                 </div>
 
+                <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
+                    <div class="text-muted font-weight-bold mb-3" style="font-size: 14px;">
+                        Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
+                    </div>
+                    @php
+                        $appAjuan = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
+                            ->where('tahapan_sidang', $tahapan)
+                            ->where('status_ajukan_kpps', 'y')
+                            ->first();
+                        $kppsApps = collect();
+                        if ($appAjuan) {
+                            $kppsApps = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
+                                ->join('t_user as u', 'app.ID_USER', '=', 'u.ID')
+                                ->where('app.ID_AJUAN_SIDANG', $appAjuan->id)
+                                ->select('app.*', 'u.NIP_NIM', 'u.NAMA_LENGKAP')
+                                ->get();
+                        }
+                    @endphp
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm text-center mb-0">
+                            <thead style="background-color: #6998d3; color: white;">
+                                <tr>
+                                    <th style="width: 8%;">No</th>
+                                    <th style="width: 20%;">NIP</th>
+                                    <th style="width: 30%;">Nama KPPS</th>
+                                    <th style="width: 20%;">Status Tim</th>
+                                    <th style="width: 22%;">Status Approve</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if($kppsApps->count() > 0)
+                                    @foreach($kppsApps as $idx => $app)
+                                        <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
+                                            <td>{{ $idx + 1 }}</td>
+                                            <td>{{ $app->NIP_NIM ?? '-' }}</td>
+                                            <td class="text-left">{{ $app->NAMA_LENGKAP ?? '-' }}</td>
+                                            <td>{{ $app->STATUS_TIM ?? '-' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'success' : 'secondary' }}">
+                                                    {{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'Disetujui' : 'Menunggu' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    <tr style="background-color: #dbe5f1;">
+                                        <td colspan="5" class="text-center text-muted">Belum ada data voting KPPS</td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
                     {{-- JADWAL & PENILAIAN --}}
                     <div id="jadwalListTahap2">
@@ -889,7 +965,7 @@
                                     <tr style="background-color: #dbe5f1;">
                                         <td>{{ $idx + 1 }}</td>
                                         <td><span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: {{ (in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) || ($a->status_lulus ?? '') === 'tidak lulus') ? 'default' : 'pointer' }}; white-space: nowrap;" {{ (in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) || ($a->status_lulus ?? '') === 'tidak lulus') ? '' : 'onclick="openJadwalForm(this)"' }} data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span></td>
-                                        <td><span class="badge bg-{{ getStatusColor($a->status_lulus ?? 'Dalam Proses') }}">{{ $a->status_lulus ?? 'Dalam Proses' }}</span></td>
+                                        <td><span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($a)) }}">{{ getAjuanDisplayStatus($a) }}</span></td>
                                         <td>
                                             <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
                                         </td>
@@ -1021,7 +1097,7 @@
                                         @endif
                                     </select>
                                     @else
-                            <span class="badge bg-{{ getStatusColor($ajuan->status_lulus ?? '') }}">{{ $ajuan->status_lulus ?? 'Belum ditentukan' }}</span>
+                            <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                                     @endif
                                 </div>
                                 @if(!in_array(session('auth_user.role'), ['FS']))
@@ -1206,8 +1282,8 @@
                                     <div class="form-group row align-items-center mb-3 px-1">
                                         <label class="col-sm-4 mb-0" style="font-size: 13px; color: #555;">Status Lulus</label>
                                         <div class="col-sm-8 px-2">
-                                            @php $color = getStatusColor($ajuan->status_lulus ?? ''); @endphp
-                                            <span class="badge bg-{{ $color }}">{{ $ajuan->status_lulus ?? 'Belum ditentukan' }}</span>
+                                            @php $displayStatus = getAjuanDisplayStatus($ajuan); $color = getStatusColor($displayStatus); @endphp
+                                            <span class="badge bg-{{ $color }}">{{ $displayStatus }}</span>
                                         </div>
                                     </div>
                                     @endif
@@ -1418,20 +1494,29 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
-                                                <option value="">Pilih Nama</option>
-                                                @if(isset($users) && $users->count() > 0)
-                                                    @foreach($users as $user)
-                                                        <option value="{{ $user->ID }}" data-nip="{{ $user->NIP_NIM }}">{{ $user->NAMA_LENGKAP }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
+                                            <div id="namaSelectWrapper">
+                                                <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
+                                                    <option value="">Pilih Nama</option>
+                                                    @if(isset($users) && $users->count() > 0)
+                                                        @foreach($users as $user)
+                                                            <option value="{{ $user->ID }}" data-nip="{{ $user->NIP_NIM }}">{{ $user->NAMA_LENGKAP }}</option>
+                                                        @endforeach
+                                                    @endif
+                                                </select>
+                                            </div>
+                                            <div id="namaManualWrapper" style="display:none;">
+                                                <input type="text" class="form-control form-control-sm border-dark rounded-0" name="manual_nama" placeholder="Nama Lengkap">
+                                            </div>
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input" type="checkbox" id="isPengujiLuar" onchange="togglePengujiLuar(this)">
+                                                <label class="form-check-label" for="isPengujiLuar" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">NIP</label>
                                         <div class="col-sm-8 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" readonly>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" id="nipField" readonly>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
@@ -1458,9 +1543,9 @@
                                         </div>
                                     </div>
                                     @endif
-                                    <div class="text-right mt-4">
-                                        <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
+                                    <div class="d-flex justify-content-between align-items-center mt-4">
                                         <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timFormTahap2').style.display='none'; document.getElementById('timAddBtnTahap2').style.display='block';">Batal</button>
+                                        <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
                                 </form>
                             </div>
@@ -2005,10 +2090,13 @@ function showAddTimForm(formId, btnId) {
     form.querySelector('[name="id"]').value = '';
     form.querySelector('[name="id_sk"]').value = '';
     var penilaiSel = form.querySelector('[name="id_user_penilai"]');
-    penilaiSel.value = '';
-    if (window.jQuery && jQuery.fn.select2) jQuery(penilaiSel).val('').trigger('change');
+    if (penilaiSel) { penilaiSel.value = ''; if (window.jQuery && jQuery.fn.select2) jQuery(penilaiSel).val('').trigger('change'); }
+    var manualNama = form.querySelector('[name="manual_nama"]');
+    if (manualNama) manualNama.value = '';
     form.querySelector('[name="nip"]').value = '';
     form.querySelector('[name="status_tim_sidang"]').value = '';
+    var cb = form.querySelector('#isPengujiLuar');
+    if (cb) { cb.checked = false; togglePengujiLuar(cb); }
 
     var timTable = form.closest('.tab-pane').querySelector('table tbody');
     if (timTable) {
@@ -2018,6 +2106,27 @@ function showAddTimForm(formId, btnId) {
         if (urutanSelect) {
             urutanSelect.value = nextUrutan <= 7 ? nextUrutan : '';
         }
+    }
+}
+
+function togglePengujiLuar(cb) {
+    var form = cb.closest('form');
+    var selectWrapper = form.querySelector('#namaSelectWrapper');
+    var manualWrapper = form.querySelector('#namaManualWrapper');
+    var nipField = form.querySelector('[name="nip"]');
+    if (cb.checked) {
+        if (selectWrapper) selectWrapper.style.display = 'none';
+        if (manualWrapper) manualWrapper.style.display = 'block';
+        if (nipField) { nipField.removeAttribute('readonly'); nipField.value = ''; }
+        var sel = form.querySelector('[name="id_user_penilai"]');
+        if (sel) { sel.value = ''; if (window.jQuery && jQuery.fn.select2) jQuery(sel).val('').trigger('change'); }
+    } else {
+        if (selectWrapper) selectWrapper.style.display = 'block';
+        if (manualWrapper) manualWrapper.style.display = 'none';
+        if (nipField) nipField.setAttribute('readonly', true);
+        var manualNama = form.querySelector('[name="manual_nama"]');
+        if (manualNama) manualNama.value = '';
+        if (nipField) nipField.value = '';
     }
 }
 
@@ -2091,6 +2200,19 @@ function submitTimSidang(event) {
     const form = event.target;
     const formData = new FormData(form);
     const timId = form.querySelector('[name="id"]').value;
+
+    var cb = form.querySelector('#isPengujiLuar');
+    if (cb && cb.checked) {
+        var manualNama = form.querySelector('[name="manual_nama"]');
+        var nip = form.querySelector('[name="nip"]');
+        if (!manualNama || !manualNama.value.trim()) {
+            showToast('Nama harus diisi', 'error');
+            return;
+        }
+        formData.delete('id_user_penilai');
+        formData.append('manual_nama', manualNama.value.trim());
+        if (nip) formData.append('manual_nip', nip.value.trim());
+    }
 
     if (timId) {
         formData.append('_method', 'PUT');
@@ -3037,5 +3159,20 @@ function getStatusColor($status) {
         default:
             return 'secondary';
     }
+}
+
+function getAjuanDisplayStatus($ajuan) {
+    if (!$ajuan) return 'Belum diajukan';
+    $sl = $ajuan->status_lulus ?? $ajuan->STATUS_LULUS ?? null;
+    if (!empty($sl) && strtolower($sl) !== 'diajukan') return ucfirst($sl);
+    $mhs = $ajuan->status_ajukan_mhs ?? $ajuan->STATUS_AJUKAN_MHS ?? 't';
+    if (empty($mhs) || $mhs === 't') return 'Belum diajukan';
+    $prodi = $ajuan->status_ajukan_prodi ?? $ajuan->STATUS_AJUKAN_PRODI ?? 't';
+    if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
+    $kpps = $ajuan->status_ajukan_kpps ?? $ajuan->STATUS_AJUKAN_KPPS ?? 't';
+    if ($prodi === 'y' && (empty($kpps) || $kpps === 't')) return 'Diproses di Fakultas';
+    if (($kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
+    if (!empty($ajuan->tgl_sidang ?? $ajuan->TGL_SIDANG)) return 'Terjadwal';
+    return 'Menunggu Pelaksanaan Sidang';
 }
 @endphp

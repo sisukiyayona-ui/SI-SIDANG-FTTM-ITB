@@ -55,6 +55,19 @@
         return '<span class="badge badge-warning">' . ucfirst($status) . '</span>';
     }
 
+    function getAjuanDisplayStatus($ev) {
+        $sl = $ev->status_lulus ?? $ev->STATUS_LULUS ?? null;
+        if (!empty($sl) && strtolower($sl) !== 'diajukan') return ucfirst($sl);
+        $mhs = $ev->status_ajukan_mhs ?? $ev->STATUS_AJUKAN_MHS ?? 't';
+        if (empty($mhs) || $mhs === 't') return 'Belum Diajukan';
+        $prodi = $ev->status_ajukan_prodi ?? $ev->STATUS_AJUKAN_PRODI ?? 't';
+        if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
+        $kpps = $ev->status_ajukan_kpps ?? $ev->STATUS_AJUKAN_KPPS ?? 't';
+        if ($prodi === 'y' && (empty($kpps) || $kpps === 't')) return 'Diproses di Fakultas';
+        if (($kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
+        return 'Menunggu Pelaksanaan Sidang';
+    }
+
     function tahapLabel($tahapan) {
         $tahapanLower = strtolower($tahapan);
         $labels = [
@@ -150,7 +163,7 @@
                                                                      'waktu' => $ev->waktu_sidang ?? '-',
                                                                      'ruang' => $ev->ruang_sidang ?? '-',
                                                                      'tahapan' => tahapLabel($ev->tahapan_sidang),
-                                                                     'status' => $ev->status_lulus ? ucfirst($ev->status_lulus) : 'Dalam Proses',
+                                                                      'status' => getAjuanDisplayStatus($ev),
                                                                      'strata' => $ev->Strata ?? '-',
                                                                  ]) }})">
                                                                 <strong>{{ $ev->nama_mhs }}</strong><br>
