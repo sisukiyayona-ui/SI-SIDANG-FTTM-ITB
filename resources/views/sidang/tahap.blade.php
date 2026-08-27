@@ -256,7 +256,7 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <div id="namaSelectWrapper">
+                                            <div class="nama-select-wrapper">
                                                 <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
                                                     <option value="">Pilih Nama</option>
                                                     @if(isset($users) && $users->count() > 0)
@@ -266,19 +266,19 @@
                                                     @endif
                                                 </select>
                                             </div>
-                                            <div id="namaManualWrapper" style="display:none;">
+                                            <div class="nama-manual-wrapper" style="display:none;">
                                                 <input type="text" class="form-control form-control-sm border-dark rounded-0" name="manual_nama" placeholder="Nama Lengkap">
                                             </div>
                                             <div class="form-check mt-1">
-                                                <input class="form-check-input" type="checkbox" id="isPengujiLuar" onchange="togglePengujiLuar(this)">
-                                                <label class="form-check-label" for="isPengujiLuar" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
+                                                <input class="form-check-input penguji-luar-cb" type="checkbox" onchange="togglePengujiLuar(this)">
+                                                <label class="form-check-label" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">NIP</label>
                                         <div class="col-sm-8 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" id="nipField" readonly>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" readonly>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
@@ -306,7 +306,7 @@
                                     </div>
                                     @endif
                                     <div class="d-flex justify-content-between align-items-center mt-4">
-                                        <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timForm').style.display='none'; document.getElementById('timAddBtn').style.display='block';">Batal</button>
+                                        <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="resetTimForm('timForm', 'timAddBtn')">Batal</button>
                                         <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
                                 </form>
@@ -762,7 +762,7 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <div id="namaSelectWrapper">
+                                            <div class="nama-select-wrapper">
                                                 <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
                                                     <option value="">Pilih Nama</option>
                                                     @if(isset($users) && $users->count() > 0)
@@ -772,19 +772,19 @@
                                                     @endif
                                                 </select>
                                             </div>
-                                            <div id="namaManualWrapper" style="display:none;">
+                                            <div class="nama-manual-wrapper" style="display:none;">
                                                 <input type="text" class="form-control form-control-sm border-dark rounded-0" name="manual_nama" placeholder="Nama Lengkap">
                                             </div>
                                             <div class="form-check mt-1">
-                                                <input class="form-check-input" type="checkbox" id="isPengujiLuar" onchange="togglePengujiLuar(this)">
-                                                <label class="form-check-label" for="isPengujiLuar" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
+                                                <input class="form-check-input penguji-luar-cb" type="checkbox" onchange="togglePengujiLuar(this)">
+                                                <label class="form-check-label" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">NIP</label>
                                         <div class="col-sm-8 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" id="nipField" readonly>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" readonly>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
@@ -812,7 +812,7 @@
                                     </div>
                                     @endif
                                     <div class="d-flex justify-content-between align-items-center mt-4">
-                                        <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timFormTahap2').style.display='none'; document.getElementById('timAddBtnTahap2').style.display='block';">Batal</button>
+                                        <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="resetTimForm('timFormTahap2', 'timAddBtnTahap2')">Batal</button>
                                         <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
                                 </form>
@@ -1494,7 +1494,7 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Nama</label>
                                         <div class="col-sm-8 px-2">
-                                            <div id="namaSelectWrapper">
+                                            <div class="nama-select-wrapper">
                                                 <select class="form-control form-control-sm border-dark rounded-0 select2-search" name="id_user_penilai" onchange="var f=this.closest('form');var n=f.querySelector('[name=nip]');if(n)n.value=this.options[this.selectedIndex]?this.options[this.selectedIndex].getAttribute('data-nip')||'':''">
                                                     <option value="">Pilih Nama</option>
                                                     @if(isset($users) && $users->count() > 0)
@@ -1504,19 +1504,19 @@
                                                     @endif
                                                 </select>
                                             </div>
-                                            <div id="namaManualWrapper" style="display:none;">
+                                            <div class="nama-manual-wrapper" style="display:none;">
                                                 <input type="text" class="form-control form-control-sm border-dark rounded-0" name="manual_nama" placeholder="Nama Lengkap">
                                             </div>
                                             <div class="form-check mt-1">
-                                                <input class="form-check-input" type="checkbox" id="isPengujiLuar" onchange="togglePengujiLuar(this)">
-                                                <label class="form-check-label" for="isPengujiLuar" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
+                                                <input class="form-check-input penguji-luar-cb" type="checkbox" onchange="togglePengujiLuar(this)">
+                                                <label class="form-check-label" style="font-size: 12px;">Penguji dari luar / tidak ada di sistem</label>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">NIP</label>
                                         <div class="col-sm-8 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" id="nipField" readonly>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="nip" readonly>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
@@ -1544,7 +1544,7 @@
                                     </div>
                                     @endif
                                     <div class="d-flex justify-content-between align-items-center mt-4">
-                                        <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="document.getElementById('timFormTahap2').style.display='none'; document.getElementById('timAddBtnTahap2').style.display='block';">Batal</button>
+                                        <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="resetTimForm('timFormTahap2', 'timAddBtnTahap2')">Batal</button>
                                         <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
                                 </form>
@@ -2095,7 +2095,7 @@ function showAddTimForm(formId, btnId) {
     if (manualNama) manualNama.value = '';
     form.querySelector('[name="nip"]').value = '';
     form.querySelector('[name="status_tim_sidang"]').value = '';
-    var cb = form.querySelector('#isPengujiLuar');
+    var cb = form.querySelector('.penguji-luar-cb');
     if (cb) { cb.checked = false; togglePengujiLuar(cb); }
 
     var timTable = form.closest('.tab-pane').querySelector('table tbody');
@@ -2111,8 +2111,8 @@ function showAddTimForm(formId, btnId) {
 
 function togglePengujiLuar(cb) {
     var form = cb.closest('form');
-    var selectWrapper = form.querySelector('#namaSelectWrapper');
-    var manualWrapper = form.querySelector('#namaManualWrapper');
+    var selectWrapper = form.querySelector('.nama-select-wrapper');
+    var manualWrapper = form.querySelector('.nama-manual-wrapper');
     var nipField = form.querySelector('[name="nip"]');
     if (cb.checked) {
         if (selectWrapper) selectWrapper.style.display = 'none';
@@ -2128,6 +2128,37 @@ function togglePengujiLuar(cb) {
         if (manualNama) manualNama.value = '';
         if (nipField) nipField.value = '';
     }
+}
+
+function resetTimForm(formId, btnId) {
+    var form = document.getElementById(formId);
+    if (!form) return;
+
+    form.querySelector('[name="id"]').value = '';
+
+    var skSel = form.querySelector('[name="id_sk"]');
+    if (skSel) skSel.value = '';
+
+    var sel = form.querySelector('[name="id_user_penilai"]');
+    if (sel) { sel.selectedIndex = 0; if (window.jQuery && jQuery.fn.select2) jQuery(sel).val('').trigger('change'); }
+
+    var manualNama = form.querySelector('[name="manual_nama"]');
+    if (manualNama) manualNama.value = '';
+
+    var nipField = form.querySelector('[name="nip"]');
+    if (nipField) { nipField.value = ''; nipField.setAttribute('readonly', true); }
+
+    var statusSel = form.querySelector('[name="status_tim_sidang"]');
+    if (statusSel) statusSel.selectedIndex = 0;
+
+    var urutan = form.querySelector('[name="urutan"]');
+    if (urutan) urutan.value = '';
+
+    var cb = form.querySelector('.penguji-luar-cb');
+    if (cb) { cb.checked = false; togglePengujiLuar(cb); }
+
+    var fileInput = form.querySelector('[name="file_penelaah"]');
+    if (fileInput) fileInput.value = '';
 }
 
 function editTimSidang(btn) {
@@ -2201,7 +2232,7 @@ function submitTimSidang(event) {
     const formData = new FormData(form);
     const timId = form.querySelector('[name="id"]').value;
 
-    var cb = form.querySelector('#isPengujiLuar');
+    var cb = form.querySelector('.penguji-luar-cb');
     if (cb && cb.checked) {
         var manualNama = form.querySelector('[name="manual_nama"]');
         var nip = form.querySelector('[name="nip"]');
