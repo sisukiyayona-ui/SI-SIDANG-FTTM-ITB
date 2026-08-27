@@ -569,7 +569,7 @@
     var signatureData = null;
 
     function getCanvasBg() {
-        return document.documentElement.classList.contains('dark-mode') ? '#1e293b' : '#fff';
+        return '#fff';
     }
 
     function initCanvas() {
