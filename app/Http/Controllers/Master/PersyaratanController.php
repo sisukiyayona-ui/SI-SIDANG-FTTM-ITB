@@ -118,6 +118,11 @@ class PersyaratanController extends Controller
         [$prodis, $userProdiId] = $this->prodiFormContext();
         $tahapans = TTahapan::all();
 
+        if ($request->ajax()) {
+            $tableHtml = view('master._persyaratan_table', compact('persyaratan'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
+
         return view('master.persyaratan', compact('persyaratan', 'prodis', 'tahapans', 'userProdiId'));
     }
 

@@ -62,6 +62,11 @@ class FakultasController extends Controller
             ];
         });
 
+        if ($request->ajax()) {
+            $tableHtml = view('master._fakultas_table', compact('fakultas'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
+
         return view('master.fakultas', compact('fakultas', 'allFakultas'));
     }
 

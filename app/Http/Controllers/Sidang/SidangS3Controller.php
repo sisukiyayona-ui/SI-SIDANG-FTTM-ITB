@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class SidangS3Controller extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = session('auth_user');
         $strata = 'S3';
@@ -22,7 +22,6 @@ class SidangS3Controller extends Controller
             return '(SELECT x.* FROM t_ajuan_sidang x INNER JOIN (SELECT id_judul, MAX(id) as max_id FROM t_ajuan_sidang WHERE tahapan_sidang = "' . $tahapan . '" GROUP BY id_judul) y ON x.id = y.max_id AND x.id_judul = y.id_judul)';
         };
 
-        // Status progress bertahap per tahapan sidang
         $caseSql = function ($alias) {
             return "
                 CASE
@@ -60,7 +59,6 @@ class SidangS3Controller extends Controller
             ->where('u.STRATA', $strata)
             ->groupBy('j.id', 'j.JUDUL', 'j.NIM', 'u.NAMA_LENGKAP');
 
-        // Role-based filtering
         if ($user['role'] === 'TU Prodi') {
             $query->where('u.KODE_PRODI', $user['kode_prodi']);
         } elseif ($user['role'] === 'FS') {
@@ -70,9 +68,31 @@ class SidangS3Controller extends Controller
                   ->where('ts.ID_USER_PENILAI', $user['id']);
         }
 
-        $tracking = $query->orderBy('j.id', 'desc')->paginate(10);
+        $tracking = DB::table(DB::raw("({$query->orderBy('j.id', 'desc')->toSql()}) as track"))
+            ->mergeBindings($query)
+            ->where(function($q) use ($request) {
+                if ($nim = $request->get('nim')) {
+                    $q->where('Nim', 'like', '%' . $nim . '%');
+                }
+                if ($nama = $request->get('nama')) {
+                    $q->where('nama_mhs', 'like', '%' . $nama . '%');
+                }
+                if ($judul = $request->get('judul')) {
+                    $q->where('Judul', 'like', '%' . $judul . '%');
+                }
+                foreach (['tahap1', 'tahap2', 'sk1', 'sk2', 'sk3', 'sk4', 'tahap4'] as $col) {
+                    if ($val = $request->get($col)) {
+                        $q->where($col, $val);
+                    }
+                }
+            })
+            ->paginate(10)->withQueryString();
 
-        // Fetch mahasiswa list for Tambah Judul modal (TU Prodi/FS) — only those without a title
+        if ($request->ajax()) {
+            $tableHtml = view('sidang._s3_table', compact('tracking', 'strata'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
+
         $mahasiswaList = collect();
         if (in_array($user['role'], ['TU Prodi', 'FS'])) {
             $existingMhsIds = DB::table('t_judul')->pluck('ID_USER_MHS');

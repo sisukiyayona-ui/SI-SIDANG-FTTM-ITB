@@ -51,178 +51,8 @@
                     z-index: 1056;
                 }
             </style>
-            <div class="table-responsive">
-                <!-- Table untuk semua strata (S1, S2, S3) -->
-                <table id="trackingTable" class="table table-bordered table-hover text-center" style="table-layout: fixed;">
-                    <colgroup>
-                        <col style="width: 60px;">
-                        <col style="width: 140px;">
-                        <col style="width: 140px;">
-                        <col style="width: 300px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                    </colgroup>
-                    <thead style="background-color: #6998d3; color: white;">
-                        <tr>
-                            <th rowspan="2" class="align-middle" style="width: 50px;">No</th>
-                            <th rowspan="2" class="align-middle">NIM</th>
-                            <th rowspan="2" class="align-middle">Nama</th>
-                            <th rowspan="2" class="align-middle">Judul</th>
-                            <th rowspan="2" class="align-middle">Ujian<br>Kualifikasi</th>
-                            <th rowspan="2" class="align-middle">Ujian<br>Proposal</th>
-                            <th colspan="4" class="align-middle">Tahap III</th>
-                            <th rowspan="2" class="align-middle">Sidang<br>Terbuka /<br>Tertutup</th>
-                        </tr>
-                        <tr>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK I</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK II</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK III</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK IV</th>
-                        </tr>
-                        <tr class="tracking-filter-row" style="background-color: #f8f9fa;">
-                            <th></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="1" style="color: #495057;"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="2" style="color: #495057;"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="3" style="color: #495057;"></th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" data-col="4" style="color: #495057;">
-                                    <option value="">Semua</option>
-                                    <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
-                                    <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
-                                    <option value="terjadwal">Terjadwal</option>
-                                    <option value="lulus">Lulus</option>
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" data-col="5" style="color: #495057;">
-                                    <option value="">Semua</option>
-                                    <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
-                                    <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
-                                    <option value="terjadwal">Terjadwal</option>
-                                    <option value="lulus">Lulus</option>
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" data-col="6" style="color: #495057;">
-                                    <option value="">Semua</option>
-                                    <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
-                                    <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
-                                    <option value="terjadwal">Terjadwal</option>
-                                    <option value="lulus">Lulus</option>
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" data-col="7" style="color: #495057;">
-                                    <option value="">Semua</option>
-                                    <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
-                                    <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
-                                    <option value="terjadwal">Terjadwal</option>
-                                    <option value="lulus">Lulus</option>
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" data-col="8" style="color: #495057;">
-                                    <option value="">Semua</option>
-                                    <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
-                                    <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
-                                    <option value="terjadwal">Terjadwal</option>
-                                    <option value="lulus">Lulus</option>
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" data-col="9" style="color: #495057;">
-                                    <option value="">Semua</option>
-                                    <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
-                                    <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
-                                    <option value="terjadwal">Terjadwal</option>
-                                    <option value="lulus">Lulus</option>
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" data-col="10" style="color: #495057;">
-                                    <option value="">Semua</option>
-                                    <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
-                                    <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
-                                    <option value="terjadwal">Terjadwal</option>
-                                    <option value="lulus">Lulus</option>
-                                </select>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($tracking as $item)
-                            <tr>
-                            <td class="align-middle">{{ $loop->iteration }}</td>
-                            <td class="align-middle">{{ $item->Nim }}</td>
-                            <td class="align-middle">{{ $item->nama_mhs }}</td>
-                            <td class="text-left text-muted">
-                                @if(session('auth_user.role') === 'TU Prodi')
-                                    <a href="{{ route('sidang.s3.ubah-judul', $item->id_judul) }}" class="text-decoration-none text-primary">{{ $item->Judul }}</a>
-                                @else
-                                    <a href="#" class="text-decoration-none">{{ $item->Judul }}</a>
-                                @endif
-                            </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->tahap1 ?? 'belum diajukan') }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap2) }}" role="button" onclick="showTahapForm('tahap II', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->tahap2 ?? 'belum diajukan') }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk1) }}" role="button" onclick="showTahapForm('SK I', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk1 ?? 'belum diajukan') }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk2) }}" role="button" onclick="showTahapForm('SK II', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk2 ?? 'belum diajukan') }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk3) }}" role="button" onclick="showTahapForm('SK III', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk3 ?? 'belum diajukan') }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk4) }}" role="button" onclick="showTahapForm('SK IV', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk4 ?? 'belum diajukan') }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap4) }}" role="button" onclick="showTahapForm('tahap IV', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->tahap4 ?? 'belum diajukan') }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-3">
-                {{ $tracking->links('pagination::bootstrap-4') }}
+            <div class="table-responsive" id="trackingTableContainer">
+                @include('sidang._s3_table')
             </div>
         </div>
     </div>
@@ -761,96 +591,70 @@
         }
     });
 
-    // Refresh tabel tracking TANPA reload halaman penuh
-    async function refreshTrackingTable() {
-        try {
-            const res = await fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            const html = await res.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const newTable = doc.getElementById('trackingTable');
-            const oldTable = document.getElementById('trackingTable');
-            if (newTable && oldTable) {
-                oldTable.replaceWith(newTable);
-                newTable.querySelectorAll('.column-search').forEach(input => {
-                    input.addEventListener('input', filterTrackingTable);
-                    input.addEventListener('change', filterTrackingTable);
-                });
-            }
-        } catch (e) {
-            console.error('Gagal refresh tabel tracking:', e);
-        }
-    }
-
-    $('#tahapModal').on('hidden.bs.modal', function () {
-        refreshTrackingTable();
-        // Bersihkan sisa scroll-lock backdrop/select2 agar modal berikutnya
-        // tidak macet scroll (mis. modal tertutup saat dropdown select2 aktif)
-        setTimeout(function () {
-            if (!$('.modal.show').length) {
-                $('body').removeClass('modal-open');
-                $('body').css('padding-right', '');
-                $('.modal-backdrop').remove();
-            }
-            if (document.activeElement) document.activeElement.blur();
-        }, 300);
-    });
-
-    document.querySelectorAll('#trackingTable .column-search').forEach(input => {
-        input.addEventListener('input', filterTrackingTable);
-        input.addEventListener('change', filterTrackingTable);
-    });
-
     if (document.getElementById('mhsSelect') && document.getElementById('mhsSelect').value) {
         document.getElementById('mhsSelect').dispatchEvent(new Event('change'));
         $('#tambahJudulModal').modal('show');
     }
 
-    function filterTrackingTable() {
-        const filters = Array.from(document.querySelectorAll('#trackingTable .column-search')).map(input => ({
-            colIndex: parseInt(input.dataset.col),
-            value: input.value.toLowerCase()
-        }));
+    var filterTimeout;
+    function ajaxFilter(routeName, containerId) {
+        var params = {};
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            if (input.value) params[input.name] = input.value;
+        });
+        var qs = Object.keys(params).map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
+        var url = routeName + (qs ? '?' + qs : '');
+        var container = document.getElementById(containerId);
 
-        document.querySelectorAll('#trackingTable tbody tr').forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (!cells || cells.length === 0) return;
-            let isMatch = true;
-            filters.forEach(filter => {
-                if (filter.value && cells[filter.colIndex]) {
-                    const cellText = cells[filter.colIndex].textContent.toLowerCase().trim();
-                    if (!cellText.includes(filter.value)) {
-                        isMatch = false;
-                    }
-                }
+        container.style.opacity = '0.5';
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                container.innerHTML = data.html;
+                container.style.opacity = '1';
+                bindFilters(routeName, containerId);
+            })
+            .catch(function(err) {
+                console.error('AJAX filter error:', err);
+                container.style.opacity = '1';
             });
-            row.style.display = isMatch ? '' : 'none';
+    }
+
+    function bindFilters(routeName, containerId) {
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            input.removeEventListener('input', input._ajaxHandler);
+            input._ajaxHandler = function() {
+                clearTimeout(window._filterTimeout);
+                window._filterTimeout = setTimeout(function() { ajaxFilter(routeName, containerId); }, 400);
+            };
+            input.addEventListener('input', input._ajaxHandler);
+            input.removeEventListener('change', input._changeHandler);
+            input._changeHandler = function() {
+                ajaxFilter(routeName, containerId);
+            };
+            input.addEventListener('change', input._changeHandler);
+        });
+        document.querySelectorAll('.pagination a').forEach(function(link) {
+            link.removeEventListener('click', link._ajaxHandler);
+            link._ajaxHandler = function(e) {
+                e.preventDefault();
+                var pagContainer = document.getElementById(containerId);
+                pagContainer.style.opacity = '0.5';
+                fetch(this.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        pagContainer.innerHTML = data.html;
+                        pagContainer.style.opacity = '1';
+                        bindFilters(routeName, containerId);
+                    })
+                    .catch(function(err) {
+                        console.error('AJAX pagination error:', err);
+                        pagContainer.style.opacity = '1';
+                    });
+            };
+            link.addEventListener('click', link._ajaxHandler);
         });
     }
+    bindFilters('{{ route("sidang.s3") }}', 'trackingTableContainer');
 </script>
 @endpush
-
-    @php
-    function getStatusColor($status) {
-        $s = strtolower($status ?? '');
-        switch($s) {
-            case 'belum diajukan':
-                return 'secondary';
-            case 'diproses di tu prodi':
-                return 'warning';
-            case 'diproses di fakultas':
-                return 'orange';
-            case 'menunggu pelaksanaan sidang':
-                return 'purple';
-            case 'terjadwal':
-                return 'primary';
-            case 'dalam proses':
-                return 'warning';
-            case 'lulus':
-                return 'success';
-            case 'tidak lulus':
-                return 'danger';
-            default:
-                return 'info';
-        }
-    }
-    @endphp

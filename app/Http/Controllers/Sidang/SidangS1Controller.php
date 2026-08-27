@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class SidangS1Controller extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = session('auth_user');
         $strata = 'S1';
@@ -60,13 +60,35 @@ class SidangS1Controller extends Controller
         if ($user['role'] === 'TU Prodi') {
             $query->where('a.kode_prodi', $user['kode_prodi']);
         } elseif ($user['role'] === 'FS') {
-            // FS sees all prodi, only status_ajukan_prodi = 'y'
             $query->where('a.status_ajukan_prodi', 'y');
         } elseif ($user['role'] === 'KPPS') {
             $query->where('a.status_ajukan_prodi', 'y');
         }
 
-        $tracking = $query->paginate(10);
+        $tracking = DB::table(DB::raw("({$query->toSql()}) as track"))
+            ->mergeBindings($query)
+            ->where(function($q) use ($request) {
+                if ($nim = $request->get('nim')) {
+                    $q->where('Nim', 'like', '%' . $nim . '%');
+                }
+                if ($nama = $request->get('nama')) {
+                    $q->where('nama_mhs', 'like', '%' . $nama . '%');
+                }
+                if ($judul = $request->get('judul')) {
+                    $q->where('Judul', 'like', '%' . $judul . '%');
+                }
+                foreach (['tahap1', 'tahap2', 'sk1', 'sk2', 'sk3', 'sk4', 'tahap4'] as $col) {
+                    if ($val = $request->get($col)) {
+                        $q->where($col, $val);
+                    }
+                }
+            })
+            ->paginate(10)->withQueryString();
+
+        if ($request->ajax()) {
+            $tableHtml = view('sidang._s1_table', compact('tracking', 'strata'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
 
         return view('sidang.s1', compact('strata', 'tracking', 'juduls', 'activeJudulId'));
     }

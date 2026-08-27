@@ -41,6 +41,11 @@ class KppsController extends Controller
             ->orderBy('NAMA_LENGKAP')
             ->get();
 
+        if ($request->ajax()) {
+            $tableHtml = view('master._kpps_table', compact('kpps', 'fakultas', 'prodis'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
+
         return view('master.kpps', compact('kpps', 'prodis', 'fakultas', 'users'));
     }
 

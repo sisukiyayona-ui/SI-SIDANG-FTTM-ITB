@@ -76,6 +76,11 @@ class UserController extends Controller
         $prodis = TProdi::where('STATUS_AKTIF', 'AKTIF')->get();
         $fakultas = TFs::all();
 
+        if ($request->ajax()) {
+            $tableHtml = view('master._user_table', compact('users'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
+
         return view('master.user', compact('users', 'prodis', 'fakultas'));
     }
 

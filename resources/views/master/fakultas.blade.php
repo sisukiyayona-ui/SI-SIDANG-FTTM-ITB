@@ -149,39 +149,9 @@
         </div>
         <div class="card-body">
 
-            <div class="table-responsive">
-                <form method="GET" action="{{ route('master.fakultas.index') }}" id="filterForm" autocomplete="off">
-                <table class="table table-striped table-hover" id="fakultasTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 50px;">No</th>
-                            <th>Kode Fakultas</th>
-                            <th>Nama Fakultas</th>
-                        </tr>
-                        <tr>
-                            <th></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" name="kode_fs" placeholder="Cari..." value="{{ request('kode_fs') }}"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" name="nama_fs" placeholder="Cari..." value="{{ request('nama_fs') }}"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($fakultas as $i => $item)
-                            <tr>
-                                <td>{{ $fakultas->firstItem() + $i }}</td>
-                                <td><span class="badge bg-info">{{ $item['kode'] }}</span></td>
-                                <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                </form>
+            <div class="table-responsive" id="fakultasTableContainer">
+                @include('master._fakultas_table')
             </div>
-
-            <nav>
-                <ul class="pagination justify-content-end mb-0">
-                    {{ $fakultas->links() }}
-                </ul>
-            </nav>
         </div>
     </div>
 </div>
@@ -371,16 +341,65 @@
         });
     });
 
-    var filterTimeout;
-    document.querySelectorAll('.column-search').forEach(function(input) {
-        input.addEventListener('input', function() {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(function() { document.getElementById('filterForm').submit(); }, 400);
+    function ajaxFilter(routeName, containerId) {
+        var params = {};
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            if (input.value) params[input.name] = input.value;
         });
-        input.addEventListener('change', function() {
-            document.getElementById('filterForm').submit();
+        var qs = Object.keys(params).map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
+        var url = routeName + (qs ? '?' + qs : '');
+        var container = document.getElementById(containerId);
+
+        container.style.opacity = '0.5';
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                container.innerHTML = data.html;
+                container.style.opacity = '1';
+                bindFilters(routeName, containerId);
+            })
+            .catch(function(err) {
+                console.error('AJAX filter error:', err);
+                container.style.opacity = '1';
+            });
+    }
+
+    function bindFilters(routeName, containerId) {
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            input.removeEventListener('input', input._ajaxHandler);
+            input._ajaxHandler = function() {
+                clearTimeout(window._filterTimeout);
+                window._filterTimeout = setTimeout(function() { ajaxFilter(routeName, containerId); }, 400);
+            };
+            input.addEventListener('input', input._ajaxHandler);
+            input.removeEventListener('change', input._changeHandler);
+            input._changeHandler = function() {
+                ajaxFilter(routeName, containerId);
+            };
+            input.addEventListener('change', input._changeHandler);
         });
-    });
+        document.querySelectorAll('.pagination a').forEach(function(link) {
+            link.removeEventListener('click', link._ajaxHandler);
+            link._ajaxHandler = function(e) {
+                e.preventDefault();
+                var pagContainer = document.getElementById(containerId);
+                pagContainer.style.opacity = '0.5';
+                fetch(this.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        pagContainer.innerHTML = data.html;
+                        pagContainer.style.opacity = '1';
+                        bindFilters(routeName, containerId);
+                    })
+                    .catch(function(err) {
+                        console.error('AJAX pagination error:', err);
+                        pagContainer.style.opacity = '1';
+                    });
+            };
+            link.addEventListener('click', link._ajaxHandler);
+        });
+    }
+    bindFilters('{{ route("master.fakultas.index") }}', 'fakultasTableContainer');
 
 </script>
 @endpush

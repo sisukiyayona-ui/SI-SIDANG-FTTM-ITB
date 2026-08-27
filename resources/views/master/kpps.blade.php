@@ -137,79 +137,8 @@
             </button>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <form method="GET" action="{{ route('master.kpps.index') }}" id="filterForm" autocomplete="off">
-                <table class="table table-striped table-hover" id="kppsTable">
-                    <thead>
-                        <tr>
-                            <th style="width:50px;">No</th>
-                            <th>NIP</th>
-                            <th>Nama Lengkap</th>
-                            <th>Status Tim</th>
-                            <th>Fakultas</th>
-                            <th>Program Studi</th>
-                            <th style="width:100px;">Status</th>
-                        </tr>
-                        <tr>
-                            <th></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" name="nip" placeholder="Cari..." data-col="1" value="{{ request('nip') }}"></th>
-                            <th><input type="text" class="form-control form-control-sm column-search" name="nama" placeholder="Cari..." data-col="2" value="{{ request('nama') }}"></th>
-                            <th></th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" name="kode_fs" data-col="3">
-                                    <option value="">Semua</option>
-                                    @foreach($fakultas as $fs)
-                                        <option value="{{ $fs->KODE_FS }}" {{ request('kode_fs') == $fs->KODE_FS ? 'selected' : '' }}>{{ $fs->NAMA_FS }}</option>
-                                    @endforeach
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" name="kode_prodi" data-col="4">
-                                    <option value="">Semua</option>
-                                    @foreach($prodis as $p)
-                                        <option value="{{ $p->KODE_PRODI }}" {{ request('kode_prodi') == $p->KODE_PRODI ? 'selected' : '' }}>{{ $p->NAMA_PRODI }}</option>
-                                    @endforeach
-                                </select>
-                            </th>
-                            <th>
-                                <select class="form-control form-control-sm column-search" name="status_aktif" data-col="5">
-                                    <option value="">Semua</option>
-                                    <option value="AKTIF" {{ request('status_aktif') == 'AKTIF' ? 'selected' : '' }}>AKTIF</option>
-                                    <option value="NON AKTIF" {{ request('status_aktif') == 'NON AKTIF' ? 'selected' : '' }}>NON AKTIF</option>
-                                </select>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($kpps as $i => $item)
-                            <tr>
-                                <td>{{ $kpps->firstItem() + $i }}</td>
-                                <td>{{ $item->NIP ?? '-' }}</td>
-                                <td><a href="javascript:void(0)" onclick="openEdit({{ $item->id }})" class="text-decoration-none">{{ $item->NAMA }}</a></td>
-                                <td>
-                                    @if($item->STATUS_TIM)
-                                        <span class="badge bg-info">{{ $item->STATUS_TIM }}</span>
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td>{{ $item->NAMA_FS ?? '-' }}</td>
-                                <td>{{ $item->NAMA_PRODI ?? '-' }}</td>
-                                <td>
-                                    <span class="badge bg-{{ $item->STATUS_AKTIF === 'AKTIF' ? 'success' : 'danger' }}">
-                                        {{ $item->STATUS_AKTIF }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="7" class="text-center text-muted">Tidak ada data KPPS</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-                </form>
-            </div>
-            <div class="mt-3 d-flex justify-content-center">
-                {{ $kpps->links() }}
+            <div class="table-responsive" id="kppsTableContainer">
+                @include('master._kpps_table')
             </div>
         </div>
     </div>
@@ -527,15 +456,64 @@
         });
     });
 
-    var filterTimeout;
-    document.querySelectorAll('.column-search').forEach(function(input) {
-        input.addEventListener('input', function() {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(function() { document.getElementById('filterForm').submit(); }, 400);
+    function ajaxFilter(routeName, containerId) {
+        var params = {};
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            if (input.value) params[input.name] = input.value;
         });
-        input.addEventListener('change', function() {
-            document.getElementById('filterForm').submit();
+        var qs = Object.keys(params).map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
+        var url = routeName + (qs ? '?' + qs : '');
+        var container = document.getElementById(containerId);
+
+        container.style.opacity = '0.5';
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                container.innerHTML = data.html;
+                container.style.opacity = '1';
+                bindFilters(routeName, containerId);
+            })
+            .catch(function(err) {
+                console.error('AJAX filter error:', err);
+                container.style.opacity = '1';
+            });
+    }
+
+    function bindFilters(routeName, containerId) {
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            input.removeEventListener('input', input._ajaxHandler);
+            input._ajaxHandler = function() {
+                clearTimeout(window._filterTimeout);
+                window._filterTimeout = setTimeout(function() { ajaxFilter(routeName, containerId); }, 400);
+            };
+            input.addEventListener('input', input._ajaxHandler);
+            input.removeEventListener('change', input._changeHandler);
+            input._changeHandler = function() {
+                ajaxFilter(routeName, containerId);
+            };
+            input.addEventListener('change', input._changeHandler);
         });
-    });
+        document.querySelectorAll('.pagination a').forEach(function(link) {
+            link.removeEventListener('click', link._ajaxHandler);
+            link._ajaxHandler = function(e) {
+                e.preventDefault();
+                var pagContainer = document.getElementById(containerId);
+                pagContainer.style.opacity = '0.5';
+                fetch(this.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        pagContainer.innerHTML = data.html;
+                        pagContainer.style.opacity = '1';
+                        bindFilters(routeName, containerId);
+                    })
+                    .catch(function(err) {
+                        console.error('AJAX pagination error:', err);
+                        pagContainer.style.opacity = '1';
+                    });
+            };
+            link.addEventListener('click', link._ajaxHandler);
+        });
+    }
+    bindFilters('{{ route("master.kpps.index") }}', 'kppsTableContainer');
 </script>
 @endpush

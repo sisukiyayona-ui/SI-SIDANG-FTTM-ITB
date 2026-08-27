@@ -37,91 +37,8 @@
                     word-break: break-word;
                 }
             </style>
-            <div class="table-responsive">
-                <!-- Table untuk semua strata (S1, S2, S3) -->
-                <table class="table table-bordered table-hover text-center" style="table-layout: fixed;">
-                    <colgroup>
-                        <col style="width: 60px;">
-                        <col style="width: 140px;">
-                        <col style="width: 140px;">
-                        <col style="width: 300px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                    </colgroup>
-                    <thead style="background-color: #6998d3; color: white;">
-                        <tr>
-                            <th rowspan="2" class="align-middle" style="width: 50px;">No</th>
-                            <th rowspan="2" class="align-middle">NIM</th>
-                            <th rowspan="2" class="align-middle">Nama</th>
-                            <th rowspan="2" class="align-middle">Judul</th>
-                            <th rowspan="2" class="align-middle">Ujian<br>Kualifikasi</th>
-                            <th rowspan="2" class="align-middle">Ujian<br>Proposal</th>
-                            <th colspan="4" class="align-middle">Tahap III</th>
-                            <th rowspan="2" class="align-middle">Sidang<br>Terbuka /<br>Tertutup</th>
-                        </tr>
-                        <tr>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK I</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK II</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK III</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK IV</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($tracking as $item)
-                            <tr>
-                            <td class="align-middle">{{ $loop->iteration }}</td>
-                            <td class="align-middle">{{ $item->Nim }}</td>
-                            <td class="align-middle">{{ $item->nama_mhs }}</td>
-                            <td class="text-left text-muted">
-                                <a href="#" class="text-decoration-none">{{ $item->Judul }}</a>
-                            </td>
-                            <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->tahap1) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap2) }}" role="button" onclick="showTahapForm('tahap II', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->tahap2) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk1) }}" role="button" onclick="showTahapForm('SK I', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk1) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk2) }}" role="button" onclick="showTahapForm('SK II', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk2) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk3) }}" role="button" onclick="showTahapForm('SK III', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk3) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk4) }}" role="button" onclick="showTahapForm('SK IV', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->sk4) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap4) }}" role="button" onclick="showTahapForm('tahap IV', {{ $item->id_judul }})">
-                                        {{ ucfirst($item->tahap4) }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-3">
-                {{ $tracking->links('pagination::bootstrap-4') }}
+            <div class="table-responsive" id="trackingTableContainer">
+                @include('sidang._s2_table')
             </div>
         </div>
     </div>
@@ -489,31 +406,66 @@
             window.openJadwalForm(link);
         }
     });
+
+    var filterTimeout;
+    function ajaxFilter(routeName, containerId) {
+        var params = {};
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            if (input.value) params[input.name] = input.value;
+        });
+        var qs = Object.keys(params).map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
+        var url = routeName + (qs ? '?' + qs : '');
+        var container = document.getElementById(containerId);
+
+        container.style.opacity = '0.5';
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                container.innerHTML = data.html;
+                container.style.opacity = '1';
+                bindFilters(routeName, containerId);
+            })
+            .catch(function(err) {
+                console.error('AJAX filter error:', err);
+                container.style.opacity = '1';
+            });
+    }
+
+    function bindFilters(routeName, containerId) {
+        document.querySelectorAll('.column-search').forEach(function(input) {
+            input.removeEventListener('input', input._ajaxHandler);
+            input._ajaxHandler = function() {
+                clearTimeout(window._filterTimeout);
+                window._filterTimeout = setTimeout(function() { ajaxFilter(routeName, containerId); }, 400);
+            };
+            input.addEventListener('input', input._ajaxHandler);
+            input.removeEventListener('change', input._changeHandler);
+            input._changeHandler = function() {
+                ajaxFilter(routeName, containerId);
+            };
+            input.addEventListener('change', input._changeHandler);
+        });
+        document.querySelectorAll('.pagination a').forEach(function(link) {
+            link.removeEventListener('click', link._ajaxHandler);
+            link._ajaxHandler = function(e) {
+                e.preventDefault();
+                var pagContainer = document.getElementById(containerId);
+                pagContainer.style.opacity = '0.5';
+                fetch(this.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        pagContainer.innerHTML = data.html;
+                        pagContainer.style.opacity = '1';
+                        bindFilters(routeName, containerId);
+                    })
+                    .catch(function(err) {
+                        console.error('AJAX pagination error:', err);
+                        pagContainer.style.opacity = '1';
+                    });
+            };
+            link.addEventListener('click', link._ajaxHandler);
+        });
+    }
+    bindFilters('{{ route("sidang.s2") }}', 'trackingTableContainer');
 </script>
 @endpush
-
-@php
-function getStatusColor($status) {
-    $s = strtolower($status ?? '');
-    switch($s) {
-        case 'belum diajukan':
-            return 'secondary';
-        case 'diproses di tu prodi':
-            return 'warning';
-        case 'diproses di fakultas':
-            return 'orange';
-        case 'menunggu pelaksanaan sidang':
-            return 'purple';
-        case 'terjadwal':
-            return 'primary';
-        case 'dalam proses':
-            return 'warning';
-        case 'lulus':
-            return 'success';
-        case 'tidak lulus':
-            return 'danger';
-        default:
-            return 'info';
-    }
-}
-@endphp

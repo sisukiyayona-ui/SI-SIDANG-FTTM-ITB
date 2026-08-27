@@ -133,6 +133,11 @@ class PenilaianController extends Controller
         $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
         $tahapans = TTahapan::all();
 
+        if ($request->ajax()) {
+            $tableHtml = view('master._penilaian_table', compact('penilaian'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
+
         return view('master.penilaian', compact('penilaian', 'prodis', 'tahapans'));
     }
 

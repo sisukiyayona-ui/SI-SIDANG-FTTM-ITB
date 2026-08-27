@@ -73,6 +73,11 @@ class ProdiController extends Controller
             ];
         });
 
+        if ($request->ajax()) {
+            $tableHtml = view('master._prodi_table', compact('prodi'))->render();
+            return response()->json(['html' => $tableHtml]);
+        }
+
         return view('master.prodi', compact('prodi', 'allProdi'));
     }
 
