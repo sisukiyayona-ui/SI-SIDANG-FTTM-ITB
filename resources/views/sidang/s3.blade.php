@@ -95,7 +95,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
@@ -106,7 +106,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
@@ -117,7 +117,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
@@ -128,7 +128,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
@@ -139,7 +139,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
@@ -150,7 +150,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
@@ -161,7 +161,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di TU Prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di fakultas</option>
-                                    <option value="menunggu jadwal sidang">Menunggu jadwal sidang</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                 </select>
@@ -839,7 +839,7 @@
                 return 'warning';
             case 'diproses di fakultas':
                 return 'orange';
-            case 'menunggu jadwal sidang':
+            case 'menunggu pelaksanaan sidang':
                 return 'purple';
             case 'terjadwal':
                 return 'primary';

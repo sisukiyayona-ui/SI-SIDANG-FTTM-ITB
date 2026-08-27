@@ -845,15 +845,20 @@ if (window.jQuery && jQuery.fn.select2) {
       switch($s) {
           case 'belum diajukan':
               return 'secondary';
+          case 'diproses di tu prodi':
           case 'dalam proses':
           case 'menunggu persetujuan prodi':
               return 'warning';
+          case 'diproses di fakultas':
+              return 'orange';
+          case 'menunggu pelaksanaan sidang':
+              return 'purple';
+          case 'terjadwal':
+              return 'primary';
           case 'lulus':
               return 'success';
           case 'tidak lulus':
               return 'danger';
-          case 'terjadwal':
-              return 'primary';
           default:
               return 'info';
       }
@@ -862,12 +867,12 @@ if (window.jQuery && jQuery.fn.select2) {
   // Item 21: Sync status dengan progress sidang
   function getAjuanDisplayStatus($ajuan) {
       if (!$ajuan) return 'Belum diajukan';
-      if (!empty($ajuan->status_lulus)) return ucfirst($ajuan->status_lulus);
+      if (!empty($ajuan->status_lulus) && strtolower($ajuan->status_lulus) !== 'diajukan') return ucfirst($ajuan->status_lulus);
       if (empty($ajuan->status_ajukan_mhs) || $ajuan->status_ajukan_mhs === 't') return 'Belum diajukan';
       if ($ajuan->status_ajukan_mhs === 'y' && (empty($ajuan->status_ajukan_prodi) || $ajuan->status_ajukan_prodi === 't')) return 'Diproses di TU Prodi';
-      if ($ajuan->status_ajukan_prodi === 'y' && (empty($ajuan->status_ajukan_fs) || $ajuan->status_ajukan_fs === 't')) return 'Diproses di Fakultas';
-      if (($ajuan->status_ajukan_kpps ?? null) === 'y') return 'Menunggu Jadwal Sidang';
-      if (!empty($ajuan->tgl_sidang)) return 'Menunggu Jadwal Sidang';
-      return 'Menunggu Jadwal Sidang';
+      if ($ajuan->status_ajukan_prodi === 'y' && (empty($ajuan->status_ajukan_kpps) || $ajuan->status_ajukan_kpps === 't')) return 'Diproses di Fakultas';
+      if (($ajuan->status_ajukan_kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
+      if (!empty($ajuan->tgl_sidang)) return 'Terjadwal';
+      return 'Menunggu Pelaksanaan Sidang';
   }
   @endphp

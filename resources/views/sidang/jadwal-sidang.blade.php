@@ -42,9 +42,16 @@
     }
 
     function statusBadge($status) {
+        $s = strtolower($status ?? '');
         if (!$status) return '<span class="badge badge-warning">Dalam Proses</span>';
-        if (strtolower($status) === 'lulus') return '<span class="badge badge-success">Lulus</span>';
-        if (strtolower($status) === 'tidak lulus') return '<span class="badge badge-danger">Tidak Lulus</span>';
+        if ($s === 'belum diajukan') return '<span class="badge badge-secondary">Belum Diajukan</span>';
+        if ($s === 'diproses di tu prodi') return '<span class="badge badge-warning">Diproses di TU Prodi</span>';
+        if ($s === 'diproses di fakultas') return '<span class="badge badge-orange" style="background-color: orange;">Diproses di Fakultas</span>';
+        if ($s === 'menunggu pelaksanaan sidang') return '<span class="badge badge-purple" style="background-color: #6f42c1;">Menunggu Pelaksanaan Sidang</span>';
+        if ($s === 'terjadwal') return '<span class="badge badge-primary">Terjadwal</span>';
+        if ($s === 'lulus') return '<span class="badge badge-success">Lulus</span>';
+        if ($s === 'tidak lulus') return '<span class="badge badge-danger">Tidak Lulus</span>';
+        if ($s === 'dalam proses') return '<span class="badge badge-warning">Dalam Proses</span>';
         return '<span class="badge badge-warning">' . ucfirst($status) . '</span>';
     }
 

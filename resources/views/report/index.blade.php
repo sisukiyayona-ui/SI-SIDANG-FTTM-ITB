@@ -100,16 +100,24 @@ $(document).ready(function() {
 
 @php
 function getStatusColor($status) {
-    switch($status) {
+    $s = strtolower($status ?? '');
+    switch($s) {
+        case 'belum diajukan':
+        case null:
+            return 'secondary';
+        case 'diproses di tu prodi':
+        case 'dalam proses':
+            return 'warning';
+        case 'diproses di fakultas':
+            return 'orange';
+        case 'menunggu pelaksanaan sidang':
+            return 'purple';
+        case 'terjadwal':
+            return 'primary';
         case 'lulus':
             return 'success';
         case 'tidak lulus':
             return 'danger';
-        case 'dalam proses':
-            return 'warning';
-        case 'belum diajukan':
-        case null:
-            return 'secondary';
         default:
             return 'info';
     }

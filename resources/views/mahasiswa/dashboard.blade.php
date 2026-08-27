@@ -92,7 +92,10 @@
                                 <select class="form-control form-control-sm column-search" data-col="{{ $i }}" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
-                                    <option value="dalam proses">Dalam proses</option>
+                                    <option value="diproses di tu prodi">Diproses di TU Prodi</option>
+                                    <option value="diproses di fakultas">Diproses di Fakultas</option>
+                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
+                                    <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                     <option value="tidak lulus">Tidak lulus</option>
                                 </select>
@@ -315,6 +318,14 @@ function getStatusColor($status) {
     switch($s) {
         case 'belum diajukan':
             return 'secondary';
+        case 'diproses di tu prodi':
+            return 'warning';
+        case 'diproses di fakultas':
+            return 'orange';
+        case 'menunggu pelaksanaan sidang':
+            return 'purple';
+        case 'terjadwal':
+            return 'primary';
         case 'dalam proses':
             return 'warning';
         case 'lulus':

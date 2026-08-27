@@ -498,6 +498,14 @@
         switch($s) {
             case 'belum diajukan':
                 return 'secondary';
+            case 'diproses di tu prodi':
+                return 'warning';
+            case 'diproses di fakultas':
+                return 'orange';
+            case 'menunggu pelaksanaan sidang':
+                return 'purple';
+            case 'terjadwal':
+                return 'primary';
             case 'dalam proses':
                 return 'warning';
             case 'lulus':

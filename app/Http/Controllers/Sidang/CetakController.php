@@ -339,6 +339,175 @@ class CetakController extends Controller
     }
 
     /**
+     * Isi placeholder ${signature} dengan gambar tanda tangan dari t_user.SIGNATURE.
+     * Mendukung placeholder yang terpecah antar XML run.
+     */
+    private function fillSignaturePlaceholder(string $docxPath, $idUser): void
+    {
+        try {
+            $signature = $idUser ? TUser::where('id', (int) $idUser)->value('SIGNATURE') : null;
+            if (empty($signature)) {
+                return;
+            }
+
+            $binary = base64_decode($signature, true);
+            if ($binary === false || strlen($binary) < 100) {
+                return;
+            }
+
+            $validImage = (substr($binary, 0, 4) === "\x89PNG" || substr($binary, 0, 3) === "\xFF\xD8\xFF");
+            if (!$validImage) {
+                return;
+            }
+
+            $ext = substr($binary, 0, 4) === "\x89PNG" ? 'png' : 'jpg';
+            $tmpPath = storage_path('app/uploads/ttd_sig_' . uniqid() . '.' . $ext);
+            file_put_contents($tmpPath, $binary);
+
+            // Fix: Tambahkan background putih untuk PNG transparan agar tidak hitam di Word
+            if ($ext === 'png' && function_exists('imagecreatefrompng')) {
+                $tmpFixed = $this->addWhiteBackgroundToPng($tmpPath);
+                if ($tmpFixed && $tmpFixed !== $tmpPath) {
+                    @unlink($tmpPath);
+                    $tmpPath = $tmpFixed;
+                }
+            }
+
+            try {
+                $tp = new \PhpOffice\PhpWord\TemplateProcessor($docxPath);
+                $tp->setImageValue('signature', [
+                    'path'   => $tmpPath,
+                    'width'  => 110,
+                    'height' => 55,
+                ]);
+                $tp->saveAs($docxPath);
+            } finally {
+                @unlink($tmpPath);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Gagal isi placeholder signature: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Sisipkan gambar tanda tangan untuk SEMUA penilai di tabel BA SK.
+     * Template memiliki ${signature} di setiap baris tabel (Ketua Pembimbing,
+     * Ko-Pembimbing 1, Ko-Pembimbing 2, Penguji-1, Penguji-2).
+     * Method ini mengganti SETIAP ${signature} dengan gambar tanda tangan
+     * yang sesuai berdasarkan urutan penilai.
+     */
+    private function embedAllSkSignatures(string $docxPath, array $timSidangList): void
+    {
+        if (empty($timSidangList)) {
+            return;
+        }
+
+        // Kumpulkan signature binary untuk setiap penilai
+        $signatureData = [];
+        foreach ($timSidangList as $tim) {
+            $idUser = $tim->id_user_penilai ?? null;
+            $sig = $idUser ? TUser::where('id', (int) $idUser)->value('SIGNATURE') : null;
+            if (!empty($sig)) {
+                $binary = base64_decode($sig, true);
+                if ($binary !== false && strlen($binary) >= 100
+                    && (substr($binary, 0, 4) === "\x89PNG" || substr($binary, 0, 3) === "\xFF\xD8\xFF")) {
+                    $signatureData[] = $binary;
+                }
+            }
+        }
+
+        if (empty($signatureData)) {
+            return;
+        }
+
+        try {
+            // Step 1: Rename hanya N placeholder pertama ${signature} → ${signature_1}, ${signature_2}, dst.
+            // Sisa ${signature} tidak diubah (untuk footer oleh fillSignaturePlaceholder)
+            $zip = new \ZipArchive();
+            if ($zip->open($docxPath) !== true) {
+                return;
+            }
+            $xml = $zip->getFromName('word/document.xml');
+
+            $maxToRename = count($signatureData);
+            $counter = 0;
+            $xml = preg_replace_callback('/\$\{signature\}/', function ($matches) use (&$counter, $maxToRename) {
+                $counter++;
+                if ($counter > $maxToRename) {
+                    return '${signature}'; // Jangan ubah sisa placeholder
+                }
+                return '${signature_' . $counter . '}';
+            }, $xml);
+
+            if ($xml === null || $counter === 0) {
+                $zip->close();
+                return;
+            }
+
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $xml);
+            $zip->close();
+
+            // Step 2: Use setImageValue for each unique placeholder
+            $tp = new \PhpOffice\PhpWord\TemplateProcessor($docxPath);
+            $sigIndex = 0;
+            $tmpFiles = [];
+
+            for ($i = 1; $i <= $counter; $i++) {
+                if ($sigIndex >= count($signatureData)) {
+                    // No more signatures, clean up remaining placeholders
+                    $tp->setValue('signature_' . $i, '');
+                    continue;
+                }
+
+                $binary = $signatureData[$sigIndex];
+                $sigIndex++;
+
+                $ext = substr($binary, 0, 4) === "\x89PNG" ? 'png' : 'jpg';
+                $tmpPath = storage_path('app/uploads/ttd_embed_' . uniqid() . '.' . $ext);
+                file_put_contents($tmpPath, $binary);
+
+                // Fix: Tambahkan background putih untuk PNG transparan agar tidak hitam di Word
+                if ($ext === 'png' && function_exists('imagecreatefrompng')) {
+                    $tmpFixed = $this->addWhiteBackgroundToPng($tmpPath);
+                    if ($tmpFixed && $tmpFixed !== $tmpPath) {
+                        @unlink($tmpPath);
+                        $tmpPath = $tmpFixed;
+                    }
+                }
+
+                $tmpFiles[] = $tmpPath;
+
+                $tp->setImageValue('signature_' . $i, [
+                    'path'   => $tmpPath,
+                    'width'  => 110,
+                    'height' => 55,
+                ]);
+            }
+
+            $tp->saveAs($docxPath);
+
+            // Cleanup temp files
+            foreach ($tmpFiles as $f) {
+                if (file_exists($f)) {
+                    @unlink($f);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Gagal sisipkan semua signature SK: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Tambahkan background putih ke PNG transparan agar tidak muncul hitam di Word.
+     * Mengembalikan path file baru atau false jika gagal.
+     */
+    private function addWhiteBackgroundToPng(string $pngPath): string|false
+    {
+        return $pngPath;
+    }
+
+    /**
      * Isi placeholder per-baris penilaian di DOCX.
      * Template memiliki ${nama_penilaian}, ${keterangan}, ${nilai}, ${catatan}
      * berulang (satu per baris) — ganti SATU occurrence per iterasi row.
@@ -773,10 +942,12 @@ class CetakController extends Controller
         ];
         $this->replaceInDocx($docxPath, $replacements);
 
-        // Item 25b: Sisipkan tanda tangan kaprodi ke BA
-        $kaprodiUser = TUser::where('STATUS_KAPRODI', 't')->first();
-        if ($kaprodiUser) {
-            $this->embedSignature($docxPath, $kaprodiUser->ID, $kaprodiUser->NIP_NIM, $kaprodiUser->NAMA_LENGKAP);
+        // Pusatkan nilai di cell tabel BA (kolom Nilai = center align)
+        $this->centerValueCellsInBaProposal($docxPath);
+
+        // Sisipkan tanda tangan penilai (ketua pembimbing) ke BA
+        if ($ketuaPembimbing) {
+            $this->fillSignaturePlaceholder($docxPath, $ketuaPembimbing->id_user_penilai);
         }
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
@@ -819,8 +990,8 @@ class CetakController extends Controller
             $timByStatus[strtolower(trim($t->status_tim_sidang ?? ''))] = $t;
         }
 
-        // Baris kolom (3): Ketua Tim Pembimbing, Ko-pembimbing 1, Ko-pembimbing 2, Penguji 1, Penguji 2
-        $rowStatuses = ['pembimbing i', 'pembimbing ii', 'pembimbing iii', 'penguji i', 'penguji ii'];
+        // Baris kolom (3): Ketua Pembimbing, Ko-pembimbing 1, Ko-pembimbing 2, Penguji 1, Penguji 2
+        $rowStatuses = ['ketua pembimbing', 'pembimbing i', 'pembimbing ii', 'penguji i', 'penguji ii'];
 
         $nilaiRows = [];
         foreach ($rowStatuses as $st) {
@@ -838,12 +1009,16 @@ class CetakController extends Controller
             $nilaiRows[] = $rata;
         }
 
-        // Nama penilai (Ketua Pembimbing & Ko-pembimbing)
+        // Nama penilai (Ketua Pembimbing, Ko-pembimbing 1, Ko-pembimbing 2)
         $namaPenguji = [
-            $timByStatus['pembimbing i']?->NAMA   ?? '-',
-            $timByStatus['pembimbing ii']?->NAMA  ?? '-',
-            $timByStatus['pembimbing iii']?->NAMA ?? '-',
+            $timByStatus['ketua pembimbing']?->NAMA ?? '-',
+            $timByStatus['pembimbing i']?->NAMA     ?? '-',
+            $timByStatus['pembimbing ii']?->NAMA    ?? '-',
         ];
+
+        // Nama Penguji I & II untuk baris 4-5 (kolom nama, bukan kolom tanda tangan)
+        $namaPengujiI  = $timByStatus['penguji i']?->NAMA  ?? '-';
+        $namaPengujiII = $timByStatus['penguji ii']?->NAMA ?? '-';
 
         // Nilai Akhir Rata-rata (NA) = rata-rata kolom (3) no 1-5
         $adaNilai = array_values(array_filter($nilaiRows, fn($v) => $v !== ''));
@@ -853,7 +1028,7 @@ class CetakController extends Controller
         $indeks = $na !== '' ? $this->calculateIndeksSk((float) $na) : '';
 
         // Kaprodi
-        $kaprodi = TUser::where('STATUS_KAPRODI', 't')->first();
+        $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
 
         // Hari/Tanggal & jam seminar
         $tgl = $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang) : null;
@@ -908,7 +1083,26 @@ class CetakController extends Controller
             'nilai_rows'   => $nilaiRows,
             'na'           => $na,
             'indeks'       => $indeks,
+            'nama_kaprodi' => $kaprodi ? $kaprodi->NAMA_LENGKAP : '',
+            'nip_kaprodi'  => $kaprodi ? $kaprodi->NIP_NIM : '',
+            'nama_penguji_i'  => $namaPengujiI,
+            'nama_penguji_ii' => $namaPengujiII,
         ]);
+
+        // Kumpulkan tim sidang urut (ketua pembimbing, pembimbing I/II, penguji I/II)
+        // untuk tanda tangan per-orang di tabel
+        $timForSignatures = [];
+        foreach ($rowStatuses as $st) {
+            if (isset($timByStatus[$st])) {
+                $timForSignatures[] = $timByStatus[$st];
+            }
+        }
+
+        // Isi ${signature} di tabel dengan tanda tangan per-orang
+        $this->embedAllSkSignatures($docxPath, $timForSignatures);
+
+        // Isi ${signature} di footer dengan tanda tangan kaprodi
+        $this->fillSignaturePlaceholder($docxPath, optional($kaprodi)->id);
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
@@ -967,10 +1161,42 @@ class CetakController extends Controller
         // Template lama: placeholder $(Nilai rata2) -> NA & Indeks.
         $xml = $this->fuzzyReplaceOnce($xml, '$(Nilai rata2)', $esc($data['na']));
         $xml = $this->fuzzyReplaceOnce($xml, '$(Nilai rata2)', $esc($data['indeks']));
+
+        // Nama & NIP Kaprodi (mungkin terpecah antar XML run)
+        if (!empty($data['nama_kaprodi'])) {
+            $xml = $this->fuzzyReplaceOnce($xml, '${nama_kaprodi}', $esc($data['nama_kaprodi']));
+            $xml = $this->fuzzyReplaceOnce($xml, '$(Nama kaprodi)', $esc($data['nama_kaprodi']));
+        }
+        if (!empty($data['nip_kaprodi'])) {
+            $xml = $this->fuzzyReplaceOnce($xml, '${nip_kaprodi}', $esc($data['nip_kaprodi']));
+            $xml = $this->fuzzyReplaceOnce($xml, '$(nip kaprodi)', $esc($data['nip_kaprodi']));
+        }
+
+        // Ganti dots panjang (30+ char) di kolom nama Penguji I & II
+        // Pola: …………………………………………. atau .............. (20+ titik/ellipsis)
+        $namaPengujiI  = $esc($data['nama_penguji_i'] ?? '-');
+        $namaPengujiII = $esc($data['nama_penguji_ii'] ?? '-');
+        $xml = preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{16,}(<\/w:t>)/u', function ($matches) use (&$namaPengujiI, &$namaPengujiII) {
+            // First occurrence → Penguji I, second → Penguji II
+            if ($namaPengujiI !== null) {
+                $result = $matches[1] . $namaPengujiI . $matches[2];
+                $namaPengujiI = null;
+                return $result;
+            } elseif ($namaPengujiII !== null) {
+                $result = $matches[1] . $namaPengujiII . $matches[2];
+                $namaPengujiII = null;
+                return $result;
+            }
+            return $matches[0]; // No more replacements
+        }, $xml);
+
         // Bersihkan sisa placeholder agar tidak bocor ke output.
         $xml = preg_replace('/\$\{nilai_rata2\}/', '', $xml);
         $xml = preg_replace('/\$\{nilai_akhir_rata_rata\}/', '', $xml);
         $xml = preg_replace('/\$\{nilai_akhir_indeks\}/', '', $xml);
+        $xml = preg_replace('/\$\{nama_kaprodi\}/', '', $xml);
+        $xml = preg_replace('/\$\{nip_kaprodi\}/', '', $xml);
+        $xml = preg_replace('/\$\([^)]*kaprodi[^)]*\)/i', '', $xml);
 
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
@@ -1055,7 +1281,7 @@ class CetakController extends Controller
 
         // Ketua Sidang & Kaprodi
         $ketuaSidang = $timByStatus['ketua sidang'] ?? null;
-        $kaprodi = TUser::where('STATUS_KAPRODI', 't')->first();
+        $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
 
         // Tanggal sidang (footer "Bandung, d F Y")
         $tgl = $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang) : null;
@@ -1101,7 +1327,12 @@ class CetakController extends Controller
             'nilai_rows'   => $nilaiRows,
             'rata_rata'    => $rataRata,
             'nama_penguji' => $namaPenguji,
+            'nama_kaprodi' => $kaprodi ? $kaprodi->NAMA_LENGKAP : '',
+            'nip_kaprodi'  => $kaprodi ? $kaprodi->NIP_NIM : '',
         ]);
+
+        // Isi ${signature} dengan tanda tangan kaprodi
+        $this->fillSignaturePlaceholder($docxPath, optional($kaprodi)->id);
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
@@ -1148,6 +1379,21 @@ class CetakController extends Controller
         $anchor = strpos($xml, $esc($np['peng1']));
         $xml = $this->fillSk4ListNameCell($xml, '5', $esc($np['peng2']), $anchor === false ? 0 : $anchor);
         $xml = $this->fillSk4ListNameCell($xml, '6.', $esc($np['peng3']));
+
+        // Nama & NIP Kaprodi (mungkin terpecah antar XML run)
+        if (!empty($data['nama_kaprodi'])) {
+            $xml = $this->fuzzyReplaceOnce($xml, '${nama_kaprodi}', $esc($data['nama_kaprodi']));
+            $xml = $this->fuzzyReplaceOnce($xml, '$(Nama kaprodi)', $esc($data['nama_kaprodi']));
+        }
+        if (!empty($data['nip_kaprodi'])) {
+            $xml = $this->fuzzyReplaceOnce($xml, '${nip_kaprodi}', $esc($data['nip_kaprodi']));
+            $xml = $this->fuzzyReplaceOnce($xml, '$(nip kaprodi)', $esc($data['nip_kaprodi']));
+        }
+
+        // Bersihkan sisa placeholder kaprodi
+        $xml = preg_replace('/\$\{nama_kaprodi\}/', '', $xml);
+        $xml = preg_replace('/\$\{nip_kaprodi\}/', '', $xml);
+        $xml = preg_replace('/\$\([^)]*kaprodi[^)]*\)/i', '', $xml);
 
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
@@ -1265,7 +1511,7 @@ class CetakController extends Controller
         ];
 
         $ketuaSidang = $timByStatus['ketua sidang'] ?? null;
-        $kaprodi = TUser::where('STATUS_KAPRODI', 't')->first();
+        $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
 
         $tgl = $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang) : null;
         $tglFooter = $tgl ? $tgl->translatedFormat('d F Y') : '';
@@ -1321,6 +1567,9 @@ class CetakController extends Controller
             'waktu_selesai'        => $waktuSelesai,
             'tgl_create_penilaian' => $tglCreateFormat,
         ]);
+
+        // Isi ${signature} dengan tanda tangan kaprodi dari database
+        $this->fillSignaturePlaceholder($docxPath, optional($kaprodi)->id);
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
@@ -1477,23 +1726,29 @@ class CetakController extends Controller
             abort(404, 'Data judul/ajuan tidak ditemukan.');
         }
 
-        $timSidang = TTimSidang::where('id_judul', $idJudul)
+        $timSidang = TTimSidang::with('userPenilai')->where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)
             ->get();
 
-        // Item 23: Hanya tampilkan pembimbing (bukan Ketua Pembimbing) berdasarkan Keterangan/role
-        // Ketua Pembimbing TIDAK ditampilkan di daftar pembimbing surat penelaah
+        // Tampilkan semua pembimbing (Ketua Pembimbing, Pembimbing I, II, III)
         $pembimbings = $timSidang->filter(function ($tim) {
-            $status = preg_replace('/[\r\n]+/', '', strtolower(trim($tim->status_tim_sidang ?? '')));
-            // Hanya ambil Pembimbing I, Pembimbing II, Pembimbing III (bukan "Ketua Pembimbing")
-            return preg_match('/^pembimbing\s+(i{1,3}|iv|v)$/i', $status);
+            $status = strtolower(trim($tim->status_tim_sidang ?? ''));
+            return str_contains($status, 'pembimbing');
         })->values();
-        // Ambil nama dari userPenilai jika kolom NAMA kosong/generic/NIP
+        // Resolve nama dari userPenilai jika kolom NAMA kosong/generic
         $pembimbings = $pembimbings->map(function ($tim) {
-            $nama = trim($tim->NAMA ?? '');
-            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji']) || preg_match('/^\d{5,}$/', $nama)) {
-                $tim->NAMA = trim(optional($tim->userPenilai)->NAMA_LENGKAP ?? '') ?: $nama;
+            $nama = trim(optional($tim->userPenilai)->NAMA_LENGKAP ?? '');
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $nama = trim($tim->NAMA ?? '');
             }
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $userId = $tim->id_user_penilai ?? null;
+                if ($userId) {
+                    $user = \App\Models\TUser::find($userId);
+                    $nama = trim($user->NAMA_LENGKAP ?? '');
+                }
+            }
+            $tim->NAMA = $nama ?: '-';
             return $tim;
         })->values();
         if ($pembimbings->isEmpty()) {
@@ -1503,18 +1758,23 @@ class CetakController extends Controller
         }
 
         $pengujis = $timSidang->filter(function ($tim) {
-            $status = preg_replace('/[\r\n]+/', '', strtolower(trim($tim->status_tim_sidang ?? '')));
-            // Hanya ambil Penguji I, II, III (bukan "Ketua Sidang" dll)
-            return preg_match('/^penguji\s+(i{1,3}|iv|v)$/i', $status) || $status === 'penguji';
+            $status = strtolower(trim($tim->status_tim_sidang ?? ''));
+            return str_contains($status, 'penguji');
         })->values();
 
-        // Item 23: Tampilkan nama instansi, bukan "non ITB"
+        // Tampilkan nama instansi, bukan "non ITB"
         $pengujiList = $pengujis->map(function ($t) {
-            // Selalu ambil nama dari userPenilai (lebih reliable dari kolom NAMA)
+            // Resolve nama: userPenilai->NAMA_LENGKAP > NAMA > TUser::find
             $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
-            // Fallback ke kolom NAMA jika userPenilai tidak ada
-            if ($nama === '') {
+            if ($nama === '' || in_array(strtolower($nama), ['penguji', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
                 $nama = trim($t->NAMA ?? '');
+            }
+            if ($nama === '' || in_array(strtolower($nama), ['penguji', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $userId = $t->id_user_penilai ?? null;
+                if ($userId) {
+                    $user = \App\Models\TUser::find($userId);
+                    $nama = trim($user->NAMA_LENGKAP ?? '');
+                }
             }
             // Tampilkan nama instansi (bukan literal "NON ITB")
             $asal = trim(optional($t->userPenilai)->ASAL_INSTANSI ?? '');
@@ -1601,6 +1861,9 @@ class CetakController extends Controller
 
         // Handle penguji and pembimbing separately with direct XML manipulation
         $this->handlePengujiAndPembimbingInXml($docxPath, $pembimbingNames, $pengujiList->toArray(), $prodi);
+
+        // Isi ${signature} dengan tanda tangan dekan dari database
+        $this->fillSignaturePlaceholder($docxPath, optional($dekan)->id);
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
@@ -1755,11 +2018,18 @@ class CetakController extends Controller
 
         // Helper: resolve nama dari userPenilai jika NAMA kosong/generic/NIP
         $resolveNama = function ($t) {
-            $nama = trim($t->NAMA ?? '');
-            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing']) || preg_match('/^\d{5,}$/', $nama)) {
-                $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '') ?: $nama;
+            $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $nama = trim($t->NAMA ?? '');
             }
-            return $nama;
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $userId = $t->id_user_penilai ?? null;
+                if ($userId) {
+                    $user = \App\Models\TUser::find($userId);
+                    $nama = trim($user->NAMA_LENGKAP ?? '');
+                }
+            }
+            return $nama ?: '-';
         };
 
         // Ketua Pembimbing (Ketua)
@@ -1882,11 +2152,18 @@ class CetakController extends Controller
 
         // Helper: resolve nama dari userPenilai jika NAMA kosong/generic/NIP
         $resolveNama = function ($t) {
-            $nama = trim($t->NAMA ?? '');
-            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing']) || preg_match('/^\d{5,}$/', $nama)) {
-                $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '') ?: $nama;
+            $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $nama = trim($t->NAMA ?? '');
             }
-            return $nama;
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $userId = $t->id_user_penilai ?? null;
+                if ($userId) {
+                    $user = \App\Models\TUser::find($userId);
+                    $nama = trim($user->NAMA_LENGKAP ?? '');
+                }
+            }
+            return $nama ?: '-';
         };
 
         // Helper: resolve instansi dari userPenilai (bukan literal "NON ITB")
@@ -2037,7 +2314,7 @@ class CetakController extends Controller
 
         // Nama tahapan pada template masih statis ("Seminar Kemajuan IV") —
         // ganti dinamis sesuai tahapan yang dicetak.
-        $postSave = function ($docxPath) use ($kepadaParagraphs, $perihal, $seminar) {
+        $postSave = function ($docxPath) use ($kepadaParagraphs, $perihal, $seminar, $wda) {
             $z = new \ZipArchive();
             if ($z->open($docxPath) === true) {
                 $xml = $z->getFromName('word/document.xml');
@@ -2079,6 +2356,9 @@ class CetakController extends Controller
                 $z->addFromString('word/document.xml', $xml);
                 $z->close();
             }
+
+            // Isi ${signature} dengan tanda tangan WDA dari database
+            $this->fillSignaturePlaceholder($docxPath, optional($wda)->id);
         };
 
         return $this->exportDocxToPdf($tp, $filename, $postSave);
@@ -2274,6 +2554,51 @@ class CetakController extends Controller
         }
     }
     
+    /**
+     * Pusatkan nilai di kolom "Nilai" pada tabel BA proposal.
+     * Mencari cell yang berisi angka nilai (2.60, dll) dan menambahkan
+     * center alignment pada run-nya.
+     */
+    private function centerValueCellsInBaProposal(string $docxPath): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+
+        $xml = $zip->getFromName('word/document.xml');
+
+        // Tambahkan center alignment pada <w:jc> untuk cell yang berisi nilai angka
+        // Pola: <w:rPr>...</w:rPr> yang tidak memiliki <w:jc w:val="center">
+        // Kita cari cell yang berisi nilai desimal (angka + titik + angka) sebagai nilai penilaian
+        $xml = preg_replace_callback(
+            '/<w:tc>(.*?)<w:r>([^<]*(?:<[^>]*>)*?)<w:t xml:space="preserve">(\d+\.\d+)<\/w:t>/s',
+            function ($matches) {
+                $cellContent = $matches[1];
+                $runStart = $matches[2];
+                $value = $matches[3];
+
+                // Jika run belum punya center alignment, tambahkan
+                if (strpos($runStart, 'w:jc') === false && strpos($cellContent, 'w:jc') === false) {
+                    $jc = '<w:jc w:val="center"/>';
+                    // Insert jc after w:rPr opening tag if exists
+                    if (strpos($runStart, '<w:rPr>') !== false) {
+                        $runStart = str_replace('<w:rPr>', '<w:rPr>' . $jc, $runStart);
+                    } elseif (strpos($runStart, '<w:rPr ') !== false) {
+                        $runStart = preg_replace('/(<w:rPr[^>]*>)/', '$1' . $jc, $runStart);
+                    }
+                }
+
+                return '<w:tc>' . $cellContent . '<w:r>' . $runStart . '<w:t xml:space="preserve">' . $value . '</w:t>';
+            },
+            $xml
+        );
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $xml);
+        $zip->close();
+    }
+
     /**
      * Hapus blok tandatangan (nama penandatangan + NIP) dari XML.
      * Pola: paragraf yang berisi nama + "M.T." atau "NIP." di sekitar

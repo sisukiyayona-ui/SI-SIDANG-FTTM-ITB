@@ -24,6 +24,10 @@ class PrepareTemplate extends Command
                     '----' => '${pembimbing_2}',
                     '_______________ (jumlah total dibagi 5)' => '${rata_nilai} (jumlah total dibagi 5)',
                     'Diagram alur yang digunakan masih tidak sesuai dengan deskripsi dan ada kesalahan. Selain itu juga ada diagram alur yang membingungkan. Masih banyak ketidak konsitenan dalam penulisan. Komentar untuk perbaikan lebih detail dituliskan di formulir di bawah.' => '${catatan}',
+
+                    // Placeholder tanda tangan dari database (t_user.SIGNATURE)
+                    // diganti saat cetak menjadi gambar ttd penilai/pejabat terkait
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -42,6 +46,9 @@ class PrepareTemplate extends Command
                     '$(tgl create penilaian)' => '${tgl_create_penilaian}',
                     '$(Nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
                     '$(nip ketua pembimbing)' => '${nip_ketua_pembimbing}',
+
+                    // Placeholder tanda tangan — ganti "Tanda Tangan" dengan ${signature}
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -64,6 +71,10 @@ class PrepareTemplate extends Command
                     '$(Nama Penilai)' => '${nama_penilai}',
                     '$(nip)' => '${nip}',
                     '_______________ (jumlah total dibagi 5)' => '${rata_nilai} (jumlah total dibagi 5)',
+
+                    // Placeholder tanda tangan dari database (t_user.SIGNATURE)
+                    // diganti saat cetak menjadi gambar ttd penilai/pejabat terkait
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -83,6 +94,10 @@ class PrepareTemplate extends Command
                     '(tgl create penilaian)' => '${tgl_create_penilaian}',
                     '(Nama penilai)' => '${nama_penilai}',
                     '(nip penilai)' => '${nip_penilai}',
+
+                    // Placeholder tanda tangan dari database (t_user.SIGNATURE)
+                    // diganti saat cetak menjadi gambar ttd penilai/pejabat terkait
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -98,6 +113,9 @@ class PrepareTemplate extends Command
                     '$(nama kaprodi)' => '${nama_kaprodi}',
                     '$(nama ketua sidang)' => '${nama_ketua_sidang}',
                     'Nilai rata2' => '${nilai_rata2}',
+
+                    // Placeholder tanda tangan — hanya ganti "Tanda Tangan dan Nama Jelas"
+                    'Tanda Tangan dan Nama Jelas' => '${signature}',
                 ]
             ],
             [
@@ -117,6 +135,10 @@ class PrepareTemplate extends Command
                     '(nama penguji 1)' => '${nama_penilai}',
                     '(catatan)' => '${catatan}',
                     '(rata nilai)' => '${rata_nilai}',
+
+                    // Placeholder tanda tangan dari database (t_user.SIGNATURE)
+                    // diganti saat cetak menjadi gambar ttd penilai/pejabat terkait
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -131,7 +153,8 @@ class PrepareTemplate extends Command
                     '$(Nama Penguji III)' => '${nama_penguji_iii}',
                     '$(Nama kaprodi)' => '${nama_kaprodi}',
                     '$(nip kaprodi)' => '${nip_kaprodi}',
-                ]
+                ],
+                'replaceSignatureDots' => true,
             ],
             [
                 'src' => base_path('template/SK-1/form penilaian sk I sd sk III.docx'),
@@ -155,6 +178,9 @@ class PrepareTemplate extends Command
                     '$(Nama_penilai)' => '${nama_penilai}',
                     '$(nip penilai)' => '${nip_penilai}',
                     'Nilai Rata-Rata : /skala 5 (jumlah skor detail dibagi 5)' => 'Nilai Rata-Rata : ${rata_nilai} /skala 5 (jumlah skor detail dibagi 5)',
+
+                    // Placeholder tanda tangan
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -173,12 +199,16 @@ class PrepareTemplate extends Command
                     '$(tgl sidang)' => '${tgl_sidang}',
                     '$(nama ketua sidang)' => '${nama_ketua_sidang}',
                     '$(nip ketua sidang)' => '${nip_ketua_sidang}',
-                ]
+                ],
+                'replaceSignatureDots' => true,
             ],
             [
                 'src' => base_path('template/surat Kesediaan Tim Penelaah Proposal.docx'),
                 'dst' => base_path('template/surat Kesediaan Tim Penelaah Proposal TEMPLATE.docx'),
                 'replacements' => [
+                    // Nomor surat penelaah dari database (T_AJUAN_SIDANG.NO_SURAT_PENELAAH)
+                    '2397/IT1.C05.1/DA.05/2023 ini ambil dari no surat penelaah' => '${no_surat_penelaah}',
+                    '2397/IT1.C05.1/DA.05/2023' => '${no_surat_penelaah}',
                     '$(tgl penelaah)' => '${tgl_penelaah}',
                     '$( nama penguji)' => '${nama_penguji}',
                     '$(institusi)' => '${institusi}',
@@ -190,6 +220,10 @@ class PrepareTemplate extends Command
                     '$(dari tabel t user, status dekan \'y\')' => '${dari_tabel_t_user_status_dekan_y}',
                     '$(nip)' => '${nip}',
                     '$(email)' => '${email}',
+
+                    // Placeholder tanda tangan dari database (t_user.SIGNATURE)
+                    // diganti saat cetak menjadi gambar ttd penilai/pejabat terkait
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -208,6 +242,10 @@ class PrepareTemplate extends Command
                     '$(ruangan)' => '${ruangan}',
                     '$(NAMA WDA)' => '${nama_wda}',
                     '$(NIP WDA)' => '${nip_wda}',
+
+                    // Placeholder tanda tangan dari database (t_user.SIGNATURE)
+                    // diganti saat cetak menjadi gambar ttd penilai/pejabat terkait
+                    'Tanda Tangan' => '${signature}',
                 ]
             ],
         ];
@@ -233,6 +271,12 @@ class PrepareTemplate extends Command
             $xml = $zip->getFromName('word/document.xml');
 
             $xml = $this->fuzzyReplaceAll($xml, $replacements);
+
+            // Jika ada flag replaceSignatureDots, ganti pola titik-titik
+            // yang menjadi placeholder tanda tangan di tabel
+            if (!empty($template['replaceSignatureDots'])) {
+                $xml = $this->replaceSignatureDots($xml);
+            }
 
             $zip->addFromString('word/document.xml', $xml);
             $zip->close();
@@ -294,6 +338,9 @@ class PrepareTemplate extends Command
             '$(NIP WDA)'                      => '${nip_wda}',
             '$(nama tim sidang ketua sidang)' => '${nama_tim_sidang_ketua_sidang}',
             '$(ketua_sidang)'                 => '${ketua_sidang}',
+
+            // Placeholder tanda tangan dari database (t_user.SIGNATURE)
+            'Tanda tangan'                    => '${signature}',
         ];
 
         $xml = $this->fuzzyReplaceAll($xml, $textReplacements);
@@ -440,6 +487,29 @@ class PrepareTemplate extends Command
                 return substr($replaced, 1, -1);
             }, $xml);
         }
+
+        return $xml;
+    }
+
+    /**
+     * Ganti pola titik-ttitik (........, ................., dll)
+     * yang menjadi placeholder tanda tangan di tabel
+     * dengan ${signature}.
+     *
+     * Pola yang diganti:
+     * - ........ (8 titik) - signature penguji biasa
+     * - ................. (15 titik) - signature penguji tambahan
+     * - .......... (10 titik) - signature penguji
+     * - ........... (11 titik) - signature penguji
+     */
+    private function replaceSignatureDots(string $xml): string
+    {
+        // Ganti HANYA dots pendek (≤9 karakter) di kolom TANDATANGAN dengan ${signature}.
+        // Pattern signature di template: "……………….." (6×U+2026 + 2×U+002E = 8 chars).
+        // Dots panjang (10+ chars) di kolom nama PENGUJI tidak boleh diganti.
+        $xml = preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{3,9}(<\/w:t>)/u', function ($matches) {
+            return $matches[1] . '${signature}' . $matches[2];
+        }, $xml);
 
         return $xml;
     }

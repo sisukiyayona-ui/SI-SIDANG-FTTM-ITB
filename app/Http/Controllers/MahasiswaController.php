@@ -27,73 +27,29 @@ class MahasiswaController extends Controller
         }
         
         // Query tracking progress sidang — base table t_judul agar mahasiswa baru (belum punya ajuan) tetap muncul
+        // Status CASE expression: consistent with SidangS1/S2/S3 controllers
+        $statusCase = function ($alias) {
+            return "CASE
+                    WHEN MAX({$alias}.STATUS_LULUS) IS NOT NULL AND MAX({$alias}.STATUS_LULUS) != 'diajukan' THEN MAX({$alias}.STATUS_LULUS)
+                    WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.STATUS_AJUKAN_MHS), 't') != 'y' THEN 'belum diajukan'
+                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_PRODI), 't') != 'y' THEN 'Diproses di TU Prodi'
+                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') != 'y' THEN 'Diproses di Fakultas'
+                    WHEN MAX({$alias}.TGL_SIDANG) IS NULL THEN 'Menunggu Pelaksanaan Sidang'
+                    ELSE 'Terjadwal'
+                END";
+        };
+
         $tracking = DB::select("
             SELECT DISTINCT
                 j.id as id_judul,
                 j.JUDUL as Judul,
-                MAX(CASE
-                    WHEN a1.id IS NULL THEN 'belum diajukan'
-                    WHEN a1.STATUS_LULUS IS NOT NULL THEN a1.STATUS_LULUS
-                    WHEN a1.STATUS_AJUKAN_MHS IS NULL OR a1.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
-                    WHEN a1.STATUS_AJUKAN_MHS = 'y' AND (a1.STATUS_AJUKAN_PRODI IS NULL OR a1.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
-                    WHEN a1.STATUS_AJUKAN_PRODI = 'y' AND (a1.STATUS_AJUKAN_FS IS NULL OR a1.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
-                    WHEN a1.STATUS_AJUKAN_FS = 'y' AND (a1.STATUS_APPROVE_KPPS IS NULL OR a1.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
-                    ELSE 'Menunggu Jadwal Sidang'
-                END) as tahap1,
-                MAX(CASE
-                    WHEN a2.id IS NULL THEN 'belum diajukan'
-                    WHEN a2.STATUS_LULUS IS NOT NULL THEN a2.STATUS_LULUS
-                    WHEN a2.STATUS_AJUKAN_MHS IS NULL OR a2.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
-                    WHEN a2.STATUS_AJUKAN_MHS = 'y' AND (a2.STATUS_AJUKAN_PRODI IS NULL OR a2.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
-                    WHEN a2.STATUS_AJUKAN_PRODI = 'y' AND (a2.STATUS_AJUKAN_FS IS NULL OR a2.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
-                    WHEN a2.STATUS_AJUKAN_FS = 'y' AND (a2.STATUS_APPROVE_KPPS IS NULL OR a2.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
-                    ELSE 'Menunggu Jadwal Sidang'
-                END) as tahap2,
-                MAX(CASE
-                    WHEN a3.id IS NULL THEN 'belum diajukan'
-                    WHEN a3.STATUS_LULUS IS NOT NULL THEN a3.STATUS_LULUS
-                    WHEN a3.STATUS_AJUKAN_MHS IS NULL OR a3.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
-                    WHEN a3.STATUS_AJUKAN_MHS = 'y' AND (a3.STATUS_AJUKAN_PRODI IS NULL OR a3.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
-                    WHEN a3.STATUS_AJUKAN_PRODI = 'y' AND (a3.STATUS_AJUKAN_FS IS NULL OR a3.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
-                    WHEN a3.STATUS_AJUKAN_FS = 'y' AND (a3.STATUS_APPROVE_KPPS IS NULL OR a3.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
-                    ELSE 'Menunggu Jadwal Sidang'
-                END) as sk1,
-                MAX(CASE
-                    WHEN a4.id IS NULL THEN 'belum diajukan'
-                    WHEN a4.STATUS_LULUS IS NOT NULL THEN a4.STATUS_LULUS
-                    WHEN a4.STATUS_AJUKAN_MHS IS NULL OR a4.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
-                    WHEN a4.STATUS_AJUKAN_MHS = 'y' AND (a4.STATUS_AJUKAN_PRODI IS NULL OR a4.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
-                    WHEN a4.STATUS_AJUKAN_PRODI = 'y' AND (a4.STATUS_AJUKAN_FS IS NULL OR a4.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
-                    WHEN a4.STATUS_AJUKAN_FS = 'y' AND (a4.STATUS_APPROVE_KPPS IS NULL OR a4.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
-                    ELSE 'Menunggu Jadwal Sidang'
-                END) as sk2,
-                MAX(CASE
-                    WHEN a5.id IS NULL THEN 'belum diajukan'
-                    WHEN a5.STATUS_LULUS IS NOT NULL THEN a5.STATUS_LULUS
-                    WHEN a5.STATUS_AJUKAN_MHS IS NULL OR a5.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
-                    WHEN a5.STATUS_AJUKAN_MHS = 'y' AND (a5.STATUS_AJUKAN_PRODI IS NULL OR a5.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
-                    WHEN a5.STATUS_AJUKAN_PRODI = 'y' AND (a5.STATUS_AJUKAN_FS IS NULL OR a5.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
-                    WHEN a5.STATUS_AJUKAN_FS = 'y' AND (a5.STATUS_APPROVE_KPPS IS NULL OR a5.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
-                    ELSE 'Menunggu Jadwal Sidang'
-                END) as sk3,
-                MAX(CASE
-                    WHEN a6.id IS NULL THEN 'belum diajukan'
-                    WHEN a6.STATUS_LULUS IS NOT NULL THEN a6.STATUS_LULUS
-                    WHEN a6.STATUS_AJUKAN_MHS IS NULL OR a6.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
-                    WHEN a6.STATUS_AJUKAN_MHS = 'y' AND (a6.STATUS_AJUKAN_PRODI IS NULL OR a6.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
-                    WHEN a6.STATUS_AJUKAN_PRODI = 'y' AND (a6.STATUS_AJUKAN_FS IS NULL OR a6.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
-                    WHEN a6.STATUS_AJUKAN_FS = 'y' AND (a6.STATUS_APPROVE_KPPS IS NULL OR a6.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
-                    ELSE 'Menunggu Jadwal Sidang'
-                END) as sk4,
-                MAX(CASE
-                    WHEN a7.id IS NULL THEN 'belum diajukan'
-                    WHEN a7.STATUS_LULUS IS NOT NULL THEN a7.STATUS_LULUS
-                    WHEN a7.STATUS_AJUKAN_MHS IS NULL OR a7.STATUS_AJUKAN_MHS = 't' THEN 'belum diajukan'
-                    WHEN a7.STATUS_AJUKAN_MHS = 'y' AND (a7.STATUS_AJUKAN_PRODI IS NULL OR a7.STATUS_AJUKAN_PRODI = 't') THEN 'Diproses di TU Prodi'
-                    WHEN a7.STATUS_AJUKAN_PRODI = 'y' AND (a7.STATUS_AJUKAN_FS IS NULL OR a7.STATUS_AJUKAN_FS = 't') THEN 'Diproses di Fakultas'
-                    WHEN a7.STATUS_AJUKAN_FS = 'y' AND (a7.STATUS_APPROVE_KPPS IS NULL OR a7.STATUS_APPROVE_KPPS = 't') THEN 'Menunggu Approval KPPS'
-                    ELSE 'Menunggu Jadwal Sidang'
-                END) as tahap4
+                MAX({$statusCase('a1')}) as tahap1,
+                MAX({$statusCase('a2')}) as tahap2,
+                MAX({$statusCase('a3')}) as sk1,
+                MAX({$statusCase('a4')}) as sk2,
+                MAX({$statusCase('a5')}) as sk3,
+                MAX({$statusCase('a6')}) as sk4,
+                MAX({$statusCase('a7')}) as tahap4
             FROM t_judul j
             LEFT JOIN t_user u ON j.ID_USER_MHS = u.id
             LEFT JOIN (

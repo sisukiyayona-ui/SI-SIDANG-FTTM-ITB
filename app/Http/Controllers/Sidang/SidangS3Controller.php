@@ -26,11 +26,11 @@ class SidangS3Controller extends Controller
         $caseSql = function ($alias) {
             return "
                 CASE
-                    WHEN MAX({$alias}.status_lulus) IS NOT NULL THEN MAX({$alias}.status_lulus)
+                    WHEN MAX({$alias}.status_lulus) IS NOT NULL AND MAX({$alias}.status_lulus) != 'diajukan' THEN MAX({$alias}.status_lulus)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.status_ajukan_mhs), 't') != 'y' THEN 'belum diajukan'
                     WHEN COALESCE(MAX({$alias}.status_ajukan_prodi), 't') != 'y' THEN 'diproses di TU Prodi'
                     WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') != 'y' THEN 'diproses di fakultas'
-                    WHEN MAX({$alias}.tgl_sidang) IS NULL THEN 'menunggu jadwal sidang'
+                    WHEN MAX({$alias}.tgl_sidang) IS NULL THEN 'menunggu pelaksanaan sidang'
                     ELSE 'terjadwal'
                 END";
         };
