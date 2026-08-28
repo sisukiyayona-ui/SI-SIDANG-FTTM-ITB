@@ -305,7 +305,7 @@
                                         </div>
                                     </div>
                                     @endif
-                                    <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div class="d-flex justify-content-end align-items-center mt-2" style="gap: 8px;">
                                         <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="resetTimForm('timForm', 'timAddBtn')">Batal</button>
                                         <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
@@ -811,7 +811,7 @@
                                         </div>
                                     </div>
                                     @endif
-                                    <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div class="d-flex justify-content-end align-items-center mt-2" style="gap: 8px;">
                                         <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="resetTimForm('timFormTahap2', 'timAddBtnTahap2')">Batal</button>
                                         <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
@@ -1543,7 +1543,7 @@
                                         </div>
                                     </div>
                                     @endif
-                                    <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div class="d-flex justify-content-end align-items-center mt-2" style="gap: 8px;">
                                         <button type="button" class="btn btn-secondary" style="font-size: 13px; border-radius: 0;" onclick="resetTimForm('timFormTahap2', 'timAddBtnTahap2')">Batal</button>
                                         <button type="submit" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
                                     </div>
@@ -1783,9 +1783,18 @@ function submitPenilaian(event) {
 function clearReferenceRows(tbodyId) {
     var tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-    tbody.querySelectorAll('tr.penilaian-tahap2-row:not([data-id-penilai]), tr.penilaian-data-row:not([data-id-penilai])').forEach(function (row) {
+    
+    // 1. Kosongkan baris referensi
+    tbody.querySelectorAll('tr[data-id-penilai=""]').forEach(function (row) {
         row.querySelectorAll('.nilai-input, .catatan-input').forEach(function (inp) {
             inp.value = '';
+        });
+    });
+    
+    // 2. Kembalikan baris existing ke nilai awal dari database (defaultValue)
+    tbody.querySelectorAll('tr[data-id-penilai]:not([data-id-penilai=""])').forEach(function (row) {
+        row.querySelectorAll('.nilai-input, .catatan-input').forEach(function (inp) {
+            inp.value = inp.defaultValue;
         });
     });
 }
@@ -2500,6 +2509,7 @@ async function savePenilaianTahap1() {
                 msg += ' (status lulus tidak diupdate)';
             }
             showToast(msg, 'success');
+            setTimeout(() => window.location.reload(), 1000);
         } else {
             showToast('Error: ' + (data.error || 'Gagal simpan'), 'error');
         }
@@ -2664,6 +2674,7 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Nilai berhasil dikunci', 'success');
+            setTimeout(() => window.location.reload(), 1000);
         } else {
             showToast('Error: ' + (data.error || 'Gagal mengunci nilai'), 'error');
         }
@@ -2744,6 +2755,7 @@ async function savePenilaianTahap2() {
                 msg += ' (status lulus tidak diupdate)';
             }
             showToast(msg, 'success');
+            setTimeout(() => window.location.reload(), 1000);
         } else {
             showToast('Error: ' + (data.error || 'Gagal simpan'), 'error');
         }

@@ -43,7 +43,7 @@
         @foreach($persyaratan as $i => $item)
             <tr>
                 <td>{{ $persyaratan->firstItem() + $i }}</td>
-                <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
+                <td><a href="#" onclick="event.preventDefault(); openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
                 <td>{{ $tahapanLabels[$item['tahapan_sidang']] ?? $item['tahapan_sidang'] }}</td>
                 <td>{{ $item['strata'] }}</td>
                 <td>{{ $item['kode_prodi'] }} - {{ $item['nama_prodi'] }}</td>

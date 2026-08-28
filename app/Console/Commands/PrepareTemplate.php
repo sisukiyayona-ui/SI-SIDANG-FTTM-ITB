@@ -199,8 +199,21 @@ class PrepareTemplate extends Command
                     '$(tgl sidang)' => '${tgl_sidang}',
                     '$(nama ketua sidang)' => '${nama_ketua_sidang}',
                     '$(nip ketua sidang)' => '${nip_ketua_sidang}',
+                    // Placeholder nama penguji di tabel "Tim Penguji/Penilai"
+                    // PENTING: decode dari yang PALING PANJANG (IV→III→II→I) dulu,
+                    // karena pola "Nama penguji I" akan ikut memakan "I" pertama dari
+                    // "II"/"III" (fuzzy match), menghasilkan ${nama_penguji_i}I yang salah.
+                    '${Nama penguji IV}'  => '${nama_penguji_iv}',
+                    '${Nama penguji III}' => '${nama_penguji_iii}',
+                    '${Nama penguji II}'  => '${nama_penguji_ii}',
+                    '${Nama penguji I}'   => '${nama_penguji_i}',
+                    'Nama penguji IV'  => '${nama_penguji_iv}',
+                    'Nama penguji III' => '${nama_penguji_iii}',
+                    'Nama penguji II'  => '${nama_penguji_ii}',
+                    'Nama penguji I'   => '${nama_penguji_i}',
                 ],
                 'replaceSignatureDots' => true,
+                'fixSk4PengujiRows'     => true,
             ],
             [
                 'src' => base_path('template/surat Kesediaan Tim Penelaah Proposal.docx'),
@@ -217,8 +230,8 @@ class PrepareTemplate extends Command
                     '$(Judul)' => '${judul}',
                     '$(pembimbing)' => '${pembimbing}',
                     '$(tgl hasil penelaahan)' => '${tgl_hasil_penelaahan}',
-                    '$(dari tabel t user, status dekan \'y\')' => '${dari_tabel_t_user_status_dekan_y}',
-                    '$(nip)' => '${nip}',
+                    '$(dari tabel t user, status dekan \'y\')' => '${nama_wda}',
+                    '$(nip)' => '${nip_wda}',
                     '$(email)' => '${email}',
 
                     // Placeholder tanda tangan dari database (t_user.SIGNATURE)
@@ -276,6 +289,12 @@ class PrepareTemplate extends Command
             // yang menjadi placeholder tanda tangan di tabel
             if (!empty($template['replaceSignatureDots'])) {
                 $xml = $this->replaceSignatureDots($xml);
+            }
+
+            // Khusus SK-4: baris 4-5 tabel "Tim Penguji/Penilai" diberi label
+            // (Penguji-1)/(Penguji-2) dan sel tanda tangan baris 5 dikosongkan.
+            if (!empty($template['fixSk4PengujiRows'])) {
+                $xml = $this->fixSk4PengujiRows($xml);
             }
 
             $zip->addFromString('word/document.xml', $xml);
@@ -510,6 +529,48 @@ class PrepareTemplate extends Command
         $xml = preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{3,9}(<\/w:t>)/u', function ($matches) {
             return $matches[1] . '${signature}' . $matches[2];
         }, $xml);
+
+        return $xml;
+    }
+
+    /**
+     * Khusus BA SK IV: rapikan baris 4-5 tabel "Tim Penguji/Penilai".
+     *  - baris ke-4 label "(Penguji)" -> "(Penguji-1)"
+     *  - baris ke-5 label "(Penguji)" -> "(Penguji-2)" dan sel tanda tangan dikosongkan
+     *    (sesuai format asli: baris 5 tidak punya kolom tandatangan).
+     */
+    private function fixSk4PengujiRows(string $xml): string
+    {
+        // Label role baris penguji memakai satu run <w:t>(Penguji)</w:t>.
+        $label = '<w:t>(Penguji)</w:t>';
+        $label1 = '<w:t>(Penguji-1)</w:t>';
+        $label2 = '<w:t>(Penguji-2)</w:t>';
+        $count = substr_count($xml, $label);
+
+        // Ganti kemunculan ke-1 (baris 4) & ke-2 (baris 5) secara berurutan.
+        if ($count >= 1) {
+            $pos1 = strpos($xml, $label);
+            if ($pos1 !== false) {
+                $xml = substr_replace($xml, $label1, $pos1, strlen($label));
+            }
+        }
+        if ($count >= 2) {
+            $pos2 = strpos($xml, $label);
+            if ($pos2 !== false) {
+                $xml = substr_replace($xml, $label2, $pos2, strlen($label));
+            }
+        }
+
+        // Kosongkan sel tanda tangan (${signature}) yang muncul SETELAH "(Penguji-2)".
+        $anchor = strpos($xml, $label2);
+        if ($anchor !== false) {
+            $after = substr($xml, $anchor);
+            if (preg_match('/<w:t>\$\{signature\}<\/w:t>/', $after)) {
+                $xml = preg_replace('/<w:t>\$\{signature\}<\/w:t>/', '<w:t></w:t>', $after, 1)
+                     ? substr($xml, 0, $anchor) . preg_replace('/<w:t>\$\{signature\}<\/w:t>/', '<w:t></w:t>', $after, 1)
+                     : $xml;
+            }
+        }
 
         return $xml;
     }
