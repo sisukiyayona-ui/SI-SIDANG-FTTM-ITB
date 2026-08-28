@@ -2509,7 +2509,10 @@ async function savePenilaianTahap1() {
                 msg += ' (status lulus tidak diupdate)';
             }
             showToast(msg, 'success');
-            setTimeout(() => window.location.reload(), 1000);
+            if (typeof reloadTahapForm === 'function') {
+                reloadTahapForm(tahapan, idJudul);
+            }
+            window.__penilaianChanged = true;
         } else {
             showToast('Error: ' + (data.error || 'Gagal simpan'), 'error');
         }
@@ -2674,7 +2677,14 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Nilai berhasil dikunci', 'success');
-            setTimeout(() => window.location.reload(), 1000);
+            // Nonaktifkan tombol kunci + kunci input yang terlihat (tanpa reload)
+            var btn = document.getElementById(btnId);
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-lock"></i> Terkunci'; }
+            var tbodyEl = document.getElementById(tbodyId);
+            if (tbodyEl) {
+                tbodyEl.querySelectorAll('input, textarea, select').forEach(function(inp) { inp.disabled = true; });
+            }
+            window.__penilaianChanged = true;
         } else {
             showToast('Error: ' + (data.error || 'Gagal mengunci nilai'), 'error');
         }
@@ -2755,7 +2765,10 @@ async function savePenilaianTahap2() {
                 msg += ' (status lulus tidak diupdate)';
             }
             showToast(msg, 'success');
-            setTimeout(() => window.location.reload(), 1000);
+            if (typeof reloadTahapForm === 'function') {
+                reloadTahapForm(tahapan, idJudul);
+            }
+            window.__penilaianChanged = true;
         } else {
             showToast('Error: ' + (data.error || 'Gagal simpan'), 'error');
         }
@@ -2950,6 +2963,72 @@ async function hapusJadwal(id, tahapan, idJudul) {
     })
     .catch(function(error) {
         showToast('Error: ' + error.message, 'error');
+    });
+}
+
+function reloadTahapForm(tahapan, idJudul) {
+    var content = document.getElementById('tahapFormContent');
+    var title = document.getElementById('tahapTitle');
+    if (!content) { window.location.reload(); return; }
+
+    // Simpan pilihan penilai & form sebelum konten direload
+    var selPenilai2 = document.getElementById('penilaiTahap2') ? document.getElementById('penilaiTahap2').value : '';
+    var selForm2 = document.getElementById('formTahap2') ? document.getElementById('formTahap2').value : '';
+    var selPenilai1 = document.getElementById('penilaianSelect') ? document.getElementById('penilaianSelect').value : '';
+    var selForm1 = document.getElementById('formFilterSelect') ? document.getElementById('formFilterSelect').value : '';
+
+    var activeTab = 'jadwal';
+    var activeLink = content.querySelector('#myTab a.active, .nav-tabs a.active, ul.nav a.active');
+    if (activeLink && activeLink.getAttribute('href')) {
+        var href = activeLink.getAttribute('href').replace('#', '');
+        if (href) activeTab = href;
+    }
+
+    // Jangan kosongkan konten (hindari flash spinner) — biarkan tampilan lama
+    // tetap terlihat, konten diganti setelah hasil fetch siap.
+    fetch('/sidang/tahap/' + encodeURIComponent(tahapan) + '?id_judul=' + encodeURIComponent(idJudul) + '&_=' + new Date().getTime(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(response) { return response.text(); })
+    .then(function(html) {
+        content.innerHTML = html;
+        content.querySelectorAll('script').forEach(function(oldScript) {
+            var newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach(function(attr) {
+                newScript.setAttribute(attr.name, attr.value);
+            });
+            newScript.textContent = oldScript.textContent;
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+        if (title) {
+            var labels = { 'tahap I': 'Ujian Kualifikasi', 'tahap II': 'Ujian Proposal', 'tahap IV': 'Sidang Terbuka / Tertutup' };
+            title.textContent = labels[tahapan] || tahapan;
+        }
+        if (activeTab) {
+            var tl = content.querySelector('a[href="#' + activeTab + '"]');
+            if (tl) { $(tl).tab('show'); }
+        }
+        // Pulihkan pilihan penilai & form, lalu filter ulang
+        var p2 = document.getElementById('penilaiTahap2');
+        var f2 = document.getElementById('formTahap2');
+        if (p2) p2.value = selPenilai2;
+        if (f2) f2.value = selForm2;
+        if (p2 && typeof filterPenilaianTahap2 === 'function') filterPenilaianTahap2();
+        var p1 = document.getElementById('penilaianSelect');
+        var f1 = document.getElementById('formFilterSelect');
+        if (p1) p1.value = selPenilai1;
+        if (f1) f1.value = selForm1;
+        if (p1 && typeof filterPenilaian === 'function') filterPenilaian();
+        // Tampilkan Form Penilaian (bukan daftar jadwal)
+        var form = document.getElementById('penilaianFormTahap2');
+        var list = document.getElementById('jadwalListTahap2');
+        if (form) {
+            form.style.display = 'block';
+            if (list) list.style.display = 'none';
+        }
+    })
+    .catch(function(error) {
+        content.innerHTML = '<p class="text-danger text-center py-4">Error loading form: ' + error + '</p>';
     });
 }
 
