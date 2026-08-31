@@ -130,7 +130,7 @@
             <div class="modal-content" style="border-radius: 8px; overflow: hidden;">
                 <div class="modal-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px;">
                     <h6 class="modal-title font-weight-bold mb-0" style="color: #333;"><i class="fas fa-file-alt mr-2"></i>Abstrak Penelitian</h6>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="margin-right: -8px;">
+                    <button type="button" class="close" aria-label="Close" style="margin-right: -8px;" onclick="$('#abstrakModal').modal('hide');">
                         <span aria-hidden="true" style="font-size: 20px;">&times;</span>
                     </button>
                 </div>
@@ -139,33 +139,31 @@
                         {{ $abstrakText }}
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top: 1px solid #dee2e6; padding: 12px 20px;">
-                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal" style="border-radius: 4px;">Tutup</button>
-                </div>
+
             </div>
         </div>
     </div>
 
     <div class="mb-4" style="line-height: 1.2;">
         <div class="d-flex">
-            <div style="width: 60px;" class="font-weight-bold font-sm">Nama</div>
-            <div class="mr-1">:</div>
+            <div style="width: 70px;" class="font-weight-bold font-sm">Nama</div>
+            <div class="mr-1"> :</div>
             <div><span>{{ $nama }}</span></div>
         </div>
         <div class="d-flex mt-1">
-            <div style="width: 60px;" class="font-weight-bold font-sm">NIM</div>
-            <div class="mr-1">:</div>
+            <div style="width: 70px;" class="font-weight-bold font-sm">NIM</div>
+            <div class="mr-1"> :</div>
             <div><span>{{ $nim }}</span></div>
         </div>
         <div class="d-flex mt-1">
-            <div style="width: 60px;" class="font-weight-bold font-sm">Judul</div>
-            <div class="mr-1">:</div>
+            <div style="width: 70px;" class="font-weight-bold font-sm">Judul</div>
+            <div class="mr-1"> :</div>
             <div class="flex-grow-1"><span>{{ $judulText }}</span></div>
         </div>
         @if($abstrakText)
         <div class="d-flex mt-1">
-            <div style="width: 60px;" class="font-weight-bold font-sm">Abstrak</div>
-            <div class="mr-1">:</div>
+            <div style="width: 70px;" class="font-weight-bold font-sm">Abstrak</div>
+            <div class="mr-1"> :</div>
             <div class="flex-grow-1">
                 <a href="#" onclick="$('#abstrakModal').modal('show'); return false;" class="text-primary" style="font-size: 13px; text-decoration: underline;">
                     <i class="fas fa-file-alt mr-1"></i>Lihat Abstrak
