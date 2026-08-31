@@ -263,7 +263,7 @@ class SidangS3Controller extends Controller
             'RUANG_SIDANG' => null,
             'STATUS_LULUS' => null,
             'STATUS_AJUKAN_MHS' => 'y',
-            'STATUS_AJUKAN_PRODI' => 'y',
+            'STATUS_AJUKAN_PRODI' => null,
             'TGL_CREATE' => now(),
             'TGL_UPDATE' => now(),
             'ID_USER_CREATE' => $user['id'],

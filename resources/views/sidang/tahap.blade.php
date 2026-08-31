@@ -179,7 +179,7 @@
         @if($isTahap1)
             {{-- VIEW TAHAP I - WITH TABS FOR TU PRODI/ADMIN/FS --}}
             @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
-            <ul class="nav text-center w-100 d-flex justify-content-center border-bottom-0 mb-4" id="myTab" role="tablist">
+            <ul class="nav text-center w-100 d-flex justify-content-center flex-wrap border-bottom-0 mb-3" id="myTab" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active font-weight-bold p-0 text-primary" id="persyaratan-tab" data-toggle="tab" href="#persyaratan" role="tab" style="text-decoration: underline;">Persyaratan</a>
                 </li>
@@ -606,7 +606,7 @@
             </div>
             @endif
             @else
-            <ul class="nav text-center w-100 d-flex justify-content-center border-bottom-0 mb-4" id="myTab" role="tablist">
+            <ul class="nav text-center w-100 d-flex justify-content-center flex-wrap border-bottom-0 mb-3" id="myTab" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active font-weight-bold p-0 text-primary" id="persyaratan-tab" data-toggle="tab" href="#persyaratan" role="tab" style="text-decoration: underline;">Persyaratan</a>
                 </li>
