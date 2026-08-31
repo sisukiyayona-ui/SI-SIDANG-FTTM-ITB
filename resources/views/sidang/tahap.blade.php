@@ -321,15 +321,15 @@
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
                             <div class="table-responsive" style="max-height: 45vh; overflow-y: auto;">
-                            <table class="table table-bordered table-sm text-center mb-0">
+                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 750px;">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
-                                        <th style="width: 10%;">No</th>
-                                        <th style="width: 20%;">NIP</th>
-                                        <th style="width: 30%;">Nama</th>
-                                        <th style="width: 20%;">Keterangan</th>
-                                        <th style="width: 20%;">No SK</th>
-                                        <th style="width: 15%;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="width: 10%;">Aksi</th>@endif
+                                        <th style="width: 40px;">No</th>
+                                        <th style="min-width: 190px; white-space: nowrap;">NIP</th>
+                                        <th style="min-width: 280px; white-space: nowrap;">Nama</th>
+                                        <th>Keterangan</th>
+                                        <th>No SK</th>
+                                        <th>File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th>Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -345,8 +345,8 @@
                                                  data-urutan="{{ $tim->urutan }}"
                                                  data-file-penelaah="{{ $tim->FILE_PENELAAH }}">
                                                  <td>{{ $idx + 1 }}</td>
-                                                 <td>{{ $tim->nip }}</td>
-                                                 <td class="text-left text-primary" style="text-decoration:underline;">{{ $tim->Nama }}</td>
+                                                 <td style="white-space: nowrap;">{{ $tim->nip }}</td>
+                                                 <td class="text-left text-primary" style="text-decoration:underline; white-space: nowrap;">{{ $tim->Nama }}</td>
                                                  <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
                                                  <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
                                                  <td>
@@ -524,6 +524,7 @@
                             <span class="mr-4 font-weight-bold">Status Lulus</span>
                             @if(!in_array(session('auth_user.role'), ['FS']))
                             <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;">
+                                <option value="" {{ (!isset($ajuan) || !$ajuan->status_lulus) ? 'selected' : '' }}>Pilih status</option>
                                 <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                 <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
                             </select>
@@ -541,8 +542,8 @@
                             }
                         @endphp
                         <div class="d-flex align-items-center">
-                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" {{ $isNilaiTerkunci ? 'disabled' : '' }}><i class="fas fa-lock"></i> Kunci Nilai</button>
-                            <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
+                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                            <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()">Simpan</button>
                         </div>
                         @endif
                     </div>
@@ -617,6 +618,7 @@
                     <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                 @else
                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay2" style="width: 150px;">
+                        <option value="">Pilih status</option>
                         <option value="lulus">Lulus</option>
                         <option value="tidak lulus">Tidak Lulus</option>
                     </select>
@@ -828,15 +830,15 @@
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
                             <div class="table-responsive" style="max-height: 45vh; overflow-y: auto;">
-                            <table class="table table-bordered table-sm text-center mb-0">
+                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 750px;">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
-                                        <th style="width: 10%;">No</th>
-                                        <th style="width: 20%;">NIP</th>
-                                        <th style="width: 30%;">Nama</th>
-                                        <th style="width: 20%;">Keterangan</th>
-                                        <th style="width: 20%;">No SK</th>
-                                        <th style="width: 15%;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="width: 10%;">Aksi</th>@endif
+                                        <th style="width: 40px;">No</th>
+                                        <th style="min-width: 190px; white-space: nowrap;">NIP</th>
+                                        <th style="min-width: 280px; white-space: nowrap;">Nama</th>
+                                        <th>Keterangan</th>
+                                        <th>No SK</th>
+                                        <th>File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th>Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -852,8 +854,8 @@
                                                  data-urutan="{{ $tim->urutan }}"
                                                  data-file-penelaah="{{ $tim->FILE_PENELAAH }}">
                                                  <td>{{ $idx + 1 }}</td>
-                                                 <td>{{ $tim->nip }}</td>
-                                                 <td class="text-left text-primary" style="text-decoration:underline;">{{ $tim->Nama }}</td>
+                                                 <td style="white-space: nowrap;">{{ $tim->nip }}</td>
+                                                 <td class="text-left text-primary" style="text-decoration:underline; white-space: nowrap;">{{ $tim->Nama }}</td>
                                                  <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
                                                  <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
                                                  <td>
@@ -1560,15 +1562,15 @@
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
                             <div class="table-responsive" style="max-height: 45vh; overflow-y: auto;">
-                            <table class="table table-bordered table-sm text-center mb-0">
+                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 750px;">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
-                                        <th style="width: 10%;">No</th>
-                                        <th style="width: 20%;">NIP</th>
-                                        <th style="width: 30%;">Nama</th>
-                                        <th style="width: 20%;">Keterangan</th>
-                                        <th style="width: 20%;">No SK</th>
-                                        <th style="width: 15%;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="width: 10%;">Aksi</th>@endif
+                                        <th style="width: 40px;">No</th>
+                                        <th style="min-width: 190px; white-space: nowrap;">NIP</th>
+                                        <th style="min-width: 280px; white-space: nowrap;">Nama</th>
+                                        <th>Keterangan</th>
+                                        <th>No SK</th>
+                                        <th>File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th>Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1584,8 +1586,8 @@
                                                  data-urutan="{{ $tim->urutan }}"
                                                  data-file-penelaah="{{ $tim->FILE_PENELAAH }}">
                                                  <td>{{ $idx + 1 }}</td>
-                                                 <td>{{ $tim->nip }}</td>
-                                                 <td class="text-left text-primary" style="text-decoration:underline;">{{ $tim->Nama }}</td>
+                                                 <td style="white-space: nowrap;">{{ $tim->nip }}</td>
+                                                 <td class="text-left text-primary" style="text-decoration:underline; white-space: nowrap;">{{ $tim->Nama }}</td>
                                                  <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
                                                  <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
                                                  <td>
@@ -2677,13 +2679,7 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Nilai berhasil dikunci', 'success');
-            // Nonaktifkan tombol kunci + kunci input yang terlihat (tanpa reload)
-            var btn = document.getElementById(btnId);
-            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-lock"></i> Terkunci'; }
-            var tbodyEl = document.getElementById(tbodyId);
-            if (tbodyEl) {
-                tbodyEl.querySelectorAll('input, textarea, select').forEach(function(inp) { inp.disabled = true; });
-            }
+            // Tetap aktifkan tombol kunci agar bisa diklik lagi
             window.__penilaianChanged = true;
         } else {
             showToast('Error: ' + (data.error || 'Gagal mengunci nilai'), 'error');
@@ -3013,11 +3009,19 @@ function reloadTahapForm(tahapan, idJudul) {
         var f2 = document.getElementById('formTahap2');
         if (p2) p2.value = selPenilai2;
         if (f2) f2.value = selForm2;
+        // Pulihkan hidden input id_tim_sidang & no_form untuk tahap2
+        var h2 = document.getElementById('selectedTimSidangTahap2');
+        if (h2) h2.value = selPenilai2;
+        var nf2 = document.getElementById('selectedNoFormTahap2');
+        if (nf2) nf2.value = selForm2;
         if (p2 && typeof filterPenilaianTahap2 === 'function') filterPenilaianTahap2();
         var p1 = document.getElementById('penilaianSelect');
         var f1 = document.getElementById('formFilterSelect');
         if (p1) p1.value = selPenilai1;
         if (f1) f1.value = selForm1;
+        // Pulihkan hidden input id_tim_sidang agar save tidak gagal
+        var h1 = document.getElementById('selectedTimSidangTahap1');
+        if (h1) h1.value = selPenilai1;
         if (p1 && typeof filterPenilaian === 'function') filterPenilaian();
         // Tampilkan Form Penilaian (bukan daftar jadwal)
         var form = document.getElementById('penilaianFormTahap2');

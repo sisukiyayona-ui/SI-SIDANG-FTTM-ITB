@@ -164,15 +164,15 @@
                 Tim <span class="text-danger" style="text-decoration: underline;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline;">Penguji</span>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-sm text-center mb-0">
+                <table class="table table-bordered table-sm text-center mb-0" style="min-width: 750px;">
                     <thead style="background-color: #6998d3; color: white;">
                         <tr>
-                            <th style="width: 10%; color: #ffffff;">No</th>
-                            <th style="width: 20%; color: #ffffff;">NIP</th>
-                            <th style="width: 30%; color: #ffffff;">Nama</th>
-                            <th style="width: 20%; color: #ffffff;">Keterangan</th>
-                            <th style="width: 20%; color: #ffffff;">No SK</th>
-                            <th style="width: 15%; color: #ffffff;">File</th>
+                            <th style="width: 40px; color: #ffffff;">No</th>
+                            <th style="min-width: 190px; white-space: nowrap; color: #ffffff;">NIP</th>
+                            <th style="min-width: 280px; white-space: nowrap; color: #ffffff;">Nama</th>
+                            <th style="color: #ffffff;">Keterangan</th>
+                            <th style="color: #ffffff;">No SK</th>
+                            <th style="color: #ffffff;">File</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -180,8 +180,8 @@
                             @foreach($timSidang as $idx => $tim)
                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
                                     <td>{{ $idx + 1 }}</td>
-                                    <td>{{ $tim->nip }}</td>
-                                    <td class="text-left text-primary" style="text-decoration: underline;">{{ $tim->Nama }}</td>
+                                    <td style="white-space: nowrap;">{{ $tim->nip }}</td>
+                                    <td class="text-left text-primary" style="text-decoration: underline; white-space: nowrap;">{{ $tim->Nama }}</td>
                                     <td class="text-danger" style="text-decoration: underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
                                     <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
                                     <td>

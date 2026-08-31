@@ -303,13 +303,14 @@
                             <div class="text-muted font-weight-bold mb-2">
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
-                            <table class="table table-bordered table-sm text-center">
+                            <div class="table-responsive">
+                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 700px;">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
-                                        <th style="width: 10%; color: #ffffff;">No</th>
-                                        <th style="width: 25%; color: #ffffff;">NIP</th>
-                                        <th style="width: 30%; color: #ffffff;">Nama</th>
-                                        <th style="width: 25%; color: #ffffff;">Keterangan</th>
+                                        <th style="width: 40px; color: #ffffff;">No</th>
+                                        <th style="min-width: 190px; white-space: nowrap; color: #ffffff;">NIP</th>
+                                        <th style="min-width: 280px; white-space: nowrap; color: #ffffff;">Nama</th>
+                                        <th style="color: #ffffff;">Keterangan</th>
                                         <th style="color: #ffffff;">No SK</th>
                                     </tr>
                                 </thead>
@@ -318,8 +319,8 @@
                                         @foreach($timSidang as $idx => $tim)
                                         <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
                                             <td>{{ $idx + 1 }}</td>
-                                            <td>{{ $tim->NIP }}</td>
-                                            <td class="text-left">{{ $tim->NAMA }}</td>
+                                            <td style="white-space: nowrap;">{{ $tim->NIP }}</td>
+                                            <td class="text-left" style="white-space: nowrap;">{{ $tim->NAMA }}</td>
                                             <td>{{ $tim->STATUS_TIM_SIDANG }}</td>
                                             <td>{{ $tim->sk->NO_SK ?? '-' }}</td>
                                         </tr>
@@ -330,7 +331,8 @@
                                     </tr>
                                     @endif
                                 </tbody>
-                            </table>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
