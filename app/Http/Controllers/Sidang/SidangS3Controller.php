@@ -149,7 +149,7 @@ class SidangS3Controller extends Controller
         
         // Get current judul from t_judul
         $judul = DB::table('t_judul')
-            ->select('t_judul.ID as id_judul', 't_judul.JUDUL as Judul', 't_user.NAMA_LENGKAP as nama_mhs', 't_user.NIP_NIM as Nim')
+            ->select('t_judul.ID as id_judul', 't_judul.JUDUL as Judul', 't_judul.ABSTRAK as ABSTRAK', 't_user.NAMA_LENGKAP as nama_mhs', 't_user.NIP_NIM as Nim')
             ->join('t_user', 't_judul.NIM', '=', 't_user.NIP_NIM')
             ->where('t_judul.ID', $idJudul)
             ->first();
@@ -175,6 +175,7 @@ class SidangS3Controller extends Controller
     {
         $request->validate([
             'judul_baru' => 'required|string',
+            'abstrak' => 'required|string|max:1000',
             'tahap' => 'required|in:tahap I,tahap II,SK I,SK II,SK III,SK IV,tahap IV',
             'alasan' => 'required|string',
         ]);
@@ -191,6 +192,7 @@ class SidangS3Controller extends Controller
             'ID_JUDUL' => $idJudul,
             'JUDUL' => $request->judul_lama,
             'JUDUL_BARU' => $request->judul_baru,
+            'ABSTRAK' => $request->abstrak,
             'TAHAP_PERUBAHAN' => $request->tahap,
             'ALASAN_PERUBAHAN' => $request->alasan,
             'ID_USER_MHS' => $user['id'],
@@ -198,10 +200,10 @@ class SidangS3Controller extends Controller
             'TGL_CREATE' => now(),
         ]);
 
-        // Update judul in t_judul
+        // Update judul & abstrak in t_judul
         DB::table('t_judul')
             ->where('id', $idJudul)
-            ->update(['Judul' => $request->judul_baru, 'tgl_update' => now()]);
+            ->update(['Judul' => $request->judul_baru, 'ABSTRAK' => $request->abstrak, 'tgl_update' => now()]);
 
         // Update judul in t_ajuan_sidang
         DB::table('t_ajuan_sidang')
@@ -237,6 +239,7 @@ class SidangS3Controller extends Controller
 
         $judulId = DB::table('t_judul')->insertGetId([
             'JUDUL' => $request->judul,
+            'ABSTRAK' => $request->abstrak ?? null,
             'ID_USER_MHS' => $request->id_user_mhs,
             'NIM' => $mhs->NIP_NIM,
             'THN_CREATE' => date('Y'),

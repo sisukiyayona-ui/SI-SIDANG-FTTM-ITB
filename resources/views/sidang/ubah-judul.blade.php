@@ -27,8 +27,21 @@
                 </div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
+                        <label class="form-label">Abstrak Lama</label>
+                        <textarea class="form-control" rows="3" disabled>{{ $judul->ABSTRAK ?? '' }}</textarea>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
                         <label class="form-label">Judul Baru <span class="text-danger">*</span></label>
                         <textarea class="form-control" name="judul_baru" rows="3" required>{{ old('judul_baru') }}</textarea>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Abstrak Baru <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="abstrak" rows="4" maxlength="1000" required placeholder="Masukkan abstrak baru">{{ old('abstrak') }}</textarea>
+                        <small class="text-muted">Maksimal 1000 karakter</small>
                     </div>
                 </div>
                 <div class="row">

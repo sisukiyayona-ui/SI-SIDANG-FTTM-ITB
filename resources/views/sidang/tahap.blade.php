@@ -88,6 +88,11 @@
         $nama = $ajuan->nama_mhs ?? session('auth_user.nama_lengkap');
         $nim = $ajuan->Nim ?? session('auth_user.nip_nim');
         $judulText = $ajuan->Judul ?? ($idJudul ? \App\Models\TJudul::find($idJudul)->Judul : '');
+        $abstrakText = '';
+        if ($idJudul) {
+            $abstrakRow = \Illuminate\Support\Facades\DB::table('t_judul')->where('id', $idJudul)->value('ABSTRAK');
+            $abstrakText = $abstrakRow ?? '';
+        }
     @endphp
 
     <!-- Modal Tambah No SK -->
@@ -119,6 +124,28 @@
         </div>
     </div>
 
+    <!-- Modal Abstrak -->
+    <div class="modal fade" id="abstrakModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content" style="border-radius: 8px; overflow: hidden;">
+                <div class="modal-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px;">
+                    <h6 class="modal-title font-weight-bold mb-0" style="color: #333;"><i class="fas fa-file-alt mr-2"></i>Abstrak Penelitian</h6>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="margin-right: -8px;">
+                        <span aria-hidden="true" style="font-size: 20px;">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 24px;">
+                    <div style="text-align: justify; line-height: 1.8; color: #333; font-size: 14px; background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #6998d3;">
+                        {{ $abstrakText }}
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #dee2e6; padding: 12px 20px;">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal" style="border-radius: 4px;">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mb-4" style="line-height: 1.2;">
         <div class="d-flex">
             <div style="width: 60px;" class="font-weight-bold font-sm">Nama</div>
@@ -135,6 +162,17 @@
             <div class="mr-1">:</div>
             <div class="flex-grow-1"><span>{{ $judulText }}</span></div>
         </div>
+        @if($abstrakText)
+        <div class="d-flex mt-1">
+            <div style="width: 60px;" class="font-weight-bold font-sm">Abstrak</div>
+            <div class="mr-1">:</div>
+            <div class="flex-grow-1">
+                <a href="#" onclick="$('#abstrakModal').modal('show'); return false;" class="text-primary" style="font-size: 13px; text-decoration: underline;">
+                    <i class="fas fa-file-alt mr-1"></i>Lihat Abstrak
+                </a>
+            </div>
+        </div>
+        @endif
     </div>
 
     <div style="padding: 30px;">
@@ -148,10 +186,6 @@
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="tim-tab" data-toggle="tab" href="#tim" role="tab" style="text-decoration: underline;">Tim Pembimbing dan Penguji</a>
-                </li>
-                <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
-                <li class="nav-item">
-                    <a class="nav-link font-weight-bold p-0 text-primary" id="kpps-tab" data-toggle="tab" href="#kpps-voting" role="tab" style="text-decoration: underline;">Hasil Voting Tim KPPS</a>
                 </li>
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
@@ -375,61 +409,6 @@
                             </table>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {{-- TAB: HASIL VOTING TIM KPPS --}}
-                <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
-                    <div class="text-muted font-weight-bold mb-3" style="font-size: 14px;">
-                        Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
-                    </div>
-                    @php
-                        $appAjuan = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
-                            ->where('tahapan_sidang', $tahapan)
-                            ->where('status_ajukan_kpps', 'y')
-                            ->first();
-                        $kppsApps = collect();
-                        if ($appAjuan) {
-                            $kppsApps = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
-                                ->join('t_user as u', 'app.ID_USER', '=', 'u.ID')
-                                ->where('app.ID_AJUAN_SIDANG', $appAjuan->id)
-                                ->select('app.*', 'u.NIP_NIM', 'u.NAMA_LENGKAP')
-                                ->get();
-                        }
-                    @endphp
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm text-center mb-0">
-                            <thead style="background-color: #6998d3; color: white;">
-                                <tr>
-                                    <th style="width: 8%;">No</th>
-                                    <th style="width: 20%;">NIP</th>
-                                    <th style="width: 30%;">Nama KPPS</th>
-                                    <th style="width: 20%;">Status Tim</th>
-                                    <th style="width: 22%;">Status Approve</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if($kppsApps->count() > 0)
-                                    @foreach($kppsApps as $idx => $app)
-                                        <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
-                                            <td>{{ $idx + 1 }}</td>
-                                            <td>{{ $app->NIP_NIM ?? '-' }}</td>
-                                            <td class="text-left">{{ $app->NAMA_LENGKAP ?? '-' }}</td>
-                                            <td>{{ $app->STATUS_TIM ?? '-' }}</td>
-                                            <td>
-                                                <span class="badge bg-{{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'success' : 'secondary' }}">
-                                                    {{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'Disetujui' : 'Menunggu' }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                @else
-                                    <tr style="background-color: #dbe5f1;">
-                                        <td colspan="5" class="text-center text-muted">Belum ada data voting KPPS</td>
-                                    </tr>
-                                @endif
-                            </tbody>
-                        </table>
                     </div>
                 </div>
 
@@ -894,16 +873,22 @@
                     @php
                         $appAjuan = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
                             ->where('tahapan_sidang', $tahapan)
-                            ->where('status_ajukan_kpps', 'y')
                             ->first();
-                        $kppsApps = collect();
-                        if ($appAjuan) {
-                            $kppsApps = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
-                                ->join('t_user as u', 'app.ID_USER', '=', 'u.ID')
-                                ->where('app.ID_AJUAN_SIDANG', $appAjuan->id)
-                                ->select('app.*', 'u.NIP_NIM', 'u.NAMA_LENGKAP')
-                                ->get();
-                        }
+                        $kppsList = \Illuminate\Support\Facades\DB::table('t_kpps as k')
+                            ->leftJoin('t_app_ajuan_sidang as app', function($join) use ($appAjuan) {
+                                $join->on('k.ID_USER', '=', 'app.ID_USER')
+                                     ->where('app.ID_AJUAN_SIDANG', '=', $appAjuan ? $appAjuan->id : 0);
+                            })
+                            ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
+                            ->select(
+                                'k.NIP as NIP',
+                                'k.NAMA as NAMA',
+                                'k.STATUS_TIM as STATUS_TIM',
+                                'app.STATUS_APPROVE as STATUS_APPROVE',
+                                \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
+                            )
+                            ->orderBy('k.NAMA')
+                            ->get();
                     @endphp
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm text-center mb-0">
@@ -912,28 +897,34 @@
                                     <th style="width: 8%;">No</th>
                                     <th style="width: 20%;">NIP</th>
                                     <th style="width: 30%;">Nama KPPS</th>
-                                    <th style="width: 20%;">Status Tim</th>
-                                    <th style="width: 22%;">Status Approve</th>
+                                    <th style="width: 17%;">Status Tim</th>
+                                    <th style="width: 25%;">Status Approve</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @if($kppsApps->count() > 0)
-                                    @foreach($kppsApps as $idx => $app)
+                                @if($kppsList->count() > 0)
+                                    @foreach($kppsList as $idx => $kpps)
                                         <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
                                             <td>{{ $idx + 1 }}</td>
-                                            <td>{{ $app->NIP_NIM ?? '-' }}</td>
-                                            <td class="text-left">{{ $app->NAMA_LENGKAP ?? '-' }}</td>
-                                            <td>{{ $app->STATUS_TIM ?? '-' }}</td>
+                                            <td>{{ $kpps->NIP ?? '-' }}</td>
+                                            <td class="text-left">{{ $kpps->NAMA ?? '-' }}</td>
+                                            <td>{{ $kpps->STATUS_TIM ?? '-' }}</td>
                                             <td>
-                                                <span class="badge bg-{{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'success' : 'secondary' }}">
-                                                    {{ ($app->STATUS_APPROVE ?? '') === 'y' ? 'Disetujui' : 'Menunggu' }}
-                                                </span>
+                                                @if(($kpps->STATUS_APPROVE ?? '') === 'y')
+                                                    <span class="badge bg-success">Disetujui</span>
+                                                @elseif(($kpps->STATUS_APPROVE ?? '') === 'n')
+                                                    <span class="badge bg-danger">Ditolak</span>
+                                                @elseif(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
+                                                    <span class="badge bg-warning">Menunggu</span>
+                                                @else
+                                                    <span class="badge bg-secondary">Belum Diajukan</span>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
                                 @else
                                     <tr style="background-color: #dbe5f1;">
-                                        <td colspan="5" class="text-center text-muted">Belum ada data voting KPPS</td>
+                                        <td colspan="5" class="text-center text-muted">Belum ada data KPPS</td>
                                     </tr>
                                 @endif
                             </tbody>
