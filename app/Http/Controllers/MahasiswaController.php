@@ -43,13 +43,13 @@ class MahasiswaController extends Controller
             SELECT DISTINCT
                 j.id as id_judul,
                 j.JUDUL as Judul,
-                MAX({$statusCase('a1')}) as tahap1,
-                MAX({$statusCase('a2')}) as tahap2,
-                MAX({$statusCase('a3')}) as sk1,
-                MAX({$statusCase('a4')}) as sk2,
-                MAX({$statusCase('a5')}) as sk3,
-                MAX({$statusCase('a6')}) as sk4,
-                MAX({$statusCase('a7')}) as tahap4
+                {$statusCase('a1')} as tahap1,
+                {$statusCase('a2')} as tahap2,
+                {$statusCase('a3')} as sk1,
+                {$statusCase('a4')} as sk2,
+                {$statusCase('a5')} as sk3,
+                {$statusCase('a6')} as sk4,
+                {$statusCase('a7')} as tahap4
             FROM t_judul j
             LEFT JOIN t_user u ON j.ID_USER_MHS = u.id
             LEFT JOIN (
