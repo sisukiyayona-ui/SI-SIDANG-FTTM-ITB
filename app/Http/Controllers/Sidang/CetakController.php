@@ -2465,6 +2465,7 @@ class CetakController extends Controller
             $kppsUsers = \App\Models\TKpps::where('KODE_PRODI', $kodeProdi)
                 ->where('STATUS_AKTIF', 'AKTIF')
                 ->where('NAMA', '!=', '')
+                ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
                 ->orderBy('NAMA')
                 ->get()
                 ->unique('NAMA')

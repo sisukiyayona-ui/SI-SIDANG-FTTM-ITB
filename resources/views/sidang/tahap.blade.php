@@ -885,6 +885,7 @@
                                 'app.STATUS_APPROVE as STATUS_APPROVE',
                                 \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
                             )
+                            ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
                             ->orderBy('k.NAMA')
                             ->get();
                     @endphp
