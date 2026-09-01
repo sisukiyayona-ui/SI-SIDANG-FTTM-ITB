@@ -433,6 +433,7 @@
                                             <option value="">-- Pilih Penilai --</option>
                                             @if(isset($timSidang) && $timSidang->count() > 0)
                                                 @foreach($timSidang as $tim)
+                                                    @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
                                                     <option value="{{ $tim->id }}">{{ $tim->Nama }} - ({{ $tim->status_tim_sidang }})</option>
                                                 @endforeach
                                             @endif
