@@ -155,11 +155,6 @@
                     </button>
                 </div>
                 <div class="modal-body" style="padding: 24px;">
-                    <div class="mb-3" style="line-height: 1.6;">
-                        <div class="d-flex"><div style="width: 60px;" class="font-weight-bold">Nama</div><div class="mr-1">:</div><div id="usulanPerbaikanNama"></div></div>
-                        <div class="d-flex mt-1"><div style="width: 60px;" class="font-weight-bold">NIP</div><div class="mr-1">:</div><div id="usulanPerbaikanNip"></div></div>
-                        <div class="d-flex mt-1"><div style="width: 60px;" class="font-weight-bold">Status</div><div class="mr-1">:</div><div id="usulanPerbaikanStatusTim"></div></div>
-                    </div>
                     <div style="text-align: justify; line-height: 1.8; color: #333; font-size: 14px; background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #6998d3;">
                         <span id="usulanPerbaikanIsi" style="white-space: pre-wrap;"></span>
                     </div>
@@ -922,11 +917,12 @@
                         <table class="table table-bordered table-sm text-center mb-0">
                             <thead style="background-color: #6998d3; color: white;">
                                 <tr>
-                                    <th style="width: 8%;">No</th>
-                                    <th style="width: 20%;">NIP</th>
-                                    <th style="width: 30%;">Nama KPPS</th>
-                                    <th style="width: 17%;">Status Tim</th>
-                                    <th style="width: 25%;">Status Approve</th>
+                                    <th style="width: 6%;">No</th>
+                                    <th style="width: 16%;">NIP</th>
+                                    <th style="width: 28%;">Nama KPPS</th>
+                                    <th style="width: 14%;">Status Tim</th>
+                                    <th style="width: 16%;">Aksi</th>
+                                    <th style="width: 20%;">Status Approve</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -938,24 +934,26 @@
                                             <td class="text-left">{{ $kpps->NAMA ?? '-' }}</td>
                                             <td>{{ $kpps->STATUS_TIM ?? '-' }}</td>
                                             <td>
-                                                @if(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
-                                                    <span class="badge bg-success">Sudah Di Approve</span>
-                                                @else
-                                                    <span class="badge bg-danger">Belum Di Approve</span>
-                                                @endif
                                                 @if(trim((string) ($kpps->USULAN_PERBAIKAN ?? '')) !== '')
-                                                    <div class="mt-2">
-                                                        <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 11px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" data-nama="{{ htmlspecialchars($kpps->NAMA ?? '', ENT_QUOTES) }}" data-nip="{{ htmlspecialchars($kpps->NIP ?? '', ENT_QUOTES) }}" data-status-tim="{{ htmlspecialchars($kpps->STATUS_TIM ?? '', ENT_QUOTES) }}" data-isi="{{ htmlspecialchars($kpps->USULAN_PERBAIKAN, ENT_QUOTES) }}" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="showUsulanPerbaikan(this)">
-                                                            Lihat Usulan Perbaikan
-                                                        </button>
-                                                    </div>
+                                                    <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 11px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent; white-space: nowrap;" data-isi="{{ htmlspecialchars($kpps->USULAN_PERBAIKAN, ENT_QUOTES) }}" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="showUsulanPerbaikan(this)">
+                                                        Lihat Usulan Perbaikan
+                                                    </button>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
+                                                    <span class="badge bg-success" style="white-space: nowrap;">Sudah Di Approve</span>
+                                                @else
+                                                    <span class="badge bg-danger" style="white-space: nowrap;">Belum Di Approve</span>
                                                 @endif
                                             </td>
                                         </tr>
                                     @endforeach
                                 @else
                                     <tr style="background-color: #dbe5f1;">
-                                        <td colspan="5" class="text-center text-muted">Belum ada data KPPS</td>
+                                        <td colspan="6" class="text-center text-muted">Belum ada data KPPS</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -3275,14 +3273,8 @@ function cetakBeritaAcara() {
 }
 
 function showUsulanPerbaikan(btn) {
-    var nama = btn.getAttribute('data-nama') || '';
-    var nip = btn.getAttribute('data-nip') || '';
-    var statusTim = btn.getAttribute('data-status-tim') || '';
     var isi = btn.getAttribute('data-isi') || '';
 
-    document.getElementById('usulanPerbaikanNama').textContent = nama;
-    document.getElementById('usulanPerbaikanNip').textContent = nip || '-';
-    document.getElementById('usulanPerbaikanStatusTim').textContent = statusTim || '-';
     document.getElementById('usulanPerbaikanIsi').textContent = isi;
 
     jQuery('#usulanPerbaikanModal').modal('show');
