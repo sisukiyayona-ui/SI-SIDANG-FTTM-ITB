@@ -908,14 +908,10 @@
                                             <td class="text-left">{{ $kpps->NAMA ?? '-' }}</td>
                                             <td>{{ $kpps->STATUS_TIM ?? '-' }}</td>
                                             <td>
-                                                @if(($kpps->STATUS_APPROVE ?? '') === 'y')
-                                                    <span class="badge bg-success">Disetujui</span>
-                                                @elseif(($kpps->STATUS_APPROVE ?? '') === 'n')
-                                                    <span class="badge bg-danger">Ditolak</span>
-                                                @elseif(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
-                                                    <span class="badge bg-warning">Menunggu</span>
+                                                @if(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
+                                                    <span class="badge bg-success">Sudah Di Approve</span>
                                                 @else
-                                                    <span class="badge bg-secondary">Belum Diajukan</span>
+                                                    <span class="badge bg-danger">Belum Di Approve</span>
                                                 @endif
                                             </td>
                                         </tr>
