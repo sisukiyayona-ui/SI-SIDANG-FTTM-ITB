@@ -389,7 +389,7 @@
                                                      @endif
                                                  </td>
                                                  @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
-                                                  <td>
+                                                  <td style="white-space: nowrap;">
                                                       <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                       @if(session('auth_user.role') === 'TU Prodi')
                                                       <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
@@ -844,7 +844,7 @@
                                                      @endif
                                                  </td>
                                                  @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
-                                                  <td>
+                                                  <td style="white-space: nowrap;">
                                                       <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                       @if(session('auth_user.role') === 'TU Prodi')
                                                       <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
@@ -1587,7 +1587,7 @@
                                                      @endif
                                                  </td>
                                                  @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
-                                                  <td>
+                                                  <td style="white-space: nowrap;">
                                                       <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                       @if(session('auth_user.role') === 'TU Prodi')
                                                       <button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang({{ $tim->id }})" title="Hapus"><i class="fas fa-trash"></i></button>
@@ -2335,7 +2335,7 @@ function upsertTimSidangRow(form, formData, tim) {
             '<td></td>' +
             '<td>-</td>';
         if (canAksi) {
-            html += '<td>' +
+            html += '<td style="white-space: nowrap;">' +
                 '<button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button> ' +
                 (isTuProdi ? '<button type="button" class="btn btn-sm btn-danger py-0 px-1" onclick="deleteTimSidang(this.closest(\'tr\').dataset.id)" title="Hapus"><i class="fas fa-trash"></i></button>' : '') +
                 '</td>';
