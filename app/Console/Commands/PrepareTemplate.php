@@ -44,8 +44,8 @@ class PrepareTemplate extends Command
                     '$(nilai akhir rata rata)' => '${nilai_akhir_rata_rata}',
                     '$(nilai akhir indeks)' => '${nilai_akhir_indeks}',
                     '$(tgl create penilaian)' => '${tgl_create_penilaian}',
-                    '$(Nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
-                    '$(nip ketua pembimbing)' => '${nip_ketua_pembimbing}',
+                    '$(Nama ketua sidang)' => '${nama_ketua_sidang}',
+                    '$(nip ketua sidang)' => '${nip_ketua_sidang}',
 
                     // Placeholder tanda tangan — ganti "Tanda Tangan" dengan ${signature}
                     'Tanda Tangan' => '${signature}',

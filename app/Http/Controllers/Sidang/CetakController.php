@@ -1019,6 +1019,10 @@ class CetakController extends Controller
             str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
         );
 
+        $ketuaSidang = $allTimSidang->first(fn($t) =>
+            strtolower(trim($t->status_tim_sidang ?? '')) === 'ketua sidang'
+        );
+
         $anggotaPembimbing = $allTimSidang->filter(fn($t) =>
             str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
             && $t->id !== ($ketuaPembimbing?->id)
@@ -1104,6 +1108,9 @@ class CetakController extends Controller
             $tp->setValue('tgl create penilaian',   $tanggalFormat);
             $tp->setValue('nip_ketua_pembimbing',   $ketuaPembimbing?->NIP ?? '-');
             $tp->setValue('nip ketua pembimbing',   $ketuaPembimbing?->NIP ?? '-');
+            // Signature block: gunakan Ketua Sidang
+            $tp->setValue('nama_ketua_sidang',      $ketuaSidang?->NAMA ?? $ketuaPembimbing?->NAMA ?? '-');
+            $tp->setValue('nip_ketua_sidang',       $ketuaSidang?->NIP ?? $ketuaPembimbing?->NIP ?? '-');
             
             // Set overall average for header field (Nilai Rata-rata)
             $tp->setValue('nilai_rata_rata', $rataRataKeseluruhan);
@@ -1167,8 +1174,10 @@ class CetakController extends Controller
         // Pusatkan nilai di cell tabel BA (kolom Nilai = center align)
         $this->centerValueCellsInBaProposal($docxPath);
 
-        // Sisipkan tanda tangan penilai (ketua pembimbing) ke BA
-        if ($ketuaPembimbing) {
+        // Sisipkan tanda tangan penilai (ketua sidang) ke BA
+        if ($ketuaSidang) {
+            $this->fillSignaturePlaceholder($docxPath, $ketuaSidang->id_user_penilai);
+        } elseif ($ketuaPembimbing) {
             $this->fillSignaturePlaceholder($docxPath, $ketuaPembimbing->id_user_penilai);
         }
 
