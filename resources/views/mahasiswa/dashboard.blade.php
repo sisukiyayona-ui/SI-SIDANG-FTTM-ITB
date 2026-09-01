@@ -196,6 +196,11 @@
                             <label>Judul</label>
                             <textarea name="judul" class="form-control" rows="3" required></textarea>
                         </div>
+                        <div class="form-group">
+                            <label>Abstrak</label>
+                            <textarea name="abstrak" class="form-control" rows="4" maxlength="1000" required placeholder="Masukkan abstrak penelitian"></textarea>
+                            <small class="text-muted">Maksimal 1000 karakter</small>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>

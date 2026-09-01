@@ -62,6 +62,7 @@
                     <th>Tahap Sidang</th>
                     <th>Tanggal Seminar / Sidang</th>
                     <th>Status KPPS</th>
+                    <th style="min-width: 260px;">Usulan Perbaikan</th>
                 </tr>
             </thead>
             <tbody>
@@ -93,10 +94,17 @@
                                 <span class="badge bg-secondary">{{ $row->STATUS_AJUKAN_KPPS ?? '-' }}</span>
                             @endif
                         </td>
+                        <td>
+                            <textarea class="form-control form-control-sm usulan-perbaikan-input" rows="2"
+                                      data-ajuan-id="{{ $row->id }}"
+                                      maxlength="1000"
+                                      placeholder="Isi usulan perbaikan...">{{ $row->USULAN_PERBAIKAN ?? '' }}</textarea>
+                            <div class="usulan-save-status text-left" style="font-size: 11px; min-height: 14px;"></div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">Tidak ada ajuan sidang.</td>
+                        <td colspan="9" class="text-center text-muted py-4">Tidak ada ajuan sidang.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -134,6 +142,56 @@
         el.addEventListener('change', function () {
             document.getElementById('filterForm').submit();
         });
+    });
+
+    var usulanTimers = {};
+
+    function saveUsulanPerbaikan(input) {
+        var idAjuan = input.getAttribute('data-ajuan-id');
+        var statusEl = input.closest('tr').querySelector('.usulan-save-status');
+
+        var formData = new FormData();
+        formData.append('id_ajuan_sidang', idAjuan);
+        formData.append('usulan_perbaikan', input.value);
+
+        fetch('{{ route("sidang.approve-ajuan.usulan.simpan") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                statusEl.textContent = '\u2713 Tersimpan otomatis';
+                statusEl.style.color = '#2e7d32';
+            } else {
+                statusEl.textContent = 'Gagal menyimpan';
+                statusEl.style.color = '#c62828';
+            }
+        })
+        .catch(function () {
+            statusEl.textContent = 'Gagal menyimpan';
+            statusEl.style.color = '#c62828';
+        });
+    }
+
+    document.addEventListener('input', function (e) {
+        if (e.target && e.target.classList.contains('usulan-perbaikan-input')) {
+            var idAjuan = e.target.getAttribute('data-ajuan-id');
+            var statusEl = e.target.closest('tr').querySelector('.usulan-save-status');
+            statusEl.textContent = 'Menyimpan...';
+            statusEl.style.color = '#999';
+
+            if (usulanTimers[idAjuan]) {
+                clearTimeout(usulanTimers[idAjuan]);
+            }
+            usulanTimers[idAjuan] = setTimeout(function () {
+                saveUsulanPerbaikan(e.target);
+            }, 600);
+        }
     });
 
     function getKppsTahapLabel(tahapan) {

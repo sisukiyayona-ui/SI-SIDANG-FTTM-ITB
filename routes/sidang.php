@@ -66,6 +66,8 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
     // Approve Ajuan Sidang — khusus role KPPS
     Route::middleware(['role:KPPS'])->group(function () {
         Route::get('approve-ajuan-sidang/{strata}', [ApproveAjuanSidangController::class, 'index'])->name('approve-ajuan.index');
+        Route::post('approve-ajuan-sidang/usulan-perbaikan', [ApproveAjuanSidangController::class, 'simpanUsulanPerbaikan'])->name('approve-ajuan.usulan.simpan');
+        Route::get('approve-ajuan-sidang/usulan-perbaikan/{idAjuan}', [ApproveAjuanSidangController::class, 'getUsulanPerbaikan'])->name('approve-ajuan.usulan.get');
         Route::get('approve-ajuan-sidang/{strata}/{id}', [ApproveAjuanSidangController::class, 'show'])->name('approve-ajuan.show');
         Route::post('approve-ajuan-sidang', [ApproveAjuanSidangController::class, 'store'])->name('approve-ajuan.store');
     });

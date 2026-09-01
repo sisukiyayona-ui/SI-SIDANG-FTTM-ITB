@@ -108,7 +108,7 @@
                         </div>
                         <div class="form-group">
                             <label>Abstrak</label>
-                            <textarea name="abstrak" class="form-control" rows="4" maxlength="1000" placeholder="Masukkan abstrak penelitian"></textarea>
+                            <textarea name="abstrak" class="form-control" rows="4" maxlength="1000" required placeholder="Masukkan abstrak penelitian"></textarea>
                             <small class="text-muted">Maksimal 1000 karakter</small>
                         </div>
                     </div>

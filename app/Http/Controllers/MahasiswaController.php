@@ -1082,10 +1082,12 @@ class MahasiswaController extends Controller
 
         $request->validate([
             'judul' => 'required|string|max:500',
+            'abstrak' => 'required|string|max:1000',
         ]);
 
         $judul = TJudul::create([
             'JUDUL' => $request->judul,
+            'ABSTRAK' => $request->abstrak,
             'ID_USER_MHS' => $user['id'],
             'NIM' => $user['nip_nim'],
             'THN_CREATE' => date('Y'),

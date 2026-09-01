@@ -144,6 +144,33 @@
         </div>
     </div>
 
+    <!-- Modal Lihat Usulan Perbaikan -->
+    <div class="modal fade" id="usulanPerbaikanModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content" style="border-radius: 8px; overflow: hidden;">
+                <div class="modal-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px;">
+                    <h6 class="modal-title font-weight-bold mb-0" style="color: #333;"><i class="fas fa-tasks mr-2"></i>Detail Usulan Perbaikan</h6>
+                    <button type="button" class="close" aria-label="Close" style="margin-right: -8px;" onclick="$('#usulanPerbaikanModal').modal('hide');">
+                        <span aria-hidden="true" style="font-size: 20px;">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 24px;">
+                    <div class="mb-3" style="line-height: 1.6;">
+                        <div class="d-flex"><div style="width: 60px;" class="font-weight-bold">Nama</div><div class="mr-1">:</div><div id="usulanPerbaikanNama"></div></div>
+                        <div class="d-flex mt-1"><div style="width: 60px;" class="font-weight-bold">NIP</div><div class="mr-1">:</div><div id="usulanPerbaikanNip"></div></div>
+                        <div class="d-flex mt-1"><div style="width: 60px;" class="font-weight-bold">Status</div><div class="mr-1">:</div><div id="usulanPerbaikanStatusTim"></div></div>
+                    </div>
+                    <div style="text-align: justify; line-height: 1.8; color: #333; font-size: 14px; background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #6998d3;">
+                        <span id="usulanPerbaikanIsi" style="white-space: pre-wrap;"></span>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #dee2e6;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-1" onclick="$('#usulanPerbaikanModal').modal('hide');">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mb-4" style="line-height: 1.2;">
         <div class="d-flex">
             <div style="width: 70px;" class="font-weight-bold font-sm">Nama</div>
@@ -884,6 +911,7 @@
                                 'k.NAMA as NAMA',
                                 'k.STATUS_TIM as STATUS_TIM',
                                 'app.STATUS_APPROVE as STATUS_APPROVE',
+                                'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
                                 \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
                             )
                             ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
@@ -914,6 +942,13 @@
                                                     <span class="badge bg-success">Sudah Di Approve</span>
                                                 @else
                                                     <span class="badge bg-danger">Belum Di Approve</span>
+                                                @endif
+                                                @if(trim((string) ($kpps->USULAN_PERBAIKAN ?? '')) !== '')
+                                                    <div class="mt-2">
+                                                        <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 11px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" data-nama="{{ htmlspecialchars($kpps->NAMA ?? '', ENT_QUOTES) }}" data-nip="{{ htmlspecialchars($kpps->NIP ?? '', ENT_QUOTES) }}" data-status-tim="{{ htmlspecialchars($kpps->STATUS_TIM ?? '', ENT_QUOTES) }}" data-isi="{{ htmlspecialchars($kpps->USULAN_PERBAIKAN, ENT_QUOTES) }}" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="showUsulanPerbaikan(this)">
+                                                            Lihat Usulan Perbaikan
+                                                        </button>
+                                                    </div>
                                                 @endif
                                             </td>
                                         </tr>
@@ -3237,6 +3272,20 @@ function cetakBeritaAcara() {
     var url = '{{ route("sidang.cetak-berita-acara", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
     url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
     window.open(url, '_blank');
+}
+
+function showUsulanPerbaikan(btn) {
+    var nama = btn.getAttribute('data-nama') || '';
+    var nip = btn.getAttribute('data-nip') || '';
+    var statusTim = btn.getAttribute('data-status-tim') || '';
+    var isi = btn.getAttribute('data-isi') || '';
+
+    document.getElementById('usulanPerbaikanNama').textContent = nama;
+    document.getElementById('usulanPerbaikanNip').textContent = nip || '-';
+    document.getElementById('usulanPerbaikanStatusTim').textContent = statusTim || '-';
+    document.getElementById('usulanPerbaikanIsi').textContent = isi;
+
+    jQuery('#usulanPerbaikanModal').modal('show');
 }
 </script>
 

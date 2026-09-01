@@ -53,7 +53,8 @@ class ApproveAjuanSidangController extends Controller
                 'a.TGL_SIDANG',
                 'a.STATUS_AJUKAN_KPPS',
                 DB::raw('CASE WHEN app.id IS NOT NULL THEN 1 ELSE 0 END as approved'),
-                'app.TGL_APPROVE'
+                'app.TGL_APPROVE',
+                'app.USULAN_PERBAIKAN'
             )
             ->orderByRaw('app.id IS NOT NULL, a.id desc')
             ->get();
@@ -229,6 +230,63 @@ class ApproveAjuanSidangController extends Controller
             'success' => true,
             'inserted' => $inserted,
             'message' => $inserted . ' ajuan sidang berhasil di-approve',
+        ]);
+    }
+
+    public function simpanUsulanPerbaikan(Request $request)
+    {
+        $request->validate([
+            'id_ajuan_sidang' => 'required|integer',
+            'usulan_perbaikan' => 'nullable|string',
+        ]);
+
+        $idAjuan = (int) $request->id_ajuan_sidang;
+        $usulan = $request->input('usulan_perbaikan');
+        $usulan = $usulan === null ? '' : (string) $usulan;
+
+        $existing = DB::table('t_app_ajuan_sidang')
+            ->where('ID_AJUAN_SIDANG', $idAjuan)
+            ->where('STATUS_APPROVE', 't')
+            ->first();
+
+        if ($existing) {
+            DB::table('t_app_ajuan_sidang')
+                ->where('id', $existing->id)
+                ->update([
+                    'USULAN_PERBAIKAN' => $usulan,
+                    'TGL_UPDATE' => now()->toDateString(),
+                ]);
+        } else {
+            $authUser = session('auth_user');
+            $userId = $authUser['id'] ?? null;
+            $now = now()->toDateString();
+            DB::table('t_app_ajuan_sidang')->insert([
+                'ID_USER' => $userId,
+                'ID_AJUAN_SIDANG' => $idAjuan,
+                'STATUS_APPROVE' => 't',
+                'USULAN_PERBAIKAN' => $usulan,
+                'TGL_CREATE' => $now,
+                'TGL_UPDATE' => $now,
+                'TGL_APPROVE' => $now,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usulan perbaikan berhasil disimpan',
+        ]);
+    }
+
+    public function getUsulanPerbaikan($idAjuan)
+    {
+        $row = DB::table('t_app_ajuan_sidang')
+            ->where('ID_AJUAN_SIDANG', (int) $idAjuan)
+            ->where('STATUS_APPROVE', 't')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'usulan_perbaikan' => $row->USULAN_PERBAIKAN ?? '',
         ]);
     }
 }

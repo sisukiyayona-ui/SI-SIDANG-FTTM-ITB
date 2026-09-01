@@ -2290,6 +2290,7 @@ class CetakController extends Controller
 
         // Helper: resolve nama dari userPenilai jika NAMA kosong/generic/NIP
         $resolveNama = function ($t) {
+            if (!$t) return '-';
             $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
             if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
                 $nama = trim($t->NAMA ?? '');
@@ -2383,6 +2384,7 @@ class CetakController extends Controller
             'ruangan' => $tempat,
             'waktu selesai – di tambah 2,5 jam' => $pukulDoktor,
             'nama user status dekan \'y\'' => $dekan->NAMA_LENGKAP ?? '',
+            'nama user status dekan ‘y’' => $dekan->NAMA_LENGKAP ?? '',
             'dekan' => $dekan->NAMA_LENGKAP ?? '',
         ];
         
@@ -2424,6 +2426,7 @@ class CetakController extends Controller
 
         // Helper: resolve nama dari userPenilai jika NAMA kosong/generic/NIP
         $resolveNama = function ($t) {
+            if (!$t) return '-';
             $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
             if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
                 $nama = trim($t->NAMA ?? '');

@@ -225,6 +225,7 @@ class SidangS3Controller extends Controller
         $request->validate([
             'id_user_mhs' => 'required|exists:t_user,id',
             'judul' => 'required|string|max:500',
+            'abstrak' => 'required|string|max:1000',
         ]);
 
         $mhs = \App\Models\TUser::find($request->id_user_mhs);
