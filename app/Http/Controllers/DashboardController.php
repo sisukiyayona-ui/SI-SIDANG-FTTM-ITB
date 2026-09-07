@@ -70,8 +70,11 @@ class DashboardController extends Controller
             $chartYears[] = $y;
             foreach ($tahapanGroups as $label => $values) {
                 $q = TAjuanSidang::whereIn('TAHAPAN_SIDANG', $values)
-                    ->where('STATUS_LULUS', 'lulus')
-                    ->whereYear('TGL_SIDANG', $y);
+                    ->where('STATUS_LULUS', 'lulus');
+                if ($label !== 'Ujian Kualifikasi') {
+                    $q->whereNotNull('TGL_SIDANG')
+                      ->whereYear('TGL_SIDANG', $y);
+                }
                 if ($user['role'] === 'TU Prodi') {
                     $q->where('KODE_PRODI', $user['kode_prodi']);
                 }
