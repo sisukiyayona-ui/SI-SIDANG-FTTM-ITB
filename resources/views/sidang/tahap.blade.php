@@ -939,7 +939,7 @@
                         <div class="text-muted font-weight-bold" style="font-size: 14px;">
                             Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
                         </div>
-                        @if(in_array(session('auth_user.role'), ['TU Prodi', 'FS']) && isset($appAjuan) && $appAjuan->STATUS_AJUKAN_KPPS === 'y')
+                        @if(in_array(session('auth_user.role'), ['TU Prodi', 'FS']) && isset($appAjuan))
                         <button type="button" id="btnKirimNotifikasi" class="btn btn-sm btn-warning px-3 py-1" style="font-size: 12px; border-radius: 4px; white-space: nowrap;" onclick="kirimNotifikasiApprove({{ $appAjuan->id ?? 0 }}, {{ $idJudul }})">
                             <i class="fas fa-envelope mr-1"></i> Kirim Notifikasi Approve
                         </button>
