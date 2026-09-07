@@ -471,7 +471,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @if(isset($ajuan) && $ajuan->tgl_sidang && ($ajuan->status_ajukan_mhs ?? $ajuan->STATUS_AJUKAN_MHS ?? 't') === 'y')
+                                @if(isset($ajuan) && $ajuan->tgl_sidang)
                                     <tr style="background-color: #dbe5f1;">
                                         <td>1</td>
                                         <td>
