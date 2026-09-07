@@ -70,7 +70,8 @@ class LoginController extends Controller
         Cache::forget($usernameKey . ':count');
         Cache::forget($usernameKey . ':lock');
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
+        $redirectUrl = ($user['role'] ?? '') === 'Mahasiswa' ? route('mahasiswa.dashboard') : route('dashboard');
+        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
     }
 
     // ──────────────────────────── SSO ──────────────────────────────
@@ -212,7 +213,8 @@ class LoginController extends Controller
             return redirect()->route('login')->withErrors(['username' => 'Gagal login SSO.']);
         }
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang, ' . $userData['nama_lengkap'] . '!');
+        $redirectUrl = ($userData['role'] ?? '') === 'Mahasiswa' ? route('mahasiswa.dashboard') : route('dashboard');
+        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $userData['nama_lengkap'] . '!');
     }
 
     // ──────────────────────────── Legacy SSO (ITB) ──────────────────────────
@@ -249,7 +251,8 @@ class LoginController extends Controller
             return redirect()->route('login')->withErrors(['username' => 'Akun SSO tidak ditemukan.']);
         }
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
+        $redirectUrl = ($user['role'] ?? '') === 'Mahasiswa' ? route('mahasiswa.dashboard') : route('dashboard');
+        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
     }
 
     // ──────────────────────────── Logout ───────────────────────────

@@ -2201,12 +2201,14 @@
             <nav class="mt-4">
                 <ul class="nav nav-pills nav-sidebar flex-column nav-flat" data-widget="treeview" role="menu" data-accordion="false">
 
+                    @if(session('auth_user.role') !== 'Mahasiswa')
                     <li class="nav-item">
                         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-tachometer-alt"></i>
                             <p>Dashboard Home</p>
                         </a>
                     </li>
+                    @endif
 
                     @if(session('auth_user.role') === 'Admin')
                     <!-- ADMIN NAVIGATION -->
