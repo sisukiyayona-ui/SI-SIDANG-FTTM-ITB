@@ -588,6 +588,8 @@
         var t = e.target;
         var link = t && t.closest ? t.closest('.jadwal-date-link') : null;
         if (!link) return;
+        // Jika span disabled (text-muted), jangan proses klik
+        if (link.classList.contains('text-muted')) return;
         var content = document.getElementById('tahapFormContent');
         if (content && !content.contains(link)) return;
         e.preventDefault();

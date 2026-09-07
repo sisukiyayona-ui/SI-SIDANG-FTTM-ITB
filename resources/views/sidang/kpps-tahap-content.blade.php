@@ -106,6 +106,10 @@
         </li>
         <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
         <li class="nav-item">
+            <a class="nav-link font-weight-bold p-0 text-primary" id="kpps-tab" data-toggle="tab" href="#kpps-voting" role="tab" style="text-decoration: underline;">Hasil Voting Tim KPPS</a>
+        </li>
+        <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
+        <li class="nav-item">
                 <a class="nav-link font-weight-bold p-0 text-primary" id="jadwal-tab" data-toggle="tab" href="#jadwal" role="tab" style="text-decoration: underline;">Jadwal dan Penilaian</a>
         </li>
     </ul>
@@ -202,6 +206,85 @@
                     </table>
                 </div>
             </div>
+
+        <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
+            <div class="text-muted font-weight-bold mb-3" style="font-size: 14px;">
+                Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
+            </div>
+            @php
+                $appAjuanKpps = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
+                    ->where('tahapan_sidang', $tahapan)
+                    ->first();
+                $kppsList = \Illuminate\Support\Facades\DB::table('t_kpps as k')
+                    ->leftJoin('t_app_ajuan_sidang as app', function($join) use ($appAjuanKpps) {
+                        $join->on('k.ID_USER', '=', 'app.ID_USER')
+                             ->where('app.ID_AJUAN_SIDANG', '=', $appAjuanKpps ? $appAjuanKpps->id : 0);
+                    })
+                    ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
+                    ->select(
+                        'k.NIP as NIP',
+                        'k.NAMA as NAMA',
+                        'k.STATUS_TIM as STATUS_TIM',
+                        'app.STATUS_APPROVE as STATUS_APPROVE',
+                        'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
+                        \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
+                    )
+                    ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+                    ->orderBy('k.NAMA')
+                    ->get();
+            @endphp
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm text-center mb-0">
+                    <thead style="background-color: #6998d3; color: white;">
+                        <tr>
+                            <th style="width: 6%; color: #ffffff;">No</th>
+                            <th style="width: 16%; color: #ffffff;">NIP</th>
+                            <th style="width: 28%; color: #ffffff;">Nama KPPS</th>
+                            <th style="width: 14%; color: #ffffff;">Status Tim</th>
+                            <th style="width: 16%; color: #ffffff;">Aksi</th>
+                            <th style="width: 20%; color: #ffffff;">Status Approve</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if($kppsList->count() > 0)
+                            @foreach($kppsList as $idx => $kpps)
+                                <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
+                                    <td>{{ $idx + 1 }}</td>
+                                    <td>{{ $kpps->NIP ?? '-' }}</td>
+                                    <td class="text-left">{{ $kpps->NAMA ?? '-' }}</td>
+                                    <td>{{ $kpps->STATUS_TIM ?? '-' }}</td>
+                                    <td>
+                                        @if(trim((string) ($kpps->USULAN_PERBAIKAN ?? '')) !== '')
+                                            <button type="button" class="btn btn-sm px-3 py-1"
+                                                    style="font-size: 11px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent; white-space: nowrap;"
+                                                    data-isi="{{ htmlspecialchars($kpps->USULAN_PERBAIKAN, ENT_QUOTES) }}"
+                                                    onmouseover="this.style.background='#003366'; this.style.color='#fff';"
+                                                    onmouseout="this.style.background='transparent'; this.style.color='#003366';"
+                                                    onclick="showKppsUsulanPerbaikan(this)">
+                                                Lihat Usulan Perbaikan
+                                            </button>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
+                                            <span class="badge bg-success" style="white-space: nowrap;">Sudah Di Approve</span>
+                                        @else
+                                            <span class="badge bg-danger" style="white-space: nowrap;">Belum Di Approve</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @else
+                            <tr style="background-color: #dbe5f1;">
+                                <td colspan="6" class="text-center text-muted">Belum ada data KPPS</td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="tab-pane fade" id="jadwal" role="tabpanel">
             @php $tahapLabelHeading = str_replace('tahap', 'Tahap', $tahapan); @endphp

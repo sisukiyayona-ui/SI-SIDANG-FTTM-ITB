@@ -112,6 +112,28 @@
     </div>
 </div>
 
+<!-- Modal Usulan Perbaikan KPPS -->
+<div class="modal fade" id="kppsUsulanPerbaikanModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="border-radius: 8px; overflow: hidden;">
+            <div class="modal-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px;">
+                <h6 class="modal-title font-weight-bold mb-0" style="color: #333;"><i class="fas fa-tasks mr-2"></i>Detail Usulan Perbaikan</h6>
+                <button type="button" class="close" aria-label="Close" style="margin-right: -8px;" onclick="$('#kppsUsulanPerbaikanModal').modal('hide');">
+                    <span aria-hidden="true" style="font-size: 20px;">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div style="text-align: justify; line-height: 1.8; color: #333; font-size: 14px; background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #6998d3;">
+                    <span id="kppsUsulanPerbaikanIsi" style="white-space: pre-wrap;"></span>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #dee2e6;">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-1" onclick="$('#kppsUsulanPerbaikanModal').modal('hide');">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Detail Ajuan -->
 <div class="modal fade" id="kppsTahapModal" tabindex="-1" role="dialog" aria-labelledby="kppsTahapModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
@@ -201,6 +223,12 @@
             'tahap IV': 'Sidang Terbuka / Tertutup'
         };
         return labels[tahapan] || tahapan;
+    }
+
+    function showKppsUsulanPerbaikan(btn) {
+        var isi = btn.getAttribute('data-isi') || '';
+        document.getElementById('kppsUsulanPerbaikanIsi').textContent = isi;
+        jQuery('#kppsUsulanPerbaikanModal').modal('show');
     }
 
     function openKppsTahap(id, tahapan, strata) {

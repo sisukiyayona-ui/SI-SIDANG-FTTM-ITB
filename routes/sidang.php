@@ -13,6 +13,7 @@ use App\Http\Controllers\Sidang\SidangS2Controller;
 use App\Http\Controllers\Sidang\SidangS3Controller;
 use App\Http\Controllers\Sidang\CetakController;
 use App\Http\Controllers\Sidang\ApproveAjuanSidangController;
+use App\Http\Controllers\Sidang\NotifikasiApproveController;
 
 Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(function () {
     // Existing routes (general access)
@@ -58,6 +59,9 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::post('s3/{idJudul}/ubah-judul', [SidangS3Controller::class, 'storeUbahJudul'])->name('s3.store-ubah-judul');
         Route::post('s3/judul', [SidangS3Controller::class, 'storeJudul'])->name('s3.store-judul');
     });
+
+    // Notifikasi Approve Ajuan Sidang — khusus TU Prodi & FS
+    Route::post('notifikasi-approve', [NotifikasiApproveController::class, 'kirim'])->name('notifikasi-approve.kirim');
 
     // Jadwal Sidang — accessible by all authenticated roles including Mahasiswa
     Route::get('jadwal-sidang', [\App\Http\Controllers\Sidang\JadwalSidangController::class, 'index'])->name('jadwal-sidang');

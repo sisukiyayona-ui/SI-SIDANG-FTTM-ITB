@@ -989,6 +989,12 @@ class MahasiswaController extends Controller
         $ajuan->TGL_SIDANG = $tglSidang;
         $ajuan->WAKTU_SIDANG = $waktuSidang;
 
+        // Jika yang simpan bukan Mahasiswa (mis. TU Prodi), otomatis set STATUS_AJUKAN_MHS = 'y'
+        // sehingga jadwal langsung terlihat di sisi mahasiswa
+        if (($user['role'] ?? '') !== 'Mahasiswa') {
+            $ajuan->STATUS_AJUKAN_MHS = 'y';
+        }
+
         if ($request->filled('waktu_selesai')) {
             $ajuan->WAKTU_SELESAI = $request->waktu_selesai;
         }

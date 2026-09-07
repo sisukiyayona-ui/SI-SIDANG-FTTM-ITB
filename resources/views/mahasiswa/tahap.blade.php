@@ -208,6 +208,10 @@
                 </li>
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
+                    <a class="nav-link font-weight-bold p-0 text-primary" id="kpps-tab" data-toggle="tab" href="#kpps-voting" role="tab" style="text-decoration: underline;">Hasil Voting Tim KPPS</a>
+                </li>
+                <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
+                <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="jadwal-tab" data-toggle="tab" href="#jadwal" role="tab" style="text-decoration: underline;">Jadwal dan Penilaian</a>
                 </li>
             </ul>
@@ -337,6 +341,116 @@
                     </div>
                 </div>
 
+                {{-- TAB: HASIL VOTING TIM KPPS --}}
+                <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
+                    <div class="text-muted font-weight-bold mb-3" style="font-size: 14px;">
+                        Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
+                    </div>
+                    @php
+                        $appAjuanMhs = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
+                            ->where('tahapan_sidang', $tahapan)
+                            ->first();
+                        $kppsListMhs = \Illuminate\Support\Facades\DB::table('t_kpps as k')
+                            ->leftJoin('t_app_ajuan_sidang as app', function($join) use ($appAjuanMhs) {
+                                $join->on('k.ID_USER', '=', 'app.ID_USER')
+                                     ->where('app.ID_AJUAN_SIDANG', '=', $appAjuanMhs ? $appAjuanMhs->id : 0);
+                            })
+                            ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
+                            ->select(
+                                'k.NIP as NIP',
+                                'k.NAMA as NAMA',
+                                'k.STATUS_TIM as STATUS_TIM',
+                                'app.STATUS_APPROVE as STATUS_APPROVE',
+                                'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
+                                \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
+                            )
+                            ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+                            ->orderBy('k.NAMA')
+                            ->get();
+                    @endphp
+
+                    {{-- Modal Usulan Perbaikan --}}
+                    <div class="modal fade" id="mhsUsulanPerbaikanModal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog modal-lg" role="document">
+                            <div class="modal-content" style="border-radius: 8px; overflow: hidden;">
+                                <div class="modal-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px;">
+                                    <h6 class="modal-title font-weight-bold mb-0" style="color: #333;"><i class="fas fa-tasks mr-2"></i>Detail Usulan Perbaikan</h6>
+                                    <button type="button" class="close" aria-label="Close" onclick="$('#mhsUsulanPerbaikanModal').modal('hide');">
+                                        <span aria-hidden="true" style="font-size: 20px;">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body" style="padding: 24px;">
+                                    <div style="text-align: justify; line-height: 1.8; color: #333; font-size: 14px; background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #6998d3;">
+                                        <span id="mhsUsulanPerbaikanIsi" style="white-space: pre-wrap;"></span>
+                                    </div>
+                                </div>
+                                <div class="modal-footer" style="border-top: 1px solid #dee2e6;">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-1" onclick="$('#mhsUsulanPerbaikanModal').modal('hide');">Tutup</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        function showMhsUsulanPerbaikan(btn) {
+                            var isi = btn.getAttribute('data-isi') || '';
+                            document.getElementById('mhsUsulanPerbaikanIsi').textContent = isi;
+                            jQuery('#mhsUsulanPerbaikanModal').modal('show');
+                        }
+                    </script>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm text-center mb-0">
+                            <thead style="background-color: #6998d3; color: white;">
+                                <tr>
+                                    <th style="width: 6%; color: #ffffff;">No</th>
+                                    <th style="width: 16%; color: #ffffff;">NIP</th>
+                                    <th style="width: 28%; color: #ffffff;">Nama KPPS</th>
+                                    <th style="width: 14%; color: #ffffff;">Status Tim</th>
+                                    <th style="width: 16%; color: #ffffff;">Aksi</th>
+                                    <th style="width: 20%; color: #ffffff;">Status Approve</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if($kppsListMhs->count() > 0)
+                                    @foreach($kppsListMhs as $idx => $kpps)
+                                        <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
+                                            <td>{{ $idx + 1 }}</td>
+                                            <td>{{ $kpps->NIP ?? '-' }}</td>
+                                            <td class="text-left">{{ $kpps->NAMA ?? '-' }}</td>
+                                            <td>{{ $kpps->STATUS_TIM ?? '-' }}</td>
+                                            <td>
+                                                @if(trim((string) ($kpps->USULAN_PERBAIKAN ?? '')) !== '')
+                                                    <button type="button" class="btn btn-sm px-3 py-1"
+                                                            style="font-size: 11px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent; white-space: nowrap;"
+                                                            data-isi="{{ htmlspecialchars($kpps->USULAN_PERBAIKAN, ENT_QUOTES) }}"
+                                                            onmouseover="this.style.background='#003366'; this.style.color='#fff';"
+                                                            onmouseout="this.style.background='transparent'; this.style.color='#003366';"
+                                                            onclick="showMhsUsulanPerbaikan(this)">
+                                                        Lihat Usulan Perbaikan
+                                                    </button>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
+                                                    <span class="badge bg-success" style="white-space: nowrap;">Sudah Di Approve</span>
+                                                @else
+                                                    <span class="badge bg-danger" style="white-space: nowrap;">Belum Di Approve</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    <tr style="background-color: #dbe5f1;">
+                                        <td colspan="6" class="text-center text-muted">Belum ada data KPPS</td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 {{-- TAB: JADWAL & PENILAIAN --}}
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
                     {{-- Jadwal List Table --}}
@@ -357,7 +471,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @if(isset($ajuan) && $ajuan->tgl_sidang)
+                                @if(isset($ajuan) && $ajuan->tgl_sidang && ($ajuan->status_ajukan_mhs ?? $ajuan->STATUS_AJUKAN_MHS ?? 't') === 'y')
                                     <tr style="background-color: #dbe5f1;">
                                         <td>1</td>
                                         <td>
@@ -366,7 +480,7 @@
                                                 {{ \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') }}
                                             </span>
                                         </td>
-                                        <td><span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span></td>
+                                        <td><span id="statusLulusBadge" class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span></td>
                                         <td>
                                             <a href="#" style="text-decoration: none; color: #0066cc;"
                                                 onclick="event.preventDefault(); document.getElementById('jadwalList').style.display='none'; document.getElementById('penilaianView').style.display='block'; document.getElementById('penilaiViewSelect').value=''; document.getElementById('formViewSelect').value=''; filterPenilaianView();">Penilaian</a>
@@ -407,13 +521,17 @@
                         <div class="form-group row align-items-center mb-3 px-1">
                             <label class="col-sm-4 mb-0" style="font-size: 13px; color: #555;">Status Lulus</label>
                         <div class="col-sm-8 px-2">
-                            <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
+                            <span id="statusLulusBadgeForm" class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                         </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-4">
                             <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="kembaliKeJadwalList()">&larr; Kembali</button>
                             <div>
-                                <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="ajukanProdi('{{ $idJudul }}', '{{ $tahapan }}')">Ajukan Prodi</button>
+                                @if(!(isset($ajuan) && ($ajuan->status_ajukan_mhs ?? $ajuan->STATUS_AJUKAN_MHS ?? 't') === 'y'))
+                                <button type="button" id="btnAjukanProdi" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="ajukanProdi('{{ $idJudul }}', '{{ $tahapan }}')">Ajukan Prodi</button>
+                                @else
+                                <button type="button" class="btn btn-secondary px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" disabled title="Sudah diajukan ke Prodi"><i class="fas fa-check mr-1"></i> Sudah Diajukan</button>
+                                @endif
                                 <button type="button" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="saveJadwal()">Simpan</button>
                             </div>
                         </div>
@@ -720,16 +838,24 @@ function ajukanProdi(idJudul, tahapan) {
     document.getElementById('ajukanTahapan').value = tahapan;
     var modalJudul = document.getElementById('ajukanJudulText');
     if (modalJudul) modalJudul.textContent = 'Ajukan jadwal sidang ' + (document.querySelector('.badge')?.textContent || tahapan) + ' ke Program Studi?';
-    new bootstrap.Modal(modal).show();
+    jQuery('#modalAjukan').modal('show');
 }
 
 function confirmAjukanProdi() {
     var idJudul = document.getElementById('ajukanIdJudul').value;
     var tahapan = document.getElementById('ajukanTahapan').value;
-    var modal = bootstrap.Modal.getInstance(document.getElementById('modalAjukan'));
-    if (modal) modal.hide();
+
+    var modalAjukanEl = document.getElementById('modalAjukan');
+    if (modalAjukanEl) {
+        modalAjukanEl.classList.remove('show');
+        modalAjukanEl.style.display = 'none';
+        var backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.remove();
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+    }
     
-    var btn = document.querySelector('.btn-success[onclick*="ajukanProdi"]');
+    var btn = document.getElementById('btnAjukanProdi');
     if (btn) { 
         btn.disabled = true; 
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Mengajukan...'; 
@@ -748,15 +874,21 @@ function confirmAjukanProdi() {
     .then(function(data) {
         if (data.success) {
             showToast('success', data.message || 'Berhasil diajukan ke Prodi');
-            setTimeout(function() {
-                document.getElementById('jadwalForm').style.display = 'none';
-                document.getElementById('jadwalList').style.display = 'block';
-                if (typeof showTahapForm === 'function') {
-                    showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal'); 
-                } else {
-                    location.reload();
+            var newStatus = 'Diproses di TU Prodi';
+            var newClass  = 'warning';
+            ['statusLulusBadge', 'statusLulusBadgeForm'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.className = 'badge bg-' + newClass;
+                    el.textContent = newStatus;
                 }
-            }, 800);
+            });
+            var ajukanBtn = document.getElementById('btnAjukanProdi');
+            if (ajukanBtn) {
+                ajukanBtn.outerHTML = '<button type="button" class="btn btn-secondary px-3 py-0 mr-2" style="font-size:13px;border-radius:0;" disabled title="Sudah diajukan ke Prodi"><i class="fas fa-check mr-1"></i> Sudah Diajukan</button>';
+            }
+            document.getElementById('jadwalForm').style.display = 'none';
+            document.getElementById('jadwalList').style.display = 'block';
         } else {
             showToast('error', data.error || 'Gagal mengajukan');
             if (btn) { 
@@ -775,21 +907,13 @@ function confirmAjukanProdi() {
 }
 
 function kembaliKeJadwalList() {
-    // Reload list jadwal dengan data terbaru
-    if (typeof showTahapForm === 'function') {
-        showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal');
-    } else {
-        document.getElementById('jadwalForm').style.display = 'none';
-        document.getElementById('jadwalList').style.display = 'block';
-        location.reload();
-    }
+    document.getElementById('jadwalForm').style.display = 'none';
+    document.getElementById('jadwalList').style.display = 'block';
 }
 
-// Event listener untuk reload dashboard ketika modal ditutup
 $(document).ready(function() {
-    $('#tahapModal').on('hidden.bs.modal', function() {
-        // Reload dashboard page untuk update status
-        if (window.location.href.includes('mahasiswa/dashboard')) {
+    $('#tahapModal').on('hidden.bs.modal', function(e) {
+        if (e.target && e.target.id === 'tahapModal' && window.location.href.includes('mahasiswa/dashboard')) {
             location.reload();
         }
     });

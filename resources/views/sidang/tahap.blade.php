@@ -144,6 +144,31 @@
         </div>
     </div>
 
+    <!-- Modal Konfirmasi Kirim Notifikasi KPPS -->
+    <div class="modal fade" id="modalKonfirmasiKirimNotif" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius: 12px; border: none;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1e3a5f, #1a1f6e); color: white; border-radius: 12px 12px 0 0;">
+                    <h5 class="modal-title"><i class="fas fa-envelope mr-2"></i>Konfirmasi Kirim Notifikasi</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-envelope-open-text" style="font-size: 3rem; color: #f59e0b; opacity: 0.8;"></i>
+                    </div>
+                    <p style="font-size: 1rem; color: #333; margin-bottom: 8px;">Kirim notifikasi email approve ke anggota KPPS yang belum approve?</p>
+                    <p class="text-muted" style="font-size: 0.85rem;">Email hanya akan dikirim ke anggota yang belum melakukan approve.</p>
+                </div>
+                <div class="modal-footer justify-content-center border-0 pt-0" style="gap: 10px;">
+                    <button type="button" class="btn btn-secondary px-4" data-dismiss="modal" style="border-radius: 8px;">Batal</button>
+                    <button type="button" class="btn btn-warning px-4" onclick="doKirimNotifikasiApprove()" style="border-radius: 8px;"><i class="fas fa-paper-plane mr-1"></i> Ya, Kirim</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Lihat Usulan Perbaikan -->
     <div class="modal fade" id="usulanPerbaikanModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
@@ -888,9 +913,6 @@
                 </div>
 
                 <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
-                    <div class="text-muted font-weight-bold mb-3" style="font-size: 14px;">
-                        Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
-                    </div>
                     @php
                         $appAjuan = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
                             ->where('tahapan_sidang', $tahapan)
@@ -913,6 +935,16 @@
                             ->orderBy('k.NAMA')
                             ->get();
                     @endphp
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted font-weight-bold" style="font-size: 14px;">
+                            Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
+                        </div>
+                        @if(in_array(session('auth_user.role'), ['TU Prodi', 'FS']) && isset($appAjuan) && $appAjuan->STATUS_AJUKAN_KPPS === 'y')
+                        <button type="button" id="btnKirimNotifikasi" class="btn btn-sm btn-warning px-3 py-1" style="font-size: 12px; border-radius: 4px; white-space: nowrap;" onclick="kirimNotifikasiApprove({{ $appAjuan->id ?? 0 }}, {{ $idJudul }})">
+                            <i class="fas fa-envelope mr-1"></i> Kirim Notifikasi Approve
+                        </button>
+                        @endif
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm text-center mb-0">
                             <thead style="background-color: #6998d3; color: white;">
@@ -986,7 +1018,24 @@
                                     @foreach($visibleAjuan as $idx => $a)
                                     <tr style="background-color: #dbe5f1;">
                                         <td>{{ $idx + 1 }}</td>
-                                        <td><span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: {{ (in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) || ($a->status_lulus ?? '') === 'tidak lulus') ? 'default' : 'pointer' }}; white-space: nowrap;" {{ (in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) || ($a->status_lulus ?? '') === 'tidak lulus') ? '' : 'onclick="openJadwalForm(this)"' }} data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span></td>
+                                        @php
+                                            $role = session('auth_user.role');
+                                            $ajuanMhs  = ($a->status_ajukan_mhs  ?? $a->STATUS_AJUKAN_MHS  ?? 't') === 'y';
+                                            $ajuanProdi = ($a->status_ajukan_prodi ?? $a->STATUS_AJUKAN_PRODI ?? 't') === 'y';
+                                            // TU Prodi: disabled jika mahasiswa belum ajukan
+                                            // FS: disabled jika prodi belum ajukan
+                                            $disabledLink = in_array($role, ['Pembimbing', 'Penguji'])
+                                                || ($a->status_lulus ?? '') === 'tidak lulus'
+                                                || ($role === 'TU Prodi' && !$ajuanMhs)
+                                                || ($role === 'FS' && !$ajuanProdi);
+                                        @endphp
+                                        <td>
+                                            @if($disabledLink)
+                                                <span class="text-muted jadwal-date-link" style="cursor: default; white-space: nowrap;" data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span>
+                                            @else
+                                                <span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: pointer; white-space: nowrap;" onclick="openJadwalForm(this)" data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span>
+                                            @endif
+                                        </td>
                                         <td><span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($a)) }}">{{ getAjuanDisplayStatus($a) }}</span></td>
                                         <td>
                                             <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
@@ -3278,6 +3327,76 @@ function showUsulanPerbaikan(btn) {
     document.getElementById('usulanPerbaikanIsi').textContent = isi;
 
     jQuery('#usulanPerbaikanModal').modal('show');
+}
+
+function kirimNotifikasiApprove(idAjuan, idJudul) {
+    var btn = document.getElementById('btnKirimNotifikasi');
+    window.__kirimNotifIdAjuan = idAjuan;
+    window.__kirimNotifIdJudul = idJudul;
+    window.__kirimNotifBtn = btn;
+    jQuery('#modalKonfirmasiKirimNotif').modal('show');
+}
+
+function doKirimNotifikasiApprove() {
+    jQuery('#modalKonfirmasiKirimNotif').modal('hide');
+    var idAjuan = window.__kirimNotifIdAjuan;
+    var idJudul = window.__kirimNotifIdJudul;
+    var btn = window.__kirimNotifBtn;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Mengirim...';
+    }
+
+    fetch('{{ route("sidang.notifikasi-approve.kirim") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            id_ajuan_sidang: idAjuan,
+            id_judul: idJudul
+        })
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            return response.text().then(function(txt) {
+                var msg = 'Terjadi kesalahan (HTTP ' + response.status + ')';
+                try { var j = JSON.parse(txt); msg = j.message || j.error || msg; } catch(e) {}
+                throw new Error(msg);
+            });
+        }
+        return response.json();
+    })
+    .then(function(data) {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-envelope mr-1"></i> Kirim Notifikasi Approve';
+        }
+
+        if (data.success) {
+            var lines = [data.message];
+            if (data.sent_names && data.sent_names.length > 0) {
+                lines.push('Dikirim ke: ' + data.sent_names.join(', '));
+            }
+            if (data.skipped_names && data.skipped_names.length > 0) {
+                lines.push('Dilewati: ' + data.skipped_names.join(', '));
+            }
+            showToast(lines.join(' | '), 'success');
+        } else {
+            showToast(data.message || 'Terjadi kesalahan', 'error');
+        }
+    })
+    .catch(function(err) {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-envelope mr-1"></i> Kirim Notifikasi Approve';
+        }
+        showToast(err.message || 'Gagal mengirim notifikasi', 'error');
+    });
 }
 </script>
 
