@@ -2189,6 +2189,32 @@ function showAddTimForm(formId, btnId) {
             urutanSelect.value = nextUrutan <= 7 ? nextUrutan : '';
         }
     }
+    refreshStatusTimOptions(form, '');
+}
+
+function refreshStatusTimOptions(form, currentId) {
+    var statusSel = form.querySelector('[name="status_tim_sidang"]');
+    if (!statusSel) return;
+    var pane = form.closest('.tab-pane');
+    var used = [];
+    if (pane) {
+        pane.querySelectorAll('tr[data-status-tim-sidang]').forEach(function(row) {
+            var rid = row.getAttribute('data-id');
+            if (currentId !== '' && String(rid) === String(currentId)) return;
+            var s = row.getAttribute('data-status-tim-sidang');
+            if (s) used.push(s.trim());
+        });
+    }
+    Array.prototype.forEach.call(statusSel.options, function(opt) {
+        var v = opt.value.trim();
+        if (v === '') { return; }
+        var isUsed = used.indexOf(v) !== -1;
+        if (isUsed) {
+            opt.style.display = 'none';
+        } else {
+            opt.style.display = '';
+        }
+    });
 }
 
 function togglePengujiLuar(cb) {
@@ -2235,6 +2261,7 @@ function resetTimForm(formId, btnId) {
 
     var urutan = form.querySelector('[name="urutan"]');
     if (urutan) urutan.value = '';
+    refreshStatusTimOptions(form, '');
 
     var cb = form.querySelector('.penguji-luar-cb');
     if (cb) { cb.checked = false; togglePengujiLuar(cb); }
@@ -2263,6 +2290,8 @@ function editTimSidang(btn) {
     form.querySelector('[name="nip"]').value = nip || '';
     form.querySelector('[name="status_tim_sidang"]').value = statusTimSidang || '';
     form.querySelector('[name="urutan"]').value = urutan || '';
+
+    refreshStatusTimOptions(form, id);
 
     var formEl = form.closest('[id^="timForm"]');
     if (formEl) formEl.style.display = 'block';
@@ -2345,6 +2374,7 @@ function submitTimSidang(event) {
             showToast('Tim Pembimbing berhasil disimpan', 'success');
             // Update baris tabel secara lokal — tanpa reload konten modal
             upsertTimSidangRow(form, formData, data.tim || null);
+            refreshStatusTimOptions(form, '');
             // Sinkronkan dropdown Penilai di tab penilaian
             if (data.tim) {
                 syncPenilaiDropdowns(data.tim);
@@ -3160,6 +3190,12 @@ $(document).ready(function() {
             $el.select2(opts);
         });
     }
+
+    // Nonaktifkan Status Tim yang sudah dipakai anggota tim lain
+    var timForms = document.querySelectorAll('form[id^="timSidangForm"]');
+    timForms.forEach(function(formEl) {
+        refreshStatusTimOptions(formEl, '');
+    });
 });
 
 $('#skModal').on('show.bs.modal', function () {
