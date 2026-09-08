@@ -222,6 +222,7 @@ class PrepareTemplate extends Command
                     // Nomor surat penelaah dari database (T_AJUAN_SIDANG.NO_SURAT_PENELAAH)
                     '2397/IT1.C05.1/DA.05/2023 ini ambil dari no surat penelaah' => '${no_surat_penelaah}',
                     '2397/IT1.C05.1/DA.05/2023' => '${no_surat_penelaah}',
+                    '$(no surat penelaah)' => '${no_surat_penelaah}',
                     '$(tgl penelaah)' => '${tgl_penelaah}',
                     '$( nama penguji)' => '${nama_penguji}',
                     '$(institusi)' => '${institusi}',

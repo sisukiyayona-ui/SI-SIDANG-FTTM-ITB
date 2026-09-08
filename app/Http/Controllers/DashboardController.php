@@ -61,12 +61,16 @@ class DashboardController extends Controller
 
         $user = session('auth_user');
 
+        $currentYear = (int) now()->format('Y');
+        $chartYears = [$currentYear - 2, $currentYear - 1, $currentYear];
+
         $chartQuery = DB::table('v_dashboard_s3')
             ->select('TAHUN')
             ->selectRaw('SUM(jum_tahap1) as tahap1')
             ->selectRaw('SUM(jum_tahap2) as tahap2')
             ->selectRaw('SUM(jum_tahap3) as tahap3')
             ->selectRaw('SUM(jum_tahap4) as tahap4')
+            ->whereIn('TAHUN', $chartYears)
             ->groupBy('TAHUN')
             ->orderBy('TAHUN', 'asc');
 
