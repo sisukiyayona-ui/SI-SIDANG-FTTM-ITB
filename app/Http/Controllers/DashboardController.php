@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\TAjuanSidang;
 use App\Models\Notification;
+use App\Models\TProdi;
 use App\Models\TUser;
 use App\Models\TUserRole;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -60,26 +61,38 @@ class DashboardController extends Controller
 
         $user = session('auth_user');
 
-        $chartYears = [];
-        $chartTahapData = [];
-        $currentYear = (int)Carbon::now()->format('Y');
-        foreach ($tahapanGroups as $label => $values) {
-            $chartTahapData[$label] = [];
-        }
-        for ($y = $currentYear - 2; $y <= $currentYear; $y++) {
-            $chartYears[] = $y;
-            foreach ($tahapanGroups as $label => $values) {
-                $q = TAjuanSidang::whereIn('TAHAPAN_SIDANG', $values)
-                    ->where('STATUS_LULUS', 'lulus');
-                if ($label !== 'Ujian Kualifikasi') {
-                    $q->whereNotNull('TGL_SIDANG')
-                      ->whereYear('TGL_SIDANG', $y);
-                }
-                if ($user['role'] === 'TU Prodi') {
-                    $q->where('KODE_PRODI', $user['kode_prodi']);
-                }
-                $chartTahapData[$label][] = $q->count();
+        $chartQuery = DB::table('v_dashboard_s3')
+            ->select('TAHUN')
+            ->selectRaw('SUM(jum_tahap1) as tahap1')
+            ->selectRaw('SUM(jum_tahap2) as tahap2')
+            ->selectRaw('SUM(jum_tahap3) as tahap3')
+            ->selectRaw('SUM(jum_tahap4) as tahap4')
+            ->groupBy('TAHUN')
+            ->orderBy('TAHUN', 'asc');
+
+        if ($user['role'] === 'TU Prodi') {
+            $prodi = TProdi::where('KODE_PRODI', $user['kode_prodi'])->first();
+            if ($prodi) {
+                $chartQuery->where('id_prodi', $prodi->id);
             }
+        }
+
+        $chartRows = $chartQuery->get();
+
+        $chartYears = [];
+        $chartTahapData = [
+            'Ujian Kualifikasi' => [],
+            'Ujian Proposal' => [],
+            'Tahap III (SK)' => [],
+            'Sidang Terbuka / Tertutup' => [],
+        ];
+
+        foreach ($chartRows as $row) {
+            $chartYears[] = $row->TAHUN;
+            $chartTahapData['Ujian Kualifikasi'][] = $row->tahap1;
+            $chartTahapData['Ujian Proposal'][] = $row->tahap2;
+            $chartTahapData['Tahap III (SK)'][] = $row->tahap3;
+            $chartTahapData['Sidang Terbuka / Tertutup'][] = $row->tahap4;
         }
 
         return view('dashboard.index', compact(

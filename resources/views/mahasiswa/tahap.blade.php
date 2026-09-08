@@ -889,6 +889,32 @@ function confirmAjukanProdi() {
             }
             document.getElementById('jadwalForm').style.display = 'none';
             document.getElementById('jadwalList').style.display = 'block';
+
+            setTimeout(function() {
+                var refreshUrl = '/mahasiswa/tahap/' + tahapan + '?_=' + new Date().getTime() + '&id_judul=' + idJudul;
+                fetch(refreshUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(res) { return res.text(); })
+                    .then(function(html) {
+                        var container = document.querySelector('.tahap-container');
+                        if (container) {
+                            var parser = new DOMParser();
+                            var doc = parser.parseFromString(html, 'text/html');
+                            var newContent = doc.querySelector('.tahap-container');
+                            if (newContent) {
+                                container.outerHTML = newContent.outerHTML;
+                                document.querySelectorAll('#tahapFormContent script').forEach(function(oldScript) {
+                                    var s = document.createElement('script');
+                                    Array.from(oldScript.attributes).forEach(function(a) { s.setAttribute(a.name, a.value); });
+                                    s.textContent = oldScript.textContent;
+                                    oldScript.parentNode.replaceChild(s, oldScript);
+                                });
+                                var jadwalTab = document.querySelector('a[href="#jadwal"]');
+                                if (jadwalTab) $(jadwalTab).tab('show');
+                            }
+                        }
+                    })
+                    .catch(function() {});
+            }, 300);
         } else {
             showToast('error', data.error || 'Gagal mengajukan');
             if (btn) { 
