@@ -178,58 +178,54 @@
                 @csrf
                 <input type="hidden" name="_method" id="methodField" value="POST">
                 <input type="hidden" name="id" id="dataId">
-                
+
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-8">
                         <div class="mb-3">
-                            <label for="penilaian" class="form-label fw-semibold text-secondary">Parameter Penilaian</label>
-                            <input type="text" name="penilaian" id="f_penilaian" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Nama parameter komponen" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="f_keterangan" class="form-label fw-semibold text-secondary">Keterangan</label>
-                            <textarea name="Keterangan" id="f_keterangan" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Keterangan tambahan" rows="2"></textarea>
+                            <label for="penilaian" class="form-label fw-semibold">Parameter Penilaian</label>
+                            <input type="text" name="penilaian" id="f_penilaian" class="form-control" placeholder="Nama parameter komponen" required>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
-                            <label for="f_no_form" class="form-label fw-semibold text-secondary">No Form</label>
-                            <input type="text" name="no_form" id="f_no_form" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Nomor form">
+                            <label for="f_no_form" class="form-label fw-semibold">No Form</label>
+                            <input type="text" name="no_form" id="f_no_form" class="form-control" placeholder="Nomor form">
                         </div>
                     </div>
                 </div>
-                
+
+                <div class="mb-3">
+                    <label for="f_keterangan" class="form-label fw-semibold">Keterangan</label>
+                    <textarea name="Keterangan" id="f_keterangan" class="form-control" placeholder="Keterangan tambahan" rows="2"></textarea>
+                </div>
+
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
-                            <label for="f_strata" class="form-label fw-semibold text-secondary">Strata</label>
-                            <select name="strata" id="f_strata" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required onchange="filterTahapanByStrata()">
+                            <label for="f_strata" class="form-label fw-semibold">Strata</label>
+                            <select name="strata" id="f_strata" class="form-control" required onchange="filterTahapanByStrata()">
                                 <option value="S3" selected>S3</option>
                                 <option value="S1">S1</option>
                                 <option value="S2">S2</option>
                             </select>
                         </div>
                     </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
-                            <label for="f_tahapan_sidang" class="form-label fw-semibold text-secondary">Tahapan Sidang</label>
-                            <select name="tahapan_sidang" id="f_tahapan_sidang" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
+                            <label for="f_tahapan_sidang" class="form-label fw-semibold">Tahapan Sidang</label>
+                            <select name="tahapan_sidang" id="f_tahapan_sidang" class="form-control" required>
                             </select>
                         </div>
                     </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
-                            <label for="f_id_prodi" class="form-label fw-semibold text-secondary">Program Studi</label>
+                            <label for="f_id_prodi" class="form-label fw-semibold">Program Studi</label>
                             @if(session('auth_user.role') === 'TU Prodi')
                                 @php $loginProdiP = \App\Models\TProdi::where('kode_prodi', session('auth_user.kode_prodi'))->first(); @endphp
                                 <input type="hidden" name="id_prodi" value="{{ $loginProdiP?->id }}">
-                                <input type="text" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px; background-color:#e9ecef;" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled>
+                                <input type="text" class="form-control" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled>
                             @else
-                                <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
+                                <select name="id_prodi" id="f_id_prodi" class="form-control" required>
                                     @foreach($prodis as $p)
                                         <option value="{{ $p->id }}">{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                                     @endforeach
@@ -237,40 +233,45 @@
                             @endif
                         </div>
                     </div>
-                    <div class="col-md-6">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-secondary">Status Aktif</label>
-                            <div class="d-flex" style="gap: 20px;">
-                                <div class="form-check">
+                            <label class="form-label fw-semibold d-block">Status Aktif</label>
+                            <div class="d-flex align-items-center" style="gap: 20px;">
+                                <div class="form-check form-check-inline m-0">
                                     <input type="radio" name="status_aktif" value="AKTIF" class="form-check-input" id="statusAktif" checked>
-                                    <label class="form-check-label" for="statusAktif">&nbsp;Aktif</label>
+                                    <label class="form-check-label" for="statusAktif">Aktif</label>
                                 </div>
-                                <div class="form-check">
+                                <div class="form-check form-check-inline m-0">
                                     <input type="radio" name="status_aktif" value="NON AKTIF" class="form-check-input" id="statusNonaktif">
-                                    <label class="form-check-label" for="statusNonaktif">&nbsp;Non Aktif</label>
+                                    <label class="form-check-label" for="statusNonaktif">Non Aktif</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold d-block">Status Catatan</label>
+                            <div class="d-flex align-items-center" style="gap: 20px;">
+                                <div class="form-check form-check-inline m-0">
+                                    <input type="radio" name="status_catatan" value="y" class="form-check-input" id="statusCatatanYa">
+                                    <label class="form-check-label" for="statusCatatanYa">Ya</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input type="radio" name="status_catatan" value="t" class="form-check-input" id="statusCatatanTidak" checked>
+                                    <label class="form-check-label" for="statusCatatanTidak">Tidak</label>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold text-secondary">Status Catatan</label>
-                    <div class="d-flex" style="gap: 20px;">
-                        <div class="form-check">
-                            <input type="radio" name="status_catatan" value="y" class="form-check-input" id="statusCatatanYa">
-                            <label class="form-check-label" for="statusCatatanYa">&nbsp;Ya</label>
-                        </div>
-                        <div class="form-check">
-                            <input type="radio" name="status_catatan" value="t" class="form-check-input" id="statusCatatanTidak" checked>
-                            <label class="form-check-label" for="statusCatatanTidak">&nbsp;Tidak</label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-4 d-flex justify-content-end" style="gap: 10px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeForm()">Batal</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Simpan</button>
+                <hr class="mb-4">
+                <div class="d-flex justify-content-end" style="gap: 10px;">
+                    <button type="button" class="btn btn-secondary px-4" onclick="closeForm()">Batal</button>
+                    <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save mr-1"></i> Simpan</button>
                 </div>
             </form>
         </div>
