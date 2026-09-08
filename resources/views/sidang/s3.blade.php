@@ -663,12 +663,10 @@
         });
     }
 
-    // Saat modal Form Tahapan ditutup setelah ada simpan/kunci, refresh tabel tracking dengan halus
+    // Saat modal Form Tahapan ditutup, selalu refresh tabel tracking
     $('#tahapModal').on('hidden.bs.modal', function() {
-        if (window.__penilaianChanged) {
-            window.__penilaianChanged = false;
-            ajaxFilter('{{ route("sidang.s3") }}', 'trackingTableContainer');
-        }
+        window.__penilaianChanged = false;
+        ajaxFilter('{{ route("sidang.s3") }}', 'trackingTableContainer');
     });
 
     bindFilters('{{ route("sidang.s3") }}', 'trackingTableContainer');
