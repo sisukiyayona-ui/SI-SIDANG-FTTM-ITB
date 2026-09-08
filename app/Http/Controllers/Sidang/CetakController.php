@@ -476,24 +476,27 @@ class CetakController extends Controller
     }
 
     /**
-     * Isi placeholder ${signature} dengan gambar tanda tangan dari t_user.SIGNATURE.
-     * Mendukung placeholder yang terpecah antar XML run.
+     * Isi placeholder ${signature} (atau placeholder lain) dengan gambar tanda tangan
+     * dari t_user.SIGNATURE. Mendukung placeholder yang terpecah antar XML run.
      */
-    private function fillSignaturePlaceholder(string $docxPath, $idUser): void
+    private function fillSignaturePlaceholder(string $docxPath, $idUser, string $placeholder = 'signature'): void
     {
         try {
             $signature = $idUser ? TUser::where('id', (int) $idUser)->value('SIGNATURE') : null;
             if (empty($signature)) {
+                $this->removePlaceholderText($docxPath, $placeholder);
                 return;
             }
 
             $binary = base64_decode($signature, true);
             if ($binary === false || strlen($binary) < 100) {
+                $this->removePlaceholderText($docxPath, $placeholder);
                 return;
             }
 
             $validImage = (substr($binary, 0, 4) === "\x89PNG" || substr($binary, 0, 3) === "\xFF\xD8\xFF");
             if (!$validImage) {
+                $this->removePlaceholderText($docxPath, $placeholder);
                 return;
             }
 
@@ -512,7 +515,7 @@ class CetakController extends Controller
 
             try {
                 $tp = new \PhpOffice\PhpWord\TemplateProcessor($docxPath);
-                $tp->setImageValue('signature', [
+                $tp->setImageValue($placeholder, [
                     'path'   => $tmpPath,
                     'width'  => 110,
                     'height' => 55,
@@ -523,6 +526,21 @@ class CetakController extends Controller
             }
         } catch (\Exception $e) {
             \Log::warning('Gagal isi placeholder signature: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Hapus teks placeholder ${xxx} yang dibiarkan literal (mis. saat tidak ada tanda tangan),
+     * agar tidak tampak sebagai `${signature}` mentah di dokumen hasil cetak.
+     */
+    private function removePlaceholderText(string $docxPath, string $placeholder): void
+    {
+        try {
+            $tp = new \PhpOffice\PhpWord\TemplateProcessor($docxPath);
+            $tp->setValue($placeholder, '');
+            $tp->saveAs($docxPath);
+        } catch (\Exception $e) {
+            \Log::warning('Gagal hapus placeholder ' . $placeholder . ': ' . $e->getMessage());
         }
     }
 
@@ -872,9 +890,49 @@ class CetakController extends Controller
      * Post-process form penilaian sidang doktor (Form 309.1):
      * isi baris detail penilaian (nama_penilaian, keterangan, nilai, catatan)
      * dan nilai rata-rata (skala 5).
+     *
+     * Template hanya memiliki SATU placeholder ${catatan} pada paragraf
+     * "Resume dari semua penguji ${catatan}". Kumpulkan semua catatan
+     * dari seluruh baris yang memiliki catatan, gabungkan, lalu ganti
+     * placeholder tersebut sebelum fillPenilaianRows mengisi sisa field.
      */
     private function postProcessSidangForm(string $docxPath, array $rows, string $rataNilai): void
     {
+        // 1. Kumpulkan semua catatan non-kosong dari seluruh baris penilaian
+        $allCatatan = [];
+        foreach ($rows as $row) {
+            $rowArr = is_object($row) ? (array) $row : $row;
+            $catatan = '';
+            foreach (['CATATAN', 'catatan'] as $key) {
+                if (isset($rowArr[$key]) && $rowArr[$key] !== null && trim((string) $rowArr[$key]) !== '') {
+                    $catatan = trim((string) $rowArr[$key]);
+                    break;
+                }
+            }
+            if ($catatan !== '') {
+                $allCatatan[] = $catatan;
+            }
+        }
+
+        $combinedCatatan = implode("\n", $allCatatan);
+
+        // 2. Ganti ${catatan} di XML secara langsung (hanya ada 1 placeholder)
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) === true) {
+            $xml = $zip->getFromName('word/document.xml');
+            if ($xml !== false) {
+                $escaped = htmlspecialchars($combinedCatatan, ENT_XML1, 'UTF-8');
+                $xml = preg_replace('/\$\{catatan\}/i', $escaped, $xml);
+
+                $zip->deleteName('word/document.xml');
+                $zip->addFromString('word/document.xml', $xml);
+            }
+            $zip->close();
+        }
+
+        // 3. Isi sisa placeholder (nama_penilaian, keterangan, nilai, rata_nilai)
+        //    Catatan sudah diganti di atas, jadi fillPenilaianRows tidak akan
+        //    menemukan ${catatan} lagi (no-op untuk field catatan).
         $this->fillPenilaianRows($docxPath, $rows, $rataNilai);
     }
 
@@ -1766,15 +1824,13 @@ class CetakController extends Controller
         // Nilai akhir Index (baris 8)
         $indeks = $rataRata !== '' ? $this->calculateIndeksSidang((float) $rataRata) : '';
 
-        // Nama penilai untuk daftar tanda tangan
-        $namaPenguji = [
-            'ketua' => ($timByStatus[$roleStatuses['ketua_pembimbing']] ?? null)?->NAMA ?? '-',
-            'ko1'   => ($timByStatus[$roleStatuses['ko_pembimbing_1']] ?? null)?->NAMA  ?? '-',
-            'ko2'   => ($timByStatus[$roleStatuses['ko_pembimbing_2']] ?? null)?->NAMA  ?? '-',
-            'peng1' => ($timByStatus['penguji i'] ?? null)?->NAMA   ?? '-',
-            'peng2' => ($timByStatus['penguji ii'] ?? null)?->NAMA  ?? '-',
-            'peng3' => ($timByStatus['penguji iii'] ?? null)?->NAMA ?? '-',
-        ];
+        // Nama kolom "Tim Penguji" = daftar PENGUJI saja (penguji I, II, III, ...)
+        $pengujiNames = [];
+        foreach ($timByStatus as $status => $t) {
+            if (preg_match('/^penguji\s+(i{1,3}|iv|v)$/', $status)) {
+                $pengujiNames[] = $t->NAMA ?? '-';
+            }
+        }
 
         $ketuaSidang = $timByStatus['ketua sidang'] ?? null;
         $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
@@ -1793,6 +1849,27 @@ class CetakController extends Controller
         $tglCreate = $latestPenilaian?->TGL_UPDATE ?? $latestPenilaian?->TGL_CREATE ?? null;
         $tglCreateFormat = $tglCreate ? \Carbon\Carbon::parse($tglCreate)->translatedFormat('d F Y') : $tglFooter;
 
+        // Resume catatan dari SEMUA penilai (t_penilaian di-group per ID_TIM_SIDANG).
+        // Tiap penilai yang mengisi catatan menjadi satu baris list dengan awalan "- ".
+        $catatanAll = TPenilaian::where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->whereNotNull('CATATAN')
+            ->where('CATATAN', '!=', '')
+            ->orderBy('ID_TIM_SIDANG')
+            ->get();
+        $resumeCatatan = [];
+        foreach ($catatanAll->groupBy('ID_TIM_SIDANG') as $rows) {
+            $nama = trim((string) ($rows->first()->NAMA ?? ''));
+            $cat  = $rows->pluck('CATATAN')
+                ->map(fn($v) => trim((string) $v))
+                ->filter(fn($v) => $v !== '')
+                ->unique()
+                ->implode('; ');
+            if ($cat !== '') {
+                $resumeCatatan[] = '- ' . ($nama !== '' ? $nama . ': ' : '') . $cat;
+            }
+        }
+
         // Template
         $templatePath = base_path('template/SIDANG/BA sidang akhir TEMPLATE.docx');
         if (!file_exists($templatePath)) {
@@ -1810,6 +1887,11 @@ class CetakController extends Controller
             $tp->setValue('waktu',             $waktuSidang);
             $tp->setValue('nama_kaprodi',      $kaprodi ? $kaprodi->NAMA_LENGKAP : '');
             $tp->setValue('nama_ketua_sidang', $ketuaSidang?->NAMA ?? '-');
+            // Nama di tabel "Tim Penguji" (baris 1-4) — ambil dari penguji saja (bukan pembimbing)
+            $tp->setValue('nama_penguji_i',    $pengujiNames[0] ?? '');
+            $tp->setValue('nama_penguji_ii',   $pengujiNames[1] ?? '');
+            $tp->setValue('nama_penguji_iii',  $pengujiNames[2] ?? '');
+            $tp->setValue('nama_penguji_iv',   $pengujiNames[3] ?? '');
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal memproses template BA Sidang Doktor: ' . $e->getMessage()], 500);
         }
@@ -1829,13 +1911,23 @@ class CetakController extends Controller
             'nilai_rows'           => $nilaiRows,
             'rata_rata'            => $rataRata,
             'indeks'               => $indeks,
-            'nama_penguji'         => $namaPenguji,
+            'penguji_names'        => $pengujiNames,
             'waktu_selesai'        => $waktuSelesai,
             'tgl_create_penilaian' => $tglCreateFormat,
+            'catatan'              => $resumeCatatan,
         ]);
 
-        // Isi ${signature} dengan tanda tangan kaprodi dari database
-        $this->fillSignaturePlaceholder($docxPath, optional($kaprodi)->id);
+        // Isi tanda tangan per baris tabel "Tim Penguji" (6 baris: Ketua Tim Pembimbing,
+        // Ko-Pembimbing 1, Ko-Pembimbing 2, Penguji 1, Penguji 2, Penguji 3)
+        $rowSignatures = [];
+        foreach ($roleStatuses as $st) {
+            $rowSignatures[] = $this->signatureBinary($timByStatus[$st] ?? null);
+        }
+        $this->embedAllSkSignatures($docxPath, $rowSignatures);
+
+        // Isi ${signature_kaprodi} (kiri) dengan ttd kaprodi & ${signature_ketua_sidang} (kanan) dengan ttd ketua sidang
+        $this->fillSignaturePlaceholder($docxPath, optional($kaprodi)->id, 'signature_kaprodi');
+        $this->fillSignaturePlaceholder($docxPath, $ketuaSidang?->id_user_penilai, 'signature_ketua_sidang');
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
@@ -1862,17 +1954,12 @@ class CetakController extends Controller
         $xml = str_replace('${nilai_rata_rata}', $esc($data['rata_rata'] ?? ''), $xml);
         $xml = str_replace('${nilai_akhir_index}', $esc($data['indeks'] ?? ''), $xml);
 
-        // Daftar nama tanda tangan: ganti literal "(nama penguji I/II/III/IV)" -> nama asli
-        $np = $data['nama_penguji'];
-        $xml = str_replace('(nama penguji I)',   $esc($np['ketua']), $xml);
-        $xml = str_replace('(nama penguji II)',  $esc($np['ko1']),   $xml);
-        $xml = str_replace('(nama penguji III)', $esc($np['ko2']),   $xml);
-        $xml = str_replace('(nama penguji IV)',  $esc($np['peng1']), $xml);
-
-        // Baris 5 & 6 (Penguji II & III): isi sel nama yang masih titik-titik
-        $anchor = strpos($xml, $esc($np['peng1']));
-        $xml = $this->fillSidangListNameCell($xml, '5', $esc($np['peng2']), $anchor === false ? 0 : $anchor);
-        $xml = $this->fillSidangListNameCell($xml, '6', $esc($np['peng3']), $anchor === false ? 0 : $anchor);
+        // Daftar nama tanda tangan: baris 1-4 diisi ${nama_penguji_i..iv} via setValue di atas.
+        // Baris 5 & 6 (Penguji 2 & 3): isi sel nama yang masih titik-titik dengan penguji ke-5 & ke-6
+        $pn = $data['penguji_names'] ?? [];
+        $anchor = isset($pn[0]) ? strpos($xml, $esc($pn[0])) : false;
+        $xml = $this->fillSidangListNameCell($xml, '5', $esc($pn[4] ?? ''), $anchor === false ? 0 : $anchor);
+        $xml = $this->fillSidangListNameCell($xml, '6', $esc($pn[5] ?? ''), $anchor === false ? 0 : $anchor);
 
         // Waktu selesai (typo template "$wkatu(selesai)")
         if ($data['waktu_selesai'] !== '') {
@@ -1884,9 +1971,71 @@ class CetakController extends Controller
             $xml = str_replace('tgl create penilaian', $esc($data['tgl_create_penilaian']), $xml);
         }
 
+        // Resume catatan dari semua penilai: blok "Catatan:" di template berisi
+        // "(resume catatan dari semua penilai)" + titik-titik. Ganti seluruh blok
+        // (mulai paragraf resume s/d sebelum tabel Tim Penguji) dengan daftar
+        // catatan "- <penilai>: <catatan>" — satu paragraf per baris.
+        if (isset($data['catatan']) && is_array($data['catatan'])) {
+            $xml = $this->fillSidangAkhirCatatan($xml, $data['catatan']);
+        }
+
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
         $zip->close();
+    }
+
+    /**
+     * Isi blok "Catatan:" pada BA Sidang Doktor.
+     * Template berisi teks "(resume catatan dari semua penilai)" & titik-titik.
+     * Blok diganti dengan satu paragraf per baris catatan.
+     */
+    private function fillSidangAkhirCatatan(string $xml, array $lines): string
+    {
+        $marker = '(resume catatan dari semua penilai)';
+        $pos = strpos($xml, $marker);
+        if ($pos === false) {
+            return $xml;
+        }
+
+        // Awal paragraf yang memuat marker ("<w:p " sebelum posisi marker)
+        $pStart = strrpos(substr($xml, 0, $pos), '<w:p ');
+        if ($pStart === false) {
+            return $xml;
+        }
+
+        // Akhir blok: tabel Tim Penguji yang mengikuti blok catatan
+        $tblPos = strpos($xml, '<w:tbl>', $pos);
+        if ($tblPos === false) {
+            return $xml;
+        }
+
+        $paragraphs = $this->buildSidangAkhirCatatanParagraphs($lines);
+
+        return substr($xml, 0, $pStart) . $paragraphs . substr($xml, $tblPos);
+    }
+
+    /**
+     * Bangun XML paragraf (satu per baris) untuk daftar catatan pada BA Sidang Doktor.
+     * Format paragraf meniru paragraf BodyText pada template (bold, hitam, 11pt).
+     */
+    private function buildSidangAkhirCatatanParagraphs(array $lines): string
+    {
+        $rPr = '<w:rPr><w:b/><w:color w:val="000000" w:themeColor="text1"/>'
+             . '<w:sz w:val="22"/><w:lang w:val="fi-FI"/></w:rPr>';
+        $pPr = '<w:pPr><w:pStyle w:val="BodyText"/>'
+             . '<w:spacing w:before="11" w:line="360" w:lineRule="auto"/>'
+             . '<w:ind w:left="0"/>' . $rPr . '</w:pPr>';
+
+        $out = '';
+        foreach ($lines as $line) {
+            $esc = htmlspecialchars((string) $line, ENT_XML1, 'UTF-8');
+            $out .= '<w:p>'
+                  . $pPr
+                  . '<w:r>' . $rPr . '<w:t xml:space="preserve">' . $esc . '</w:t></w:r>'
+                  . '</w:p>';
+        }
+
+        return $out;
     }
 
     /**

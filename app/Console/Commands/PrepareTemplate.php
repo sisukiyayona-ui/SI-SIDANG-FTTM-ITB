@@ -114,9 +114,20 @@ class PrepareTemplate extends Command
                     '$(nama ketua sidang)' => '${nama_ketua_sidang}',
                     'Nilai rata2' => '${nilai_rata2}',
 
-                    // Placeholder tanda tangan — hanya ganti "Tanda Tangan dan Nama Jelas"
-                    'Tanda Tangan dan Nama Jelas' => '${signature}',
-                ]
+                    // Nama penguji di tabel "Tim Penguji" (mirip SK) jadi placeholder per-baris,
+                    // diisi via setValue saat cetak. Decode IV→III→II→I agar "I" tidak
+                    // ikut memakan huruf pertama "II"/"III"/"IV".
+                    '(nama penguji IV)'  => '${nama_penguji_iv}',
+                    '(nama penguji III)' => '${nama_penguji_iii}',
+                    '(nama penguji II)'  => '${nama_penguji_ii}',
+                    '(nama penguji I)'   => '${nama_penguji_i}',
+
+                    // Placeholder tanda tangan di baris pertama ("$ Tanda Tangan") — ambil ttd dari DB.
+                    // Baris "Tanda Tangan dan Nama Jelas" TETAP sebagai teks (tidak diganti).
+                    '$ Tanda Tangan' => '${signature}',
+                ],
+                'distinctBaSidangSignatures' => true,
+                'baSidangRowSignatures'      => true,
             ],
             [
                 'src' => base_path('template/SIDANG/form penilaian sidang akhir.docx'),
@@ -136,9 +147,9 @@ class PrepareTemplate extends Command
                     '(catatan)' => '${catatan}',
                     '(rata nilai)' => '${rata_nilai}',
 
-                    // Placeholder tanda tangan dari database (t_user.SIGNATURE)
-                    // diganti saat cetak menjadi gambar ttd penilai/pejabat terkait
-                    'Tanda Tangan' => '${signature}',
+                    // Placeholder tanda tangan di baris "Penguji" ("$ Tanda Tangan") — ambil ttd dari DB.
+                    // Baris "Tanda Tangan dan Nama Jelas" TETAP sebagai teks (tidak diganti).
+                    '$ Tanda Tangan' => '${signature}',
                 ]
             ],
             [
@@ -290,6 +301,21 @@ class PrepareTemplate extends Command
             // yang menjadi placeholder tanda tangan di tabel
             if (!empty($template['replaceSignatureDots'])) {
                 $xml = $this->replaceSignatureDots($xml);
+            }
+
+            // Khusus BA Sidang Akhir: dua slot tanda tangan yang BEDA
+            // (kiri = kaprodi, kanan = ketua sidang)
+            if (!empty($template['distinctBaSidangSignatures'])) {
+                $xml = $this->distinguishBaSidangSignatures($xml);
+            }
+
+            // Khusus BA Sidang Akhir: konversi titik-titik pada kolom "Tanda Tangan"
+            // di tabel Tim Penguji (6 baris) menjadi placeholder ${signature} per baris,
+            // agar tiap penguji punya tanda tangan sendiri saat cetak.
+            // DIJALANKAN SETELAH distinguish, agar ${signature} footer (kaprodi/ketua sidang)
+            // tidak ikut kehitung sebagai baris tabel.
+            if (!empty($template['baSidangRowSignatures'])) {
+                $xml = $this->replaceBaSidangRowSignatures($xml);
             }
 
             // Khusus SK-4: baris 4-5 tabel "Tim Penguji/Penilai" diberi label
@@ -512,6 +538,24 @@ class PrepareTemplate extends Command
     }
 
     /**
+     * Khusus BA Sidang Akhir: ubah 2 placeholder ${signature} yang identik
+     * menjadi placeholder BEDA agar saat cetak bisa diisi tanda tangan
+     * orang yang berbeda (kiri = kaprodi, kanan = ketua sidang).
+     *
+     * Urutan kemunculan di dokumen: slot kiri (Kaprodi) dulu, slot kanan (Ketua Sidang) kedua.
+     */
+    private function distinguishBaSidangSignatures(string $xml): string
+    {
+        $count = 0;
+        $xml = preg_replace_callback('/\$\{signature\}/', function ($m) use (&$count) {
+            $count++;
+            return $count === 1 ? '${signature_kaprodi}' : '${signature_ketua_sidang}';
+        }, $xml, 2);
+
+        return $xml;
+    }
+
+    /**
      * Ganti pola titik-ttitik (........, ................., dll)
      * yang menjadi placeholder tanda tangan di tabel
      * dengan ${signature}.
@@ -532,6 +576,32 @@ class PrepareTemplate extends Command
         }, $xml);
 
         return $xml;
+    }
+
+    /**
+     * Khusus BA Sidang Akhir: konversi titik-titik pada kolom "Tanda Tangan"
+     * di tabel Tim Penguji (kolom sel berlebar 2070) menjadi ${signature} per baris.
+     * Hanya sel berlebar 2070 yang diubah, sehingga:
+     *  - sel kurung NAMA penguji baris 5-6 (lebar 4084) tetap titik-titik,
+     *    dipakai nanti oleh fillSidangListNameCell();
+     *  - kolom keterangan (lebar 4457) tidak ikut terubah.
+     */
+    private function replaceBaSidangRowSignatures(string $xml): string
+    {
+        return preg_replace_callback('/<w:tc>(.*?)<\/w:tc>/s', function ($matches) {
+            $cell = $matches[0];
+
+            // Identifikasi sel kolom signature pada tabel Tim Penguji:
+            // tcPr memuat <w:tcW w:w="2070"
+            if (strpos($cell, '<w:tcW w:w="2070"') === false) {
+                return $cell;
+            }
+
+            // Ganti konten titik-titik (3+ karakter, U+002E/U+2026) dalam <w:t>.
+            return preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{3,}(<\/w:t>)/u', function ($m) {
+                return $m[1] . '${signature}' . $m[2];
+            }, $cell);
+        }, $xml);
     }
 
     /**
