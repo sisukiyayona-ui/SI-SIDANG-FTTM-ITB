@@ -74,7 +74,7 @@ class NotifikasiApproveController extends Controller
             return ['empty' => true, 'sent' => 0, 'skipped' => 0, 'sent_names' => [], 'skipped_names' => []];
         }
 
-        $approveUrl = route('sidang.approve-ajuan.index', ['strata' => $strata]);
+        $approveUrl = route('login');
 
         $sent = 0;
         $skipped = 0;
