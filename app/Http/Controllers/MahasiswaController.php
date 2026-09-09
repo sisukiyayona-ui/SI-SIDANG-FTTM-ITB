@@ -8,6 +8,7 @@ use App\Models\TJudul;
 use App\Models\TPenilaian;
 use App\Models\TProdi;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MahasiswaController extends Controller
 {
@@ -1057,10 +1058,20 @@ class MahasiswaController extends Controller
         }
 
         if ($request->is_ajukan_kpps) {
+            $this->kirimNotifikasiKeKpps($ajuan);
             return response()->json(['success' => true, 'message' => 'Berhasil diajukan ke KPPS']);
         }
 
         return response()->json(['success' => true, 'message' => 'Jadwal sidang berhasil disimpan']);
+    }
+
+    private function kirimNotifikasiKeKpps(TAjuanSidang $ajuan)
+    {
+        try {
+            app(\App\Http\Controllers\Sidang\NotifikasiApproveController::class)->kirimKeKpps($ajuan);
+        } catch (\Exception $e) {
+            Log::error('storeJadwal: Gagal kirim notifikasi KPPS - ' . $e->getMessage());
+        }
     }
 
     public function deleteJadwal(\Illuminate\Http\Request $request, $id)

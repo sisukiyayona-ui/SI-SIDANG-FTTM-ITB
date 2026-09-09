@@ -25,13 +25,36 @@ class NotifikasiApproveController extends Controller
         ]);
 
         $idAjuan = (int) $request->id_ajuan_sidang;
-        $idJudul = (int) $request->id_judul;
 
         $ajuan = TAjuanSidang::find($idAjuan);
         if (!$ajuan) {
             return response()->json(['success' => false, 'message' => 'Ajuan sidang tidak ditemukan'], 404);
         }
 
+        $result = $this->kirimKeKpps($ajuan);
+
+        if (isset($result['empty'])) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Semua anggota KPPS sudah approve.',
+                'sent' => 0,
+                'skipped' => 0,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil mengirim {$result['sent']} email notifikasi.",
+            'sent' => $result['sent'],
+            'skipped' => $result['skipped'],
+            'sent_names' => $result['sent_names'],
+            'skipped_names' => $result['skipped_names'],
+        ]);
+    }
+
+    public function kirimKeKpps(TAjuanSidang $ajuan)
+    {
+        $idAjuan = $ajuan->id;
         $tahapan = $ajuan->TAHAPAN_SIDANG;
         $strata = $ajuan->STRATA;
 
@@ -48,12 +71,7 @@ class NotifikasiApproveController extends Controller
             ->get();
 
         if ($kppsList->isEmpty()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Semua anggota KPPS sudah approve.',
-                'sent' => 0,
-                'skipped' => 0,
-            ]);
+            return ['empty' => true, 'sent' => 0, 'skipped' => 0, 'sent_names' => [], 'skipped_names' => []];
         }
 
         $approveUrl = route('sidang.approve-ajuan.index', ['strata' => $strata]);
@@ -103,13 +121,11 @@ class NotifikasiApproveController extends Controller
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => "Berhasil mengirim {$sent} email notifikasi.",
+        return [
             'sent' => $sent,
             'skipped' => $skipped,
             'sent_names' => $sentNames,
             'skipped_names' => $skippedNames,
-        ]);
+        ];
     }
 }
