@@ -63,6 +63,7 @@
                 <table id="trackingTable" class="table table-bordered table-hover text-center" style="table-layout: fixed;">
                     <colgroup>
                         <col style="width: 300px;">
+                        <col style="width: 160px;">
                         <col style="width: 125px;">
                         <col style="width: 125px;">
                         <col style="width: 125px;">
@@ -74,6 +75,7 @@
                     <thead style="background-color: #6998d3; color: white;">
                         <tr>
                             <th rowspan="2" class="align-middle">Judul</th>
+                            <th rowspan="2" class="align-middle">Prodi</th>
                             <th rowspan="2" class="align-middle">Ujian Kualifikasi</th>
                             <th rowspan="2" class="align-middle">Ujian Proposal</th>
                             <th colspan="4" class="align-middle">Tahap III</th>
@@ -87,7 +89,8 @@
                         </tr>
                         <tr class="tracking-filter-row" style="background-color: #f8f9fa;">
                             <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="0" style="color: #495057;"></th>
-                            @for($i = 1; $i <= 7; $i++)
+                            <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari Prodi..." data-col="1" style="color: #495057;"></th>
+                            @for($i = 2; $i <= 8; $i++)
                             <th>
                                 <select class="form-control form-control-sm column-search" data-col="{{ $i }}" style="color: #495057;">
                                     <option value="">Semua</option>
@@ -109,6 +112,7 @@
                                 <td class="text-left text-muted">
                                     <a href="{{ route('mahasiswa.ubah-judul', $item->id_judul) }}" class="text-decoration-none text-primary" title="Lihat riwayat perubahan judul">{{ $item->Judul }}</a>
                                 </td>
+                                <td class="align-middle">{{ $item->nama_prodi ?? '—' }}</td>
                                 <td class="align-middle">
                                     <span class="badge bg-{{ getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', '{{ $item->id_judul }}')">
                                         {{ ucfirst($item->tahap1) }}

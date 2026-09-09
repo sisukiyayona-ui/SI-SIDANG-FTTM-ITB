@@ -29,6 +29,7 @@ function getStatusColor($status) {
         <col style="width: 140px;">
         <col style="width: 140px;">
         <col style="width: 300px;">
+        <col style="width: 160px;">
         <col style="width: 125px;">
         <col style="width: 125px;">
         <col style="width: 125px;">
@@ -43,6 +44,7 @@ function getStatusColor($status) {
             <th rowspan="2" class="align-middle">NIM</th>
             <th rowspan="2" class="align-middle">Nama</th>
             <th rowspan="2" class="align-middle">Judul</th>
+            <th rowspan="2" class="align-middle">Prodi</th>
             <th rowspan="2" class="align-middle">Ujian<br>Kualifikasi</th>
             <th rowspan="2" class="align-middle">Ujian<br>Proposal</th>
             <th colspan="4" class="align-middle">Tahap III</th>
@@ -59,6 +61,7 @@ function getStatusColor($status) {
             <th><input type="text" class="form-control form-control-sm column-search" name="nim" placeholder="Cari..." value="{{ request('nim') }}" style="color: #495057;"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="nama" placeholder="Cari..." value="{{ request('nama') }}" style="color: #495057;"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="judul" placeholder="Cari..." value="{{ request('judul') }}" style="color: #495057;"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari Prodi..." value="{{ request('nama_prodi') }}" style="color: #495057;"></th>
             <th>
                 <select class="form-control form-control-sm column-search" name="tahap1" style="color: #495057;">
                     <option value="">Semua</option>
@@ -154,6 +157,7 @@ function getStatusColor($status) {
                 <td class="text-left text-muted">
                     <a href="#" class="text-decoration-none">{{ $item->Judul }}</a>
                 </td>
+                <td class="align-middle">{{ $item->nama_prodi ?? '—' }}</td>
                 <td class="align-middle">
                     <span class="badge bg-{{ getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', {{ $item->id_judul }})">
                         {{ ucfirst($item->tahap1) }}

@@ -49,6 +49,7 @@ class ApproveAjuanSidangController extends Controller
                 'a.NIM',
                 'a.NAMA_MHS',
                 'a.JUDUL',
+                'a.NAMA_PRODI',
                 'a.TAHAPAN_SIDANG',
                 'a.TGL_SIDANG',
                 'a.STATUS_AJUKAN_KPPS',

@@ -39,6 +39,7 @@ class SidangS2Controller extends Controller
                 'a.Judul',
                 'a.Nim',
                 'a.nama_mhs',
+                'a.NAMA_PRODI as nama_prodi',
                 DB::raw($caseSql('a1') . ' as tahap1'),
                 DB::raw($caseSql('a2') . ' as tahap2'),
                 DB::raw($caseSql('a3') . ' as sk1'),
@@ -55,7 +56,7 @@ class SidangS2Controller extends Controller
             ->leftJoin(DB::raw($tahapSub('SK IV') . ' as a6'), 'a.id_judul', '=', 'a6.id_judul')
             ->leftJoin(DB::raw($tahapSub('tahap IV') . ' as a7'), 'a.id_judul', '=', 'a7.id_judul')
             ->where('a.Strata', $strata)
-            ->groupBy('a.id_judul', 'a.Judul', 'a.Nim', 'a.nama_mhs');
+            ->groupBy('a.id_judul', 'a.Judul', 'a.Nim', 'a.nama_mhs', 'a.NAMA_PRODI');
 
         if ($user['role'] === 'TU Prodi') {
             $query->where('a.kode_prodi', $user['kode_prodi']);
@@ -76,6 +77,9 @@ class SidangS2Controller extends Controller
                 }
                 if ($judul = $request->get('judul')) {
                     $q->where('Judul', 'like', '%' . $judul . '%');
+                }
+                if ($namaProdi = $request->get('nama_prodi')) {
+                    $q->where('nama_prodi', 'like', '%' . $namaProdi . '%');
                 }
                 foreach (['tahap1', 'tahap2', 'sk1', 'sk2', 'sk3', 'sk4', 'tahap4'] as $col) {
                     if ($val = $request->get($col)) {

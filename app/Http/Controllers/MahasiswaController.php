@@ -44,6 +44,7 @@ class MahasiswaController extends Controller
             SELECT DISTINCT
                 j.id as id_judul,
                 j.JUDUL as Judul,
+                u.NAMA_PRODI as nama_prodi,
                 {$statusCase('a1')} as tahap1,
                 {$statusCase('a2')} as tahap2,
                 {$statusCase('a3')} as sk1,
@@ -117,7 +118,7 @@ class MahasiswaController extends Controller
                 ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
             ) a7 ON j.id = a7.ID_JUDUL
             WHERE j.ID_USER_MHS = ? AND u.STRATA = ?
-            GROUP BY j.id, j.JUDUL
+            GROUP BY j.id, j.JUDUL, u.NAMA_PRODI
         ", [$user['id'], $strata]);
         
         return view('mahasiswa.dashboard', compact('tracking', 'juduls', 'activeJudulId', 'strata'));

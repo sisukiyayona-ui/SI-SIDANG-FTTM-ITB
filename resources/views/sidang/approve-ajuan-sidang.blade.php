@@ -59,6 +59,7 @@
                     <th>NIM</th>
                     <th>Nama</th>
                     <th>Judul</th>
+                    <th>Prodi</th>
                     <th>Tahap Sidang</th>
                     <th>Tanggal Seminar / Sidang</th>
                     <th>Status KPPS</th>
@@ -83,6 +84,7 @@
                         <td class="text-left">
                             <a href="#" onclick="event.preventDefault(); openKppsTahap({{ $row->id }}, '{{ addslashes($row->TAHAPAN_SIDANG) }}', '{{ $strata }}')" class="text-primary text-decoration-underline">{{ $row->JUDUL }}</a>
                         </td>
+                        <td>{{ $row->NAMA_PRODI ?? '—' }}</td>
                         <td>{{ $tahapDisplay[$row->TAHAPAN_SIDANG] ?? $row->TAHAPAN_SIDANG }}</td>
                         <td>{{ $row->TGL_SIDANG ?? '-' }}</td>
                         <td>
@@ -104,7 +106,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">Tidak ada ajuan sidang.</td>
+                        <td colspan="10" class="text-center text-muted py-4">Tidak ada ajuan sidang.</td>
                     </tr>
                 @endforelse
             </tbody>
