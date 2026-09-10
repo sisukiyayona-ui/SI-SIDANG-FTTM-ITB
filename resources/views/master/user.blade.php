@@ -305,11 +305,6 @@
                         @else
                             <select name="id_prodi" id="f_id_prodi" class="form-control">
                                 <option value="">-- Pilih Program Studi --</option>
-                                @foreach($prodis as $p)
-                                    <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" data-nama="{{ $p->nama_prodi }}">
-                                        {{ $p->nama_prodi }}
-                                    </option>
-                                @endforeach
                             </select>
                         @endif
                     </div>
@@ -464,6 +459,31 @@
         var selected = select.options[select.selectedIndex];
         var namaFs = selected.dataset.nama || selected.textContent.trim();
         document.getElementById('f_nama_fs').value = namaFs;
+        fetchProdiByFs(select.value);
+    }
+
+    function fetchProdiByFs(kodeFs, selectedProdiKode) {
+        var prodiSel = document.getElementById('f_id_prodi');
+        if (!prodiSel) return;
+        prodiSel.innerHTML = '<option value="">-- Pilih Program Studi --</option>';
+        if (!kodeFs) return;
+        fetch('{{ route("master.user.prodi-by-fs") }}?kode_fs=' + encodeURIComponent(kodeFs), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(prodis) {
+            prodis.forEach(function(p) {
+                var opt = document.createElement('option');
+                opt.value = p.id;
+                opt.dataset.kode = p.KODE_PRODI;
+                opt.dataset.nama = p.NAMA_PRODI;
+                opt.textContent = p.NAMA_PRODI;
+                if (selectedProdiKode && p.KODE_PRODI === selectedProdiKode) {
+                    opt.selected = true;
+                }
+                prodiSel.appendChild(opt);
+            });
+        });
     }
 
     function toggleKkRow() {
@@ -676,6 +696,7 @@
             @if(session('auth_user.role') !== 'TU Prodi')
             document.getElementById('f_kode_fs').value = item.kode_fs ?? '';
             document.getElementById('f_nama_fs').value = item.nama_fs ?? '';
+            fetchProdiByFs(item.kode_fs, item.kode_prodi);
             @endif
             
             document.getElementById('f_asal_instansi').value = item.asal_instansi ?? '';
@@ -705,19 +726,6 @@
                 document.getElementById('signaturePreview').style.display = 'none';
                 document.getElementById('f_signature_data').value = '';
             }
-
-            @if(session('auth_user.role') !== 'TU Prodi')
-            var prodiSel = document.getElementById('f_id_prodi');
-            if (prodiSel) {
-                prodiSel.value = '';
-                for (var i = 0; i < prodiSel.options.length; i++) {
-                    if (prodiSel.options[i].dataset.kode === item.kode_prodi) {
-                        prodiSel.options[i].selected = true;
-                        break;
-                    }
-                }
-            }
-            @endif
 
             document.getElementById(item.status_aktif === 'AKTIF' ? 'saAktif' : 'saNonAktif').checked = true;
             document.getElementById((item.status_approve === 't' || item.status_approve === 'y') ? 'spApprove' : 'spTolak').checked = true;

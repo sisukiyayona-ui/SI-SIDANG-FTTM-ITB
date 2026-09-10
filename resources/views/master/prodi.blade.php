@@ -132,7 +132,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-university mr-2"></i>Daftar Program Studi</h5>
             <div class="d-flex align-items-center ml-auto" style="gap: 8px;">
-                <button type="button" class="btn btn-sm btn-info" onclick="syncSpsi()" id="btnSyncSpsi">
+                <button type="button" class="btn btn-sm btn-info" disabled id="btnSyncSpsi" title="Fitur belum tersedia">
                     <i class="fas fa-sync-alt mr-1"></i> Tarik Data SPSI
                 </button>
                 <a class="btn btn-sm btn-light" href="{{ route('master.prodi.template') }}">

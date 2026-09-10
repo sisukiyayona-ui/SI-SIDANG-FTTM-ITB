@@ -341,4 +341,14 @@ class UserController extends Controller
         }
         return response()->json(['success' => true]);
     }
+
+    public function getProdiByFs(Request $request)
+    {
+        $kodeFs = $request->query('kode_fs', '');
+        $prodis = TProdi::where('KODE_FS', $kodeFs)
+            ->where('STATUS_AKTIF', 'AKTIF')
+            ->orderBy('NAMA_PRODI')
+            ->get(['id', 'KODE_PRODI', 'NAMA_PRODI']);
+        return response()->json($prodis);
+    }
 }
