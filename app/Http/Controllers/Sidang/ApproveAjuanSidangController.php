@@ -15,11 +15,15 @@ class ApproveAjuanSidangController extends Controller
             abort(404);
         }
 
+        $totalKpps = DB::table('t_kpps')->count();
+        $authUser = session('auth_user');
+        $currentUserId = $authUser['id'] ?? 0;
+
+        $approvalSub = "SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.STATUS_APPROVE = 't'";
+        $myApprovalSub = "SELECT COUNT(*) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.ID_USER = {$currentUserId} AND app.STATUS_APPROVE = 't'";
+        $usulanSub = "SELECT app.USULAN_PERBAIKAN FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.STATUS_APPROVE = 't' AND app.USULAN_PERBAIKAN IS NOT NULL AND app.USULAN_PERBAIKAN != '' ORDER BY app.id DESC LIMIT 1";
+
         $q = DB::table('t_ajuan_sidang as a')
-            ->leftJoin('t_app_ajuan_sidang as app', function ($join) {
-                $join->on('app.ID_AJUAN_SIDANG', '=', 'a.id')
-                    ->where('app.STATUS_APPROVE', '=', 't');
-            })
             ->where('a.STRATA', $strata)
             ->where('a.STATUS_AJUKAN_KPPS', 'y')
             ->where('a.TAHAPAN_SIDANG', '!=', 'tahap I');
@@ -39,9 +43,11 @@ class ApproveAjuanSidangController extends Controller
         }
         $status = trim((string) request()->query('status', ''));
         if ($status === 'approved') {
-            $q->whereNotNull('app.id');
+            $q->whereRaw("({$approvalSub}) >= ?", [$totalKpps]);
+        } elseif ($status === 'rejected') {
+            $q->where('a.STATUS_LULUS', 'rejected');
         } elseif ($status === 'belum') {
-            $q->whereNull('app.id');
+            $q->whereRaw("({$approvalSub}) < ?", [$totalKpps]);
         }
 
         $rows = $q->select(
@@ -53,14 +59,15 @@ class ApproveAjuanSidangController extends Controller
                 'a.TAHAPAN_SIDANG',
                 'a.TGL_SIDANG',
                 'a.STATUS_AJUKAN_KPPS',
-                DB::raw('CASE WHEN app.id IS NOT NULL THEN 1 ELSE 0 END as approved'),
-                'app.TGL_APPROVE',
-                'app.USULAN_PERBAIKAN'
+                'a.STATUS_LULUS',
+                DB::raw("({$approvalSub}) as kpps_approved_count"),
+                DB::raw("({$myApprovalSub}) as my_approved"),
+                DB::raw("({$usulanSub}) as usulan_perbaikan")
             )
-            ->orderByRaw('app.id IS NOT NULL, a.id desc')
+            ->orderBy('a.id', 'desc')
             ->get();
 
-        return view('sidang.approve-ajuan-sidang', compact('rows', 'strata'));
+        return view('sidang.approve-ajuan-sidang', compact('rows', 'strata', 'totalKpps'));
     }
 
     public function show($strata, $id)
@@ -209,10 +216,18 @@ class ApproveAjuanSidangController extends Controller
         foreach ($request->ids as $ajuanId) {
             $exists = DB::table('t_app_ajuan_sidang')
                 ->where('ID_AJUAN_SIDANG', $ajuanId)
-                ->where('STATUS_APPROVE', 't')
-                ->exists();
+                ->where('ID_USER', $userId)
+                ->first();
 
             if ($exists) {
+                DB::table('t_app_ajuan_sidang')
+                    ->where('id', $exists->id)
+                    ->update([
+                        'STATUS_APPROVE' => 't',
+                        'TGL_UPDATE' => $now,
+                        'TGL_APPROVE' => $now,
+                    ]);
+                $inserted++;
                 continue;
             }
 
@@ -234,6 +249,65 @@ class ApproveAjuanSidangController extends Controller
         ]);
     }
 
+    public function reject(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer',
+        ]);
+
+        $authUser = session('auth_user');
+        $userId = $authUser['id'] ?? null;
+        $now = now()->toDateString();
+        $rejected = 0;
+
+        foreach ($request->ids as $ajuanId) {
+            $updated = DB::table('t_ajuan_sidang')
+                ->where('id', $ajuanId)
+                ->update([
+                    'STATUS_LULUS' => null,
+                    'STATUS_AJUKAN_KPPS' => null,
+                    'STATUS_SUBMIT' => 't',
+                    'TGL_AJUKAN_KPPS' => null,
+                    'TGL_UPDATE' => $now,
+                ]);
+
+            $exists = DB::table('t_app_ajuan_sidang')
+                ->where('ID_AJUAN_SIDANG', $ajuanId)
+                ->where('ID_USER', $userId)
+                ->first();
+
+            if ($exists) {
+                DB::table('t_app_ajuan_sidang')
+                    ->where('id', $exists->id)
+                    ->update([
+                        'STATUS_APPROVE' => 'f',
+                        'TGL_UPDATE' => $now,
+                        'TGL_APPROVE' => $now,
+                    ]);
+            } elseif ($userId) {
+                DB::table('t_app_ajuan_sidang')->insert([
+                    'ID_USER' => $userId,
+                    'ID_AJUAN_SIDANG' => $ajuanId,
+                    'STATUS_APPROVE' => 'f',
+                    'TGL_CREATE' => $now,
+                    'TGL_UPDATE' => $now,
+                    'TGL_APPROVE' => $now,
+                ]);
+            }
+
+            if ($updated) {
+                $rejected++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'rejected' => $rejected,
+            'message' => $rejected . ' ajuan sidang berhasil direject',
+        ]);
+    }
+
     public function simpanUsulanPerbaikan(Request $request)
     {
         $request->validate([
@@ -245,21 +319,24 @@ class ApproveAjuanSidangController extends Controller
         $usulan = $request->input('usulan_perbaikan');
         $usulan = $usulan === null ? '' : (string) $usulan;
 
+        $authUser = session('auth_user');
+        $userId = $authUser['id'] ?? null;
+
         $existing = DB::table('t_app_ajuan_sidang')
             ->where('ID_AJUAN_SIDANG', $idAjuan)
-            ->where('STATUS_APPROVE', 't')
+            ->where('ID_USER', $userId)
             ->first();
 
         if ($existing) {
             DB::table('t_app_ajuan_sidang')
                 ->where('id', $existing->id)
                 ->update([
+                    'STATUS_APPROVE' => 't',
                     'USULAN_PERBAIKAN' => $usulan,
                     'TGL_UPDATE' => now()->toDateString(),
+                    'TGL_APPROVE' => now()->toDateString(),
                 ]);
         } else {
-            $authUser = session('auth_user');
-            $userId = $authUser['id'] ?? null;
             $now = now()->toDateString();
             DB::table('t_app_ajuan_sidang')->insert([
                 'ID_USER' => $userId,
@@ -280,9 +357,12 @@ class ApproveAjuanSidangController extends Controller
 
     public function getUsulanPerbaikan($idAjuan)
     {
+        $authUser = session('auth_user');
+        $userId = $authUser['id'] ?? null;
+
         $row = DB::table('t_app_ajuan_sidang')
             ->where('ID_AJUAN_SIDANG', (int) $idAjuan)
-            ->where('STATUS_APPROVE', 't')
+            ->where('ID_USER', $userId)
             ->first();
 
         return response()->json([

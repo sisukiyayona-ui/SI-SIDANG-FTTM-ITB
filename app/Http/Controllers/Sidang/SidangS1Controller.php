@@ -21,15 +21,24 @@ class SidangS1Controller extends Controller
             return '(SELECT x.* FROM t_ajuan_sidang x INNER JOIN (SELECT id_judul, MAX(id) as max_id FROM t_ajuan_sidang WHERE tahapan_sidang = "' . $tahapan . '" GROUP BY id_judul) y ON x.id = y.max_id AND x.id_judul = y.id_judul)';
         };
 
-        $caseSql = function ($alias) {
+        $caseSql = function ($alias, $tahapan) {
             return "
                 CASE
                     WHEN MAX({$alias}.status_lulus) IS NOT NULL AND MAX({$alias}.status_lulus) != 'diajukan' THEN MAX({$alias}.status_lulus)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.status_ajukan_mhs), 't') != 'y' THEN 'belum diajukan'
                     WHEN COALESCE(MAX({$alias}.status_ajukan_prodi), 't') != 'y' THEN 'diproses di TU Prodi'
-                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') != 'y' THEN 'diproses di fakultas'
-                    WHEN MAX({$alias}.tgl_sidang) IS NULL THEN 'menunggu pelaksanaan sidang'
-                    ELSE 'terjadwal'
+                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' AND (
+                        SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app
+                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
+                        WHERE x2.id_judul = a.id_judul AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 't'
+                    ) >= (SELECT COUNT(*) FROM t_kpps) THEN 'terjadwal'
+                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' THEN 'menunggu approve kpps'
+                    WHEN EXISTS (
+                        SELECT 1 FROM t_app_ajuan_sidang app
+                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
+                        WHERE x2.id_judul = a.id_judul AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
+                    ) THEN 'rejected'
+                    ELSE 'diproses di fakultas'
                 END";
         };
 
@@ -40,13 +49,13 @@ class SidangS1Controller extends Controller
                 'a.Nim',
                 'a.nama_mhs',
                 'a.NAMA_PRODI as nama_prodi',
-                DB::raw($caseSql('a1') . ' as tahap1'),
-                DB::raw($caseSql('a2') . ' as tahap2'),
-                DB::raw($caseSql('a3') . ' as sk1'),
-                DB::raw($caseSql('a4') . ' as sk2'),
-                DB::raw($caseSql('a5') . ' as sk3'),
-                DB::raw($caseSql('a6') . ' as sk4'),
-                DB::raw($caseSql('a7') . ' as tahap4')
+                DB::raw($caseSql('a1', 'tahap I') . ' as tahap1'),
+                DB::raw($caseSql('a2', 'tahap II') . ' as tahap2'),
+                DB::raw($caseSql('a3', 'SK I') . ' as sk1'),
+                DB::raw($caseSql('a4', 'SK II') . ' as sk2'),
+                DB::raw($caseSql('a5', 'SK III') . ' as sk3'),
+                DB::raw($caseSql('a6', 'SK IV') . ' as sk4'),
+                DB::raw($caseSql('a7', 'tahap IV') . ' as tahap4')
             )
             ->leftJoin(DB::raw($tahapSub('tahap I') . ' as a1'), 'a.id_judul', '=', 'a1.id_judul')
             ->leftJoin(DB::raw($tahapSub('tahap II') . ' as a2'), 'a.id_judul', '=', 'a2.id_judul')

@@ -9,6 +9,7 @@ function getStatusColor($status) {
         case 'diproses di fakultas':
             return 'orange';
         case 'menunggu pelaksanaan sidang':
+        case 'menunggu approve kpps':
             return 'purple';
         case 'terjadwal':
             return 'primary';
@@ -17,6 +18,9 @@ function getStatusColor($status) {
         case 'lulus':
             return 'success';
         case 'tidak lulus':
+            return 'danger';
+        case 'rejected':
+        case 'ditolak':
             return 'danger';
         default:
             return 'info';
@@ -68,7 +72,7 @@ function getStatusColor($status) {
                     <option value="belum diajukan" {{ request('tahap1') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('tahap1') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
                     <option value="diproses di fakultas" {{ request('tahap1') == 'diproses di fakultas' ? 'selected' : '' }}>Diproses di fakultas</option>
-                    <option value="menunggu pelaksanaan sidang" {{ request('tahap1') == 'menunggu pelaksanaan sidang' ? 'selected' : '' }}>Menunggu Pelaksanaan Sidang</option>
+                    <option value="menunggu approve kpps" {{ request('tahap1') == 'menunggu approve kpps' ? 'selected' : '' }}>Menunggu Approve KPPS</option>
                     <option value="terjadwal" {{ request('tahap1') == 'terjadwal' ? 'selected' : '' }}>Terjadwal</option>
                     <option value="lulus" {{ request('tahap1') == 'lulus' ? 'selected' : '' }}>Lulus</option>
                     <option value="tidak lulus" {{ request('tahap1') == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
@@ -80,7 +84,7 @@ function getStatusColor($status) {
                     <option value="belum diajukan" {{ request('tahap2') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('tahap2') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
                     <option value="diproses di fakultas" {{ request('tahap2') == 'diproses di fakultas' ? 'selected' : '' }}>Diproses di fakultas</option>
-                    <option value="menunggu pelaksanaan sidang" {{ request('tahap2') == 'menunggu pelaksanaan sidang' ? 'selected' : '' }}>Menunggu Pelaksanaan Sidang</option>
+                    <option value="menunggu approve kpps" {{ request('tahap2') == 'menunggu approve kpps' ? 'selected' : '' }}>Menunggu Approve KPPS</option>
                     <option value="terjadwal" {{ request('tahap2') == 'terjadwal' ? 'selected' : '' }}>Terjadwal</option>
                     <option value="lulus" {{ request('tahap2') == 'lulus' ? 'selected' : '' }}>Lulus</option>
                     <option value="tidak lulus" {{ request('tahap2') == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
@@ -92,7 +96,7 @@ function getStatusColor($status) {
                     <option value="belum diajukan" {{ request('sk1') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk1') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
                     <option value="diproses di fakultas" {{ request('sk1') == 'diproses di fakultas' ? 'selected' : '' }}>Diproses di fakultas</option>
-                    <option value="menunggu pelaksanaan sidang" {{ request('sk1') == 'menunggu pelaksanaan sidang' ? 'selected' : '' }}>Menunggu Pelaksanaan Sidang</option>
+                    <option value="menunggu approve kpps" {{ request('sk1') == 'menunggu approve kpps' ? 'selected' : '' }}>Menunggu Approve KPPS</option>
                     <option value="terjadwal" {{ request('sk1') == 'terjadwal' ? 'selected' : '' }}>Terjadwal</option>
                     <option value="lulus" {{ request('sk1') == 'lulus' ? 'selected' : '' }}>Lulus</option>
                     <option value="tidak lulus" {{ request('sk1') == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
@@ -104,7 +108,7 @@ function getStatusColor($status) {
                     <option value="belum diajukan" {{ request('sk2') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk2') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
                     <option value="diproses di fakultas" {{ request('sk2') == 'diproses di fakultas' ? 'selected' : '' }}>Diproses di fakultas</option>
-                    <option value="menunggu pelaksanaan sidang" {{ request('sk2') == 'menunggu pelaksanaan sidang' ? 'selected' : '' }}>Menunggu Pelaksanaan Sidang</option>
+                    <option value="menunggu approve kpps" {{ request('sk2') == 'menunggu approve kpps' ? 'selected' : '' }}>Menunggu Approve KPPS</option>
                     <option value="terjadwal" {{ request('sk2') == 'terjadwal' ? 'selected' : '' }}>Terjadwal</option>
                     <option value="lulus" {{ request('sk2') == 'lulus' ? 'selected' : '' }}>Lulus</option>
                     <option value="tidak lulus" {{ request('sk2') == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
@@ -116,7 +120,7 @@ function getStatusColor($status) {
                     <option value="belum diajukan" {{ request('sk3') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk3') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
                     <option value="diproses di fakultas" {{ request('sk3') == 'diproses di fakultas' ? 'selected' : '' }}>Diproses di fakultas</option>
-                    <option value="menunggu pelaksanaan sidang" {{ request('sk3') == 'menunggu pelaksanaan sidang' ? 'selected' : '' }}>Menunggu Pelaksanaan Sidang</option>
+                    <option value="menunggu approve kpps" {{ request('sk3') == 'menunggu approve kpps' ? 'selected' : '' }}>Menunggu Approve KPPS</option>
                     <option value="terjadwal" {{ request('sk3') == 'terjadwal' ? 'selected' : '' }}>Terjadwal</option>
                     <option value="lulus" {{ request('sk3') == 'lulus' ? 'selected' : '' }}>Lulus</option>
                     <option value="tidak lulus" {{ request('sk3') == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
@@ -128,7 +132,7 @@ function getStatusColor($status) {
                     <option value="belum diajukan" {{ request('sk4') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk4') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
                     <option value="diproses di fakultas" {{ request('sk4') == 'diproses di fakultas' ? 'selected' : '' }}>Diproses di fakultas</option>
-                    <option value="menunggu pelaksanaan sidang" {{ request('sk4') == 'menunggu pelaksanaan sidang' ? 'selected' : '' }}>Menunggu Pelaksanaan Sidang</option>
+                    <option value="menunggu approve kpps" {{ request('sk4') == 'menunggu approve kpps' ? 'selected' : '' }}>Menunggu Approve KPPS</option>
                     <option value="terjadwal" {{ request('sk4') == 'terjadwal' ? 'selected' : '' }}>Terjadwal</option>
                     <option value="lulus" {{ request('sk4') == 'lulus' ? 'selected' : '' }}>Lulus</option>
                     <option value="tidak lulus" {{ request('sk4') == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>
@@ -140,7 +144,7 @@ function getStatusColor($status) {
                     <option value="belum diajukan" {{ request('tahap4') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('tahap4') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
                     <option value="diproses di fakultas" {{ request('tahap4') == 'diproses di fakultas' ? 'selected' : '' }}>Diproses di fakultas</option>
-                    <option value="menunggu pelaksanaan sidang" {{ request('tahap4') == 'menunggu pelaksanaan sidang' ? 'selected' : '' }}>Menunggu Pelaksanaan Sidang</option>
+                    <option value="menunggu approve kpps" {{ request('tahap4') == 'menunggu approve kpps' ? 'selected' : '' }}>Menunggu Approve KPPS</option>
                     <option value="terjadwal" {{ request('tahap4') == 'terjadwal' ? 'selected' : '' }}>Terjadwal</option>
                     <option value="lulus" {{ request('tahap4') == 'lulus' ? 'selected' : '' }}>Lulus</option>
                     <option value="tidak lulus" {{ request('tahap4') == 'tidak lulus' ? 'selected' : '' }}>Tidak Lulus</option>

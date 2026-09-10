@@ -1005,12 +1005,16 @@ if (window.jQuery && jQuery.fn.select2) {
           case 'diproses di fakultas':
               return 'orange';
           case 'menunggu pelaksanaan sidang':
+          case 'menunggu approve kpps':
               return 'purple';
           case 'terjadwal':
               return 'primary';
           case 'lulus':
               return 'success';
           case 'tidak lulus':
+              return 'danger';
+          case 'rejected':
+          case 'ditolak':
               return 'danger';
           default:
               return 'info';
@@ -1023,9 +1027,27 @@ if (window.jQuery && jQuery.fn.select2) {
       if (!empty($ajuan->status_lulus) && strtolower($ajuan->status_lulus) !== 'diajukan') return ucfirst($ajuan->status_lulus);
       if (empty($ajuan->status_ajukan_mhs) || $ajuan->status_ajukan_mhs === 't') return 'Belum diajukan';
       if ($ajuan->status_ajukan_mhs === 'y' && (empty($ajuan->status_ajukan_prodi) || $ajuan->status_ajukan_prodi === 't')) return 'Diproses di TU Prodi';
+      if (($ajuan->status_ajukan_kpps ?? null) === 'y') {
+          $ajuanId = $ajuan->id ?? null;
+          $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+              ->where('ID_AJUAN_SIDANG', $ajuanId)
+              ->where('STATUS_APPROVE', 't')
+              ->distinct('ID_USER')
+              ->count('ID_USER') : 0;
+          $totalKpps = \Illuminate\Support\Facades\DB::table('t_kpps')->count();
+          if ($approved >= $totalKpps) return 'Terjadwal';
+          return 'Menunggu Approve KPPS';
+      }
+      $ajuanId = $ajuan->id ?? null;
+      if ($ajuanId) {
+          $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+              ->where('ID_AJUAN_SIDANG', $ajuanId)
+              ->where('STATUS_APPROVE', 'f')
+              ->exists();
+          if ($rejected) return 'Rejected';
+      }
       if ($ajuan->status_ajukan_prodi === 'y' && (empty($ajuan->status_ajukan_kpps) || $ajuan->status_ajukan_kpps === 't')) return 'Diproses di Fakultas';
-      if (($ajuan->status_ajukan_kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
       if (!empty($ajuan->tgl_sidang)) return 'Terjadwal';
-      return 'Menunggu Pelaksanaan Sidang';
+      return 'Menunggu Approve KPPS';
   }
   @endphp

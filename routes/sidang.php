@@ -74,5 +74,6 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::get('approve-ajuan-sidang/usulan-perbaikan/{idAjuan}', [ApproveAjuanSidangController::class, 'getUsulanPerbaikan'])->name('approve-ajuan.usulan.get');
         Route::get('approve-ajuan-sidang/{strata}/{id}', [ApproveAjuanSidangController::class, 'show'])->name('approve-ajuan.show');
         Route::post('approve-ajuan-sidang', [ApproveAjuanSidangController::class, 'store'])->name('approve-ajuan.store');
+        Route::post('approve-ajuan-sidang/reject', [ApproveAjuanSidangController::class, 'reject'])->name('approve-ajuan.reject');
     });
 });

@@ -97,7 +97,7 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di tu prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di Fakultas</option>
-                                    <option value="menunggu pelaksanaan sidang">Menunggu Pelaksanaan Sidang</option>
+                                    <option value="menunggu approve kpps">Menunggu Approve KPPS</option>
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                     <option value="tidak lulus">Tidak lulus</option>
@@ -332,6 +332,7 @@ function getStatusColor($status) {
         case 'diproses di fakultas':
             return 'orange';
         case 'menunggu pelaksanaan sidang':
+        case 'menunggu approve kpps':
             return 'purple';
         case 'terjadwal':
             return 'primary';
@@ -340,6 +341,9 @@ function getStatusColor($status) {
         case 'lulus':
             return 'success';
         case 'tidak lulus':
+            return 'danger';
+        case 'rejected':
+        case 'ditolak':
             return 'danger';
         default:
             return 'info';

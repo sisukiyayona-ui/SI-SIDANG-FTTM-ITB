@@ -24,10 +24,16 @@
         <h5 class="mb-0">
             <i class="fas fa-clipboard-check mr-2"></i>Daftar Ajuan Sidang {{ $strata }}
         </h5>
-        <button type="button" id="btnApprove" class="btn btn-success btn-sm d-none"
-                onclick="approveSelected()">
-            <i class="fas fa-check-circle mr-1"></i> Approve
-        </button>
+        <div class="d-flex ml-auto" style="gap: 6px;">
+            <button type="button" id="btnApprove" class="btn btn-success btn-sm d-none"
+                    onclick="approveSelected()">
+                <i class="fas fa-check-circle mr-1"></i> Approve
+            </button>
+            <button type="button" id="btnReject" class="btn btn-danger btn-sm d-none"
+                    onclick="rejectSelected()">
+                <i class="fas fa-times-circle mr-1"></i> Reject
+            </button>
+        </div>
     </div>
     <div class="card-body py-2">
         <form method="GET" action="{{ request()->url() }}" id="filterForm" class="form-inline">
@@ -43,6 +49,7 @@
             <select name="status" class="form-control form-control-sm mr-2 mb-1 auto-submit" style="min-width: 150px;">
                 <option value="">Semua Status</option>
                 <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approved</option>
+                <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
                 <option value="belum" {{ request('status') === 'belum' ? 'selected' : '' }}>Belum Approved</option>
             </select>
             <button type="submit" class="btn btn-sm btn-primary mb-1"><i class="fas fa-search"></i> Cari</button>
@@ -68,11 +75,12 @@
             </thead>
             <tbody>
                 @forelse($rows as $i => $row)
-                    <tr class="{{ $row->approved ? 'table-secondary' : '' }}">
+                    @php $isAllApproved = $row->kpps_approved_count >= $totalKpps; @endphp
+                    <tr class="{{ $row->my_approved ? 'table-secondary' : ($row->STATUS_LULUS === 'rejected' ? 'table-danger' : '') }}">
                         <td>
-                            @if($row->approved)
+                            @if($row->my_approved || $row->STATUS_LULUS === 'rejected')
                                 <input type="checkbox" class="row-check" value="{{ $row->id }}" name="ids[]"
-                                       disabled checked title="Sudah di-approve">
+                                       disabled checked title="{{ $row->STATUS_LULUS === 'rejected' ? 'Sudah di-reject' : 'Anda sudah approve' }}">
                             @else
                                 <input type="checkbox" class="row-check" value="{{ $row->id }}" name="ids[]"
                                        data-nim="{{ $row->NIM }}">
@@ -88,7 +96,9 @@
                         <td>{{ $tahapDisplay[$row->TAHAPAN_SIDANG] ?? $row->TAHAPAN_SIDANG }}</td>
                         <td>{{ $row->TGL_SIDANG ?? '-' }}</td>
                         <td>
-                            @if($row->approved)
+                            @if($row->STATUS_LULUS === 'rejected')
+                                <span class="badge bg-danger">Rejected</span>
+                            @elseif($row->my_approved)
                                 <span class="badge bg-success">Approved</span>
                             @elseif($row->STATUS_AJUKAN_KPPS === 'y')
                                 <span class="badge bg-warning">Diajukan</span>
@@ -275,10 +285,13 @@
 
     function updateApproveButton() {
         var checked = document.querySelectorAll('.row-check:checked:not(:disabled)').length;
-        var btn = document.getElementById('btnApprove');
-        btn.classList.toggle('d-none', checked < 1);
+        var btnApprove = document.getElementById('btnApprove');
+        var btnReject = document.getElementById('btnReject');
+        btnApprove.classList.toggle('d-none', checked < 1);
+        btnReject.classList.toggle('d-none', checked < 1);
         if (checked > 0) {
-            btn.textContent = ' Approve (' + checked + ')';
+            btnApprove.textContent = ' Approve (' + checked + ')';
+            btnReject.textContent = ' Reject (' + checked + ')';
         }
     }
 
@@ -324,6 +337,48 @@
                 setTimeout(function () { location.reload(); }, 1000);
             } else {
                 alert(data.message || 'Gagal approve.');
+            }
+        })
+        .catch(function () { alert('Terjadi kesalahan.'); });
+    }
+
+    function rejectSelected() {
+        var ids = Array.prototype.map.call(
+            document.querySelectorAll('.row-check:checked:not(:disabled)'),
+            function (cb) { return parseInt(cb.value, 10); }
+        );
+
+        if (ids.length === 0) {
+            alert('Pilih minimal satu ajuan terlebih dahulu.');
+            return;
+        }
+
+        if (!confirm('Yakin ingin reject ' + ids.length + ' ajuan sidang ini?')) {
+            return;
+        }
+
+        var formData = new FormData();
+        ids.forEach(function (id) { formData.append('ids[]', id); });
+
+        fetch('{{ route("sidang.approve-ajuan.reject") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                if (typeof showToast === 'function') {
+                    showToast('success', data.message);
+                } else {
+                    alert(data.message);
+                }
+                setTimeout(function () { location.reload(); }, 1000);
+            } else {
+                alert(data.message || 'Gagal reject.');
             }
         })
         .catch(function () { alert('Terjadi kesalahan.'); });

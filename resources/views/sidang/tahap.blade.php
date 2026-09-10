@@ -1309,6 +1309,10 @@
                                        <input type="hidden" name="is_ajukan_kpps" value="">
                                        <button type="button" class="btn btn-success px-3 py-0 ml-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan ke KPPS</button>
                                       @endif
+                                      @if(session('auth_user.role') === 'FS' && isset($ajuan) && ($ajuan->STATUS_LULUS ?? '') === 'tidak lulus')
+                                       <input type="hidden" name="is_ajukan_kpps" value="">
+                                       <button type="button" class="btn btn-success px-3 py-0 ml-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan Ulang ke KPPS (Reject)</button>
+                                      @endif
                                  </div>
                              </div>
                         </form>
@@ -2906,9 +2910,7 @@ function saveStatusLulusTahap2() {
     .catch(error => {
         showToast('Error: ' + error, 'error');
     });
-}
-
-function submitJadwalTahap2(event) {
+}    function submitJadwalTahap2(event) {
     event.preventDefault();
     event.stopPropagation();
     var form = document.getElementById('jadwalFormTahap2Form');
@@ -2970,6 +2972,11 @@ function submitJadwalTahap2(event) {
                     submitBtn.innerHTML = originalText;
                 }
             }
+
+            // Pasca ajukan ke KPPS (success path): reset flag so "Ajukan Ulang" bisa dipakai lagi
+            // setelah sebuah ajuan direject oleh KPPS dan ini dijadwalkan ulang.
+            form.querySelector('[name="is_ajukan_fs"]').value = '';
+            form.querySelector('[name="is_ajukan_kpps"]').value = '';
         } else {
             showToast(data.message || 'Gagal menyimpan jadwal sidang', 'error');
             if (submitBtn) {
@@ -3457,6 +3464,7 @@ function getStatusColor($status) {
         case 'diproses di fakultas':
             return 'orange';
         case 'menunggu pelaksanaan sidang':
+        case 'menunggu approve kpps':
             return 'purple';
         case 'terjadwal':
             return 'primary';
@@ -3467,6 +3475,9 @@ function getStatusColor($status) {
         case 'diajukan':
         case 'diajukan ke fs':
             return 'info';
+        case 'rejected':
+        case 'ditolak':
+            return 'danger';
         default:
             return 'secondary';
     }
@@ -3481,9 +3492,26 @@ function getAjuanDisplayStatus($ajuan) {
     $prodi = $ajuan->status_ajukan_prodi ?? $ajuan->STATUS_AJUKAN_PRODI ?? 't';
     if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
     $kpps = $ajuan->status_ajukan_kpps ?? $ajuan->STATUS_AJUKAN_KPPS ?? 't';
+    if (($kpps ?? null) === 'y') {
+        $ajuanId = $ajuan->id ?? null;
+        $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+            ->where('ID_AJUAN_SIDANG', $ajuanId)
+            ->where('STATUS_APPROVE', 't')
+            ->distinct('ID_USER')
+            ->count('ID_USER') : 0;
+        $totalKpps = \Illuminate\Support\Facades\DB::table('t_kpps')->count();
+        if ($approved >= $totalKpps) return 'Terjadwal';
+        return 'Menunggu Approve KPPS';
+    }
+    $ajuanId = $ajuan->id ?? null;
+    if ($ajuanId) {
+        $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+            ->where('ID_AJUAN_SIDANG', $ajuanId)
+            ->where('STATUS_APPROVE', 'f')
+            ->exists();
+        if ($rejected) return 'Rejected';
+    }
     if ($prodi === 'y' && (empty($kpps) || $kpps === 't')) return 'Diproses di Fakultas';
-    if (($kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
-    if (!empty($ajuan->tgl_sidang ?? $ajuan->TGL_SIDANG)) return 'Terjadwal';
-    return 'Menunggu Pelaksanaan Sidang';
+    return 'Menunggu Approve KPPS';
 }
 @endphp

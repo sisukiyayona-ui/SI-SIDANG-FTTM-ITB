@@ -111,12 +111,16 @@ function getStatusColor($status) {
         case 'diproses di fakultas':
             return 'orange';
         case 'menunggu pelaksanaan sidang':
+        case 'menunggu approve kpps':
             return 'purple';
         case 'terjadwal':
             return 'primary';
         case 'lulus':
             return 'success';
         case 'tidak lulus':
+            return 'danger';
+        case 'rejected':
+        case 'ditolak':
             return 'danger';
         default:
             return 'info';

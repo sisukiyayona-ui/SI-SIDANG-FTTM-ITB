@@ -8,9 +8,27 @@
         $prodi = $a->status_ajukan_prodi ?? $a->STATUS_AJUKAN_PRODI ?? 't';
         if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
         $kpps = $a->status_ajukan_kpps ?? $a->STATUS_AJUKAN_KPPS ?? 't';
+        if (($kpps ?? null) === 'y') {
+            $ajuanId = $a->id ?? null;
+            $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+                ->where('ID_AJUAN_SIDANG', $ajuanId)
+                ->where('STATUS_APPROVE', 't')
+                ->distinct('ID_USER')
+                ->count('ID_USER') : 0;
+            $totalKpps = \Illuminate\Support\Facades\DB::table('t_kpps')->count();
+            if ($approved >= $totalKpps) return 'Terjadwal';
+            return 'Menunggu Approve KPPS';
+        }
+        $ajuanId = $a->id ?? null;
+        if ($ajuanId) {
+            $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+                ->where('ID_AJUAN_SIDANG', $ajuanId)
+                ->where('STATUS_APPROVE', 'f')
+                ->exists();
+            if ($rejected) return 'Rejected';
+        }
         if ($prodi === 'y' && (empty($kpps) || $kpps === 't')) return 'Diproses di Fakultas';
-        if (($kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
-        return 'Menunggu Pelaksanaan Sidang';
+        return 'Menunggu Approve KPPS';
     }
     @endphp
     <style>

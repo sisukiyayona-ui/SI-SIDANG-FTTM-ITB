@@ -29,14 +29,23 @@ class MahasiswaController extends Controller
         
         // Query tracking progress sidang — base table t_judul agar mahasiswa baru (belum punya ajuan) tetap muncul
         // Status CASE expression: consistent with SidangS1/S2/S3 controllers
-        $statusCase = function ($alias) {
+        $statusCase = function ($alias, $tahapan) {
             return "CASE
                     WHEN MAX({$alias}.STATUS_LULUS) IS NOT NULL AND MAX({$alias}.STATUS_LULUS) != 'diajukan' THEN MAX({$alias}.STATUS_LULUS)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.STATUS_AJUKAN_MHS), 't') != 'y' THEN 'belum diajukan'
                     WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_PRODI), 't') != 'y' THEN 'Diproses di TU Prodi'
-                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') != 'y' THEN 'Diproses di Fakultas'
-                    WHEN MAX({$alias}.TGL_SIDANG) IS NULL THEN 'Menunggu Pelaksanaan Sidang'
-                    ELSE 'Terjadwal'
+                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') = 'y' AND (
+                        SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app
+                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
+                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 't'
+                    ) >= (SELECT COUNT(*) FROM t_kpps) THEN 'Terjadwal'
+                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') = 'y' THEN 'Menunggu Approve KPPS'
+                    WHEN EXISTS (
+                        SELECT 1 FROM t_app_ajuan_sidang app
+                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
+                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
+                    ) THEN 'Rejected'
+                    ELSE 'Diproses di Fakultas'
                 END";
         };
 
@@ -45,13 +54,13 @@ class MahasiswaController extends Controller
                 j.id as id_judul,
                 j.JUDUL as Judul,
                 u.NAMA_PRODI as nama_prodi,
-                {$statusCase('a1')} as tahap1,
-                {$statusCase('a2')} as tahap2,
-                {$statusCase('a3')} as sk1,
-                {$statusCase('a4')} as sk2,
-                {$statusCase('a5')} as sk3,
-                {$statusCase('a6')} as sk4,
-                {$statusCase('a7')} as tahap4
+                {$statusCase('a1', 'tahap I')} as tahap1,
+                {$statusCase('a2', 'tahap II')} as tahap2,
+                {$statusCase('a3', 'SK I')} as sk1,
+                {$statusCase('a4', 'SK II')} as sk2,
+                {$statusCase('a5', 'SK III')} as sk3,
+                {$statusCase('a6', 'SK IV')} as sk4,
+                {$statusCase('a7', 'tahap IV')} as tahap4
             FROM t_judul j
             LEFT JOIN t_user u ON j.ID_USER_MHS = u.id
             LEFT JOIN (

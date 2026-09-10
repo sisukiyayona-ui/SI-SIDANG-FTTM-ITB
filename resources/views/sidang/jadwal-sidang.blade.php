@@ -48,9 +48,11 @@
         if ($s === 'diproses di tu prodi') return '<span class="badge badge-warning">Diproses di TU Prodi</span>';
         if ($s === 'diproses di fakultas') return '<span class="badge badge-orange" style="background-color: orange;">Diproses di Fakultas</span>';
         if ($s === 'menunggu pelaksanaan sidang') return '<span class="badge badge-purple" style="background-color: #6f42c1;">Menunggu Pelaksanaan Sidang</span>';
+        if ($s === 'menunggu approve kpps') return '<span class="badge badge-purple" style="background-color: #6f42c1;">Menunggu Approve KPPS</span>';
         if ($s === 'terjadwal') return '<span class="badge badge-primary">Terjadwal</span>';
         if ($s === 'lulus') return '<span class="badge badge-success">Lulus</span>';
         if ($s === 'tidak lulus') return '<span class="badge badge-danger">Tidak Lulus</span>';
+        if ($s === 'rejected' || $s === 'ditolak') return '<span class="badge badge-danger">Rejected</span>';
         if ($s === 'dalam proses') return '<span class="badge badge-warning">Dalam Proses</span>';
         return '<span class="badge badge-warning">' . ucfirst($status) . '</span>';
     }
@@ -63,9 +65,27 @@
         $prodi = $ev->status_ajukan_prodi ?? $ev->STATUS_AJUKAN_PRODI ?? 't';
         if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
         $kpps = $ev->status_ajukan_kpps ?? $ev->STATUS_AJUKAN_KPPS ?? 't';
+        if (($kpps ?? null) === 'y') {
+            $ajuanId = $ev->id ?? null;
+            $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+                ->where('ID_AJUAN_SIDANG', $ajuanId)
+                ->where('STATUS_APPROVE', 't')
+                ->distinct('ID_USER')
+                ->count('ID_USER') : 0;
+            $totalKpps = \Illuminate\Support\Facades\DB::table('t_kpps')->count();
+            if ($approved >= $totalKpps) return 'Terjadwal';
+            return 'Menunggu Approve KPPS';
+        }
+        $ajuanId = $ev->id ?? null;
+        if ($ajuanId) {
+            $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+                ->where('ID_AJUAN_SIDANG', $ajuanId)
+                ->where('STATUS_APPROVE', 'f')
+                ->exists();
+            if ($rejected) return 'Rejected';
+        }
         if ($prodi === 'y' && (empty($kpps) || $kpps === 't')) return 'Diproses di Fakultas';
-        if (($kpps ?? null) === 'y') return 'Menunggu Pelaksanaan Sidang';
-        return 'Menunggu Pelaksanaan Sidang';
+        return 'Menunggu Approve KPPS';
     }
 
     function tahapLabel($tahapan) {
