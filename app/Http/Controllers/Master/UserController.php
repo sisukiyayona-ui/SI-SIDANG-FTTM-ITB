@@ -10,6 +10,7 @@ use App\Models\TProdi;
 use App\Models\TFs;
 use App\Support\EncryptedUuid;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -117,6 +118,7 @@ class UserController extends Controller
             'kk'             => $u->kk,
             'signature'      => $u->signature,
             'roles'          => $u->roles(),
+            'prodi_ids'      => \App\Models\TUserProdi::where('ID_USER', $u->id)->pluck('ID_PRODI')->map(fn($id) => (string) $id)->toArray(),
         ]);
     }
 
@@ -129,6 +131,7 @@ class UserController extends Controller
             'username'       => 'required|unique:t_user,USERNAME',
             'password'       => 'nullable|min:4',
             'jenis_user'     => 'required|array|min:1',
+            'id_prodi'       => 'nullable',
             'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
             'status_approve' => 'required|in:t,f',
@@ -172,6 +175,7 @@ class UserController extends Controller
         ]);
 
         $this->syncRoles($user->id, $roles);
+        $this->syncUserProdi($user->id, $request->id_prodi);
 
         return response()->json(['success' => true]);
     }
@@ -190,6 +194,7 @@ class UserController extends Controller
             'username'       => 'required|unique:t_user,USERNAME,' . $id . ',id',
             'password'       => 'nullable|min:4',
             'jenis_user'     => 'required|array|min:1',
+            'id_prodi'       => 'nullable',
             'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
             'status_approve' => 'required|in:t,f',
@@ -240,8 +245,7 @@ class UserController extends Controller
             $oldStatus = $user->status_approve;
             $user->update($data);
             $this->syncRoles($user->id, $roles);
-
-            if ($oldStatus !== $user->status_approve) {
+            $this->syncUserProdi($user->id, $request->id_prodi);
                 if ($user->status_approve === 't') {
                     Notification::createForUser(
                         $user->id,
@@ -259,7 +263,6 @@ class UserController extends Controller
                         null
                     );
                 }
-            }
         }
 
         return response()->json(['success' => true]);
@@ -269,8 +272,13 @@ class UserController extends Controller
     {
         $authUser = session('auth_user');
 
-        if ($request->id_prodi) {
-            $prodi = TProdi::find($request->id_prodi);
+        $idProdi = $request->id_prodi;
+        if (is_array($idProdi)) {
+            $idProdi = reset($idProdi);
+        }
+
+        if ($idProdi) {
+            $prodi = TProdi::find($idProdi);
             return [$prodi?->kode_prodi, $prodi?->nama_prodi];
         }
 
@@ -303,14 +311,35 @@ class UserController extends Controller
     private function syncRoles(int $userId, array $roles): void
     {
         TUserRole::where('ID_USER', $userId)->delete();
-
         $now = now();
         foreach (array_values($roles) as $i => $role) {
             TUserRole::create([
                 'ID_USER' => $userId,
                 'ROLE' => $role,
-                'STATUS_DEFAULT' => $i === 0 ? 't' : 'f',
+                'STATUS_DEFAULT' =>             $i === 0 ? 't' : 'f',
                 'TGL_CREATE' => $now,
+                'TGL_UPDATE' => $now,
+            ]);
+        }
+    }
+
+    private function syncUserProdi(int $userId, $idProdi): void
+    {
+        TUserProdi::where('ID_USER', $userId)->delete();
+
+        $prodiIds = is_array($idProdi) ? $idProdi : (isset($idProdi) && $idProdi !== '' ? [$idProdi] : []);
+        $prodiIds = array_filter($prodiIds);
+
+        if (empty($prodiIds)) {
+            return;
+        }
+
+        $now = now();
+        foreach ($prodiIds as $pid) {
+            TUserProdi::create([
+                'ID_USER'   => $userId,
+                'ID_PRODI'  => $pid,
+                'TGL_BUAT'  => $now,
                 'TGL_UPDATE' => $now,
             ]);
         }

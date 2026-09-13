@@ -254,10 +254,13 @@ class ApproveAjuanSidangController extends Controller
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'integer',
+            'alasan_reject' => 'nullable|string',
         ]);
 
         $authUser = session('auth_user');
         $userId = $authUser['id'] ?? null;
+        $alasanReject = $request->input('alasan_reject');
+        $alasanReject = $alasanReject === null ? '' : (string) $alasanReject;
         $now = now()->toDateString();
         $rejected = 0;
 
@@ -282,6 +285,7 @@ class ApproveAjuanSidangController extends Controller
                     ->where('id', $exists->id)
                     ->update([
                         'STATUS_APPROVE' => 'f',
+                        'ALASAN_REJECT' => $alasanReject,
                         'TGL_UPDATE' => $now,
                         'TGL_APPROVE' => $now,
                     ]);
@@ -290,6 +294,7 @@ class ApproveAjuanSidangController extends Controller
                     'ID_USER' => $userId,
                     'ID_AJUAN_SIDANG' => $ajuanId,
                     'STATUS_APPROVE' => 'f',
+                    'ALASAN_REJECT' => $alasanReject,
                     'TGL_CREATE' => $now,
                     'TGL_UPDATE' => $now,
                     'TGL_APPROVE' => $now,

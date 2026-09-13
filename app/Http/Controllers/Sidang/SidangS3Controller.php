@@ -70,7 +70,21 @@ class SidangS3Controller extends Controller
             ->groupBy('j.id', 'j.JUDUL', 'j.NIM', 'u.NAMA_LENGKAP', 'u.NAMA_PRODI');
 
         if ($user['role'] === 'TU Prodi') {
-            $query->where('u.KODE_PRODI', $user['kode_prodi']);
+            $prodiIds = DB::table('t_user_prodi')
+                ->where('ID_USER', $user['id'] ?? 0)
+                ->pluck('ID_PRODI')
+                ->all();
+
+            if (!empty($prodiIds)) {
+                $query->whereExists(function ($sub) use ($prodiIds) {
+                    $sub->selectRaw('1')
+                        ->from('t_ajuan_sidang as xp')
+                        ->whereColumn('xp.id_judul', 'j.id')
+                        ->whereIn('xp.ID_PRODI', $prodiIds);
+                });
+            } else {
+                $query->where('u.KODE_PRODI', $user['kode_prodi']);
+            }
         } elseif ($user['role'] === 'FS') {
             // FS sees all records
         } elseif (in_array($user['role'], ['Pembimbing', 'Penguji', 'KPPS'])) {
@@ -112,7 +126,17 @@ class SidangS3Controller extends Controller
             $mhsQuery = \App\Models\TUser::where('JENIS_USER', 'Mahasiswa')
                 ->whereNotIn('id', $existingMhsIds);
             if ($user['role'] === 'TU Prodi') {
-                $mhsQuery->where('KODE_PRODI', $user['kode_prodi']);
+                $prodiIds = DB::table('t_user_prodi')
+                    ->where('id_user', $user['id'] ?? 0)
+                    ->pluck('id_prodi')
+                    ->all();
+
+                if (!empty($prodiIds)) {
+                    $kodeProdiList = \App\Models\TProdi::whereIn('id', $prodiIds)->pluck('KODE_PRODI');
+                    $mhsQuery->whereIn('KODE_PRODI', $kodeProdiList);
+                } else {
+                    $mhsQuery->where('KODE_PRODI', $user['kode_prodi']);
+                }
             }
             $mahasiswaList = $mhsQuery->orderBy('NAMA_LENGKAP')->get(['id', 'NIP_NIM', 'NAMA_LENGKAP']);
         }

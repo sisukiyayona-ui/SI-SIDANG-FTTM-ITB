@@ -146,6 +146,30 @@
     </div>
 </div>
 
+<!-- Modal Alasan Reject -->
+<div class="modal fade" id="rejectAlasanModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" style="border-radius: 8px; overflow: hidden;">
+            <div class="modal-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px;">
+                <h6 class="modal-title font-weight-bold mb-0" style="color: #c62828;"><i class="fas fa-times-circle mr-2"></i>Reject Ajuan Sidang</h6>
+                <button type="button" class="close" aria-label="Close" data-dismiss="modal">
+                    <span aria-hidden="true" style="font-size: 20px;">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <p class="mb-2" style="color: #555; font-size: 14px;">Alasan penolakan akan dikirimkan ke mahasiswa. Harap diisi.</p>
+                <textarea id="rejectAlasanInput" class="form-control" rows="4" maxlength="1000"
+                          placeholder="Tuliskan alasan reject..."></textarea>
+                <div id="rejectAlasanError" class="text-danger mt-1" style="font-size: 12px; display: none;">Alasan reject tidak boleh kosong.</div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #dee2e6;">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-1" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-sm btn-danger px-3 py-1" onclick="doReject()"><i class="fas fa-times-circle mr-1"></i> Ya, Reject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Detail Ajuan -->
 <div class="modal fade" id="kppsTahapModal" tabindex="-1" role="dialog" aria-labelledby="kppsTahapModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
@@ -342,23 +366,39 @@
         .catch(function () { alert('Terjadi kesalahan.'); });
     }
 
+    var pendingRejectIds = [];
+
     function rejectSelected() {
-        var ids = Array.prototype.map.call(
+        pendingRejectIds = Array.prototype.map.call(
             document.querySelectorAll('.row-check:checked:not(:disabled)'),
             function (cb) { return parseInt(cb.value, 10); }
         );
 
-        if (ids.length === 0) {
+        if (pendingRejectIds.length === 0) {
             alert('Pilih minimal satu ajuan terlebih dahulu.');
             return;
         }
 
-        if (!confirm('Yakin ingin reject ' + ids.length + ' ajuan sidang ini?')) {
+        document.getElementById('rejectAlasanInput').value = '';
+        document.getElementById('rejectAlasanError').style.display = 'none';
+        jQuery('#rejectAlasanModal').modal('show');
+    }
+
+    function doReject() {
+        var alasanInput = document.getElementById('rejectAlasanInput');
+        var alasan = alasanInput.value.trim();
+        var errEl = document.getElementById('rejectAlasanError');
+
+        if (alasan === '') {
+            errEl.style.display = 'block';
+            alasanInput.focus();
             return;
         }
+        errEl.style.display = 'none';
 
         var formData = new FormData();
-        ids.forEach(function (id) { formData.append('ids[]', id); });
+        pendingRejectIds.forEach(function (id) { formData.append('ids[]', id); });
+        formData.append('alasan_reject', alasan);
 
         fetch('{{ route("sidang.approve-ajuan.reject") }}', {
             method: 'POST',
@@ -370,6 +410,7 @@
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
+            jQuery('#rejectAlasanModal').modal('hide');
             if (data.success) {
                 if (typeof showToast === 'function') {
                     showToast('success', data.message);
@@ -381,7 +422,10 @@
                 alert(data.message || 'Gagal reject.');
             }
         })
-        .catch(function () { alert('Terjadi kesalahan.'); });
+        .catch(function () {
+            jQuery('#rejectAlasanModal').modal('hide');
+            alert('Terjadi kesalahan.');
+        });
     }
 </script>
 @endpush

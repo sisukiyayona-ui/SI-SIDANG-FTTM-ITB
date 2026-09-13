@@ -68,7 +68,16 @@ class SidangS1Controller extends Controller
             ->groupBy('a.id_judul', 'a.Judul', 'a.Nim', 'a.nama_mhs', 'a.NAMA_PRODI');
 
         if ($user['role'] === 'TU Prodi') {
-            $query->where('a.kode_prodi', $user['kode_prodi']);
+            $prodiIds = DB::table('t_user_prodi')
+                ->where('ID_USER', $user['id'] ?? 0)
+                ->pluck('ID_PRODI')
+                ->all();
+
+            if (!empty($prodiIds)) {
+                $query->whereIn('a.ID_PRODI', $prodiIds);
+            } else {
+                $query->where('a.kode_prodi', $user['kode_prodi']);
+            }
         } elseif ($user['role'] === 'FS') {
             $query->where('a.status_ajukan_prodi', 'y');
         } elseif ($user['role'] === 'KPPS') {

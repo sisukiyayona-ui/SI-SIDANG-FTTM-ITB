@@ -1575,9 +1575,22 @@ class CetakController extends Controller
             }
         }
 
-        // Ketua Sidang & Kaprodi
+        // Ketua Sidang & Kaprodi (baca dari t_user_prodi untuk prodi ajuan)
         $ketuaSidang = $timByStatus['ketua sidang'] ?? null;
-        $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
+        $kaprodi = null;
+        if ($ajuan->ID_PRODI) {
+            $kaprodiUserId = DB::table('t_user_prodi')
+                ->join('t_user', 't_user_prodi.ID_USER', '=', 't_user.ID')
+                ->where('t_user_prodi.ID_PRODI', $ajuan->ID_PRODI)
+                ->where('t_user.STATUS_KAPRODI', 'y')
+                ->value('t_user_prodi.ID_USER');
+            if ($kaprodiUserId) {
+                $kaprodi = TUser::find($kaprodiUserId);
+            }
+        }
+        if (!$kaprodi) {
+            $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
+        }
 
         // Tanggal sidang (footer "Bandung, d F Y")
         $tgl = $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang) : null;
@@ -1833,7 +1846,21 @@ class CetakController extends Controller
         }
 
         $ketuaSidang = $timByStatus['ketua sidang'] ?? null;
-        $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
+        // Kaprodi: baca dari t_user_prodi untuk prodi ajuan
+        $kaprodi = null;
+        if ($ajuan->ID_PRODI) {
+            $kaprodiUserId = DB::table('t_user_prodi')
+                ->join('t_user', 't_user_prodi.ID_USER', '=', 't_user.ID')
+                ->where('t_user_prodi.ID_PRODI', $ajuan->ID_PRODI)
+                ->where('t_user.STATUS_KAPRODI', 'y')
+                ->value('t_user_prodi.ID_USER');
+            if ($kaprodiUserId) {
+                $kaprodi = TUser::find($kaprodiUserId);
+            }
+        }
+        if (!$kaprodi) {
+            $kaprodi = TUser::where('STATUS_KAPRODI', 'y')->first();
+        }
 
         $tgl = $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang) : null;
         $tglFooter = $tgl ? $tgl->translatedFormat('d F Y') : '';

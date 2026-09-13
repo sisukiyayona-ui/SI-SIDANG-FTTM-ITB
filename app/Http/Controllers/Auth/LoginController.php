@@ -126,7 +126,7 @@ class LoginController extends Controller
             'client_id'     => $clientId,
             'response_type' => 'code',
             'redirect_uri'  => $redirectUri,
-            'scope'         => 'openid profile email',
+            'scope'         => 'openid profile email Calendars.ReadWrite',
             'response_mode' => 'query',
             'state'         => $state,
         ]);
@@ -175,6 +175,13 @@ class LoginController extends Controller
         $idToken = $tokenResponse->json('id_token');
         if (!$idToken) {
             return redirect()->route('login')->withErrors(['username' => 'SSO gagal: tidak ada ID token.']);
+        }
+
+        // ── Simpan access_token untuk Graph API (kalender, dll) ──
+        $accessToken = $tokenResponse->json('access_token');
+        if ($accessToken) {
+            session(['sso_access_token' => $accessToken]);
+            session(['sso_refresh_token' => $tokenResponse->json('refresh_token')]);
         }
 
         // ── Decode JWT payload ──

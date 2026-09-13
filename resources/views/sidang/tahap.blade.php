@@ -93,6 +93,12 @@
             $abstrakRow = \Illuminate\Support\Facades\DB::table('t_judul')->where('id', $idJudul)->value('ABSTRAK');
             $abstrakText = $abstrakRow ?? '';
         }
+        // Compute isNilaiTerkunci at top level for both Tahap I and Tahap II
+        $isTUKunci = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
+        $isNilaiTerkunci = false;
+        if (!$isTUKunci && isset($penilaian) && $penilaian->count() > 0) {
+            $isNilaiTerkunci = $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
+        }
     @endphp
 
     <!-- Modal Tambah No SK -->
@@ -548,7 +554,7 @@
                         <div class="d-flex align-items-center">
                             <span class="mr-4 font-weight-bold">Status Lulus</span>
                             @if(!in_array(session('auth_user.role'), ['FS']))
-                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;">
+                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;" {{ $isNilaiTerkunci ?? false ? 'disabled' : '' }}>
                                 <option value="" {{ (!isset($ajuan) || !$ajuan->status_lulus) ? 'selected' : '' }}>Pilih status</option>
                                 <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                 <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
@@ -558,17 +564,13 @@
                             @endif
                         </div>
                         @if(!in_array(session('auth_user.role'), ['FS']))
-                        @php
-                            // Item 16: Cek apakah penilai sudah mengunci nilai
-                            $isTUKunci = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
-                            $isNilaiTerkunci = false;
-                            if (!$isTUKunci && isset($penilaian) && $penilaian->count() > 0) {
-                                $isNilaiTerkunci = $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
-                            }
-                        @endphp
                         <div class="d-flex align-items-center">
+                            @if($isNilaiTerkunci)
+                            <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
+                            @else
                             <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
-                            <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()">Simpan</button>
+                            @endif
+                            <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                         </div>
                         @endif
                     </div>
@@ -1060,6 +1062,14 @@
 
                     {{-- PENILAIAN FORM TAHAP II --}}
                     <div id="penilaianFormTahap2" style="display: none;">
+                        @php
+                            $tuIp  = isset($ajuan) ? $ajuan->IP : null;
+                            $tuQ1  = isset($ajuan) ? $ajuan->JML_JURNAL_Q1 : null;
+                            $tuBr1 = isset($ajuan) ? $ajuan->JML_JURNAL_BEREPUTASI1 : null;
+                            $tuBr2 = isset($ajuan) ? $ajuan->JML_JURNAL_BEREPUTASI2 : null;
+                            $tuRek = isset($ajuan) ? $ajuan->REKOMENDASI_YUDISIUM : null;
+                        @endphp
+                        <div id="penilaianMainTahap2">
                         <div class="text-muted mb-3" style="font-size: 13px;">
                             Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penilaian</span> Seminar/Sidang {{ getTahapLabel($tahapan) }}
                         </div>
@@ -1094,8 +1104,21 @@
                                 <div>
                                     <button type="button" class="btn btn-black px-2 py-0" style="font-size: 12px; border-radius: 0;" onclick="cetakForm()">Cetak Penilaian</button>
                                     <button type="button" class="btn btn-outline-dark px-2 py-0 bg-white text-danger ml-1" style="font-size: 12px; border-radius: 0;" onclick="cetakBeritaAcara()">BA Sidang</button>
+                                    @if(strtolower($tahapan) === 'tahap iv')
+                                    <button type="button" id="akademikBtn" class="btn btn-sm px-3 py-1 ml-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="openAkademikForm()" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }} title="{{ session('auth_user.role') !== 'TU Prodi' ? 'Hanya TU Prodi yang dapat mengisi' : '' }}"><i class="fas fa-graduation-cap mr-1"></i> Capaian Akademik</button>
+                                    @endif
                                 </div>
                             </div>
+                            @if(strtolower($tahapan) === 'tahap iv')
+                            <div class="mb-2 p-2 border" style="font-size: 12px; background: #f8fafc;">
+                                <span class="text-danger mr-2" style="text-decoration: underline; text-decoration-color: red;">Capaian Akademik:</span>
+                                IP: <b id="tuValIp">{{ $tuIp ?? '-' }}</b>
+                                <span class="ml-2">Jml Jurnal Q1: <b id="tuValQ1">{{ $tuQ1 ?? '-' }}</b></span>
+                                <span class="ml-2">Jml Jurnal Bereputasi 1: <b id="tuValBr1">{{ $tuBr1 ?? '-' }}</b></span>
+                                <span class="ml-2">Jml Jurnal Bereputasi 2: <b id="tuValBr2">{{ $tuBr2 ?? '-' }}</b></span>
+                                <span class="ml-2">Rekomendasi Yudisium: <b id="tuValRek">{{ $tuRek ?? '-' }}</b></span>
+                            </div>
+                            @endif
                             {{-- REPORT TABLE --}}
                             <table class="table table-bordered table-sm text-center">
                                 <thead style="background-color: #6998d3; color: white;">
@@ -1174,12 +1197,72 @@
                                 </div>
                                 @if(!in_array(session('auth_user.role'), ['FS']))
                                 <div class="d-flex align-items-center">
+                                    @if($isNilaiTerkunci)
+                                    <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
+                                    @else
                                     <button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
-                                    <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()">Simpan</button>
+                                    @endif
+                                    <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                                 </div>
                                 @endif
                             </div>
                         </form>
+                        </div> {{-- /penilaianMainTahap2 --}}
+
+                        @if(strtolower($tahapan) === 'tahap iv')
+                        {{-- FORM CAPAIAN AKADEMIK (INLINE, BUKAN MODAL) --}}
+                        <div id="akademikForm" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="text-muted" style="font-size: 13px; font-weight: bold;">
+                                    Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Capaian Akademik</span>
+                                </div>
+                            </div>
+                            <form id="akademikFormForm" onsubmit="event.preventDefault(); saveTuProdiInput()">
+                                @csrf
+                                <input type="hidden" name="id_judul" value="{{ $idJudul }}">
+                                <input type="hidden" name="tahapan_sidang" value="{{ $tahapan }}">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group row align-items-center mb-3 px-1">
+                                            <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Indeks prestasi kumulatif (IP)</label>
+                                            <div class="col-sm-8 px-2">
+                                                <input type="number" step="0.01" class="form-control form-control-sm border-dark rounded-0" name="ip" id="tuIp" value="{{ $tuIp ?? '' }}" placeholder="Isi IP" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row align-items-center mb-3 px-1">
+                                            <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Jumlah publikasi ilmiah (jurnal bereputasi)</label>
+                                            <div class="col-sm-5 px-2">
+                                                <input type="number" min="0" class="form-control form-control-sm border-dark rounded-0" name="jml_jurnal_q1" id="tuQ1" value="{{ $tuQ1 ?? '' }}" placeholder="Isi jumlah" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>
+                                            </div>
+                                            <div class="col-sm-3 px-2" style="font-size: 13px;">jurnal Q1 (Published)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row align-items-center mb-3 px-1">
+                                            <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Jumlah publikasi ilmiah (selain jurnal bereputasi)</label>
+                                            <div class="col-sm-8 px-2">
+                                                <input type="number" min="0" class="form-control form-control-sm border-dark rounded-0" name="jml_jurnal_bereputasi1" id="tuBr1" value="{{ $tuBr1 ?? '' }}" placeholder="Isi jumlah" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row align-items-center mb-3 px-1">
+                                            <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Jumlah publikasi ilmiah (selain jurnal bereputasi)</label>
+                                            <div class="col-sm-8 px-2">
+                                                <input type="number" min="0" class="form-control form-control-sm border-dark rounded-0" name="jml_jurnal_bereputasi2" id="tuBr2" value="{{ $tuBr2 ?? '' }}" placeholder="Isi jumlah" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 d-flex justify-content-center align-items-center" style="gap: 10px;">
+                                    <button type="button" class="btn btn-danger px-4 py-1" style="font-size: 14px; border-radius: 4px; color: #fff;" onclick="closeAkademikForm()">Batal</button>
+                                    <button type="button" class="btn btn-dark px-4 py-1" style="font-size: 14px; border-radius: 4px; color: #fff;" onclick="saveTuProdiInput()" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>Simpan</button>
+                                </div>
+                            </form>
+                        </div>
+                        @endif
                     </div>
 
                     @if(in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
@@ -1701,9 +1784,29 @@
 <style>
 #penilaianTableBody tr.penilaian-data-row { display: none; }
 #penilaianReportBody tr.penilaian-data-row { display: none; }
+.locked-overlay { position: relative; }
+.locked-overlay input:disabled { opacity: 0.7; background-color: #e9ecef !important; cursor: not-allowed; }
 </style>
 <script>
 var persyaratanFiles = {};
+
+var isNilaiTerkunci = {{ ($isNilaiTerkunci ?? false) ? 'true' : 'false' }};
+document.addEventListener('DOMContentLoaded', function() {
+    if (isNilaiTerkunci) {
+        disablePenilaianInputs('penilaianReportBody');
+        disablePenilaianInputs('penilaianTahap2Body');
+        var sel2 = document.getElementById('statusLulusTahap2');
+        if (sel2) sel2.disabled = true;
+    }
+});
+
+function disablePenilaianInputs(tbodyId) {
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    tbody.querySelectorAll('input.nilai-input, input.catatan-input').forEach(function(inp) {
+        inp.disabled = true;
+    });
+}
 
 document.addEventListener('change', function(e) {
     if (e.target.matches('input[type="file"][data-syarat-id]')) {
@@ -2910,7 +3013,69 @@ function saveStatusLulusTahap2() {
     .catch(error => {
         showToast('Error: ' + error, 'error');
     });
-}    function submitJadwalTahap2(event) {
+}
+
+function openAkademikForm() {
+    var main = document.getElementById('penilaianMainTahap2');
+    var form = document.getElementById('akademikForm');
+    if (main) main.style.display = 'none';
+    if (form) form.style.display = 'block';
+}
+
+function closeAkademikForm() {
+    var main = document.getElementById('penilaianMainTahap2');
+    var form = document.getElementById('akademikForm');
+    if (form) form.style.display = 'none';
+    if (main) main.style.display = 'block';
+}
+
+async function saveTuProdiInput() {
+    var form = document.getElementById('akademikFormForm');
+    if (!form) return;
+    var idJudul = form.querySelector('[name="id_judul"]').value;
+    var tahapan = form.querySelector('[name="tahapan_sidang"]').value;
+
+    var body = {
+        id_judul: idJudul,
+        tahapan_sidang: tahapan,
+        ip: document.getElementById('tuIp').value,
+        jml_jurnal_q1: document.getElementById('tuQ1').value,
+        jml_jurnal_bereputasi1: document.getElementById('tuBr1').value,
+        jml_jurnal_bereputasi2: document.getElementById('tuBr2').value,
+        rekomendasi_yudisium: document.getElementById('tuRek').value
+    };
+
+    try {
+        const res = await fetch('/sidang/penilaian-tu-prodi', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            var msg = data.error || data.message || JSON.stringify(data.errors || data);
+            showToast('Error: ' + msg, 'error');
+            return;
+        }
+        if (data.success) {
+            closeAkademikForm();
+            showToast(data.message || 'Input Capaian Akademik berhasil disimpan', 'success');
+            if (typeof reloadTahapForm === 'function') {
+                reloadTahapForm(tahapan, idJudul);
+            }
+        } else {
+            showToast('Error: ' + (data.error || 'Gagal simpan'), 'error');
+        }
+    } catch (error) {
+        showToast('Error: ' + error, 'error');
+    }
+}
+
+    function submitJadwalTahap2(event) {
     event.preventDefault();
     event.stopPropagation();
     var form = document.getElementById('jadwalFormTahap2Form');
@@ -2975,8 +3140,10 @@ function saveStatusLulusTahap2() {
 
             // Pasca ajukan ke KPPS (success path): reset flag so "Ajukan Ulang" bisa dipakai lagi
             // setelah sebuah ajuan direject oleh KPPS dan ini dijadwalkan ulang.
-            form.querySelector('[name="is_ajukan_fs"]').value = '';
-            form.querySelector('[name="is_ajukan_kpps"]').value = '';
+            var isAjukanFsEl = form.querySelector('[name="is_ajukan_fs"]');
+            if (isAjukanFsEl) { isAjukanFsEl.value = ''; }
+            var isAjukanKppsEl = form.querySelector('[name="is_ajukan_kpps"]');
+            if (isAjukanKppsEl) { isAjukanKppsEl.value = ''; }
         } else {
             showToast(data.message || 'Gagal menyimpan jadwal sidang', 'error');
             if (submitBtn) {

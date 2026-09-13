@@ -29,6 +29,7 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
     Route::middleware(['role:Admin,TU Prodi,Pembimbing,Penguji,FS'])->group(function () {
         Route::get('tahap/{tahapan}', [\App\Http\Controllers\MahasiswaController::class, 'showTahap'])->name('tahap');
         Route::post('penilaian', [\App\Http\Controllers\Sidang\PenilaianController::class, 'store'])->name('penilaian.store');
+        Route::post('penilaian-tu-prodi', [\App\Http\Controllers\Sidang\PenilaianController::class, 'storeTuProdi'])->name('penilaian-tu-prodi.store');
         Route::put('penilaian/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'update'])->name('penilaian.update');
         Route::put('status-lulus/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'updateStatusLulus'])->name('penilaian.update-status-lulus');
         Route::post('lock-nilai/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'lockNilai'])->name('penilaian.lock-nilai');

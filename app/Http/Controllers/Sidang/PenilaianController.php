@@ -12,6 +12,47 @@ use Illuminate\Support\Facades\DB;
 
 class PenilaianController extends Controller
 {
+    public function storeTuProdi(Request $request)
+    {
+        $user = session('auth_user');
+
+        if (($user['role'] ?? '') !== 'TU Prodi') {
+            return response()->json(['error' => 'Hanya TU Prodi yang dapat mengisi input ini'], 403);
+        }
+
+        $request->validate([
+            'id_judul' => 'required',
+            'tahapan_sidang' => 'required',
+            'ip' => 'nullable|numeric',
+            'jml_jurnal_q1' => 'nullable|integer|min:0',
+            'jml_jurnal_bereputasi1' => 'nullable|integer|min:0',
+            'jml_jurnal_bereputasi2' => 'nullable|integer|min:0',
+            'rekomendasi_yudisium' => 'nullable|string|max:250',
+        ]);
+
+        $ajuan = TAjuanSidang::where('ID_JUDUL', $request->id_judul)
+            ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+            ->latest('id')
+            ->first();
+
+        if (!$ajuan) {
+            return response()->json(['error' => 'Data ajuan sidang tidak ditemukan. Simpan jadwal terlebih dahulu.'], 404);
+        }
+
+        $ajuan->IP = ($request->filled('ip')) ? $request->input('ip') : null;
+        $ajuan->JML_JURNAL_Q1 = ($request->filled('jml_jurnal_q1')) ? $request->input('jml_jurnal_q1') : null;
+        $ajuan->JML_JURNAL_BEREPUTASI1 = ($request->filled('jml_jurnal_bereputasi1')) ? $request->input('jml_jurnal_bereputasi1') : null;
+        $ajuan->JML_JURNAL_BEREPUTASI2 = ($request->filled('jml_jurnal_bereputasi2')) ? $request->input('jml_jurnal_bereputasi2') : null;
+        $ajuan->REKOMENDASI_YUDISIUM = ($request->filled('rekomendasi_yudisium')) ? $request->input('rekomendasi_yudisium') : null;
+        $ajuan->TGL_UPDATE = now();
+        $ajuan->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Input TU Prodi berhasil disimpan',
+        ]);
+    }
+
     public function store(Request $request)
     {
         $user = session('auth_user');
