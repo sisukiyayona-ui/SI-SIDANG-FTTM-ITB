@@ -18,7 +18,7 @@ class AutoApproveAjuanSidang extends Command
         $pending = DB::table('t_ajuan_sidang as a')
             ->leftJoin('t_app_ajuan_sidang as app', function ($join) {
                 $join->on('app.ID_AJUAN_SIDANG', '=', 'a.id')
-                    ->where('app.STATUS_APPROVE', '=', 't');
+                    ->where('app.STATUS_APPROVE', '=', 'y');
             })
             ->where('a.STATUS_AJUKAN_KPPS', 'y')
             ->whereNotNull('a.TGL_AJUKAN_KPPS')
@@ -53,10 +53,11 @@ class AutoApproveAjuanSidang extends Command
 
         $now = now()->toDateString();
         $inserted = 0;
+        $adminUser = DB::table('t_user')->where('JENIS_USER', 'Admin')->value('id');
 
         foreach ($pending as $row) {
             DB::table('t_app_ajuan_sidang')->insert([
-                'ID_USER' => null,
+                'ID_USER' => $adminUser ?: 1,
                 'ID_AJUAN_SIDANG' => $row->ajuan_id,
                 'STATUS_APPROVE' => 'y',
                 'USULAN_PERBAIKAN' => null,
