@@ -38,7 +38,7 @@ class PenilaianController extends Controller
 
     public function create()
     {
-        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        $prodis = $this->filteredProdis();
         $tahapans = TTahapan::all();
         return view('master.penilaian-form', compact('prodis', 'tahapans'))->with('penilaian', null);
     }
@@ -76,7 +76,7 @@ class PenilaianController extends Controller
             'Keterangan' => $item->keterangan ?? $item->KETERANGAN,
         ];
 
-        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        $prodis = $this->filteredProdis();
         $tahapans = TTahapan::all();
         return view('master.penilaian-form', compact('penilaian', 'prodis', 'tahapans'));
     }
@@ -130,7 +130,7 @@ class PenilaianController extends Controller
             ];
         });
 
-        $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
+        $prodis = $this->filteredProdis();
         $tahapans = TTahapan::all();
 
         if ($request->ajax()) {
@@ -243,6 +243,19 @@ class PenilaianController extends Controller
             $item->delete();
         }
         return response()->json(['success' => true]);
+    }
+
+    private function filteredProdis()
+    {
+        $user = session('auth_user');
+        $query = TProdi::where('status_aktif', 'AKTIF');
+
+        // Ambil prodi sesuai fakultas dari akun yang login
+        if (!empty($user['kode_fs'])) {
+            $query->where('kode_fs', $user['kode_fs']);
+        }
+
+        return $query->get();
     }
 }
 

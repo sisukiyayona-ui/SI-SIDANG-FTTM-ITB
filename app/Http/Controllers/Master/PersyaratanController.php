@@ -131,13 +131,22 @@ class PersyaratanController extends Controller
         $user = session('auth_user');
         $userProdiId = null;
 
+        $query = TProdi::where('status_aktif', 'AKTIF');
+
+        // Ambil prodi sesuai fakultas dari akun yang login
+        if (!empty($user['kode_fs'])) {
+            $query->where('kode_fs', $user['kode_fs']);
+        }
+
         if ($user['role'] === 'TU Prodi' && !empty($user['kode_prodi'])) {
-            $prodis = TProdi::where('status_aktif', 'AKTIF')
-                ->where('kode_prodi', $user['kode_prodi'])
-                ->get();
+            $query->where('kode_prodi', $user['kode_prodi']);
+            $userProdiId = $query->value('id');
+        }
+
+        $prodis = $query->get();
+
+        if ($userProdiId === null) {
             $userProdiId = $prodis->first()?->id;
-        } else {
-            $prodis = TProdi::where('status_aktif', 'AKTIF')->get();
         }
 
         return [$prodis, $userProdiId];
