@@ -204,16 +204,15 @@
                         <input type="hidden" name="nama_prodi" value="{{ $authUserKpps['nama_prodi'] }}">
                     @endif
                     <select name="kode_prodi" id="f_kode_prodi" class="form-control" {{ $isTuProdiKpps ? 'disabled' : '' }}>
-                        <option value="">-- Tidak ada / Non Prodi --</option>
+                        <option value="">-- Pilih Prodi --</option>
                         @if($isTuProdiKpps)
                             <option value="{{ $authUserKpps['kode_prodi'] }}" data-nama="{{ $authUserKpps['nama_prodi'] }}" selected>{{ $authUserKpps['nama_prodi'] }}</option>
                         @endif
-                        @foreach($prodis as $p)
-                            <option value="{{ $p->KODE_PRODI }}" data-nama="{{ $p->NAMA_PRODI }}">{{ $p->NAMA_PRODI }}</option>
-                        @endforeach
                     </select>
                     @if($isTuProdiKpps)
                         <small class="text-muted">Mengikuti prodi user login ({{ $authUserKpps['nama_prodi'] }})</small>
+                    @else
+                        <small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>
                     @endif
                 </div>
             </div>
@@ -287,10 +286,51 @@
 
 @push('scripts')
 <script>
+    function loadProdiByFs(kodeFs, selectedKode) {
+        var ps = document.getElementById('f_kode_prodi');
+        if (!ps) return;
+        ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
+        if (!kodeFs) {
+            ps.disabled = true;
+            ps.value = '';
+            return;
+        }
+        ps.disabled = false;
+        fetch('{{ route("master.user.prodi-by-fs") }}?kode_fs=' + encodeURIComponent(kodeFs), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(prodis) {
+            prodis = prodis || [];
+            if (prodis.length === 0) {
+                ps.innerHTML = '<option value="">Prodi tidak tersedia</option>';
+                return;
+            }
+            prodis.forEach(function(p) {
+                var opt = document.createElement('option');
+                opt.value = p.KODE_PRODI;
+                opt.textContent = p.NAMA_PRODI;
+                opt.dataset.nama = p.NAMA_PRODI;
+                if (selectedKode && String(selectedKode) === String(p.KODE_PRODI)) {
+                    opt.selected = true;
+                }
+                ps.appendChild(opt);
+            });
+        });
+    }
+
+    function resetProdiSelect() {
+        var ps = document.getElementById('f_kode_prodi');
+        if (!ps) return;
+        ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
+        ps.disabled = true;
+    }
+
     function setNamaFs(select) {
         var selected = select.options[select.selectedIndex];
         var namaFs = selected.dataset.nama || selected.textContent.trim();
         document.getElementById('f_nama_fs').value = namaFs;
+        loadProdiByFs(select.value, '');
     }
 
     function fillFromNip() {
@@ -302,7 +342,7 @@
             if (!locked) {
                 document.getElementById('f_kode_fs').value = '';
                 document.getElementById('f_nama_fs').value = 'FTTM';
-                document.getElementById('f_kode_prodi').value = '';
+                resetProdiSelect();
             }
             return;
         }
@@ -310,7 +350,7 @@
         if (!locked) {
             document.getElementById('f_kode_fs').value = opt.dataset.kodeFs || '';
             document.getElementById('f_nama_fs').value = opt.dataset.namaFs || 'FTTM';
-            document.getElementById('f_kode_prodi').value = opt.dataset.kodeProdi || '';
+            loadProdiByFs(opt.dataset.kodeFs || '', opt.dataset.kodeProdi || '');
         }
     }
 
@@ -345,7 +385,7 @@
 @else
         document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_nama_fs').value = 'FTTM';
-        document.getElementById('f_kode_prodi').value = '';
+        resetProdiSelect();
 @endif
         document.getElementById('f_id_user').value = '';
         document.getElementById('f_nip').value = '';
@@ -374,7 +414,11 @@
             document.getElementById('f_status_tim').value   = item.status_tim ?? '';
             document.getElementById('f_kode_fs').value      = item.kode_fs ?? '';
             document.getElementById('f_nama_fs').value      = item.nama_fs ?? '';
-            document.getElementById('f_kode_prodi').value   = item.kode_prodi ?? '';
+            if (document.getElementById('f_kode_fs').disabled) {
+                document.getElementById('f_kode_prodi').value = item.kode_prodi ?? '';
+            } else {
+                loadProdiByFs(item.kode_fs ?? '', item.kode_prodi ?? '');
+            }
 
             var nipEl = document.getElementById('f_nip');
             if (item.nip) {
