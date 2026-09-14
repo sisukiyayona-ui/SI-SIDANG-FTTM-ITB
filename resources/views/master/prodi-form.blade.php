@@ -23,10 +23,21 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label for="f_kode_fs" class="form-label">Fakultas</label>
+                        <select name="kode_fs" id="f_kode_fs" class="form-control" required>
+                            <option value="">-- Pilih Fakultas --</option>
+                            @foreach($fakultas as $fs)
+                                <option value="{{ $fs->KODE_FS }}" {{ ($prodi['kode_fs'] ?? '') === $fs->KODE_FS ? 'selected' : '' }}>{{ $fs->NAMA_FS }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
                         <label for="f_kode_prodi" class="form-label">Kode Prodi</label>
                         <input type="text" name="kode_prodi" id="f_kode_prodi" class="form-control"
                                value="{{ $prodi['kode'] ?? '' }}" placeholder="Contoh: 322" required>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="f_nama_prodi" class="form-label">Nama Prodi</label>
                         <input type="text" name="nama_prodi" id="f_nama_prodi" class="form-control"

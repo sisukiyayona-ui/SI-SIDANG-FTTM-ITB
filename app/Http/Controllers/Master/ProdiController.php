@@ -59,6 +59,8 @@ class ProdiController extends Controller
                 'kode' => $p->kode_prodi,
                 'nama' => $p->nama_prodi,
                 'strata' => $p->strata ?? '',
+                'kode_fs' => $p->kode_fs,
+                'nama_fs' => $p->nama_fs,
                 'status' => $p->status_aktif,
             ];
         });
@@ -69,6 +71,8 @@ class ProdiController extends Controller
                 'kode' => $p->kode_prodi,
                 'nama' => $p->nama_prodi,
                 'strata' => $p->strata ?? '',
+                'kode_fs' => $p->kode_fs,
+                'nama_fs' => $p->nama_fs,
                 'status' => $p->status_aktif,
             ];
         });
@@ -78,30 +82,35 @@ class ProdiController extends Controller
             return response()->json(['html' => $tableHtml]);
         }
 
-        return view('master.prodi', compact('prodi', 'allProdi'));
+        $fakultas = TFs::all();
+        return view('master.prodi', compact('prodi', 'allProdi', 'fakultas'));
     }
 
     public function create()
     {
-        return view('master.prodi-form', ['prodi' => null]);
+        $fakultas = TFs::all();
+        return view('master.prodi-form', ['prodi' => null, 'fakultas' => $fakultas]);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'kode_prodi' => 'required',
+            'kode_prodi' => ['required', 'unique:t_prodi,KODE_PRODI'],
             'nama_prodi' => 'required',
+            'kode_fs' => 'required',
             'status_aktif' => 'required',
+        ], [
+            'kode_prodi.unique' => 'Kode prodi sudah terdaftar. Gunakan kode prodi lain.',
         ]);
 
-        $authUser = session('auth_user');
+        $fs = TFs::where('KODE_FS', $request->kode_fs)->first();
 
         TProdi::create([
             'KODE_PRODI' => $request->kode_prodi,
             'NAMA_PRODI' => $request->nama_prodi,
             'STATUS_AKTIF' => $request->status_aktif,
-            'KODE_FS' => $authUser['kode_fs'] ?? '',
-            'NAMA_FS' => $authUser['nama_fs'] ?? '',
+            'KODE_FS' => $request->kode_fs,
+            'NAMA_FS' => $fs?->nama_fs ?? $request->kode_fs,
             'TGL_CREATE' => now(),
         ]);
 
@@ -120,24 +129,33 @@ class ProdiController extends Controller
             'kode' => $p->kode_prodi,
             'nama' => $p->nama_prodi,
             'status' => $p->status_aktif,
+            'kode_fs' => $p->kode_fs,
+            'nama_fs' => $p->nama_fs,
         ];
-        return view('master.prodi-form', compact('prodi'));
+        $fakultas = TFs::all();
+        return view('master.prodi-form', compact('prodi', 'fakultas'));
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
-            'kode_prodi' => 'required',
+            'kode_prodi' => ['required', 'unique:t_prodi,KODE_PRODI,' . $id . ',id'],
             'nama_prodi' => 'required',
+            'kode_fs' => 'required',
             'status_aktif' => 'required',
+        ], [
+            'kode_prodi.unique' => 'Kode prodi sudah terdaftar. Gunakan kode prodi lain.',
         ]);
 
         $p = TProdi::find((int) $id);
         if ($p) {
+            $fs = TFs::where('KODE_FS', $request->kode_fs)->first();
             $p->update([
                 'KODE_PRODI' => $request->kode_prodi,
                 'NAMA_PRODI' => $request->nama_prodi,
                 'STATUS_AKTIF' => $request->status_aktif,
+                'KODE_FS' => $request->kode_fs,
+                'NAMA_FS' => $fs?->nama_fs ?? $request->kode_fs,
                 'TGL_UPDATE' => now(),
             ]);
         }

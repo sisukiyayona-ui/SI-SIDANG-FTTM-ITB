@@ -132,7 +132,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-university mr-2"></i>Daftar Program Studi</h5>
             <div class="d-flex align-items-center ml-auto" style="gap: 8px;">
-                <button type="button" class="btn btn-sm btn-info" disabled id="btnSyncSpsi" title="Fitur belum tersedia">
+                <button type="button" class="btn btn-sm btn-info" id="btnSyncSpsi" onclick="syncSpsi()">
                     <i class="fas fa-sync-alt mr-1"></i> Tarik Data SPSI
                 </button>
                 <a class="btn btn-sm btn-light" href="{{ route('master.prodi.template') }}">
@@ -171,10 +171,24 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
+                            <label for="f_kode_fs" class="form-label fw-semibold text-secondary">Fakultas</label>
+                            <select name="kode_fs" id="f_kode_fs" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
+                                <option value="">-- Pilih Fakultas --</option>
+                                @foreach($fakultas as $fs)
+                                    <option value="{{ $fs->KODE_FS }}" data-nama="{{ $fs->NAMA_FS }}">{{ $fs->NAMA_FS }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
                             <label for="f_kode_prodi" class="form-label fw-semibold text-secondary">Kode Prodi</label>
                             <input type="text" name="kode_prodi" id="f_kode_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Contoh: 322" required>
                         </div>
                     </div>
+                </div>
+                
+                <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="f_nama_prodi" class="form-label fw-semibold text-secondary">Nama Prodi</label>
@@ -298,6 +312,7 @@
         document.getElementById('formProdi').action = '{{ route("master.prodi.store") }}';
         document.getElementById('methodProdi').value = 'POST';
         document.getElementById('prodiId').value = '';
+        document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_kode_prodi').value = '';
         document.getElementById('f_nama_prodi').value = '';
         document.getElementById('statusAktif').checked = true;
@@ -313,6 +328,7 @@
         document.getElementById('formProdi').action = '{{ url("master/prodi") }}/' + id;
         document.getElementById('methodProdi').value = 'PUT';
         document.getElementById('prodiId').value = id;
+        document.getElementById('f_kode_fs').value = item.kode_fs || '';
         document.getElementById('f_kode_prodi').value = item.kode;
         document.getElementById('f_nama_prodi').value = item.nama;
         document.getElementById(item.status === 'AKTIF' ? 'statusAktif' : 'statusNonaktif').checked = true;
@@ -343,14 +359,29 @@
     document.getElementById('formProdi').addEventListener('submit', function(e) {
         e.preventDefault();
         const form = this;
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = true;
         fetch(form.action, {
-            method: form.querySelector('#methodProdi').value === 'PUT' ? 'POST' : 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json'
+            },
             body: new FormData(form)
-        }).then(() => {
+        }).then(async r => {
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok || !data.success) {
+                const msg = (data.errors ? Object.values(data.errors).flat().join('\n') : (data.message || 'Gagal menyimpan prodi.'));
+                showToast('error', msg);
+                return;
+            }
             closeForm();
             showToast('success', 'Data prodi berhasil disimpan.');
             setTimeout(() => location.reload(), 1200);
+        }).catch(() => {
+            showToast('error', 'Terjadi kesalahan, coba lagi.');
+        }).finally(() => {
+            if (btn) btn.disabled = false;
         });
     });
 
