@@ -286,7 +286,10 @@
 
 @push('scripts')
 <script>
+    var _prodiLoadId = 0;
+
     function loadProdiByFs(kodeFs, selectedKode) {
+        var loadId = ++_prodiLoadId;
         var ps = document.getElementById('f_kode_prodi');
         if (!ps) return;
         ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
@@ -301,15 +304,17 @@
         })
         .then(function(r) { return r.json(); })
         .then(function(prodis) {
+            if (loadId !== _prodiLoadId) return;
             prodis = prodis || [];
             if (prodis.length === 0) {
                 ps.innerHTML = '<option value="">Prodi tidak tersedia</option>';
                 return;
             }
+            ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
             prodis.forEach(function(p) {
                 var opt = document.createElement('option');
                 opt.value = p.KODE_PRODI;
-                opt.textContent = p.NAMA_PRODI;
+                opt.textContent = p.KODE_PRODI + ' - ' + p.NAMA_PRODI;
                 opt.dataset.nama = p.NAMA_PRODI;
                 if (selectedKode && String(selectedKode) === String(p.KODE_PRODI)) {
                     opt.selected = true;
@@ -320,6 +325,7 @@
     }
 
     function resetProdiSelect() {
+        _prodiLoadId++;
         var ps = document.getElementById('f_kode_prodi');
         if (!ps) return;
         ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
