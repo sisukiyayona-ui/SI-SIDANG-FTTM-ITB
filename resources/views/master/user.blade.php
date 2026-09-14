@@ -131,6 +131,14 @@
     html.dark-mode #roleList .form-check-label {
         color: #e2e8f0 !important;
     }
+    /* Dark mode: prodi list box */
+    html.dark-mode #prodiList {
+        background-color: #1e293b !important;
+        border-color: #475569 !important;
+    }
+    html.dark-mode #prodiList .form-check-label {
+        color: #e2e8f0 !important;
+    }
     /* Dark mode: footer/main-footer */
     html.dark-mode .main-footer {
         background-color: #0f172a !important;
@@ -296,17 +304,16 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Program Studi <span class="text-danger">*</span></label>
                         @if(session('auth_user.role') === 'TU Prodi')
-                            {{-- TU Prodi: prodi dari login, disable --}}
                             @php
                                 $loginProdi = \App\Models\TProdi::where('kode_prodi', session('auth_user.kode_prodi'))->first();
                             @endphp
-                            <input type="hidden" name="id_prodi" value="{{ $loginProdi?->id }}">
+                            <input type="hidden" name="id_prodi[]" value="{{ $loginProdi?->id }}">
                             <input type="text" class="form-control" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled style="background-color:#e9ecef;">
                         @else
-                            <select name="id_prodi" id="f_id_prodi" class="form-control">
-                                <option value="">-- Pilih Program Studi --</option>
-                            </select>
-                            <small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>
+                            <div id="prodiList" class="border rounded p-2" style="max-height: 160px; overflow-y: auto; background: #fff;">
+                                <small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>
+                            </div>
+                            <small class="text-muted">Centang satu atau lebih program studi. Format: kode - nama prodi.</small>
                         @endif
                     </div>
                 </div>
@@ -464,14 +471,13 @@
     }
 
     function fetchProdiByFs(kodeFs, selectedProdiIds, autoSelectFirst) {
-        var prodiSelect = document.getElementById('f_id_prodi');
-        if (!prodiSelect) return;
-        prodiSelect.innerHTML = '<option value="">-- Pilih Program Studi --</option>';
+        var prodiList = document.getElementById('prodiList');
+        if (!prodiList) return;
+        prodiList.innerHTML = '<small class="text-muted">-- Pilih Program Studi --</small>';
         if (!kodeFs) {
-            prodiSelect.disabled = true;
+            prodiList.innerHTML = '<small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>';
             return;
         }
-        prodiSelect.disabled = false;
         fetch('{{ route("master.user.prodi-by-fs") }}?kode_fs=' + encodeURIComponent(kodeFs), {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
@@ -479,20 +485,29 @@
         .then(function(prodis) {
             prodis = prodis || [];
             if (prodis.length === 0) {
-                prodiSelect.innerHTML = '<option value="">Tidak ada prodi aktif</option>';
+                prodiList.innerHTML = '<small class="text-muted">Tidak ada prodi aktif</small>';
                 return;
             }
+            prodiList.innerHTML = '';
             prodis.forEach(function(p) {
-                var opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.NAMA_PRODI;
+                var label = document.createElement('label');
+                label.className = 'form-check d-block mb-1';
+                label.style.cursor = 'pointer';
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'form-check-input prodi-check';
+                cb.name = 'id_prodi[]';
+                cb.value = p.id;
                 if (selectedProdiIds && selectedProdiIds.indexOf(String(p.id)) !== -1) {
-                    opt.selected = true;
+                    cb.checked = true;
                 }
-                prodiSelect.appendChild(opt);
+                var span = document.createElement('span');
+                span.className = 'form-check-label';
+                span.textContent = p.KODE_PRODI + ' - ' + p.NAMA_PRODI;
+                label.appendChild(cb);
+                label.appendChild(span);
+                prodiList.appendChild(label);
             });
-            // Auto-select only during edit, when we already know the saved prodi ID.
-            // On create, leave the field unselected even after fakultas is picked.
         });
     }
 
@@ -653,7 +668,7 @@
         document.getElementById('f_nama_fs').value = '';
         var prodiList = document.getElementById('prodiList');
         if (prodiList) {
-            prodiList.innerHTML = '<small class="text-muted">Pilih Fakultas terlebih dahulu</small>';
+            prodiList.innerHTML = '<small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>';
         }
         @endif
         
@@ -664,10 +679,9 @@
         document.getElementById('f_instansi').disabled = false;
         document.getElementById('f_instansi').style.backgroundColor = '';
 
-        var prodiSelect = document.getElementById('f_id_prodi');
-        if (prodiSelect) {
-            prodiSelect.value = '';
-            prodiSelect.disabled = true;
+        var prodiListEl = document.getElementById('prodiList');
+        if (prodiListEl) {
+            prodiListEl.innerHTML = '<small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>';
         }
 
         clearSignature();
@@ -715,8 +729,8 @@
 
             @if(session('auth_user.role') !== 'TU Prodi')
             document.getElementById('f_kode_fs').value = item.kode_fs ?? '';
-            document.getElementById('f_nama_fs').value = item.nama_fs ?? '';                            fetchProdiByFs(item.kode_fs, item.prodi_ids || [], false);
-                    setTimeout(function() { document.getElementById('f_id_prodi').value = (item.prodi_ids && item.prodi_ids[0]) ? String(item.prodi_ids[0]) : ''; }, 0);
+            document.getElementById('f_nama_fs').value = item.nama_fs ?? '';
+            fetchProdiByFs(item.kode_fs, item.prodi_ids || [], false);
             @endif
             
             document.getElementById('f_asal_instansi').value = item.asal_instansi ?? '';
