@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('sidang:kirim-pengingat')->dailyAt('04:00');
-Schedule::command('sidang:auto-approve')->dailyAt('00:00');
+Schedule::command('sidang:auto-approve')->everyMinute(); // TODO: revert to ->dailyAt('00:00') after testing
