@@ -37,8 +37,13 @@ class MahasiswaController extends Controller
                     WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') = 'y' AND (
                         SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app
                         INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
-                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 't'
-                    ) >= (SELECT COUNT(*) FROM t_kpps) THEN 'Terjadwal'
+                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE IN ('t', 'y')
+                        AND EXISTS (SELECT 1 FROM t_kpps kk WHERE kk.ID_USER = app.ID_USER AND kk.STATUS_AKTIF = 'AKTIF')
+                    ) >= (
+                        SELECT COUNT(DISTINCT k.ID_USER) FROM t_kpps k
+                        INNER JOIN t_ajuan_sidang x3 ON x3.KODE_PRODI = k.KODE_PRODI
+                        WHERE x3.id_judul = j.id AND x3.tahapan_sidang = '{$tahapan}' AND k.STATUS_AKTIF = 'AKTIF'
+                    ) THEN 'Terjadwal'
                     WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') = 'y' THEN 'Menunggu Approve KPPS'
                     WHEN EXISTS (
                         SELECT 1 FROM t_app_ajuan_sidang app

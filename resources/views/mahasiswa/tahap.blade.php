@@ -1029,13 +1029,21 @@ if (window.jQuery && jQuery.fn.select2) {
       if ($ajuan->status_ajukan_mhs === 'y' && (empty($ajuan->status_ajukan_prodi) || $ajuan->status_ajukan_prodi === 't')) return 'Diproses di TU Prodi';
       if (($ajuan->status_ajukan_kpps ?? null) === 'y') {
           $ajuanId = $ajuan->id ?? null;
-          $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
-              ->where('ID_AJUAN_SIDANG', $ajuanId)
-              ->where('STATUS_APPROVE', 't')
-              ->distinct('ID_USER')
-              ->count('ID_USER') : 0;
-          $totalKpps = \Illuminate\Support\Facades\DB::table('t_kpps')->count();
-          if ($approved >= $totalKpps) return 'Terjadwal';
+          $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
+              ->where('app.ID_AJUAN_SIDANG', $ajuanId)
+              ->whereIn('app.STATUS_APPROVE', ['t', 'y'])
+              ->whereExists(function ($q) {
+                  $q->selectRaw('1')->from('t_kpps as kk')->whereColumn('kk.ID_USER', 'app.ID_USER')->where('kk.STATUS_AKTIF', 'AKTIF');
+              })
+              ->distinct()
+              ->count('app.ID_USER') : 0;
+          $totalKpps = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_kpps as k')
+              ->join('t_ajuan_sidang as x3', 'x3.KODE_PRODI', '=', 'k.KODE_PRODI')
+              ->where('x3.id', $ajuanId)
+              ->where('k.STATUS_AKTIF', 'AKTIF')
+              ->distinct()
+              ->count('k.ID_USER') : 0;
+          if ($totalKpps > 0 && $approved >= $totalKpps) return 'Terjadwal';
           return 'Menunggu Approve KPPS';
       }
       $ajuanId = $ajuan->id ?? null;

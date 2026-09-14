@@ -30,8 +30,13 @@ class SidangS1Controller extends Controller
                     WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' AND (
                         SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app
                         INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
-                        WHERE x2.id_judul = a.id_judul AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 't'
-                    ) >= (SELECT COUNT(*) FROM t_kpps) THEN 'terjadwal'
+                        WHERE x2.id_judul = a.id_judul AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE IN ('t', 'y')
+                        AND EXISTS (SELECT 1 FROM t_kpps kk WHERE kk.ID_USER = app.ID_USER AND kk.STATUS_AKTIF = 'AKTIF')
+                    ) >= (
+                        SELECT COUNT(DISTINCT k.ID_USER) FROM t_kpps k
+                        INNER JOIN t_ajuan_sidang x3 ON x3.KODE_PRODI = k.KODE_PRODI
+                        WHERE x3.id_judul = a.id_judul AND x3.tahapan_sidang = '{$tahapan}' AND k.STATUS_AKTIF = 'AKTIF'
+                    ) THEN 'terjadwal'
                     WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' THEN 'menunggu approve kpps'
                     WHEN EXISTS (
                         SELECT 1 FROM t_app_ajuan_sidang app

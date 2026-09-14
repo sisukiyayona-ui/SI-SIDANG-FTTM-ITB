@@ -75,7 +75,7 @@
             </thead>
             <tbody>
                 @forelse($rows as $i => $row)
-                    @php $isAllApproved = $row->kpps_approved_count >= $totalKpps; @endphp
+                    @php $isAllApproved = ($row->kpps_total_count ?? 0) > 0 && $row->kpps_approved_count >= $row->kpps_total_count; @endphp
                     <tr class="{{ $row->my_approved ? 'table-secondary' : ($row->STATUS_LULUS === 'rejected' ? 'table-danger' : '') }}">
                         <td>
                             @if($row->my_approved || $row->STATUS_LULUS === 'rejected')

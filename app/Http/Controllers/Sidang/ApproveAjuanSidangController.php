@@ -19,9 +19,10 @@ class ApproveAjuanSidangController extends Controller
         $authUser = session('auth_user');
         $currentUserId = $authUser['id'] ?? 0;
 
-        $approvalSub = "SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.STATUS_APPROVE = 't'";
-        $myApprovalSub = "SELECT COUNT(*) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.ID_USER = {$currentUserId} AND app.STATUS_APPROVE = 't'";
-        $usulanSub = "SELECT app.USULAN_PERBAIKAN FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.STATUS_APPROVE = 't' AND app.USULAN_PERBAIKAN IS NOT NULL AND app.USULAN_PERBAIKAN != '' ORDER BY app.id DESC LIMIT 1";
+        $approvalSub = "SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.STATUS_APPROVE IN ('t','y') AND EXISTS (SELECT 1 FROM t_kpps kk WHERE kk.ID_USER = app.ID_USER AND kk.STATUS_AKTIF = 'AKTIF')";
+        $myApprovalSub = "SELECT COUNT(*) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.ID_USER = {$currentUserId} AND app.STATUS_APPROVE IN ('t','y')";
+        $usulanSub = "SELECT app.USULAN_PERBAIKAN FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.STATUS_APPROVE IN ('t','y') AND app.USULAN_PERBAIKAN IS NOT NULL AND app.USULAN_PERBAIKAN != '' ORDER BY app.id DESC LIMIT 1";
+        $kppsTotalSub = "SELECT COUNT(DISTINCT k.ID_USER) FROM t_kpps k INNER JOIN t_ajuan_sidang x3 ON x3.KODE_PRODI = k.KODE_PRODI WHERE x3.id = a.id AND k.STATUS_AKTIF = 'AKTIF'";
 
         $q = DB::table('t_ajuan_sidang as a')
             ->where('a.STRATA', $strata)
@@ -43,11 +44,11 @@ class ApproveAjuanSidangController extends Controller
         }
         $status = trim((string) request()->query('status', ''));
         if ($status === 'approved') {
-            $q->whereRaw("({$approvalSub}) >= ?", [$totalKpps]);
+            $q->whereRaw("({$approvalSub}) >= ({$kppsTotalSub})");
         } elseif ($status === 'rejected') {
             $q->where('a.STATUS_LULUS', 'rejected');
         } elseif ($status === 'belum') {
-            $q->whereRaw("({$approvalSub}) < ?", [$totalKpps]);
+            $q->whereRaw("({$approvalSub}) < ({$kppsTotalSub})");
         }
 
         $rows = $q->select(
@@ -62,7 +63,8 @@ class ApproveAjuanSidangController extends Controller
                 'a.STATUS_LULUS',
                 DB::raw("({$approvalSub}) as kpps_approved_count"),
                 DB::raw("({$myApprovalSub}) as my_approved"),
-                DB::raw("({$usulanSub}) as usulan_perbaikan")
+                DB::raw("({$usulanSub}) as usulan_perbaikan"),
+                DB::raw("({$kppsTotalSub}) as kpps_total_count")
             )
             ->orderBy('a.id', 'desc')
             ->get();
