@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Log;
 use App\Models\Notification;
+use App\Models\TUserProdi;
 use App\Models\TUserRole;
 use App\Models\TUser;
 use App\Models\TProdi;
@@ -118,66 +120,86 @@ class UserController extends Controller
             'kk'             => $u->kk,
             'signature'      => $u->signature,
             'roles'          => $u->roles(),
-            'prodi_ids'      => \App\Models\TUserProdi::where('ID_USER', $u->id)->pluck('ID_PRODI')->map(fn($id) => (string) $id)->toArray(),
+            'prodi_ids'      => TUserProdi::where('ID_USER', $u->id)->pluck('ID_PRODI')->map(fn($id) => (string) $id)->toArray(),
         ]);
     }
 
     public function store(Request $request)
     {
+    try {
         $request->validate([
-            'nip_nim'        => 'required',
-            'nama_lengkap'   => 'required',
-            'email'          => 'required|email',
-            'username'       => 'required|unique:t_user,USERNAME',
-            'password'       => 'nullable|min:4',
-            'jenis_user'     => 'required|array|min:1',
-            'id_prodi'       => 'nullable',
-            'status_pegawai' => 'nullable',
-            'status_aktif'   => 'required',
-            'status_approve' => 'required|in:t,f',
-        ]);
-
-        [$kodeProdi, $namaProdi] = $this->resolveProdi($request);
-        [$kodeFs, $namaFs] = $this->resolveFs($request);
-
-        $roles = array_values(array_filter((array) $request->jenis_user));
-        $primaryRole = $roles[0] ?? 'Mahasiswa';
-
-        $hashedPassword = $request->filled('password') ? Hash::make($request->password) : null;
-        $signature = $this->handleSignatureUpload($request);
-
-        $user = TUser::create([
-            'NIP_NIM'         => $request->nip_nim,
-            'NAMA_LENGKAP'    => $request->nama_lengkap,
-            'EMAIL'           => $request->email,
-            'AKUN_INA'        => $request->akun_ina,
-            'USERNAME'        => $request->username,
-            'PASSWORD'        => $hashedPassword,
-            'JENIS_USER'      => $primaryRole,
-            'STATUS_PEGAWAI'  => $request->status_pegawai,
-            'KODE_PRODI'      => $kodeProdi,
-            'NAMA_PRODI'      => $namaProdi,
-            'KODE_FS'         => $kodeFs,
-            'NAMA_FS'         => $namaFs,
-            'STRATA'          => $request->strata,
-            'THN_ANGKATAN'    => $request->thn_angkatan,
-            'STATUS_AKTIF'    => $request->status_aktif,
-            'STATUS_APPROVE'  => $request->status_approve,
-            'STATUS_KAPRODI'  => $request->status_kaprodi,
-            'STATUS_DEKAN'    => $request->status_dekan,
-            'STATUS_WDA'      => $request->status_wda,
-            'ASAL_INSTANSI'   => $request->asal_instansi,
-            'INSTANSI'        => $request->instansi,
-            'KK'              => $request->kk,
-            'SIGNATURE'       => $signature,
-            'TGL_CREATE'      => now(),
-            'TGL_UPDATE'      => now(),
-        ]);
-
-        $this->syncRoles($user->id, $roles);
-        $this->syncUserProdi($user->id, $request->id_prodi);
-
-        return response()->json(['success' => true]);
+                'nip_nim'        => ['required', 'string', 'regex:/^[0-9]+$/'],
+                'nama_lengkap'   => 'required',
+                'email'          => 'required|email',
+                'username'       => 'required|unique:t_user,USERNAME',   // ✅ fix escape
+                'password'       => 'nullable|min:4',
+                'jenis_user'     => 'required|array|min:1',
+                'id_prodi'       => 'nullable',
+                'status_pegawai' => 'nullable',
+                'status_aktif'   => 'required',
+                'status_approve' => 'required|in:t,f',                    // ✅ fix escape
+            ]);
+    
+            [$kodeProdi, $namaProdi] = $this->resolveProdi($request);
+            [$kodeFs, $namaFs]       = $this->resolveFs($request);
+            $roles       = array_values(array_filter((array) $request->jenis_user));
+            $primaryRole = $roles[0] ?? 'Mahasiswa';
+            $hashedPassword = $request->filled('password') ? Hash::make($request->password) : null;
+            $signature   = $this->handleSignatureUpload($request);
+    
+            $user = TUser::create([
+                'NIP_NIM'        => $request->nip_nim,
+                'NAMA_LENGKAP'   => $request->nama_lengkap,
+                'EMAIL'          => $request->email,
+                'AKUN_INA'       => $request->akun_ina,
+                'USERNAME'       => $request->username,
+                'PASSWORD'       => $hashedPassword,
+                'JENIS_USER'     => $primaryRole,
+                'STATUS_PEGAWAI' => $request->status_pegawai,
+                'KODE_PRODI'     => $kodeProdi,
+                'NAMA_PRODI'     => $namaProdi,
+                'KODE_FS'        => $kodeFs,
+                'NAMA_FS'        => $namaFs,
+                'STRATA'         => $request->strata,
+                'THN_ANGKATAN'   => $request->thn_angkatan,
+                'STATUS_AKTIF'   => $request->status_aktif,
+                'STATUS_APPROVE' => $request->status_approve,
+                'STATUS_KAPRODI' => $request->status_kaprodi,
+                'STATUS_DEKAN'   => $request->status_dekan,
+                'STATUS_WDA'     => $request->status_wda,
+                'ASAL_INSTANSI'  => $request->asal_instansi,
+                'INSTANSI'       => $request->instansi,
+                'KK'             => $request->kk,
+                'SIGNATURE'      => $signature,
+                'TGL_CREATE'     => now(),
+                'TGL_UPDATE'     => now(),
+            ]);
+    
+            $this->syncRoles($user->id, $roles);
+            $this->syncUserProdi($user->id, $request->input('id_prodi', ''));
+    
+            return response()->json([
+                'success' => true,
+                'user_id' => (string) $user->id,
+                'id'      => EncryptedUuid::encode($user->id),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('UserStore failed', [
+                'message'   => $e->getMessage(),
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
+                'trace'     => $e->getTraceAsString(),
+                'nip_nim'   => $request->nip_nim,
+                'email'     => $request->email,
+                'jenis_user'=> $request->jenis_user,
+            ]);
+    
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile() . ':' . $e->getLine(),
+            ], 500);
+        }
     }
 
     public function update(Request $request, $id)
@@ -188,7 +210,7 @@ class UserController extends Controller
         }
 
         $request->validate([
-            'nip_nim'        => 'required',
+            'nip_nim'        => ['required', 'string', 'regex:/^[0-9]+$/'],
             'nama_lengkap'   => 'required',
             'email'          => 'required|email',
             'username'       => 'required|unique:t_user,USERNAME,' . $id . ',id',
@@ -245,7 +267,7 @@ class UserController extends Controller
             $oldStatus = $user->status_approve;
             $user->update($data);
             $this->syncRoles($user->id, $roles);
-            $this->syncUserProdi($user->id, $request->id_prodi);
+            $this->syncUserProdi($user->id, $request->input('id_prodi', ''));
                 if ($user->status_approve === 't') {
                     Notification::createForUser(
                         $user->id,

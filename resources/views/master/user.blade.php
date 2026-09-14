@@ -183,7 +183,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NIP / NIM <span class="text-danger">*</span></label>
-                        <input type="text" name="nip_nim" id="f_nip_nim" class="form-control" placeholder="NIP atau NIM" required>
+                        <input type="text" name="nip_nim" id="f_nip_nim" class="form-control" placeholder="Contoh: 19901234567" inputmode="numeric" pattern="[0-9]*" maxlength="18" autocomplete="off" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
@@ -300,13 +300,13 @@
                             @php
                                 $loginProdi = \App\Models\TProdi::where('kode_prodi', session('auth_user.kode_prodi'))->first();
                             @endphp
-                            <input type="hidden" name="id_prodi[]" value="{{ $loginProdi?->id }}">
+                            <input type="hidden" name="id_prodi" value="{{ $loginProdi?->id }}">
                             <input type="text" class="form-control" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled style="background-color:#e9ecef;">
                         @else
-                            <div id="prodiList" class="border rounded p-2" style="max-height: 180px; overflow-y: auto; background: #fff;">
-                                <small class="text-muted">Pilih Fakultas terlebih dahulu</small>
-                            </div>
-                            <small class="text-muted">Klik prodi untuk memilih lebih dari satu.</small>
+                            <select name="id_prodi" id="f_id_prodi" class="form-control">
+                                <option value="">-- Pilih Program Studi --</option>
+                            </select>
+                            <small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>
                         @endif
                     </div>
                 </div>
@@ -460,46 +460,39 @@
         var selected = select.options[select.selectedIndex];
         var namaFs = selected.dataset.nama || selected.textContent.trim();
         document.getElementById('f_nama_fs').value = namaFs;
-        fetchProdiByFs(select.value);
+        fetchProdiByFs(select.value, null, true);
     }
 
-    function fetchProdiByFs(kodeFs, selectedProdiIds) {
-        var prodiList = document.getElementById('prodiList');
-        if (!prodiList) return;
-        prodiList.innerHTML = '<small class="text-muted">Memuat prodi...</small>';
+    function fetchProdiByFs(kodeFs, selectedProdiIds, autoSelectFirst) {
+        var prodiSelect = document.getElementById('f_id_prodi');
+        if (!prodiSelect) return;
+        prodiSelect.innerHTML = '<option value="">-- Pilih Program Studi --</option>';
         if (!kodeFs) {
-            prodiList.innerHTML = '<small class="text-muted">Pilih Fakultas terlebih dahulu</small>';
+            prodiSelect.disabled = true;
             return;
         }
+        prodiSelect.disabled = false;
         fetch('{{ route("master.user.prodi-by-fs") }}?kode_fs=' + encodeURIComponent(kodeFs), {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(function(r) { return r.json(); })
         .then(function(prodis) {
-            prodiList.innerHTML = '';
-            if (!prodis || prodis.length === 0) {
-                prodiList.innerHTML = '<small class="text-muted">Tidak ada prodi aktif</small>';
+            prodis = prodis || [];
+            if (prodis.length === 0) {
+                prodiSelect.innerHTML = '<option value="">Tidak ada prodi aktif</option>';
                 return;
             }
             prodis.forEach(function(p) {
-                var label = document.createElement('label');
-                label.className = 'form-check d-block mb-1';
-                label.style.cursor = 'pointer';
-                var cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.className = 'form-check-input';
-                cb.name = 'id_prodi[]';
-                cb.value = p.id;
+                var opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.NAMA_PRODI;
                 if (selectedProdiIds && selectedProdiIds.indexOf(String(p.id)) !== -1) {
-                    cb.checked = true;
+                    opt.selected = true;
                 }
-                var span = document.createElement('span');
-                span.className = 'form-check-label';
-                span.textContent = p.NAMA_PRODI;
-                label.appendChild(cb);
-                label.appendChild(span);
-                prodiList.appendChild(label);
+                prodiSelect.appendChild(opt);
             });
+            // Auto-select only during edit, when we already know the saved prodi ID.
+            // On create, leave the field unselected even after fakultas is picked.
         });
     }
 
@@ -670,7 +663,13 @@
         document.getElementById('f_instansi').value = '';
         document.getElementById('f_instansi').disabled = false;
         document.getElementById('f_instansi').style.backgroundColor = '';
-        
+
+        var prodiSelect = document.getElementById('f_id_prodi');
+        if (prodiSelect) {
+            prodiSelect.value = '';
+            prodiSelect.disabled = true;
+        }
+
         clearSignature();
         document.getElementById('signaturePreview').style.display = 'none';
 
@@ -716,8 +715,8 @@
 
             @if(session('auth_user.role') !== 'TU Prodi')
             document.getElementById('f_kode_fs').value = item.kode_fs ?? '';
-            document.getElementById('f_nama_fs').value = item.nama_fs ?? '';
-            fetchProdiByFs(item.kode_fs, item.prodi_ids || []);
+            document.getElementById('f_nama_fs').value = item.nama_fs ?? '';                            fetchProdiByFs(item.kode_fs, item.prodi_ids || [], false);
+                    setTimeout(function() { document.getElementById('f_id_prodi').value = (item.prodi_ids && item.prodi_ids[0]) ? String(item.prodi_ids[0]) : ''; }, 0);
             @endif
             
             document.getElementById('f_asal_instansi').value = item.asal_instansi ?? '';
@@ -766,6 +765,51 @@
         new bootstrap.Modal(document.getElementById('modalDelete')).show();
     }
 
+
+    function nipNimInputHandler(e) {
+        var el = e.target;
+        var pos = getCaretPosition(el);
+        var raw = el.value.replace(/[^0-9]/g, '');
+        if (el.value !== raw) {
+            el.value = raw;
+            setCaretPosition(el, pos);
+        }
+    }
+
+    function getCaretPosition(input) {
+        if (document.selection && document.selection.createRange) {
+            var sel = document.selection.createRange();
+            var clone = sel.duplicate();
+            clone.moveToElementText(input);
+            clone.setEndPoint('EndToEnd', sel);
+            return clone.text.length - sel.text.length;
+        }
+        return input.selectionStart ?? 0;
+    }
+
+    function setCaretPosition(input, pos) {
+        if (input.setSelectionRange) {
+            input.setSelectionRange(pos, pos);
+        } else if (document.selection) {
+            var range = input.createTextRange();
+            range.collapse(true);
+            range.moveEnd('character', pos);
+            range.moveStart('character', pos);
+            range.select();
+        }
+    }
+
+    var nipInput = document.getElementById('f_nip_nim');
+    if (nipInput) {
+        nipInput.addEventListener('input', nipNimInputHandler);
+        nipInput.addEventListener('keydown', function(e) {
+            if (e.key === 'e' || e.key === 'E') e.preventDefault();
+        });
+        nipInput.addEventListener('paste', function() {
+            setTimeout(nipNimInputHandler, 0);
+        });
+    }
+
     document.getElementById('f_status_pegawai').addEventListener('change', function() {
         toggleKkRow();
         toggleUserFormFields();
@@ -773,13 +817,14 @@
 
     document.getElementById('formUser').addEventListener('submit', function(e) {
         e.preventDefault();
+        const fd = new FormData(this);
         fetch(this.action, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
                 'Accept': 'application/json'
             },
-            body: new FormData(this)
+            body: fd
         }).then(async r => {
             const data = await r.json().catch(() => ({}));
             if (r.ok && data.success) {
@@ -788,16 +833,23 @@
                 setTimeout(() => location.reload(), 1200);
                 return;
             }
-            if (r.status === 422 && data.errors) {
-                const firstError = Object.values(data.errors)[0];
-                showToast('error', Array.isArray(firstError) ? firstError[0] : firstError);
+            console.error('User store response', { status: r.status, ok: r.ok, data });
+            if (data?.errors) {
+                const lines = Object.entries(data.errors).map(([k, v]) => k + ': ' + (Array.isArray(v) ? v.join(', ') : v)).join('\n');
+                showToast('error', lines || 'Data tidak valid.');
                 return;
             }
-            showToast('error', data.message || 'Gagal menyimpan user. Periksa data form.');
+            if (data?.message) {
+                showToast('error', data.message);
+                return;
+            }
+            showToast('error', 'Gagal menyimpan user. Periksa data form dan response server.');
         }).catch(() => {
             showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
+
+    window.__debugUserStoreResponse = null;
 
     document.getElementById('formDelete').addEventListener('submit', function(e) {
         e.preventDefault();
