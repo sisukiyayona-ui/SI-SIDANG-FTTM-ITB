@@ -3041,9 +3041,12 @@ async function saveTuProdiInput() {
         ip: document.getElementById('tuIp').value,
         jml_jurnal_q1: document.getElementById('tuQ1').value,
         jml_jurnal_bereputasi1: document.getElementById('tuBr1').value,
-        jml_jurnal_bereputasi2: document.getElementById('tuBr2').value,
-        rekomendasi_yudisium: document.getElementById('tuRek').value
+        jml_jurnal_bereputasi2: document.getElementById('tuBr2').value
     };
+    var rekEl = document.getElementById('tuRek');
+    if (rekEl) {
+        body.rekomendasi_yudisium = rekEl.value;
+    }
 
     try {
         const res = await fetch('/sidang/penilaian-tu-prodi', {
