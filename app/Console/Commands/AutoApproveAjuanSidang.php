@@ -13,18 +13,27 @@ class AutoApproveAjuanSidang extends Command
 
     public function handle(): int
     {
-        // Ajuan yang butuh auto-approve voting KPPS
+        // Ambil ajuan yang butuh auto-approve voting KPPS
         $ajuans = DB::table('t_ajuan_sidang as a')
             ->where(function ($q) {
-                // Kasus 1: sudah di-submit ke KPPS (STATUS_AJUKAN_KPPS='y')
+                // Kasus 1: sudah di-submit ke KPPS
                 $q->where('a.STATUS_AJUKAN_KPPS', 'y');
-                // Kasus 2: sidang sudah selesai (STATUS_LULUS terisi selain "diajukan")
+
+                // Kasus 2: sidang sudah selesai (STATUS_LULUS terisi, bukan 'diajukan', bukan kosong)
                 $q->orWhere(function ($q2) {
                     $q2->whereNotNull('a.STATUS_LULUS')
-                        ->where('a.STATUS_LULUS', '!=', 'diajukan');
+                        ->whereNotIn('a.STATUS_LULUS', ['diajukan', '']);
                 });
             })
-            ->select('a.id as ajuan_id', 'a.NIM', 'a.NAMA_MHS', 'a.TAHAPAN_SIDANG', 'a.KODE_PRODI', 'a.STATUS_LULUS', 'a.STATUS_AJUKAN_KPPS', 'a.TGL_AJUKAN_KPPS')
+            ->select(
+                'a.id as ajuan_id',
+                'a.NIM',
+                'a.NAMA_MHS',
+                'a.TAHAPAN_SIDANG',
+                'a.KODE_PRODI',
+                'a.STATUS_LULUS',
+                'a.STATUS_AJUKAN_KPPS'
+            )
             ->orderBy('a.id')
             ->get();
 
@@ -33,44 +42,42 @@ class AutoApproveAjuanSidang extends Command
             return self::SUCCESS;
         }
 
-        $rows = [];
+        // Hitung anggota yang benar-benar masih butuh approval, sekaligus simpan untuk insert
+        $pending = []; // [ajuan_id => collection anggota]
+        $rows    = []; // data untuk ditampilkan di tabel
+
         foreach ($ajuans as $ajuan) {
-            // Anggota KPPS untuk prodi yang sama, belum punya record approval di ajuan ini
-            $members = DB::table('t_kpps as k')
-                ->leftJoin('t_app_ajuan_sidang as app', function ($join) use ($ajuan) {
-                    $join->on('app.ID_USER', '=', 'k.ID_USER')
-                        ->where('app.ID_AJUAN_SIDANG', '=', $ajuan->ajuan_id);
-                })
-                ->where('k.KODE_PRODI', $ajuan->KODE_PRODI)
-                ->where('k.STATUS_AKTIF', 'AKTIF')
-                ->whereNull('app.id')
-                ->select('k.ID_USER', 'k.NAMA', 'k.STATUS_TIM')
-                ->orderBy('k.STATUS_TIM')
-                ->get();
+            $members = $this->getPendingMembers($ajuan->ajuan_id, $ajuan->KODE_PRODI);
+
+            if ($members->isEmpty()) {
+                continue; // semua anggota sudah approve, skip
+            }
+
+            $pending[$ajuan->ajuan_id] = $members;
 
             foreach ($members as $member) {
                 $rows[] = [
-                    'ID_AJUAN' => $ajuan->ajuan_id,
-                    'NIM' => $ajuan->NIM,
-                    'NAMA_MHS' => $ajuan->NAMA_MHS,
-                    'TAHAPAN' => $ajuan->TAHAPAN_SIDANG,
-                    'NIP/KPPS' => $member->NAMA,
-                    'STATUS_TIM' => $member->STATUS_TIM,
-                    'ID_USER' => $member->ID_USER,
+                    $ajuan->ajuan_id,
+                    $ajuan->NIM,
+                    $ajuan->NAMA_MHS,
+                    $ajuan->TAHAPAN_SIDANG,
+                    $member->NAMA . ' (' . $member->ID_USER . ')',
+                    $member->STATUS_TIM,
                 ];
             }
         }
 
         if (empty($rows)) {
-            $this->info('Semua anggota KPPS sudah approve.');
+            $this->info('Semua anggota KPPS sudah approve untuk seluruh ajuan terkait.');
             return self::SUCCESS;
         }
 
-        $this->info("Ditemukan {$ajuans->count()} ajuan, {$this->describe($ajuans)}:");
+        $jumlahAjuanPending = count($pending);
+        $this->info("Ditemukan {$jumlahAjuanPending} ajuan yang masih butuh approval KPPS:");
         $this->newLine();
 
         $this->table(
-            ['ID_AJUAN', 'NIM', 'Nama Mhs', 'Tahapan', 'Anggota KPPS (ID_USER)', 'Status Tim'],
+            ['ID_AJUAN', 'NIM', 'Nama Mhs', 'Tahapan', 'Anggota KPPS', 'Status Tim'],
             $rows
         );
 
@@ -79,43 +86,50 @@ class AutoApproveAjuanSidang extends Command
             return self::SUCCESS;
         }
 
-        $now = now()->toDateString();
+        $now      = now()->toDateString();
         $inserted = 0;
 
-        foreach ($ajuans as $ajuan) {
-            $members = DB::table('t_kpps as k')
-                ->leftJoin('t_app_ajuan_sidang as app', function ($join) use ($ajuan) {
-                    $join->on('app.ID_USER', '=', 'k.ID_USER')
-                        ->where('app.ID_AJUAN_SIDANG', '=', $ajuan->ajuan_id);
-                })
-                ->where('k.KODE_PRODI', $ajuan->KODE_PRODI)
-                ->where('k.STATUS_AKTIF', 'AKTIF')
-                ->whereNull('app.id')
-                ->select('k.ID_USER')
-                ->get();
-
-            foreach ($members as $member) {
-                DB::table('t_app_ajuan_sidang')->insert([
-                    'ID_USER' => $member->ID_USER,
-                    'ID_AJUAN_SIDANG' => $ajuan->ajuan_id,
-                    'STATUS_APPROVE' => 't',
-                    'USULAN_PERBAIKAN' => null,
-                    'TGL_CREATE' => $now,
-                    'TGL_UPDATE' => $now,
-                    'TGL_APPROVE' => $now,
-                ]);
-                $inserted++;
+        DB::transaction(function () use ($pending, $now, &$inserted) {
+            foreach ($pending as $ajuanId => $members) {
+                $data = [];
+                foreach ($members as $member) {
+                    $data[] = [
+                        'ID_USER'          => $member->ID_USER,
+                        'ID_AJUAN_SIDANG'  => $ajuanId,
+                        'STATUS_APPROVE'   => 't',
+                        'USULAN_PERBAIKAN' => null,
+                        'ALASAN_REJECT'    => null,
+                        'TGL_CREATE'       => $now,
+                        'TGL_UPDATE'       => $now,
+                        'TGL_APPROVE'      => $now,
+                    ];
+                }
+                DB::table('t_app_ajuan_sidang')->insert($data);
+                $inserted += count($data);
             }
-        }
+        });
 
-        $this->info("Berhasil auto-approve (insert) {$inserted} voting anggota KPPS.");
+        $this->info("Berhasil auto-approve (insert) {$inserted} voting anggota KPPS untuk {$jumlahAjuanPending} ajuan.");
 
         return self::SUCCESS;
     }
 
-    private function describe($ajuans): string
+    /**
+     * Ambil anggota KPPS aktif di prodi tsb yang BELUM punya record approval
+     * untuk ajuan ini.
+     */
+    private function getPendingMembers(int $ajuanId, string $kodeProdi)
     {
-        $ids = $ajuans->pluck('ajuan_id')->implode(', ');
-        return "ID_AJUAN: {$ids}";
+        return DB::table('t_kpps as k')
+            ->leftJoin('t_app_ajuan_sidang as app', function ($join) use ($ajuanId) {
+                $join->on('app.ID_USER', '=', 'k.ID_USER')
+                    ->where('app.ID_AJUAN_SIDANG', '=', $ajuanId);
+            })
+            ->where('k.KODE_PRODI', $kodeProdi)
+            ->where('k.STATUS_AKTIF', 'AKTIF')
+            ->whereNull('app.id')
+            ->select('k.ID_USER', 'k.NAMA', 'k.STATUS_TIM')
+            ->orderBy('k.STATUS_TIM')
+            ->get();
     }
 }
