@@ -349,6 +349,7 @@
                     @php
                         $appAjuanMhs = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
                             ->where('tahapan_sidang', $tahapan)
+                            ->latest('id')
                             ->first();
                         $votingStatusLulusMhs = $appAjuanMhs->status_lulus ?? ($ajuan->status_lulus ?? '');
                         $isVotingLulusMhs = stripos((string) $votingStatusLulusMhs, 'Lulus') !== false
