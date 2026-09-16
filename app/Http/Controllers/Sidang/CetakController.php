@@ -1968,8 +1968,9 @@ class CetakController extends Controller
             'ip'                   => $ajuan->IP ?? null,
             'jml_jurnal_q1'        => $ajuan->JML_JURNAL_Q1 ?? null,
             'jml_jurnal_bereputasi1' => $ajuan->JML_JURNAL_BEREPUTASI1 ?? null,
-            'jml_jurnal_bereputasi2' => $ajuan->JML_JURNAL_BEREPUTASI2 ?? null,
-        ]);
+'jml_jurnal_bereputasi2' => $ajuan->JML_JURNAL_BEREPUTASI2 ?? null,
+                'lulus'                => $this->isSidangAkhirLulus($ajuan, $indeks),
+            ]);
 
         // Isi tanda tangan per baris tabel "Tim Penguji" (6 baris: Ketua Tim Pembimbing,
         // Ko-Pembimbing 1, Ko-Pembimbing 2, Penguji 1, Penguji 2, Penguji 3)
@@ -2054,6 +2055,20 @@ class CetakController extends Controller
         foreach ($capaian as $ph => $val) {
             $xml = str_replace($ph, $esc($val), $xml);
         }
+
+        // Kotak keputusan LULUS / Tidak Lulus Sidang Doktor.
+        // Placeholder sengaja dibedakan tiap baris (di-rename saat template:prepare):
+        //   - ${kotak_lulus}        baris "LULUS Sidang Doktor"
+        //   - ${kotak_yudisium}     baris "dan Rekomendasi Yudisium" (selalu kosong)
+        //   - ${kotak_tidak_lulus}  baris "Tidak Lulus Sidang Doktor"
+        // Baris lulus dicentang bila lulus; baris tidak lulus dicentang bila
+        // tidak lulus; baris yudisium tidak pernah dicentang.
+        $lulus    = !empty($data['lulus']);
+        $mcentang = "\u{2611}"; // ☑
+        $kosong   = "\u{2610}"; // ☐
+        $xml = str_replace('${kotak_lulus}',       $lulus ? $mcentang : $kosong, $xml);
+        $xml = str_replace('${kotak_yudisium}',    $kosong, $xml);
+        $xml = str_replace('${kotak_tidak_lulus}', $lulus ? $kosong : $mcentang, $xml);
 
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
@@ -2167,6 +2182,21 @@ class CetakController extends Controller
             return 'B';
         }
         return 'Mengulang';
+    }
+
+    /**
+     * Penanda kotak "LULUS Sidang Doktor" pada BA Sidang Akhir.
+     * Lulus bila indeks bukan Mengulang, atau STATUS_LULUS ajuan tidak
+     * berisi penanda tidak lulus ('tidak lulus' / 'Tidak layak').
+     */
+    private function isSidangAkhirLulus($ajuan, string $indeks): bool
+    {
+        if ($indeks !== '' && $indeks !== 'Mengulang') {
+            return true;
+        }
+        $status = strtolower((string) ($ajuan->STATUS_LULUS ?? ''));
+        return $status !== '' && $status !== 'mengulang'
+            && !in_array($status, ['tidak lulus', 'tidak layak'], true);
     }
 
     /**

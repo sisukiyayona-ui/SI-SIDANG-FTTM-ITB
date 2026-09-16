@@ -130,6 +130,7 @@ class PrepareTemplate extends Command
                 'distinctBaSidangSignatures' => true,
                 'baSidangRowSignatures'      => true,
                 'baSidangCapaian'            => true,
+                'baSidangLulusBox'           => true,
             ],
             [
                 'src' => base_path('template/SIDANG/form penilaian sidang akhir.docx'),
@@ -326,6 +327,16 @@ class PrepareTemplate extends Command
             // agar diisi dari t_ajuan_sidang saat cetak.
             if (!empty($template['baSidangCapaian'])) {
                 $xml = $this->replaceBaSidangCapaian($xml);
+            }
+
+            // Khusus BA Sidang Akhir: SOURCE memakai ${kotak_lulus} di ketiga baris
+            // keputusan (LULUS / dan Rekomendasi Yudisium / Tidak Lulus). Agar saat
+            // cetak hanya kotak yang sesuai dicentang, placeholder tiap baris dibuat
+            // berbeda: baris Rekomendasi -> ${kotak_yudisium}, baris Tidak Lulus ->
+            // ${kotak_tidak_lulus}; baris LULUS tetap ${kotak_lulus}. Placeholder
+            // yang terpecah antar-run (${ ... kotak_lulus ... }) juga dirapikan.
+            if (!empty($template['baSidangLulusBox'])) {
+                $xml = $this->replaceBaSidangLulusBox($xml);
             }
 
             // Khusus SK-4: baris 4-5 tabel "Tim Penguji/Penilai" diberi label
@@ -664,6 +675,73 @@ class PrepareTemplate extends Command
         );
 
         return substr_replace($xml, $section, $capStart, $capEnd - $capStart);
+    }
+
+    /**
+     * Khusus BA Sidang Akhir: pembeda baris kotak keputusan kelulusan.
+     * SOURCE memakai ${kotak_lulus} di 3 baris (LULUS / dan Rekomendasi
+     * Yudisium / Tidak Lulus). Di sini placeholder di-rename per baris agar
+     * saat cetak hanya kotak yang sesuai yang dicentang:
+     *   - baris "LULUS Sidang Doktor"      -> ${kotak_lulus}
+     *   - baris "dan Rekomendasi Yudisium" -> ${kotak_yudisium}
+     *   - baris "Tidak Lulus Sidang"       -> ${kotak_tidak_lulus}
+     * Placeholder ${kotak_lulus} yang terpecah antar-run (${ ... kotak_lulus
+     * ... } karena <w:proofErr> di tengah) dirapikan menjadi satu run.
+     */
+    private function replaceBaSidangLulusBox(string $xml): string
+    {
+        // Rapikan placeholder terpecah antar-run pada seluruh dokumen lebih dulu:
+        // <w:t>${</w:t> ... <w:t>kotak_lulus</w:t> ... <w:t>}</w:t> -> kabungkan
+        // bagian "${" dan "}" agar menjadi satu run berisi ${kotak_lulus}.
+        $xml = $this->mergeSplitKotakLulus($xml);
+
+        // Rename placeholder per baris (hanya paragraf yang memuat kata kunci).
+        $variants = [
+            '${kotak_yudisium}'    => ['Rekomendasi'],
+            '${kotak_tidak_lulus}' => ['Tidak Lulus Sidang'],
+        ];
+        foreach ($variants as $placeholder => $keywords) {
+            $xml = preg_replace_callback(
+                '/<w:p\b[^>]*>.*?<\/w:p>/s',
+                function ($m) use ($keywords, $placeholder) {
+                    $p = $m[0];
+                    foreach ($keywords as $kw) {
+                        if (strpos($p, $kw) !== false) {
+                            $p = preg_replace(
+                                '/(<w:t[^>]*>)\$\{kotak_lulus\}(<\/w:t>)/',
+                                '$1' . $placeholder . '$2',
+                                $p,
+                                1
+                            );
+                            break;
+                        }
+                    }
+                    return $p;
+                },
+                $xml
+            );
+        }
+
+        return $xml;
+    }
+
+    /**
+     * Gabungkan placeholder kotak_lulus yang terpecah antar-run.
+     * Word bisa menyisipkan <w:proofErr> di tengah teks sehingga w:t menjadi
+     * berturut-turut: "${" | "kotak_lulus" | "}". Semua bagian digabung ke
+     * run pertama menjadi "${kotak_lulus}", sisanya dikosongkan.
+     */
+    private function mergeSplitKotakLulus(string $xml): string
+    {
+        return preg_replace_callback(
+            '/(<w:t[^>]*>)\$\{(<\/w:t>)(.*?)(<w:r\b[^>]*><w:rPr>.*?<\/w:rPr><w:t[^>]*>)kotak_lulus(<\/w:t>)(.*?)(<w:r\b[^>]*><w:rPr>.*?<\/w:rPr><w:t[^>]*>)\}(<\/w:t>)/s',
+            function ($m) {
+                return $m[1] . '${kotak_lulus}' . $m[2] . $m[3]
+                    . $m[4] . '' . $m[5] . $m[6] . $m[7] . '' . $m[8];
+            },
+            $xml,
+            1
+        );
     }
 
     /**
