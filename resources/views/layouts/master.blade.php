@@ -2926,12 +2926,12 @@ function showConfirmDialog(opts) {
         return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
     }
 
-    function showToast(msg) {
+    function showSessionToast(msg) {
         $('#sessionToastMsg').text(msg);
         $('#sessionToast').show();
     }
 
-    function hideToast() {
+    function hideSessionToast() {
         $('#sessionToast').hide();
     }
 
@@ -2942,7 +2942,7 @@ function showConfirmDialog(opts) {
             dataType: 'json',
             success: function(data) {
                 if (data.expired) {
-                    showToast('Session telah habis. Silakan login kembali.');
+                    showSessionToast('Session telah habis. Silakan login kembali.');
                     setTimeout(function() { logoutForm.submit(); }, 3000);
                     return;
                 }
@@ -2953,7 +2953,7 @@ function showConfirmDialog(opts) {
                 }
             },
             error: function() {
-                showToast('Gagal memeriksa session. Mengarahkan ke login...');
+                showSessionToast('Gagal memeriksa session. Mengarahkan ke login...');
                 setTimeout(function() { logoutForm.submit(); }, 3000);
             }
         });
@@ -2975,7 +2975,7 @@ function showConfirmDialog(opts) {
             if (remaining <= 0) {
                 clearInterval(countdownInterval);
                 $('#sessionRenewalModal').modal('hide');
-                showToast('Session telah habis. Silakan login kembali.');
+                showSessionToast('Session telah habis. Silakan login kembali.');
                 setTimeout(function() { logoutForm.submit(); }, 2000);
             }
         }, 1000);
@@ -2992,13 +2992,13 @@ function showConfirmDialog(opts) {
                     $('#sessionRenewalModal').modal('hide');
                     if (countdownInterval) clearInterval(countdownInterval);
                     warningShown = false;
-                    hideToast();
-                    showToast('Session berhasil diperpanjang.');
-                    setTimeout(hideToast, 3000);
+                    hideSessionToast();
+                    showSessionToast('Session berhasil diperpanjang.');
+                    setTimeout(hideSessionToast, 3000);
                 }
             },
             error: function() {
-                showToast('Gagal memperpanjang session.');
+                showSessionToast('Gagal memperpanjang session.');
             }
         });
     });

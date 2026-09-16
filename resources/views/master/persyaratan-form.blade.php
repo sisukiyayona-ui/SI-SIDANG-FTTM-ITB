@@ -47,17 +47,13 @@
 
                 <div class="mb-3">
                     <label for="id_prodi" class="form-label">Program Studi</label>
-                    @php $isTuProdi = session('auth_user.role') === 'TU Prodi'; @endphp
-                    <select name="id_prodi" id="id_prodi" class="form-control" {{ $isTuProdi ? 'disabled' : '' }}>
+                    <select name="id_prodi" id="id_prodi" class="form-control">
                         @forelse($prodis as $p)
-                            <option value="{{ $p->id }}" {{ $isTuProdi ? 'selected' : (isset($persyaratan) && $persyaratan['id_prodi'] == $p->id ? 'selected' : '') }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                            <option value="{{ $p->id }}" {{ isset($persyaratan) && $persyaratan['id_prodi'] == $p->id ? 'selected' : ($userProdiId == $p->id ? 'selected' : '') }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                         @empty
                             <option value="">Prodi tidak tersedia</option>
                         @endforelse
                     </select>
-                    @if($isTuProdi)
-                        <input type="hidden" name="id_prodi" value="{{ $userProdiId }}">
-                    @endif
                 </div>
 
                 <div class="mb-4">

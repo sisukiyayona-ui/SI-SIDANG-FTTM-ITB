@@ -23,8 +23,11 @@ class UserController extends Controller
         $authUser = session('auth_user');
         $query = TUser::query();
 
-        if ($authUser['role'] === 'TU Prodi' && $authUser['kode_prodi']) {
-            $query->where('kode_prodi', $authUser['kode_prodi']);
+        if ($authUser['role'] === 'TU Prodi') {
+            $kodeProdis = TProdi::whereIn('id', $authUser['id_prodi'] ?? [])->pluck('KODE_PRODI')->all();
+            if (!empty($kodeProdis)) {
+                $query->whereIn('kode_prodi', $kodeProdis);
+            }
         }
 
         // Server-side search/filter
@@ -76,7 +79,11 @@ class UserController extends Controller
             ];
         });
 
-        $prodis = TProdi::where('STATUS_AKTIF', 'AKTIF')->get();
+        $prodiQuery = TProdi::where('STATUS_AKTIF', 'AKTIF');
+        if ($authUser['role'] === 'TU Prodi') {
+            $prodiQuery->whereIn('id', $authUser['id_prodi'] ?? []);
+        }
+        $prodis = $prodiQuery->get();
         $fakultas = TFs::all();
 
         if ($request->ajax()) {
@@ -396,10 +403,22 @@ class UserController extends Controller
     public function getProdiByFs(Request $request)
     {
         $kodeFs = $request->query('kode_fs', '');
-        $prodis = TProdi::where('KODE_FS', $kodeFs)
-            ->where('STATUS_AKTIF', 'AKTIF')
-            ->orderBy('NAMA_PRODI')
+        $user = session('auth_user');
+
+        $query = TProdi::where('STATUS_AKTIF', 'AKTIF');
+
+        if ($kodeFs !== '') {
+            $query->where('KODE_FS', $kodeFs);
+        }
+
+        // TU Prodi: hanya prodi yang di-assign (bisa lebih dari satu)
+        if ($user['role'] === 'TU Prodi') {
+            $query->whereIn('id', $user['id_prodi'] ?? []);
+        }
+
+        $prodis = $query->orderBy('NAMA_PRODI')
             ->get(['id', 'KODE_PRODI', 'NAMA_PRODI']);
+
         return response()->json($prodis);
     }
 }

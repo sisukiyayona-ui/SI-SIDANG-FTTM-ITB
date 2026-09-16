@@ -220,17 +220,12 @@
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label for="f_id_prodi" class="form-label fw-semibold">Program Studi</label>
-                            @if(session('auth_user.role') === 'TU Prodi')
-                                @php $loginProdiP = \App\Models\TProdi::where('kode_prodi', session('auth_user.kode_prodi'))->first(); @endphp
-                                <input type="hidden" name="id_prodi" value="{{ $loginProdiP?->id }}">
-                                <input type="text" class="form-control" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled>
-                            @else
-                                <select name="id_prodi" id="f_id_prodi" class="form-control" required>
-                                    @foreach($prodis as $p)
-                                        <option value="{{ $p->id }}">{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
-                                    @endforeach
-                                </select>
-                            @endif
+                            @php $loginProdiP = (isset($penilaian) && is_object($penilaian) && property_exists($penilaian, 'id_prodi') && $penilaian->id_prodi) ? \App\Models\TProdi::find($penilaian->id_prodi) : null; @endphp
+                            <select name="id_prodi" id="f_id_prodi" class="form-control" required>
+                                @foreach($prodis as $p)
+                                    <option value="{{ $p->id }}" {{ $loginProdiP && (string) $loginProdiP->id === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 </div>

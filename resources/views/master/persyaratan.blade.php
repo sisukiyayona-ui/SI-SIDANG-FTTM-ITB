@@ -209,17 +209,13 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="f_id_prodi" class="form-label fw-semibold text-secondary">Program Studi</label>
-                            @php $isTuProdi = session('auth_user.role') === 'TU Prodi'; @endphp
-                            <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" {{ $isTuProdi ? 'disabled' : '' }}>
+                            <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;">
                                 @forelse($prodis as $p)
-                                    <option value="{{ $p->id }}" {{ $isTuProdi ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                                    <option value="{{ $p->id }}" {{ (string) ($userProdiId ?? '') === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                                 @empty
                                     <option value="">Prodi tidak tersedia</option>
                                 @endforelse
                             </select>
-                            @if($isTuProdi)
-                                <input type="hidden" name="id_prodi" id="f_id_prodi_hidden" value="{{ $userProdiId }}">
-                            @endif
                         </div>
                     </div>
                 </div>
@@ -347,7 +343,6 @@
         filterTahapanByStrata();
         if (isTuProdi && userProdiId) {
             document.getElementById('f_id_prodi').value = userProdiId;
-            document.getElementById('f_id_prodi_hidden').value = userProdiId;
         }
         document.getElementById('statusAktif').checked = true;
 
@@ -370,11 +365,10 @@
             document.getElementById('f_strata').value = item.strata;
             filterTahapanByStrata();
             document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
-            if (isTuProdi && userProdiId) {
-                document.getElementById('f_id_prodi').value = userProdiId;
-                document.getElementById('f_id_prodi_hidden').value = userProdiId;
-            } else if (item.id_prodi) {
+            if (item.id_prodi) {
                 document.getElementById('f_id_prodi').value = item.id_prodi;
+            } else if (isTuProdi && userProdiId) {
+                document.getElementById('f_id_prodi').value = userProdiId;
             }
             (item.status_aktif === 'AKTIF' ? document.getElementById('statusAktif') : document.getElementById('statusNonaktif')).checked = true;
 
@@ -395,27 +389,64 @@
 
     document.getElementById('mainForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        var submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; }
         fetch(this.action, {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
+            headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value, 'Accept': 'application/json' },
             body: new FormData(this)
-        }).then(() => {
-            closeForm();
-            showToast('success', 'Data persyaratan berhasil disimpan.');
-            setTimeout(() => location.reload(), 1200);
+        }).then(function(r) {
+            return r.json().then(function(data) {
+                return { ok: r.ok, data: data };
+            }).catch(function() {
+                return { ok: r.ok, data: null };
+            });
+        }).then(function(res) {
+            if (submitBtn) { submitBtn.disabled = false; }
+            if (res.ok && res.data && res.data.success) {
+                closeForm();
+                showToast('success', 'Data persyaratan berhasil disimpan.');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                var msg = res.data && res.data.message ? res.data.message : 'Data tidak valid. Periksa kembali inputan.';
+                if (res.data && res.data.errors) {
+                    msg = Object.values(res.data.errors).flat().join('\n');
+                }
+                showToast('error', msg);
+            }
+        }).catch(function(err) {
+            if (submitBtn) { submitBtn.disabled = false; }
+            showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
 
     document.getElementById('deleteForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        var submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; }
         fetch(this.action, {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
+            headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value, 'Accept': 'application/json' },
             body: new FormData(this)
-        }).then(() => {
-            bootstrap.Modal.getInstance(document.getElementById('modalDelete')).hide();
-            showToast('success', 'Data persyaratan berhasil dihapus.');
-            setTimeout(() => location.reload(), 1200);
+        }).then(function(r) {
+            return r.json().then(function(data) {
+                return { ok: r.ok, data: data };
+            }).catch(function() {
+                return { ok: r.ok, data: null };
+            });
+        }).then(function(res) {
+            if (submitBtn) { submitBtn.disabled = false; }
+            if (res.ok && res.data && res.data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalDelete')).hide();
+                showToast('success', 'Data persyaratan berhasil dihapus.');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                var msg = res.data && res.data.message ? res.data.message : 'Gagal menghapus data.';
+                showToast('error', msg);
+            }
+        }).catch(function(err) {
+            if (submitBtn) { submitBtn.disabled = false; }
+            showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
 

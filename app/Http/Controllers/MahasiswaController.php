@@ -259,14 +259,27 @@ class MahasiswaController extends Controller
             return $persyaratan->get();
         };
 
-        // Jika status_lulus mengandung 'Lulus' atau 'Layak', tampilkan data dari
-        // t_cek_persyaratan. Jika tidak, tampilkan daftar dari t_syarat_sidang.
+        // Prioritas data persyaratan:
+        // 1. Jika sudah ada data di t_cek_persyaratan (mahasiswa upload/mencentang),
+        //    tampilkan data tersebut (status ceklis & file tetap muncul), apapun
+        //    status lulus/layak-nya.
+        // 2. Jika belum ada data cek sama sekali:
+        //    - sudah lulus/layak  -> jangan tampilkan master (persyaratan baru
+        //      yang dibuat belakangan tidak muncul untuk yang sudah lulus/layak).
+        //    - belum lulus/layak  -> tampilkan daftar aktif dari t_syarat_sidang
+        //      (termasuk persyaratan baru yang dibuat di master).
         $statusLulusCek = $ajuan->status_lulus ?? '';
-        $persyaratan = collect();
-        if (stripos((string) $statusLulusCek, 'Lulus') !== false || stripos((string) $statusLulusCek, 'Layak') !== false) {
-            $persyaratan = $cekPersyaratan->isNotEmpty() ? $cekPersyaratan : collect($syaratSidangList());
-        } else {
-            $persyaratan = collect($syaratSidangList());
+        $persyaratan = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan)
+            ->get();
+
+        if ($persyaratan->isEmpty()) {
+            $isPassed = stripos((string) $statusLulusCek, 'Lulus') !== false
+                || stripos((string) $statusLulusCek, 'Layak') !== false;
+
+            if (!$isPassed) {
+                $persyaratan = collect($syaratSidangList());
+            }
         }
 
         // Table penilaian - filter by user for Pembimbing/Penguji

@@ -87,7 +87,7 @@ class PenilaianController extends Controller
         $query = TPointPenilaian::query();
 
         if ($user['role'] === 'TU Prodi') {
-            $query->where('kode_prodi', $user['kode_prodi']);
+            $query->whereIn('ID_PRODI', $user['id_prodi'] ?? []);
         }
 
         if ($s = $request->get('penilaian')) {
@@ -157,9 +157,11 @@ class PenilaianController extends Controller
         \Log::info('User session:', $user);
 
         if ($user['role'] === 'TU Prodi') {
-            $prodiId = TProdi::where('kode_prodi', $user['kode_prodi'])->value('id');
-            $kodeProdi = $user['kode_prodi'];
-            $namaProdi = $user['nama_prodi'];
+            // TU Prodi: prodi yang di-assign dari t_user_prodi saja
+            $prodi = TProdi::whereIn('id', $user['id_prodi'] ?? [])->first();
+            $prodiId = $prodi?->id ?? $request->id_prodi;
+            $kodeProdi = $prodi?->kode_prodi ?? $user['kode_prodi'];
+            $namaProdi = $prodi?->nama_prodi ?? $user['nama_prodi'];
         } else {
             $prodi = TProdi::find($request->id_prodi);
             if (!$prodi) {
@@ -205,9 +207,11 @@ class PenilaianController extends Controller
             $user = session('auth_user');
 
             if ($user['role'] === 'TU Prodi') {
-                $prodiId = TProdi::where('kode_prodi', $user['kode_prodi'])->value('id');
-                $kodeProdi = $user['kode_prodi'];
-                $namaProdi = $user['nama_prodi'];
+                // TU Prodi: prodi yang di-assign dari t_user_prodi saja
+                $prodi = TProdi::whereIn('id', $user['id_prodi'] ?? [])->first();
+                $prodiId = $prodi?->id ?? $request->id_prodi;
+                $kodeProdi = $prodi?->kode_prodi ?? $user['kode_prodi'];
+                $namaProdi = $prodi?->nama_prodi ?? $user['nama_prodi'];
             } else {
                 $prodi = TProdi::find($request->id_prodi);
                 $prodiId = $prodi->id;
@@ -250,8 +254,11 @@ class PenilaianController extends Controller
         $user = session('auth_user');
         $query = TProdi::where('status_aktif', 'AKTIF');
 
-        // Ambil prodi sesuai fakultas dari akun yang login
-        if (!empty($user['kode_fs'])) {
+        // TU Prodi: hanya prodi yang di-assign dari t_user_prodi
+        if ($user['role'] === 'TU Prodi') {
+            $query->whereIn('id', $user['id_prodi'] ?? []);
+        } elseif (!empty($user['kode_fs'])) {
+            // Selain TU Prodi: sesuai fakultas dari akun yang login
             $query->where('kode_fs', $user['kode_fs']);
         }
 

@@ -304,11 +304,17 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Program Studi <span class="text-danger">*</span></label>
                         @if(session('auth_user.role') === 'TU Prodi')
-                            @php
-                                $loginProdi = \App\Models\TProdi::where('kode_prodi', session('auth_user.kode_prodi'))->first();
-                            @endphp
-                            <input type="hidden" name="id_prodi[]" value="{{ $loginProdi?->id }}">
-                            <input type="text" class="form-control" value="{{ session('auth_user.kode_prodi') }} - {{ session('auth_user.nama_prodi') }}" disabled style="background-color:#e9ecef;">
+                            <div id="prodiListTu" class="border rounded p-2" style="max-height: 160px; overflow-y: auto; background: #fff;">
+                                @forelse($prodis as $p)
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input prodi-check" name="id_prodi[]" id="tu_prodi_{{ $p->id }}" value="{{ $p->id }}">
+                                        <label class="form-check-label" for="tu_prodi_{{ $p->id }}">{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</label>
+                                    </div>
+                                @empty
+                                    <small class="text-muted">Belum ada program studi untuk akun Anda.</small>
+                                @endforelse
+                            </div>
+                            <small class="text-muted">Centang satu atau lebih program studi. Format: kode - nama prodi.</small>
                         @else
                             <div id="prodiList" class="border rounded p-2" style="max-height: 160px; overflow-y: auto; background: #fff;">
                                 <small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>
@@ -727,7 +733,11 @@
             document.getElementById('f_status_wda').value = item.status_wda ?? '';
             document.getElementById('f_status_kaprodi').value = item.status_kaprodi ?? '';
 
-            @if(session('auth_user.role') !== 'TU Prodi')
+            @if(session('auth_user.role') === 'TU Prodi')
+            document.querySelectorAll('#prodiListTu .prodi-check').forEach(function(cb) {
+                cb.checked = (item.prodi_ids || []).indexOf(String(cb.value)) !== -1;
+            });
+            @else
             document.getElementById('f_kode_fs').value = item.kode_fs ?? '';
             document.getElementById('f_nama_fs').value = item.nama_fs ?? '';
             fetchProdiByFs(item.kode_fs, item.prodi_ids || [], false);

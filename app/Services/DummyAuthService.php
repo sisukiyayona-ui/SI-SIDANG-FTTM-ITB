@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\TUser;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class DummyAuthService
@@ -125,6 +126,14 @@ class DummyAuthService
         $roles = $user->roles();
         $defaultRole = $user->defaultRole() ?? $user->JENIS_USER;
 
+        // ID prodi dari t_user_prodi (bisa lebih dari satu per user, mis. TU Prodi)
+        $idProdi = \Illuminate\Support\Facades\DB::table('t_user_prodi')
+            ->where('ID_USER', $user->id)
+            ->pluck('ID_PRODI')
+            ->map(fn ($v) => (int) $v)
+            ->values()
+            ->all();
+
         return [
             'id' => $user->id,
             'nama_lengkap' => $nama,
@@ -134,6 +143,7 @@ class DummyAuthService
             'role' => $defaultRole,
             'roles' => $roles,
             'strata' => $user->STRATA,
+            'id_prodi' => $idProdi,
             'kode_prodi' => $user->KODE_PRODI,
             'nama_prodi' => $user->NAMA_PRODI,
             'kode_fs' => $user->KODE_FS,

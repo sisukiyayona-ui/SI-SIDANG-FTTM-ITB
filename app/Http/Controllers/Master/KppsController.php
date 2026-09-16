@@ -16,8 +16,11 @@ class KppsController extends Controller
         $authUser = session('auth_user');
         $query = TKpps::query();
 
-        if ($authUser['role'] === 'TU Prodi' && $authUser['kode_prodi']) {
-            $query->where('KODE_PRODI', $authUser['kode_prodi']);
+        if ($authUser['role'] === 'TU Prodi') {
+            $kodeProdis = TProdi::whereIn('id', $authUser['id_prodi'] ?? [])->pluck('KODE_PRODI')->all();
+            if (!empty($kodeProdis)) {
+                $query->whereIn('KODE_PRODI', $kodeProdis);
+            }
         }
 
         if ($searchNama = $request->get('nama')) {
@@ -34,7 +37,13 @@ class KppsController extends Controller
         }
 
         $kpps = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
-        $prodis = TProdi::where('STATUS_AKTIF', 'AKTIF')->get();
+
+        // Daftar prodi: TU Prodi hanya melihat prodi yang di-assign
+        $prodiQuery = TProdi::where('STATUS_AKTIF', 'AKTIF');
+        if ($authUser['role'] === 'TU Prodi') {
+            $prodiQuery->whereIn('id', $authUser['id_prodi'] ?? []);
+        }
+        $prodis = $prodiQuery->get();
         $fakultas = TFs::all();
         $users = TUser::where('STATUS_AKTIF', 'AKTIF')
             ->where('STATUS_PEGAWAI', 'Dosen')
@@ -178,12 +187,13 @@ class KppsController extends Controller
     {
         $authUser = session('auth_user');
 
-        if ($authUser && ($authUser['role'] ?? null) === 'TU Prodi') {
+        if (($authUser['role'] ?? '') === 'TU Prodi') {
+            // Hanya isi default bila form belum mengirim nilai
             $request->merge([
-                'kode_prodi' => $authUser['kode_prodi'] ?? null,
-                'nama_prodi' => $authUser['nama_prodi'] ?? null,
-                'kode_fs'    => $authUser['kode_fs'] ?? null,
-                'nama_fs'    => $authUser['nama_fs'] ?? null,
+                'kode_prodi' => $request->input('kode_prodi') ?: ($authUser['kode_prodi'] ?? null),
+                'nama_prodi' => $request->input('nama_prodi') ?: ($authUser['nama_prodi'] ?? null),
+                'kode_fs'    => $request->input('kode_fs') ?: ($authUser['kode_fs'] ?? null),
+                'nama_fs'    => $request->input('nama_fs') ?: ($authUser['nama_fs'] ?? null),
             ]);
         }
     }

@@ -200,18 +200,18 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Program Studi</label>
                     @if($isTuProdiKpps)
-                        <input type="hidden" name="kode_prodi" value="{{ $authUserKpps['kode_prodi'] }}">
-                        <input type="hidden" name="nama_prodi" value="{{ $authUserKpps['nama_prodi'] }}">
-                    @endif
-                    <select name="kode_prodi" id="f_kode_prodi" class="form-control" {{ $isTuProdiKpps ? 'disabled' : '' }}>
-                        <option value="">-- Pilih Prodi --</option>
-                        @if($isTuProdiKpps)
-                            <option value="{{ $authUserKpps['kode_prodi'] }}" data-nama="{{ $authUserKpps['nama_prodi'] }}" selected>{{ $authUserKpps['nama_prodi'] }}</option>
-                        @endif
-                    </select>
-                    @if($isTuProdiKpps)
-                        <small class="text-muted">Mengikuti prodi user login ({{ $authUserKpps['nama_prodi'] }})</small>
+                        {{-- TU Prodi: pilihan prodi dari t_user_prodi (bisa lebih dari satu) --}}
+                        <select name="kode_prodi" id="f_kode_prodi" class="form-control">
+                            <option value="">-- Pilih Prodi --</option>
+                            @foreach($prodis as $p)
+                                <option value="{{ $p->KODE_PRODI }}" data-nama="{{ $p->NAMA_PRODI }}" {{ request('kode_prodi') == $p->KODE_PRODI ? 'selected' : '' }}>{{ $p->KODE_PRODI }} - {{ $p->NAMA_PRODI }}</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Pilih program studi sesuai akses akun TU Prodi.</small>
                     @else
+                        <select name="kode_prodi" id="f_kode_prodi" class="form-control">
+                            <option value="">-- Pilih Prodi --</option>
+                        </select>
                         <small class="text-muted">Pilih fakultas terlebih dahulu agar daftar prodi muncul.</small>
                     @endif
                 </div>
@@ -387,7 +387,7 @@
 @if($isTuProdiKpps)
         document.getElementById('f_kode_fs').value = '{{ $authUserKpps['kode_fs'] }}';
         document.getElementById('f_nama_fs').value = @js($authUserKpps['nama_fs']);
-        document.getElementById('f_kode_prodi').value = '{{ $authUserKpps['kode_prodi'] }}';
+        document.getElementById('f_kode_prodi').value = '';
 @else
         document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_nama_fs').value = 'FTTM';
@@ -420,11 +420,11 @@
             document.getElementById('f_status_tim').value   = item.status_tim ?? '';
             document.getElementById('f_kode_fs').value      = item.kode_fs ?? '';
             document.getElementById('f_nama_fs').value      = item.nama_fs ?? '';
-            if (document.getElementById('f_kode_fs').disabled) {
+            @if($isTuProdiKpps)
                 document.getElementById('f_kode_prodi').value = item.kode_prodi ?? '';
-            } else {
+@else
                 loadProdiByFs(item.kode_fs ?? '', item.kode_prodi ?? '');
-            }
+@endif
 
             var nipEl = document.getElementById('f_nip');
             if (item.nip) {

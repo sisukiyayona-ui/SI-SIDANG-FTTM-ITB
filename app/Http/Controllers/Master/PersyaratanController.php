@@ -81,7 +81,7 @@ class PersyaratanController extends Controller
         $query = TSyaratSidang::query();
 
         if ($user['role'] === 'TU Prodi') {
-            $query->where('kode_prodi', $user['kode_prodi']);
+            $query->whereIn('ID_PRODI', $user['id_prodi'] ?? []);
         }
 
         if ($s = $request->get('nama_persyaratan')) {
@@ -133,21 +133,16 @@ class PersyaratanController extends Controller
 
         $query = TProdi::where('status_aktif', 'AKTIF');
 
-        // Ambil prodi sesuai fakultas dari akun yang login
-        if (!empty($user['kode_fs'])) {
+        // TU Prodi: hanya prodi yang di-assign dari t_user_prodi
+        if ($user['role'] === 'TU Prodi') {
+            $query->whereIn('id', $user['id_prodi'] ?? []);
+        } elseif (!empty($user['kode_fs'])) {
+            // Selain TU Prodi: sesuai fakultas dari akun yang login
             $query->where('kode_fs', $user['kode_fs']);
         }
 
-        if ($user['role'] === 'TU Prodi' && !empty($user['kode_prodi'])) {
-            $query->where('kode_prodi', $user['kode_prodi']);
-            $userProdiId = $query->value('id');
-        }
-
         $prodis = $query->get();
-
-        if ($userProdiId === null) {
-            $userProdiId = $prodis->first()?->id;
-        }
+        $userProdiId = $prodis->first()?->id;
 
         return [$prodis, $userProdiId];
     }
@@ -160,6 +155,14 @@ class PersyaratanController extends Controller
         $prodiId = request('id_prodi');
         if ($prodiId) {
             $prodi = TProdi::find((int) $prodiId);
+            if ($prodi) {
+                return [$prodi->id, $prodi->kode_prodi, $prodi->nama_prodi];
+            }
+        }
+
+        // TU Prodi: prodi yang di-assign dari t_user_prodi saja
+        if (($user['role'] ?? '') === 'TU Prodi') {
+            $prodi = TProdi::whereIn('id', $user['id_prodi'] ?? [])->first();
             if ($prodi) {
                 return [$prodi->id, $prodi->kode_prodi, $prodi->nama_prodi];
             }
