@@ -687,6 +687,8 @@ class PrepareTemplate extends Command
      *   - baris "Tidak Lulus Sidang"       -> ${kotak_tidak_lulus}
      * Placeholder ${kotak_lulus} yang terpecah antar-run (${ ... kotak_lulus
      * ... } karena <w:proofErr> di tengah) dirapikan menjadi satu run.
+     * Titik-titik pada baris "dan Rekomendasi Yudisium: …………" diganti
+     * ${rekomendasi_yudisium} agar diisi dari DB saat cetak.
      */
     private function replaceBaSidangLulusBox(string $xml): string
     {
@@ -722,6 +724,28 @@ class PrepareTemplate extends Command
             );
         }
 
+        // Ganti titik-titik pada baris "dan Rekomendasi Yudisium: …………"
+        // menjadi placeholder ${rekomendasi_yudisium}, agar saat cetak diisi
+        // dari kolom REKOMENDASI_YUDISIUM di t_ajuan_sidang. Dots bisa berupa
+        // U+002E (.) berulang atau U+2026 (…) berulang di akhir w:t.
+        $xml = preg_replace_callback(
+            '/<w:p\b[^>]*>.*?<\/w:p>/s',
+            function ($m) {
+                $p = $m[0];
+                if (strpos($p, 'Rekomendasi Yudisium') === false) {
+                    return $p;
+                }
+                return preg_replace(
+                    '/(<w:t[^>]*>)([^<]*?)[\x{002E}\x{2026}]{3,}(<\/w:t>)/u',
+                    '$1$2${rekomendasi_yudisium}$3',
+                    $p,
+                    1
+                );
+            },
+            $xml
+        );
+
+        // Perbarui komentar fungsi agar mencakup placeholder rekomendasi.
         return $xml;
     }
 

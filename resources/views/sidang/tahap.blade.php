@@ -1255,6 +1255,14 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row align-items-center mb-3 px-1">
+                                            <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Rekomendasi Yudisium</label>
+                                            <div class="col-sm-8 px-2">
+                                                <input type="text" class="form-control form-control-sm border-dark rounded-0" name="rekomendasi_yudisium" id="tuRek" value="{{ $tuRek ?? '' }}" placeholder="Isi rekomendasi" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="mt-4 d-flex justify-content-center align-items-center" style="gap: 10px;">
                                     <button type="button" class="btn btn-danger px-4 py-1" style="font-size: 14px; border-radius: 4px; color: #fff;" onclick="closeAkademikForm()">Batal</button>
