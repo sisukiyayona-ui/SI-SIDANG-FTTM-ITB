@@ -919,23 +919,47 @@
                         $appAjuan = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
                             ->where('tahapan_sidang', $tahapan)
                             ->first();
-                        $kppsList = \Illuminate\Support\Facades\DB::table('t_kpps as k')
-                            ->leftJoin('t_app_ajuan_sidang as app', function($join) use ($appAjuan) {
-                                $join->on('k.ID_USER', '=', 'app.ID_USER')
-                                     ->where('app.ID_AJUAN_SIDANG', '=', $appAjuan ? $appAjuan->id : 0);
-                            })
-                            ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
-                            ->select(
-                                'k.NIP as NIP',
-                                'k.NAMA as NAMA',
-                                'k.STATUS_TIM as STATUS_TIM',
-                                'app.STATUS_APPROVE as STATUS_APPROVE',
-                                'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
-                                \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
-                            )
-                            ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
-                            ->orderBy('k.NAMA')
-                            ->get();
+                        $votingStatusLulus = $appAjuan->status_lulus ?? ($ajuan->status_lulus ?? '');
+                        $isVotingLulus = stripos((string) $votingStatusLulus, 'Lulus') !== false
+                            || stripos((string) $votingStatusLulus, 'Layak') !== false;
+                        if ($isVotingLulus) {
+                            // Jika status lulus 'Lulus'/'Layak': tampilkan hasil voting dari t_app_ajuan_sidang
+                            $kppsList = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
+                                ->leftJoin('t_user as u', 'app.ID_USER', '=', 'u.ID')
+                                ->leftJoin('t_kpps as k', 'k.ID_USER', '=', 'app.ID_USER')
+                                ->select(
+                                    \Illuminate\Support\Facades\DB::raw('COALESCE(k.NIP, u.NIP_NIM) as NIP'),
+                                    \Illuminate\Support\Facades\DB::raw('COALESCE(k.NAMA, u.NAMA_LENGKAP) as NAMA'),
+                                    'k.STATUS_TIM as STATUS_TIM',
+                                    'app.STATUS_APPROVE as STATUS_APPROVE',
+                                    'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
+                                    \Illuminate\Support\Facades\DB::raw("'Sudah Diajukan' as STATUS_AJUAN")
+                                )
+                                ->where('app.ID_AJUAN_SIDANG', $appAjuan ? $appAjuan->id : 0)
+                                ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+                                ->orderBy('NAMA')
+                                ->get();
+                        } else {
+                            // Jika belum lulus: tampilkan daftar anggota KPPS aktif, join status voting
+                            $kppsList = \Illuminate\Support\Facades\DB::table('t_kpps as k')
+                                ->leftJoin('t_app_ajuan_sidang as app', function($join) use ($appAjuan) {
+                                    $join->on('k.ID_USER', '=', 'app.ID_USER')
+                                         ->where('app.ID_AJUAN_SIDANG', '=', $appAjuan ? $appAjuan->id : 0);
+                                })
+                                ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
+                                ->select(
+                                    'k.NIP as NIP',
+                                    'k.NAMA as NAMA',
+                                    'k.STATUS_TIM as STATUS_TIM',
+                                    'app.STATUS_APPROVE as STATUS_APPROVE',
+                                    'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
+                                    \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
+                                )
+                                ->where('k.STATUS_AKTIF', 'AKTIF')
+                                ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+                                ->orderBy('k.NAMA')
+                                ->get();
+                        }
                     @endphp
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="text-muted font-weight-bold" style="font-size: 14px;">

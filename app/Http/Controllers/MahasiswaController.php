@@ -246,9 +246,8 @@ class MahasiswaController extends Controller
             ->whereIn('ID_SYARAT_SIDANG', $syaratIdsForProdi)
             ->get();
 
-        // Jika data t_cek_persyaratan kosong, ambil dari t_syarat_sidang
-        $persyaratan = collect();
-        if ($cekPersyaratan->isEmpty()) {
+        // Data kelengkapan dari t_syarat_sidang (master daftar persyaratan aktif prodi)
+        $syaratSidangList = function () use ($prodiId, $tahapan) {
             $persyaratan = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
                 ->where('STATUS_AKTIF', 'AKTIF');
 
@@ -257,9 +256,17 @@ class MahasiswaController extends Controller
                 $persyaratan->where('ID_PRODI', $prodiId);
             }
 
-            $persyaratan = $persyaratan->get();
+            return $persyaratan->get();
+        };
+
+        // Jika status_lulus mengandung 'Lulus' atau 'Layak', tampilkan data dari
+        // t_cek_persyaratan. Jika tidak, tampilkan daftar dari t_syarat_sidang.
+        $statusLulusCek = $ajuan->status_lulus ?? '';
+        $persyaratan = collect();
+        if (stripos((string) $statusLulusCek, 'Lulus') !== false || stripos((string) $statusLulusCek, 'Layak') !== false) {
+            $persyaratan = $cekPersyaratan->isNotEmpty() ? $cekPersyaratan : collect($syaratSidangList());
         } else {
-            $persyaratan = $cekPersyaratan;
+            $persyaratan = collect($syaratSidangList());
         }
 
         // Table penilaian - filter by user for Pembimbing/Penguji

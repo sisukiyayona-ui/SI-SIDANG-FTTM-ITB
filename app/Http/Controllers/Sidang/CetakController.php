@@ -2075,7 +2075,10 @@ class CetakController extends Controller
 
         // Rekomendasi Yudisium: isi titik-titik pada baris "dan Rekomendasi
         // Yudisium: …………" dengan nilai REKOMENDASI_YUDISIUM dari t_ajuan_sidang.
-        $xml = str_replace('${rekomendasi_yudisium}', $esc($data['rekomendasi_yudisium'] ?? ''), $xml);
+        // Bila kosong, titik-titik asli (… … .) dipertahankan.
+        $rekomendasiValue = trim((string) ($data['rekomendasi_yudisium'] ?? ''));
+        $rekomendasiFill  = $rekomendasiValue !== '' ? $rekomendasiValue : '…………………….';
+        $xml = str_replace('${rekomendasi_yudisium}', $esc($rekomendasiFill), $xml);
 
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
