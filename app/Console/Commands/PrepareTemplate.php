@@ -114,13 +114,14 @@ class PrepareTemplate extends Command
                     '$(nama ketua sidang)' => '${nama_ketua_sidang}',
                     'Nilai rata2' => '${nilai_rata2}',
 
-                    // Nama penguji di tabel "Tim Penguji" (mirip SK) jadi placeholder per-baris,
-                    // diisi via setValue saat cetak. Decode IV→III→II→I agar "I" tidak
-                    // ikut memakan huruf pertama "II"/"III"/"IV".
-                    '(nama penguji IV)'  => '${nama_penguji_iv}',
-                    '(nama penguji III)' => '${nama_penguji_iii}',
-                    '(nama penguji II)'  => '${nama_penguji_ii}',
-                    '(nama penguji I)'   => '${nama_penguji_i}',
+                    // Nama tim penguji/penilai di tabel "Tim Penguji" — pola peran spesifik
+                    // (baris 1-3 = pembimbing, baris 4-6 = penguji) seperti pada BA SK.
+                    '$(Nama Ketua Pembimbing)'  => '${nama_ketua_pembimbing}',
+                    '$(Nama Ko-Pembimbing 1)'   => '${nama_pembimbing_i}',
+                    '$(Nama Ko-Pembimbing 2)'   => '${nama_pembimbing_ii}',
+                    // Penguji baris 4-6 menggunakan placeholder ${nama_penguji_i} berulang;
+                    // diisi per-kemunculan saat cetak (fillSidangAkhirXml).
+                    '$(Nama Penguji)'           => '${nama_penguji_i}',
 
                     // Placeholder tanda tangan di baris pertama ("$ Tanda Tangan") — ambil ttd dari DB.
                     // Baris "Tanda Tangan dan Nama Jelas" TETAP sebagai teks (tidak diganti).
@@ -128,6 +129,7 @@ class PrepareTemplate extends Command
                 ],
                 'distinctBaSidangSignatures' => true,
                 'baSidangRowSignatures'      => true,
+                'baSidangCapaian'            => true,
             ],
             [
                 'src' => base_path('template/SIDANG/form penilaian sidang akhir.docx'),
@@ -159,10 +161,15 @@ class PrepareTemplate extends Command
                     '$(tgl sidang)' => '${tgl_sidang}',
                     '$(waktu)' => '${waktu}',
                     '$(Nilai rata2)' => '${nilai_rata2}',
-                    '$(Nama Penguji I)' => '${nama_penguji_i}',
-                    '$(Nama Penguji II)' => '${nama_penguji_ii}',
-                    '$(Nama Penguji III)' => '${nama_penguji_iii}',
+                    // Updated role‑specific placeholders
+                    '$(Nama Ketua Pembimbing)'   => '${nama_ketua_pembimbing}',
+                    '$(Nama Ko-Pembimbing 1)'    => '${nama_pembimbing_i}',
+                    '$(Nama Ko-Pembimbing 2)'    => '${nama_pembimbing_ii}',
+                    // Examiner placeholders (two examiners)
+                    '$(Nama Penguji)'           => '${nama_penguji_i}',
+                    '$(Nama Penguji 2)'         => '${nama_penguji_ii}',
                     '$(Nama kaprodi)' => '${nama_kaprodi}',
+                    '$(nip kaprodi)' => '${nip_kaprodi}',
                     '$(nip kaprodi)' => '${nip_kaprodi}',
                 ],
                 'replaceSignatureDots' => true,
@@ -201,27 +208,22 @@ class PrepareTemplate extends Command
                     '$(judul)' => '${judul}',
                     '$(nama mhs)' => '${nama_mhs}',
                     '$(nim)' => '${nim}',
-                    '$(nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
-                    '$(nama pembimbing I)' => '${nama_pembimbing_i}',
-                    '$(nama pembimbing II)' => '${nama_pembimbing_ii}',
-                    '$(Nilai rata2)' => '${nilai_rata2}',
-                    '$(Nama kaprodi)' => '${nama_kaprodi}',
-                    '$(nip kaprodi)' => '${nip_kaprodi}',
-                    '$(tgl sidang)' => '${tgl_sidang}',
-                    '$(nama ketua sidang)' => '${nama_ketua_sidang}',
-                    '$(nip ketua sidang)' => '${nip_ketua_sidang}',
-                    // Placeholder nama penguji di tabel "Tim Penguji/Penilai"
-                    // PENTING: decode dari yang PALING PANJANG (IV→III→II→I) dulu,
-                    // karena pola "Nama penguji I" akan ikut memakan "I" pertama dari
-                    // "II"/"III" (fuzzy match), menghasilkan ${nama_penguji_i}I yang salah.
-                    '${Nama penguji IV}'  => '${nama_penguji_iv}',
-                    '${Nama penguji III}' => '${nama_penguji_iii}',
-                    '${Nama penguji II}'  => '${nama_penguji_ii}',
-                    '${Nama penguji I}'   => '${nama_penguji_i}',
-                    'Nama penguji IV'  => '${nama_penguji_iv}',
-                    'Nama penguji III' => '${nama_penguji_iii}',
-                    'Nama penguji II'  => '${nama_penguji_ii}',
-                    'Nama penguji I'   => '${nama_penguji_i}',
+                    // Role‑specific placeholders for Ketua Pembimbing and Ko‑Pembimbing (including leading spaces as in the source docx)
+                    // Role‑specific placeholders for Ketua Pembimbing and Ko‑Pembimbing (including leading spaces as in the source docx)
+                    '$(nama ketua pembimbing)'   => '${nama_ketua_pembimbing}',
+                    '$( Ketua Pembimbing)'       => '${nama_ketua_pembimbing}',
+                    '$(nama pembimbing I)'       => '${nama_pembimbing_i}',
+                    '$( Nama Ko-Pembimbing 1)'   => '${nama_pembimbing_i}',
+                    '$(nama pembimbing II)'      => '${nama_pembimbing_ii}',
+                    '$( Nama Ko-Pembimbing 2)'   => '${nama_pembimbing_ii}',
+                    // Examiner placeholders
+                    '$(Nama Penguji)'            => '${nama_penguji_i}',
+                    '$(Nama Penguji 2)'          => '${nama_penguji_ii}',
+                    '$(Nama kaprodi)'            => '${nama_kaprodi}',
+                    '$(nip kaprodi)'             => '${nip_kaprodi}',
+                    '$(tgl sidang)'              => '${tgl_sidang}',
+                    '$(nama ketua sidang)'       => '${nama_ketua_sidang}',
+                    '$(nip ketua sidang)'        => '${nip_ketua_sidang}',
                 ],
                 'replaceSignatureDots' => true,
                 'fixSk4PengujiRows'     => true,
@@ -316,6 +318,14 @@ class PrepareTemplate extends Command
             // tidak ikut kehitung sebagai baris tabel.
             if (!empty($template['baSidangRowSignatures'])) {
                 $xml = $this->replaceBaSidangRowSignatures($xml);
+            }
+
+            // Khusus BA Sidang Akhir: konversi strip (--- / - --) pada 4 baris Capaian
+            // Akademik (IP, Q1, bereputasi-1, bereputasi-2) menjadi placeholder
+            // ${ip}/${jml_jurnal_q1}/${jml_jurnal_bereputasi1}/${jml_jurnal_bereputasi2},
+            // agar diisi dari t_ajuan_sidang saat cetak.
+            if (!empty($template['baSidangCapaian'])) {
+                $xml = $this->replaceBaSidangCapaian($xml);
             }
 
             // Khusus SK-4: baris 4-5 tabel "Tim Penguji/Penilai" diberi label
@@ -605,6 +615,58 @@ class PrepareTemplate extends Command
     }
 
     /**
+     * Khusus BA Sidang Akhir: konversi strip pada 4 baris "Capaian akademik"
+     * (IP, jurnal Q1, bereputasi-1, bereputasi-2) menjadi placeholder per baris.
+     * Strip bisa terpecah antar-run (mis. "-" + "--"), sehingga digabung:
+     * run strip pertama dalam satu grup diisi placeholder, run lanjutan dikosongkan.
+     */
+    private function replaceBaSidangCapaian(string $xml): string
+    {
+        $capStart = strpos($xml, 'Capaian');
+        if ($capStart === false) {
+            return $xml;
+        }
+        $capEnd = strpos($xml, 'Penguji/', $capStart);
+        if ($capEnd === false) {
+            $capEnd = strlen($xml);
+        }
+
+        $section = substr($xml, $capStart, $capEnd - $capStart);
+
+        $placeholders = [
+            '${ip}',
+            '${jml_jurnal_q1}',
+            '${jml_jurnal_bereputasi1}',
+            '${jml_jurnal_bereputasi2}',
+        ];
+        $idx = 0;
+        $inGroup = false;
+
+        $section = preg_replace_callback(
+            '/(<w:t[^>]*>)([^<]*)(<\/w:t>)/u',
+            function ($m) use ($placeholders, &$idx, &$inGroup) {
+                $content = $m[2];
+                $isDash = preg_match('/^\s*[\x{002D}]+\s*$/u', $content);
+                if (!$isDash) {
+                    $inGroup = false;
+                    return $m[0];
+                }
+                if ($inGroup) {
+                    return $m[1] . '' . $m[3];
+                }
+                $inGroup = true;
+                if ($idx < count($placeholders)) {
+                    return $m[1] . $placeholders[$idx++] . $m[3];
+                }
+                return $m[0];
+            },
+            $section
+        );
+
+        return substr_replace($xml, $section, $capStart, $capEnd - $capStart);
+    }
+
+    /**
      * Khusus BA SK IV: rapikan baris 4-5 tabel "Tim Penguji/Penilai".
      *  - baris ke-4 label "(Penguji)" -> "(Penguji-1)"
      *  - baris ke-5 label "(Penguji)" -> "(Penguji-2)" dan sel tanda tangan dikosongkan
@@ -612,37 +674,9 @@ class PrepareTemplate extends Command
      */
     private function fixSk4PengujiRows(string $xml): string
     {
-        // Label role baris penguji memakai satu run <w:t>(Penguji)</w:t>.
-        $label = '<w:t>(Penguji)</w:t>';
-        $label1 = '<w:t>(Penguji-1)</w:t>';
-        $label2 = '<w:t>(Penguji-2)</w:t>';
-        $count = substr_count($xml, $label);
-
-        // Ganti kemunculan ke-1 (baris 4) & ke-2 (baris 5) secara berurutan.
-        if ($count >= 1) {
-            $pos1 = strpos($xml, $label);
-            if ($pos1 !== false) {
-                $xml = substr_replace($xml, $label1, $pos1, strlen($label));
-            }
-        }
-        if ($count >= 2) {
-            $pos2 = strpos($xml, $label);
-            if ($pos2 !== false) {
-                $xml = substr_replace($xml, $label2, $pos2, strlen($label));
-            }
-        }
-
-        // Kosongkan sel tanda tangan (${signature}) yang muncul SETELAH "(Penguji-2)".
-        $anchor = strpos($xml, $label2);
-        if ($anchor !== false) {
-            $after = substr($xml, $anchor);
-            if (preg_match('/<w:t>\$\{signature\}<\/w:t>/', $after)) {
-                $xml = preg_replace('/<w:t>\$\{signature\}<\/w:t>/', '<w:t></w:t>', $after, 1)
-                     ? substr($xml, 0, $anchor) . preg_replace('/<w:t>\$\{signature\}<\/w:t>/', '<w:t></w:t>', $after, 1)
-                     : $xml;
-            }
-        }
-
+        // Previously this function renamed (Penguji) to (Penguji-1)/(Penguji-2) and cleared the signature for the second row.
+        // The current requirement is to keep the original labels and retain the signature placeholders for both examiner rows.
+        // Therefore, we simply return the XML unchanged.
         return $xml;
     }
 }

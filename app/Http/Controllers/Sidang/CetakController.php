@@ -194,10 +194,12 @@ class CetakController extends Controller
             $namaJudul = $ajuan->JUDUL ?? $judul->JUDUL ?? '';
 
             $tp->setValue('nama_mhs',              $ajuan->NAMA_MHS ?? '-');
-            $tp->setValue('nim',                   $ajuan->NIM      ?? '-');
+            $tp->setValue('nim',                   $ajuan->NIM ?? '-');
             $tp->setValue('nama_ketua_pembimbing', $ketuaPembimbing?->NAMA ?? '-');
             $tp->setValue('nama_pembimbing_i',     $anggotaPembimbing->get(0)?->NAMA ?? '-');
             $tp->setValue('nama_pembimbing_ii',    $anggotaPembimbing->get(1)?->NAMA ?? '-');
+            $tp->setValue('nama_penguji_i',        $pengujiNames[0] ?? '-');
+            $tp->setValue('nama_penguji_ii',       $pengujiNames[1] ?? '-');
             $tp->setValue('nama_penilai',          $penilaiNama);
             $tp->setValue('tgl_create_penilaian',  $tglCreate);
 
@@ -225,9 +227,7 @@ class CetakController extends Controller
 
         // Simpan DOCX sementara
         $filename = 'Form_Penilaian_'
-            . str_replace(' ', '_', $tahapan) . '_'
-            . ($noForm ? str_replace([' ', '.'], '_', $noForm) . '_' : '')
-            . $idJudul . '_' . $idTimSidang . '_' . time() . '.docx';
+            . str_replace(' ', '_', $tahapan) . '_' . ($noForm ? str_replace([' ', '.'], '_', $noForm) . '_' : '') . $idJudul . '_' . $idTimSidang . '_' . time() . '.docx';
         $docxPath = storage_path('app/uploads/' . $filename);
 
         if (!is_dir(dirname($docxPath))) {
@@ -240,6 +240,24 @@ class CetakController extends Controller
         if ($isSk) {
             // Template SK: isi nomor form, heading romawi, dan expand baris detail penilaian
             $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $penilaianRows->values()->toArray(), $rataNilai);
+            // Embed signatures for each role in the table (ketua, pembimbing, penguji)
+            $roleSignatures = [];
+            // Ketua Pembimbing
+            $roleSignatures[] = $this->signatureBinaryOfUser($ketuaPembimbing?->id_user_penilai ?? null);
+            // Ko‑Pembimbing I
+            $roleSignatures[] = $this->signatureBinaryOfUser($anggotaPembimbing->get(0)?->id_user_penilai ?? null);
+            // Ko‑Pembimbing II
+            $roleSignatures[] = $this->signatureBinaryOfUser($anggotaPembimbing->get(1)?->id_user_penilai ?? null);
+            // Penguji (if any)
+            $pengujiTim = $allTimSidang->filter(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji'));
+            foreach ($pengujiTim as $pt) {
+                $roleSignatures[] = $this->signatureBinaryOfUser($pt->id_user_penilai ?? null);
+            }
+            $this->embedAllSkSignatures($docxPath, $roleSignatures);
+            // Footer signatures: Kaprodi and Ketua Sidang
+            $kaprodiId = $kaprodi->id ?? null;
+            $ketuaSidangId = $timSidangRecord?->id_user_penilai ?? null;
+            $this->fillSk4FooterSignatures($docxPath, $kaprodiId, $ketuaSidangId);
         } elseif ($isSidangDoktor) {
             // Template form penilaian sidang doktor: isi baris detail penilaian (5 baris) + rata-rata
             $this->postProcessSidangForm($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
@@ -484,19 +502,19 @@ class CetakController extends Controller
         try {
             $signature = $idUser ? TUser::where('id', (int) $idUser)->value('SIGNATURE') : null;
             if (empty($signature)) {
-                $this->removePlaceholderText($docxPath, $placeholder);
+                $this->removePlaceholderText($docxPath, $placeholder, '.............');
                 return;
             }
 
             $binary = base64_decode($signature, true);
             if ($binary === false || strlen($binary) < 100) {
-                $this->removePlaceholderText($docxPath, $placeholder);
+                $this->removePlaceholderText($docxPath, $placeholder, '.............');
                 return;
             }
 
             $validImage = (substr($binary, 0, 4) === "\x89PNG" || substr($binary, 0, 3) === "\xFF\xD8\xFF");
             if (!$validImage) {
-                $this->removePlaceholderText($docxPath, $placeholder);
+                $this->removePlaceholderText($docxPath, $placeholder, '.............');
                 return;
             }
 
@@ -532,12 +550,13 @@ class CetakController extends Controller
     /**
      * Hapus teks placeholder ${xxx} yang dibiarkan literal (mis. saat tidak ada tanda tangan),
      * agar tidak tampak sebagai `${signature}` mentah di dokumen hasil cetak.
+     * $ganti: teks pengganti (default kosong); dipakai untuk menampilkan titik-titik.
      */
-    private function removePlaceholderText(string $docxPath, string $placeholder): void
+    private function removePlaceholderText(string $docxPath, string $placeholder, string $ganti = ''): void
     {
         try {
             $tp = new \PhpOffice\PhpWord\TemplateProcessor($docxPath);
-            $tp->setValue($placeholder, '');
+            $tp->setValue($placeholder, $ganti);
             $tp->saveAs($docxPath);
         } catch (\Exception $e) {
             \Log::warning('Gagal hapus placeholder ' . $placeholder . ': ' . $e->getMessage());
@@ -597,7 +616,7 @@ class CetakController extends Controller
             for ($i = 1; $i <= $n; $i++) {
                 $binary = $roleSignatures[$i - 1] ?? null;
                 if (empty($binary)) {
-                    $tp->setValue('signature_' . $i, '');
+                    $tp->setValue('signature_' . $i, '.............');
                     continue;
                 }
 
@@ -704,7 +723,7 @@ class CetakController extends Controller
             foreach ($mapping as $placeholder => $idUser) {
                 $binary = $this->signatureBinaryOfUser($idUser);
                 if (empty($binary)) {
-                    $tp->setValue($placeholder, '');
+                    $tp->setValue($placeholder, '.............');
                     continue;
                 }
                 $ext = substr($binary, 0, 4) === "\x89PNG" ? 'png' : 'jpg';
@@ -1305,13 +1324,14 @@ class CetakController extends Controller
                 $pengujiNames[] = $t->NAMA ?? '-';
             }
         }
-        // Slot nama per baris tabel (1..5); placeholder baris 1-3 = ${nama_penguji_i/ii/iii},
-        // baris 4-5 = sel titik-titik (diisi oleh fillBaSkXml).
-        $slot1 = $pengujiNames[0] ?? '';
-        $slot2 = $pengujiNames[1] ?? '';
-        $slot3 = $pengujiNames[2] ?? '';
-        $slot4 = $pengujiNames[3] ?? '';
-        $slot5 = $pengujiNames[4] ?? '';
+        // Slot nama per baris tabel (1..5); baris 1-3 = pembimbing (${nama_ketua_pembimbing},
+        // ${nama_pembimbing_i}, ${nama_pembimbing_ii}), baris 4-5 = penguji
+        // (placeholder ${nama_penguji_i} muncul 2x, diisi per-kemunculan oleh fillBaSkXml).
+        $slot1 = $timByStatus['ketua pembimbing']?->NAMA ?: '.............';
+        $slot2 = $timByStatus['pembimbing i']?->NAMA ?: '.............';
+        $slot3 = $timByStatus['pembimbing ii']?->NAMA ?: '.............';
+        $slot4 = $pengujiNames[0] ?? '.............';
+        $slot5 = $pengujiNames[1] ?? '.............';
 
         // Nilai Akhir Rata-rata (NA) = rata-rata kolom (3) no 1-5
         $adaNilai = array_values(array_filter($nilaiRows, fn($v) => $v !== ''));
@@ -1341,12 +1361,13 @@ class CetakController extends Controller
             $tp = new TemplateProcessor($templatePath);
 
             // Placeholder utuh (satu run)
-            $tp->setValue('nama_kaprodi',    $kaprodi ? $kaprodi->NAMA_LENGKAP : '');
-            $tp->setValue('nip_kaprodi',     $kaprodi ? $kaprodi->NIP_NIM : '');
-            // Kolom Nama = penguji saja (baris 1-3)
-            $tp->setValue('nama_penguji_i',   $slot1);  // Row 1
-            $tp->setValue('nama_penguji_ii',  $slot2);  // Row 2
-            $tp->setValue('nama_penguji_iii', $slot3);  // Row 3
+            $tp->setValue('nama_kaprodi',    $kaprodi ? $kaprodi->NAMA_LENGKAP : '.............');
+            $tp->setValue('nip_kaprodi',     $kaprodi ? $kaprodi->NIP_NIM : '.............');
+            // Kolom Nama "Tim Penguji/Penilai": baris 1-3 = pembimbing.
+            // Baris 4-5 menggunakan ${nama_penguji_i} (muncul 2x) -> diisi per-kemunculan di fillBaSkXml.
+            $tp->setValue('nama_ketua_pembimbing', $slot1);  // Row 1
+            $tp->setValue('nama_pembimbing_i',     $slot2);  // Row 2
+            $tp->setValue('nama_pembimbing_ii',    $slot3);  // Row 3
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal memproses template BA SK: ' . $e->getMessage()], 500);
         }
@@ -1379,8 +1400,8 @@ class CetakController extends Controller
             'indeks'       => $indeks,
             'nama_kaprodi' => $kaprodi ? $kaprodi->NAMA_LENGKAP : '',
             'nip_kaprodi'  => $kaprodi ? $kaprodi->NIP_NIM : '',
-            'nama_penguji_i'  => $slot4,   // Row 4 dots
-            'nama_penguji_ii' => $slot5,   // Row 5 dots
+            'nama_penguji_i'  => $slot4,   // Row 4 (Penguji 1)
+            'nama_penguji_ii' => $slot5,   // Row 5 (Penguji 2)
         ]);
 
         // Tanda tangan per-baris sesuai peran: Ketua, Ko-1, Ko-2, Penguji-1, Penguji-2
@@ -1465,13 +1486,14 @@ class CetakController extends Controller
             $xml = $this->fuzzyReplaceOnce($xml, '$(nip kaprodi)', $esc($data['nip_kaprodi']));
         }
 
-        // Dots rows 4-5 -> Penguji I & II (rows 1-3 pakai ${nama_penguji_i/ii/iii})
-        $dotI  = $esc($data['nama_penguji_i'] ?? '-');
-        $dotII = $esc($data['nama_penguji_ii'] ?? '-');
-        $xml = preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{16,}(<\/w:t>)/u', function ($m) use (&$dotI, &$dotII) {
-            if ($dotI !== null) { $r = $m[1].$dotI.$m[2]; $dotI = null; return $r; }
-            if ($dotII !== null) { $r = $m[1].$dotII.$m[2]; $dotII = null; return $r; }
-            return $m[0];
+        // Baris 4-5 (Penguji I & II) menggunakan placeholder ${nama_penguji_i} (muncul 2x):
+        // ganti per-kemunculan secara berurutan.
+        $pengSlots = [$esc($data['nama_penguji_i'] ?? ''), $esc($data['nama_penguji_ii'] ?? '')];
+        $pengIdx = 0;
+        $xml = preg_replace_callback('/\$\{nama_penguji_i\}/', function ($m) use ($pengSlots, &$pengIdx) {
+            $val = $pengSlots[$pengIdx] ?? $m[0];
+            $pengIdx++;
+            return $val;
         }, $xml);
 
         // Bersihkan sisa placeholder agar tidak bocor ke output.
@@ -1558,20 +1580,20 @@ class CetakController extends Controller
         $stKetua = $hasKetua ? 'ketua pembimbing' : 'pembimbing i';
         $stKo1   = $hasKetua ? 'pembimbing i'      : 'pembimbing ii';
         $stKo2   = $hasKetua ? 'pembimbing ii'     : 'pembimbing iii';
-        $namaKetuaPembimbing = ($timByStatus[$stKetua] ?? null)?->NAMA ?? '-';
-        $namaKoPembimbing1   = ($timByStatus[$stKo1] ?? null)?->NAMA ?? '-';
-        $namaKoPembimbing2   = ($timByStatus[$stKo2] ?? null)?->NAMA ?? '-';
+        $namaKetuaPembimbing = ($timByStatus[$stKetua] ?? null)?->NAMA ?? '.............';
+        $namaKoPembimbing1   = ($timByStatus[$stKo1] ?? null)?->NAMA ?? '.............';
+        $namaKoPembimbing2   = ($timByStatus[$stKo2] ?? null)?->NAMA ?? '.............';
         $namaPenguji = [
-            'peng1' => ($timByStatus['penguji i'] ?? null)?->NAMA   ?? '-',
-            'peng2' => ($timByStatus['penguji ii'] ?? null)?->NAMA  ?? '-',
-            'peng3' => ($timByStatus['penguji iii'] ?? null)?->NAMA ?? '-',
+            'peng1' => ($timByStatus['penguji i'] ?? null)?->NAMA   ?? '.............',
+            'peng2' => ($timByStatus['penguji ii'] ?? null)?->NAMA  ?? '.............',
+            'peng3' => ($timByStatus['penguji iii'] ?? null)?->NAMA ?? '.............',
         ];
 
         // Kolom Nama "Tim Penguji/Penilai" = daftar PENGUJI saja (penguji I, II, III, ...)
         $pengujiNameList = [];
         foreach ($timByStatus as $status => $t) {
             if (preg_match('/^penguji\s+(i{1,3}|iv|v)$/', $status)) {
-                $pengujiNameList[] = $t->NAMA ?? '-';
+                $pengujiNameList[] = $t->NAMA ?? '.............';
             }
         }
 
@@ -1609,19 +1631,16 @@ class CetakController extends Controller
             $tp->setValue('judul',                 $ajuan->JUDUL ?? $judul->JUDUL ?? '');
             $tp->setValue('nama_mhs',              $ajuan->NAMA_MHS ?? '-');
             $tp->setValue('nim',                   $ajuan->NIM ?? '-');
-            $tp->setValue('nama_ketua_pembimbing', $namaKetuaPembimbing);  // Header: Nama Ketua Tim Pembimbing
-            $tp->setValue('nama_pembimbing_i',     $namaKoPembimbing1);     // Header: Nama Anggota Pembimbing I
-            $tp->setValue('nama_pembimbing_ii',    $namaKoPembimbing2);     // Header: Nama Anggota Pembimbing II
-            // Kolom Nama "Tim Penguji/Penilai" (baris 1-3) = daftar PENGUJI saja.
-            // Template memakai placeholder ${nama_penguji_i/ii/iii}.
-            $tp->setValue('nama_penguji_i',        $namaPenguji['peng1'] ?? '-');
-            $tp->setValue('nama_penguji_ii',       $namaPenguji['peng2'] ?? '-');
-            $tp->setValue('nama_penguji_iii',      $namaPenguji['peng3'] ?? '-');
-            $tp->setValue('nama_kaprodi',          $kaprodi ? $kaprodi->NAMA_LENGKAP : '');
-            $tp->setValue('nip_kaprodi',           $kaprodi ? $kaprodi->NIP_NIM : '');
+            $tp->setValue('nama_ketua_pembimbing', $namaKetuaPembimbing);  // Header & Baris 1
+            $tp->setValue('nama_pembimbing_i',     $namaKoPembimbing1);     // Header & Baris 2
+            $tp->setValue('nama_pembimbing_ii',    $namaKoPembimbing2);     // Header & Baris 3
+            // Baris 4-5 (Penguji) menggunakan ${nama_penguji_i} (muncul 2x)
+            // -> diisi per-kemunculan di fillBaSk4Xml.
+            $tp->setValue('nama_kaprodi',          $kaprodi ? $kaprodi->NAMA_LENGKAP : '.............');
+            $tp->setValue('nip_kaprodi',           $kaprodi ? $kaprodi->NIP_NIM : '.............');
             $tp->setValue('tgl_sidang',            $tglFooter);
-            $tp->setValue('nama_ketua_sidang',     $ketuaSidang?->NAMA ?? '-');
-            $tp->setValue('nip_ketua_sidang',      $ketuaSidang?->NIP ?? '-');
+            $tp->setValue('nama_ketua_sidang',     $ketuaSidang?->NAMA ?? '.............');
+            $tp->setValue('nip_ketua_sidang',      $ketuaSidang?->NIP ?? '.............');
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal memproses template BA SK IV: ' . $e->getMessage()], 500);
         }
@@ -1699,20 +1718,16 @@ class CetakController extends Controller
         // Bersihkan sisa placeholder agar tidak bocor ke output
         $xml = preg_replace('/\$\{nilai_rata2\}/', '', $xml);
 
-        // Kolom Nama "Tim Penguji/Penilai" = daftar PENGUJI saja.
-        // Baris 1-3 diisi via ${nama_penguji_i/ii/iii} (TemplateProcessor/setValue).
-        // Baris 4-5: sel titik-titik diisi penguji berikutnya (atau dikosongkan bila tak ada).
+        // Kolom Nama "Tim Penguji/Penilai": rows 1-3 = pembimbing (dari setValue header),
+        // rows 4-5 = penguji (placeholder ${nama_penguji_i} muncul 2x, ganti per-kemunculan).
         $pl = array_values($data['nama_penguji_list'] ?? []);
-        $escName = fn($v) => ($v ?? '') === '' ? '' : $esc($v);
-        $dotVals = [$escName($pl[3] ?? ''), $escName($pl[4] ?? '')];
-        $di = 0;
-        $xml = preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{8,}(<\/w:t>)/u', function ($m) use (&$dotVals, &$di) {
-            if ($di < count($dotVals)) {
-                $r = $m[1] . $dotVals[$di] . $m[2];
-                $di++;
-                return $r;
-            }
-            return $m[0];
+        $escName = fn($v) => ($v ?? '') === '' ? '.............': $esc($v);
+        $pengSlots = [$escName($pl[0] ?? ''), $escName($pl[1] ?? '')];
+        $pengIdx = 0;
+        $xml = preg_replace_callback('/\$\{nama_penguji_i\}/', function ($m) use ($pengSlots, &$pengIdx) {
+            $val = $pengSlots[$pengIdx] ?? $m[0];
+            $pengIdx++;
+            return $val;
         }, $xml);
         // Bersihkan sisa placeholder nama_penguji agar tidak bocor.
         $xml = preg_replace('/\$\{nama_penguji_i\}/', '', $xml);
@@ -1845,6 +1860,13 @@ class CetakController extends Controller
             }
         }
 
+        // Pembimbing utama & anggota berdasarkan pemetaan peran
+        $ketuaPembimbing = $timByStatus[$roleStatuses['ketua_pembimbing']] ?? null;
+        $anggotaPembimbing = collect([
+            $timByStatus[$roleStatuses['ko_pembimbing_1']] ?? null,
+            $timByStatus[$roleStatuses['ko_pembimbing_2']] ?? null,
+        ])->filter()->values();
+
         $ketuaSidang = $timByStatus['ketua sidang'] ?? null;
         // Kaprodi: baca dari t_user_prodi untuk prodi ajuan
         $kaprodi = null;
@@ -1912,13 +1934,14 @@ class CetakController extends Controller
             $tp->setValue('nim',               $ajuan->NIM ?? '-');
             $tp->setValue('tgl_sidang',        $tglFooter);
             $tp->setValue('waktu',             $waktuSidang);
-            $tp->setValue('nama_kaprodi',      $kaprodi ? $kaprodi->NAMA_LENGKAP : '');
-            $tp->setValue('nama_ketua_sidang', $ketuaSidang?->NAMA ?? '-');
-            // Nama di tabel "Tim Penguji" (baris 1-4) — ambil dari penguji saja (bukan pembimbing)
-            $tp->setValue('nama_penguji_i',    $pengujiNames[0] ?? '');
-            $tp->setValue('nama_penguji_ii',   $pengujiNames[1] ?? '');
-            $tp->setValue('nama_penguji_iii',  $pengujiNames[2] ?? '');
-            $tp->setValue('nama_penguji_iv',   $pengujiNames[3] ?? '');
+            $tp->setValue('nama_kaprodi',      $kaprodi ? $kaprodi->NAMA_LENGKAP : '.............');
+            $tp->setValue('nama_ketua_sidang', $ketuaSidang?->NAMA ?? '.............');
+            // Nama di tabel "Tim Penguji" (baris 1-3 = pembimbing, baris 4-6 = penguji).
+            // Placeholder ${nama_penguji_i} baris 4-6 diisi per-kemunculan di fillSidangAkhirXml.
+            $tp->setValue('nama_ketua_pembimbing', $ketuaPembimbing?->NAMA ?? '.............');
+            $tp->setValue('nama_pembimbing_i',     $anggotaPembimbing->get(0)?->NAMA ?? '.............');
+            $tp->setValue('nama_pembimbing_ii',    $anggotaPembimbing->get(1)?->NAMA ?? '.............');
+            $tp->setValue('tgl_create_penilaian',  $tglCreate);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal memproses template BA Sidang Doktor: ' . $e->getMessage()], 500);
         }
@@ -1942,6 +1965,10 @@ class CetakController extends Controller
             'waktu_selesai'        => $waktuSelesai,
             'tgl_create_penilaian' => $tglCreateFormat,
             'catatan'              => $resumeCatatan,
+            'ip'                   => $ajuan->IP ?? null,
+            'jml_jurnal_q1'        => $ajuan->JML_JURNAL_Q1 ?? null,
+            'jml_jurnal_bereputasi1' => $ajuan->JML_JURNAL_BEREPUTASI1 ?? null,
+            'jml_jurnal_bereputasi2' => $ajuan->JML_JURNAL_BEREPUTASI2 ?? null,
         ]);
 
         // Isi tanda tangan per baris tabel "Tim Penguji" (6 baris: Ketua Tim Pembimbing,
@@ -1981,12 +2008,22 @@ class CetakController extends Controller
         $xml = str_replace('${nilai_rata_rata}', $esc($data['rata_rata'] ?? ''), $xml);
         $xml = str_replace('${nilai_akhir_index}', $esc($data['indeks'] ?? ''), $xml);
 
-        // Daftar nama tanda tangan: baris 1-4 diisi ${nama_penguji_i..iv} via setValue di atas.
-        // Baris 5 & 6 (Penguji 2 & 3): isi sel nama yang masih titik-titik dengan penguji ke-5 & ke-6
+        // Daftar nama tanda tangan: baris 4-6 (Penguji 1, 2, 3) diisi ${nama_penguji_i}
+        // secara per-kemunculan (placeholder muncul 3x di baris 4-6).
         $pn = $data['penguji_names'] ?? [];
-        $anchor = isset($pn[0]) ? strpos($xml, $esc($pn[0])) : false;
-        $xml = $this->fillSidangListNameCell($xml, '5', $esc($pn[4] ?? ''), $anchor === false ? 0 : $anchor);
-        $xml = $this->fillSidangListNameCell($xml, '6', $esc($pn[5] ?? ''), $anchor === false ? 0 : $anchor);
+        $pengSlots = [
+            $esc($pn[0] ?? '.............'),
+            $esc($pn[1] ?? '.............'),
+            $esc($pn[2] ?? '.............'),
+        ];
+        $pengIdx = 0;
+        $xml = preg_replace_callback('/\$\{nama_penguji_i\}/', function ($m) use ($pengSlots, &$pengIdx) {
+            $val = $pengSlots[$pengIdx] ?? $m[0];
+            $pengIdx++;
+            return $val;
+        }, $xml);
+        // Bersihkan sisa placeholder penguji agar tidak bocor ke output.
+        $xml = preg_replace('/\$\{nama_penguji_i\}/', '', $xml);
 
         // Waktu selesai (typo template "$wkatu(selesai)")
         if ($data['waktu_selesai'] !== '') {
@@ -2004,6 +2041,18 @@ class CetakController extends Controller
         // catatan "- <penilai>: <catatan>" — satu paragraf per baris.
         if (isset($data['catatan']) && is_array($data['catatan'])) {
             $xml = $this->fillSidangAkhirCatatan($xml, $data['catatan']);
+        }
+
+        // Capaian Akademik: isi placeholder dari t_ajuan_sidang
+        // (IP, jurnal Q1, publikasi bereputasi-1 & bereputasi-2).
+        $capaian = [
+            '${ip}'                     => $data['ip'] ?? '---',
+            '${jml_jurnal_q1}'          => $data['jml_jurnal_q1'] ?? '---',
+            '${jml_jurnal_bereputasi1}' => $data['jml_jurnal_bereputasi1'] ?? '---',
+            '${jml_jurnal_bereputasi2}' => $data['jml_jurnal_bereputasi2'] ?? '---',
+        ];
+        foreach ($capaian as $ph => $val) {
+            $xml = str_replace($ph, $esc($val), $xml);
         }
 
         $zip->deleteName('word/document.xml');
