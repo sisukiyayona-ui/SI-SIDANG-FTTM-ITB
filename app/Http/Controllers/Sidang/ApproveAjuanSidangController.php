@@ -115,9 +115,18 @@ class ApproveAjuanSidangController extends Controller
             $prodiId = $prodi?->id;
         }
 
+        $syaratIdsForProdi = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan);
+        if ($prodiId) {
+            $syaratIdsForProdi->where('ID_PRODI', $prodiId);
+        }
+        $syaratIdsForProdi = $syaratIdsForProdi->pluck('id');
+
         $cekPersyaratan = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
-            ->where('TAHAPAN_SIDANG', $tahapan)
-            ->get();
+            ->where('TAHAPAN_SIDANG', $tahapan);
+        if ($syaratIdsForProdi->isNotEmpty()) {
+            $cekPersyaratan->whereIn('ID_SYARAT_SIDANG', $syaratIdsForProdi);
+        }
+        $cekPersyaratan = $cekPersyaratan->get();
 
         $persyaratan = collect();
         if ($cekPersyaratan->isEmpty()) {

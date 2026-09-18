@@ -85,9 +85,11 @@
     </style>
     @php
         $isTahap1 = strtolower($tahapan) === 'tahap i';
-        $nama = $ajuan->nama_mhs ?? session('auth_user.nama_lengkap');
-        $nim = $ajuan->Nim ?? session('auth_user.nip_nim');
-        $judulText = $ajuan->Judul ?? ($idJudul ? \App\Models\TJudul::find($idJudul)->Judul : '');
+        $judulHeader = $idJudul ? \App\Models\TJudul::find($idJudul) : null;
+        $userHeader = $judulHeader?->user;
+        $nama = $ajuan->nama_mhs ?? $userHeader?->NAMA_LENGKAP ?? session('auth_user.nama_lengkap');
+        $nim = $ajuan->Nim ?? $userHeader?->NIP_NIM ?? session('auth_user.nip_nim');
+        $judulText = $ajuan->Judul ?? $judulHeader?->Judul ?? '';
         $abstrakText = '';
         if ($idJudul) {
             $abstrakRow = \Illuminate\Support\Facades\DB::table('t_judul')->where('id', $idJudul)->value('ABSTRAK');

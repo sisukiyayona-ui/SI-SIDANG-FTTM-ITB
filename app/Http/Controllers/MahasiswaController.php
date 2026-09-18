@@ -215,8 +215,17 @@ class MahasiswaController extends Controller
             ];
         })->values();
 
-        // Get kode_prodi for persyaratan filtering
-        $kodeProdi = $ajuan->kode_prodi ?? session('auth_user.kode_prodi');
+        // Get mahasiswa's prodi from judul->user relationship (source of truth)
+        $mahasiswaProdi = null;
+        if ($idJudul) {
+            $judul = \App\Models\TJudul::find($idJudul);
+            if ($judul && $judul->user) {
+                $mahasiswaProdi = $judul->user->KODE_PRODI;
+            }
+        }
+
+        // Get kode_prodi for persyaratan filtering (prioritas: ajuan, lalu prodi mahasiswa dari judul, terakhir session)
+        $kodeProdi = $ajuan->kode_prodi ?? $mahasiswaProdi ?? session('auth_user.kode_prodi');
 
         // Resolve kode_prodi string to actual prodi ID (integer)
         $prodiId = null;
@@ -233,8 +242,7 @@ class MahasiswaController extends Controller
         $timSidang = $timSidangQuery->get();
             
         // Get syarat IDs belonging to this prodi (to filter cek_persyaratan)
-        $syaratIdsForProdi = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
-            ->where('STATUS_AKTIF', 'AKTIF');
+        $syaratIdsForProdi = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan);
         if ($prodiId) {
             $syaratIdsForProdi->where('ID_PRODI', $prodiId);
         }
@@ -269,9 +277,12 @@ class MahasiswaController extends Controller
         //    - belum lulus/layak  -> tampilkan daftar aktif dari t_syarat_sidang
         //      (termasuk persyaratan baru yang dibuat di master).
         $statusLulusCek = $ajuan->status_lulus ?? '';
-        $persyaratan = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
-            ->where('TAHAPAN_SIDANG', $tahapan)
-            ->get();
+        $persyaratanQuery = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan);
+        if ($syaratIdsForProdi->isNotEmpty()) {
+            $persyaratanQuery->whereIn('ID_SYARAT_SIDANG', $syaratIdsForProdi);
+        }
+        $persyaratan = $persyaratanQuery->get();
 
         if ($persyaratan->isEmpty()) {
             $isPassed = stripos((string) $statusLulusCek, 'Lulus') !== false
@@ -293,15 +304,6 @@ class MahasiswaController extends Controller
         $penilaian = $penilaianQuery->get();
         
         // Get point penilaian for form (distinct no_form based on tahapan and prodi)
-        // Get mahasiswa's prodi from judul->user relationship
-        $mahasiswaProdi = null;
-        if ($idJudul) {
-            $judul = \App\Models\TJudul::find($idJudul);
-            if ($judul && $judul->user) {
-                $mahasiswaProdi = $judul->user->KODE_PRODI;
-            }
-        }
-        
         $pointPenilaianQuery = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
             ->where('status_aktif', 'AKTIF');
         
