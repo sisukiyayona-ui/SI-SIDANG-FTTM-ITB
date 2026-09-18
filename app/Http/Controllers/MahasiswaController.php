@@ -1121,6 +1121,21 @@ class MahasiswaController extends Controller
             return response()->json(['success' => false, 'message' => 'Data jadwal tidak ditemukan'], 404);
         }
 
+        $sl = $ajuan->STATUS_LULUS ?? $ajuan->status_lulus ?? null;
+        $mhs = $ajuan->STATUS_AJUKAN_MHS ?? $ajuan->status_ajukan_mhs ?? 't';
+        $prodi = $ajuan->STATUS_AJUKAN_PRODI ?? $ajuan->status_ajukan_prodi ?? 't';
+
+        $isDiprosesTuProdi = (empty($sl) || strtolower($sl) === 'diajukan')
+            && $mhs === 'y'
+            && (empty($prodi) || $prodi === 't');
+
+        if (!$isDiprosesTuProdi) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal sidang hanya dapat dihapus jika statusnya "Diproses di TU Prodi".'
+            ], 422);
+        }
+
         TPenilaian::where('ID_AJUAN', $ajuan->id)->delete();
 
         $ajuan->delete();

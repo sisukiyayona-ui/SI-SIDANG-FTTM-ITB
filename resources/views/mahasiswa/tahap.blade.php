@@ -742,6 +742,21 @@ function simpanPersyaratan() {
     });
 }
 
+function renumberColumn(tbodyId) {
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    var n = 0;
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        if (/EmptyRow/.test(row.id || '')) return;
+        if (row.style.display === 'none') return;
+        var firstCell = row.querySelector('td');
+        if (firstCell) {
+            n++;
+            firstCell.textContent = n;
+        }
+    });
+}
+
 function filterPenilaianView() {
     var penilaiId = document.getElementById('penilaiViewSelect').value;
     var noForm = document.getElementById('formViewSelect').value;
@@ -781,6 +796,7 @@ function filterPenilaianView() {
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
+    renumberColumn('penilaianViewBody');
 }
 
 function openJadwalForm() {

@@ -1063,13 +1063,17 @@
                                                 <span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: pointer; white-space: nowrap;" onclick="openJadwalForm(this)" data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span>
                                             @endif
                                         </td>
-                                        <td><span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($a)) }}">{{ getAjuanDisplayStatus($a) }}</span></td>
+                                        @php
+                                            $displayStatus = getAjuanDisplayStatus($a);
+                                        @endphp
+                                        <td><span class="badge bg-{{ getStatusColor($displayStatus) }}">{{ $displayStatus }}</span></td>
                                         <td>
                                             <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
                                         </td>
                                         <td>
-                                            @if(session('auth_user.role') === 'TU Prodi' && ($a->status_lulus ?? '') !== 'lulus')
-                                            <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" style="font-size: 12px; border-radius: 4px;" onclick="hapusJadwal({{ $a->id }}, '{{ $tahapan }}', {{ $idJudul }})"><i class="fas fa-trash mr-1"></i> Hapus</button>
+                                            @if(session('auth_user.role') === 'TU Prodi')
+                                            @php $canDelete = strtolower($displayStatus) === 'diproses di tu prodi'; @endphp
+                                            <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" style="font-size: 12px; border-radius: 4px;" {{ $canDelete ? '' : 'disabled title="Hanya bisa dihapus saat Diproses di TU Prodi"' }} onclick="hapusJadwal({{ $a->id }}, '{{ $tahapan }}', {{ $idJudul }})"><i class="fas fa-trash mr-1"></i> Hapus</button>
                                             @else
                                             -
                                             @endif
@@ -2068,7 +2072,23 @@ function filterPenilaianTahap2() {
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
+    renumberColumn('penilaianTahap2Body');
     toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
+}
+
+function renumberColumn(tbodyId) {
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    var n = 0;
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        if (/EmptyRow/.test(row.id || '')) return;
+        if (row.style.display === 'none') return;
+        var firstCell = row.querySelector('td');
+        if (firstCell) {
+            n++;
+            firstCell.textContent = n;
+        }
+    });
 }
 
 function applyStatusCatatan(row) {
@@ -2138,6 +2158,7 @@ function filterPenilaian() {
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
+    renumberColumn('penilaianReportBody');
     toggleLockButton('penilaianReportBody', 'lockNilaiBtn');
 }
 
@@ -2185,6 +2206,7 @@ function loadPenilaianForm() {
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
+    renumberColumn('penilaianTableBody');
     toggleLockButton('penilaianTableBody', 'lockNilaiPembimbingBtn');
 }
 

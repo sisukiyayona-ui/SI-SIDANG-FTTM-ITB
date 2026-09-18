@@ -480,6 +480,21 @@
                     });
 
                 if (emptyRow) { emptyRow.style.display = hasVisible ? 'none' : ''; }
+                renumberKppsColumn();
+                }
+
+                function renumberKppsColumn() {
+                    var tbody = document.getElementById('kppsPenilaianBody');
+                    if (!tbody) return;
+                    var n = 0;
+                    tbody.querySelectorAll('tr.penilaian-row').forEach(function (row) {
+                        if (row.style.display === 'none') return;
+                        var firstCell = row.querySelector('td');
+                        if (firstCell) {
+                            n++;
+                            firstCell.textContent = n;
+                        }
+                    });
                 }
 
                 // Select2 untuk dropdown Penilai / Form (bisa dicari)
