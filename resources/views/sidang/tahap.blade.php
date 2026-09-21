@@ -98,8 +98,12 @@
         // Compute isNilaiTerkunci at top level for both Tahap I and Tahap II
         $isTUKunci = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
         $isNilaiTerkunci = false;
-        if (!$isTUKunci && isset($penilaian) && $penilaian->count() > 0) {
-            $isNilaiTerkunci = $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
+        $isDataTerkunci = false;
+        if (isset($penilaian) && $penilaian->count() > 0) {
+            $isDataTerkunci = $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
+            if (!$isTUKunci) {
+                $isNilaiTerkunci = $isDataTerkunci;
+            }
         }
     @endphp
 
@@ -522,6 +526,7 @@
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
+                                            @unless($isDataTerkunci)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -533,6 +538,7 @@
                                                     <textarea class="form-control form-control-sm catatan-input" rows="2"></textarea>
                                                 </td>
                                             </tr>
+                                            @endunless
                                             @foreach($existingRecords as $existing)
                                                 @php $rowNum++; @endphp
                                                 <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
@@ -1217,6 +1223,7 @@
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
+                                            @unless($isDataTerkunci)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -1230,6 +1237,7 @@
                                                     <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2"></textarea>
                                                 </td>
                                             </tr>
+                                            @endunless
                                             @foreach($existingRecords as $existing)
                                                 @php $rowNum++; @endphp
                                                 <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
@@ -1636,7 +1644,7 @@
                                                     </td>
                                                 </tr>
                                             @endforeach
-                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
+                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && !$isDataTerkunci)
                                                 @foreach($allPointPenilaian as $idx => $point)
                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $idx + 1 }}</td>
