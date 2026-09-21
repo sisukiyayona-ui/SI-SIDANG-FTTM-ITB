@@ -241,22 +241,40 @@
                 $appAjuanKpps = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
                     ->where('tahapan_sidang', $tahapan)
                     ->first();
-                $kppsList = \Illuminate\Support\Facades\DB::table('t_kpps as k')
+                $ajuanKodeProdi = $appAjuanKpps->KODE_PRODI ?? $appAjuanKpps->kode_prodi
+                    ?? ($ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null);
+                $ajuanIdProdi = $appAjuanKpps->ID_PRODI ?? $appAjuanKpps->id_prodi
+                    ?? ($ajuan->ID_PRODI ?? $ajuan->id_prodi ?? null);
+                if (empty($ajuanKodeProdi) && !empty($ajuanIdProdi)) {
+                    $ajuanKodeProdi = \Illuminate\Support\Facades\DB::table('t_prodi')
+                        ->where('ID', $ajuanIdProdi)
+                        ->value('KODE_PRODI');
+                }
+                $kppsQuery = \Illuminate\Support\Facades\DB::table('t_kpps as k')
                     ->leftJoin('t_app_ajuan_sidang as app', function($join) use ($appAjuanKpps) {
                         $join->on('k.ID_USER', '=', 'app.ID_USER')
                              ->where('app.ID_AJUAN_SIDANG', '=', $appAjuanKpps ? $appAjuanKpps->id : 0);
                     })
                     ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
+                    ->where('k.STATUS_AKTIF', 'AKTIF');
+                if (!empty($ajuanKodeProdi)) {
+                    $kppsQuery->where('k.KODE_PRODI', $ajuanKodeProdi);
+                } else {
+                    $kppsQuery->whereRaw('1 = 0');
+                }
+                $kppsList = $kppsQuery
                     ->select(
-                        'k.NIP as NIP',
-                        'k.NAMA as NAMA',
-                        'k.STATUS_TIM as STATUS_TIM',
-                        'app.STATUS_APPROVE as STATUS_APPROVE',
-                        'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
-                        \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
+                        \Illuminate\Support\Facades\DB::raw('MAX(k.NIP) as NIP'),
+                        \Illuminate\Support\Facades\DB::raw('MAX(k.NAMA) as NAMA'),
+                        \Illuminate\Support\Facades\DB::raw("SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT k.STATUS_TIM ORDER BY CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END SEPARATOR ','), ',', 1) as STATUS_TIM"),
+                        \Illuminate\Support\Facades\DB::raw('MAX(app.STATUS_APPROVE) as STATUS_APPROVE'),
+                        \Illuminate\Support\Facades\DB::raw('MAX(app.USULAN_PERBAIKAN) as USULAN_PERBAIKAN'),
+                        \Illuminate\Support\Facades\DB::raw('MAX(app.ALASAN_REJECT) as ALASAN_REJECT'),
+                        \Illuminate\Support\Facades\DB::raw('CASE WHEN MAX(app.ID) IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
                     )
-                    ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
-                    ->orderBy('k.NAMA')
+                    ->groupBy('k.ID_USER')
+                    ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+                    ->orderBy('NAMA')
                     ->get();
             @endphp
             <div class="table-responsive">
@@ -268,7 +286,8 @@
                             <th style="width: 28%; color: #ffffff;">Nama KPPS</th>
                             <th style="width: 14%; color: #ffffff;">Status Tim</th>
                             <th style="width: 16%; color: #ffffff;">Aksi</th>
-                            <th style="width: 20%; color: #ffffff;">Status Approve</th>
+                            <th style="width: 15%; color: #ffffff;">Status Approve</th>
+                            <th style="width: 18%; color: #ffffff;">Alasan Reject</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -293,18 +312,26 @@
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
+                                    @php
+                                        $stApprove = strtolower(trim((string) ($kpps->STATUS_APPROVE ?? '')));
+                                        $isApproved = in_array($stApprove, ['t', 'y'], true);
+                                        $isRejected = $stApprove === 'f';
+                                    @endphp
                                     <td>
-                                        @if(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
+                                        @if($isApproved)
                                             <span class="badge bg-success" style="white-space: nowrap;">Sudah Di Approve</span>
+                                        @elseif($isRejected)
+                                            <span class="badge bg-danger" style="white-space: nowrap;">Ditolak</span>
                                         @else
                                             <span class="badge bg-danger" style="white-space: nowrap;">Belum Di Approve</span>
                                         @endif
                                     </td>
+                                    <td class="text-left" style="font-size: 12px;">{{ trim((string) ($kpps->ALASAN_REJECT ?? '')) !== '' ? $kpps->ALASAN_REJECT : '-' }}</td>
                                 </tr>
                             @endforeach
                         @else
                             <tr style="background-color: #dbe5f1;">
-                                <td colspan="6" class="text-center text-muted">Belum ada data KPPS</td>
+                                <td colspan="7" class="text-center text-muted">Belum ada data KPPS</td>
                             </tr>
                         @endif
                     </tbody>

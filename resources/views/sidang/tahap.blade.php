@@ -477,7 +477,7 @@
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
                                                 @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                <option value="{{ $tim->id }}" data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }} ({{ $tim->nip }})</option>
+                                                <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }} ({{ $tim->nip }})</option>
                                             @endforeach
                                         @endif
                                     </select>
@@ -530,7 +530,7 @@
                                                     <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="" min="1" max="5">
                                                 </td>
                                                 <td>
-                                                    <input type="text" class="form-control form-control-sm catatan-input" value="">
+                                                    <textarea class="form-control form-control-sm catatan-input" rows="2"></textarea>
                                                 </td>
                                             </tr>
                                             @foreach($existingRecords as $existing)
@@ -542,7 +542,7 @@
                                                         <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="{{ $existing->Nilai }}" min="1" max="5">
                                                     </td>
                                                     <td>
-                                                        <input type="text" class="form-control form-control-sm catatan-input" value="{{ $existing->catatan }}">
+                                                        <textarea class="form-control form-control-sm catatan-input" rows="2">{{ $existing->catatan }}</textarea>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -925,42 +925,64 @@
                         $votingStatusLulus = $appAjuan->status_lulus ?? ($ajuan->status_lulus ?? '');
                         $isVotingLulus = stripos((string) $votingStatusLulus, 'Lulus') !== false
                             || stripos((string) $votingStatusLulus, 'Layak') !== false;
+                        $ajuanKodeProdi = $appAjuan->KODE_PRODI ?? $appAjuan->kode_prodi
+                            ?? ($ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null);
+                        $ajuanIdProdi = $appAjuan->ID_PRODI ?? $appAjuan->id_prodi
+                            ?? ($ajuan->ID_PRODI ?? $ajuan->id_prodi ?? null);
+                        if (empty($ajuanKodeProdi) && !empty($ajuanIdProdi)) {
+                            $ajuanKodeProdi = \Illuminate\Support\Facades\DB::table('t_prodi')
+                                ->where('ID', $ajuanIdProdi)
+                                ->value('KODE_PRODI');
+                        }
                         if ($isVotingLulus) {
-                            // Jika status lulus 'Lulus'/'Layak': tampilkan hasil voting dari t_app_ajuan_sidang
                             $kppsList = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
                                 ->leftJoin('t_user as u', 'app.ID_USER', '=', 'u.ID')
-                                ->leftJoin('t_kpps as k', 'k.ID_USER', '=', 'app.ID_USER')
+                                ->leftJoin('t_kpps as k', function ($join) use ($ajuanKodeProdi) {
+                                    $join->on('k.ID_USER', '=', 'app.ID_USER');
+                                    if (!empty($ajuanKodeProdi)) {
+                                        $join->where('k.KODE_PRODI', '=', $ajuanKodeProdi);
+                                    }
+                                })
                                 ->select(
-                                    \Illuminate\Support\Facades\DB::raw('COALESCE(k.NIP, u.NIP_NIM) as NIP'),
-                                    \Illuminate\Support\Facades\DB::raw('COALESCE(k.NAMA, u.NAMA_LENGKAP) as NAMA'),
-                                    'k.STATUS_TIM as STATUS_TIM',
-                                    'app.STATUS_APPROVE as STATUS_APPROVE',
-                                    'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
+                                    \Illuminate\Support\Facades\DB::raw('COALESCE(MAX(k.NIP), MAX(u.NIP_NIM)) as NIP'),
+                                    \Illuminate\Support\Facades\DB::raw('COALESCE(MAX(k.NAMA), MAX(u.NAMA_LENGKAP)) as NAMA'),
+                                    \Illuminate\Support\Facades\DB::raw("SUBSTRING_INDEX(GROUP_CONCAT(k.STATUS_TIM ORDER BY CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END SEPARATOR ','), ',', 1) as STATUS_TIM"),
+                                    \Illuminate\Support\Facades\DB::raw('MAX(app.STATUS_APPROVE) as STATUS_APPROVE'),
+                                    \Illuminate\Support\Facades\DB::raw('MAX(app.USULAN_PERBAIKAN) as USULAN_PERBAIKAN'),
+                                    \Illuminate\Support\Facades\DB::raw('MAX(app.ALASAN_REJECT) as ALASAN_REJECT'),
                                     \Illuminate\Support\Facades\DB::raw("'Sudah Diajukan' as STATUS_AJUAN")
                                 )
                                 ->where('app.ID_AJUAN_SIDANG', $appAjuan ? $appAjuan->id : 0)
-                                ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+                                ->groupBy('app.ID_USER')
+                                ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
                                 ->orderBy('NAMA')
                                 ->get();
                         } else {
-                            // Jika belum lulus: tampilkan daftar anggota KPPS aktif, join status voting
-                            $kppsList = \Illuminate\Support\Facades\DB::table('t_kpps as k')
+                            $kppsQuery = \Illuminate\Support\Facades\DB::table('t_kpps as k')
                                 ->leftJoin('t_app_ajuan_sidang as app', function($join) use ($appAjuan) {
                                     $join->on('k.ID_USER', '=', 'app.ID_USER')
                                          ->where('app.ID_AJUAN_SIDANG', '=', $appAjuan ? $appAjuan->id : 0);
                                 })
                                 ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
+                                ->where('k.STATUS_AKTIF', 'AKTIF');
+                            if (!empty($ajuanKodeProdi)) {
+                                $kppsQuery->where('k.KODE_PRODI', $ajuanKodeProdi);
+                            } else {
+                                $kppsQuery->whereRaw('1 = 0');
+                            }
+                            $kppsList = $kppsQuery
                                 ->select(
-                                    'k.NIP as NIP',
-                                    'k.NAMA as NAMA',
-                                    'k.STATUS_TIM as STATUS_TIM',
-                                    'app.STATUS_APPROVE as STATUS_APPROVE',
-                                    'app.USULAN_PERBAIKAN as USULAN_PERBAIKAN',
-                                    \Illuminate\Support\Facades\DB::raw('CASE WHEN app.ID IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
+                                    \Illuminate\Support\Facades\DB::raw('MAX(k.NIP) as NIP'),
+                                    \Illuminate\Support\Facades\DB::raw('MAX(k.NAMA) as NAMA'),
+                                    \Illuminate\Support\Facades\DB::raw("SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT k.STATUS_TIM ORDER BY CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END SEPARATOR ','), ',', 1) as STATUS_TIM"),
+                                    \Illuminate\Support\Facades\DB::raw('MAX(app.STATUS_APPROVE) as STATUS_APPROVE'),
+                                    \Illuminate\Support\Facades\DB::raw('MAX(app.USULAN_PERBAIKAN) as USULAN_PERBAIKAN'),
+                                    \Illuminate\Support\Facades\DB::raw('MAX(app.ALASAN_REJECT) as ALASAN_REJECT'),
+                                    \Illuminate\Support\Facades\DB::raw('CASE WHEN MAX(app.ID) IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
                                 )
-                                ->where('k.STATUS_AKTIF', 'AKTIF')
-                                ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
-                                ->orderBy('k.NAMA')
+                                ->groupBy('k.ID_USER')
+                                ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+                                ->orderBy('NAMA')
                                 ->get();
                         }
                     @endphp
@@ -978,17 +1000,23 @@
                         <table class="table table-bordered table-sm text-center mb-0">
                             <thead style="background-color: #6998d3; color: white;">
                                 <tr>
-                                    <th style="width: 6%;">No</th>
-                                    <th style="width: 16%;">NIP</th>
-                                    <th style="width: 28%;">Nama KPPS</th>
-                                    <th style="width: 14%;">Status Tim</th>
-                                    <th style="width: 16%;">Aksi</th>
-                                    <th style="width: 20%;">Status Approve</th>
+                                    <th style="width: 5%;">No</th>
+                                    <th style="width: 14%;">NIP</th>
+                                    <th style="width: 22%;">Nama KPPS</th>
+                                    <th style="width: 12%;">Status Tim</th>
+                                    <th style="width: 14%;">Aksi</th>
+                                    <th style="width: 15%;">Status Approve</th>
+                                    <th style="width: 18%;">Alasan Reject</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @if($kppsList->count() > 0)
                                     @foreach($kppsList as $idx => $kpps)
+                                        @php
+                                            $stApprove = strtolower(trim((string) ($kpps->STATUS_APPROVE ?? '')));
+                                            $isApproved = in_array($stApprove, ['t', 'y'], true);
+                                            $isRejected = $stApprove === 'f';
+                                        @endphp
                                         <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
                                             <td>{{ $idx + 1 }}</td>
                                             <td>{{ $kpps->NIP ?? '-' }}</td>
@@ -1004,24 +1032,26 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                @if(($kpps->STATUS_AJUAN ?? '') === 'Sudah Diajukan')
+                                                @if($isApproved)
                                                     <span class="badge bg-success" style="white-space: nowrap;">Sudah Di Approve</span>
+                                                @elseif($isRejected)
+                                                    <span class="badge bg-danger" style="white-space: nowrap;">Ditolak</span>
                                                 @else
                                                     <span class="badge bg-danger" style="white-space: nowrap;">Belum Di Approve</span>
                                                 @endif
                                             </td>
+                                            <td class="text-left" style="font-size: 12px;">{{ trim((string) ($kpps->ALASAN_REJECT ?? '')) !== '' ? $kpps->ALASAN_REJECT : '-' }}</td>
                                         </tr>
                                     @endforeach
                                 @else
                                     <tr style="background-color: #dbe5f1;">
-                                        <td colspan="6" class="text-center text-muted">Belum ada data KPPS</td>
+                                        <td colspan="7" class="text-center text-muted">Belum ada data KPPS</td>
                                     </tr>
                                 @endif
                             </tbody>
                         </table>
                     </div>
                 </div>
-
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
                     {{-- JADWAL & PENILAIAN --}}
                     <div id="jadwalListTahap2">
@@ -1074,8 +1104,13 @@
                                         </td>
                                         <td>
                                             @if(session('auth_user.role') === 'TU Prodi')
-                                            @php $canDelete = strtolower($displayStatus) === 'diproses di tu prodi'; @endphp
-                                            <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" style="font-size: 12px; border-radius: 4px;" {{ $canDelete ? '' : 'disabled title="Hanya bisa dihapus saat Diproses di TU Prodi"' }} onclick="hapusJadwal({{ $a->id }}, '{{ $tahapan }}', {{ $idJudul }})"><i class="fas fa-trash mr-1"></i> Hapus</button>
+                                            @php $canDelete = strtolower(trim((string) $displayStatus)) === 'diproses di tu prodi'; @endphp
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-danger px-2 py-1"
+                                                style="font-size: 12px; border-radius: 4px;{{ $canDelete ? '' : ' opacity:0.45; cursor:not-allowed;' }}"
+                                                @if($canDelete) onclick="hapusJadwal({{ $a->id }}, '{{ $tahapan }}', {{ $idJudul }})" @else disabled title="Hanya bisa dihapus saat Diproses di TU Prodi" @endif>
+                                                <i class="fas fa-trash mr-1"></i> Hapus
+                                            </button>
                                             @else
                                             -
                                             @endif
@@ -1108,7 +1143,17 @@
                             @csrf
                             <input type="hidden" name="id_judul" value="{{ $idJudul }}">
                             <input type="hidden" name="tahapan_sidang" value="{{ $tahapan }}">
-                            <input type="hidden" name="id_tim_sidang" id="selectedTimSidangTahap2">
+                            @php
+                                $preselectedPenilai2 = '';
+                                if (isset($timSidang)) {
+                                    $mine2 = $timSidang->first(function ($t) {
+                                        return (string)($t->id_user_penilai ?? '') === (string)session('auth_user.id')
+                                            && strtolower(trim($t->status_tim_sidang ?? '')) !== 'ketua sidang';
+                                    });
+                                    $preselectedPenilai2 = $mine2->id ?? '';
+                                }
+                            @endphp
+                            <input type="hidden" name="id_tim_sidang" id="selectedTimSidangTahap2" value="{{ $preselectedPenilai2 }}">
                             <input type="hidden" name="no_form" id="selectedNoFormTahap2">
                             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
                                 <div class="d-flex align-items-center">
@@ -1118,7 +1163,7 @@
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
                                                 @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }}</option>
+                                                <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }}</option>
                                             @endforeach
                                         @endif
                                     </select>
@@ -1181,7 +1226,7 @@
                                                     <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5">
                                                 </td>
                                                 <td>
-                                                    <input type="text" class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" value="">
+                                                    <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2"></textarea>
                                                 </td>
                                             </tr>
                                             @foreach($existingRecords as $existing)
@@ -1195,7 +1240,7 @@
                                                         <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ $existing->Nilai }}" min="1" max="5">
                                                     </td>
                                                     <td>
-                                                        <input type="text" class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" value="{{ $existing->catatan }}">
+                                                        <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2">{{ $existing->catatan }}</textarea>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -1290,7 +1335,7 @@
                                         <div class="form-group row align-items-center mb-3 px-1">
                                             <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Rekomendasi Yudisium</label>
                                             <div class="col-sm-8 px-2">
-                                                <input type="text" class="form-control form-control-sm border-dark rounded-0" name="rekomendasi_yudisium" id="tuRek" value="{{ $tuRek ?? '' }}" placeholder="Isi rekomendasi" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>
+                                                <textarea class="form-control form-control-sm border-dark rounded-0" name="rekomendasi_yudisium" id="tuRek" rows="3" placeholder="Isi rekomendasi" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>{{ $tuRek ?? '' }}</textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -1311,6 +1356,16 @@
                             if (sel && sel.value) {
                                 document.getElementById('selectedTimSidangTahap2').value = sel.value;
                                 filterPenilaianTahap2();
+                            }
+                            var sel1 = document.getElementById('penilaianSelect');
+                            if (sel1 && sel1.value) {
+                                document.getElementById('selectedTimSidangTahap1').value = sel1.value;
+                                if (typeof filterPenilaian === 'function') filterPenilaian();
+                            }
+                            var selPemb = document.getElementById('penilaiSelect');
+                            if (selPemb && selPemb.value) {
+                                document.getElementById('selectedTimSidang').value = selPemb.value;
+                                if (typeof loadPenilaianForm === 'function') loadPenilaianForm();
                             }
                         })();
                     </script>
@@ -1424,16 +1479,16 @@
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) && (!isset($ajuan) || $ajuan->STATUS_AJUKAN_PRODI !== 'y'))
                                        <button type="button" class="btn btn-success px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);">Ajukan ke FS</button>
                                       @endif
-                                      @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
-                                       <button type="submit" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="submitJadwalTahap2(event)">Simpan</button>
-                                      @endif
                                       @if(session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
                                        <input type="hidden" name="is_ajukan_kpps" value="">
-                                       <button type="button" class="btn btn-success px-3 py-0 ml-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan ke KPPS</button>
+                                       <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan ke KPPS</button>
                                       @endif
                                       @if(session('auth_user.role') === 'FS' && isset($ajuan) && ($ajuan->STATUS_LULUS ?? '') === 'tidak lulus')
                                        <input type="hidden" name="is_ajukan_kpps" value="">
-                                       <button type="button" class="btn btn-success px-3 py-0 ml-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan Ulang ke KPPS (Reject)</button>
+                                       <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan Ulang ke KPPS (Reject)</button>
+                                      @endif
+                                      @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
+                                       <button type="submit" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="submitJadwalTahap2(event)">Simpan</button>
                                       @endif
                                  </div>
                              </div>
@@ -1576,7 +1631,7 @@
                                                         <input type="number" name="penilaian[{{ $idx }}][nilai]" value="{{ $nilai->Nilai }}" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;">
                                                     </td>
                                                     <td>
-                                                        <input type="text" name="penilaian[{{ $idx }}][catatan]" value="{{ $nilai->catatan }}" class="form-control form-control-sm catatan-input" style="font-size: 12px;">
+                                                        <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2">{{ $nilai->catatan }}</textarea>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -1590,7 +1645,7 @@
                                                         <input type="number" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;">
                                                     </td>
                                                     <td>
-                                                        <input type="text" name="penilaian[{{ $idx }}][catatan]" value="" class="form-control form-control-sm catatan-input" style="font-size: 12px;">
+                                                        <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2"></textarea>
                                                     </td>
                                                 </tr>
                                                 @endforeach
@@ -1842,7 +1897,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function disablePenilaianInputs(tbodyId) {
     var tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-    tbody.querySelectorAll('input.nilai-input, input.catatan-input').forEach(function(inp) {
+    tbody.querySelectorAll('input.nilai-input, .catatan-input').forEach(function(inp) {
         inp.disabled = true;
     });
 }
@@ -2095,7 +2150,7 @@ function renumberColumn(tbodyId) {
 
 function applyStatusCatatan(row) {
     var sc = row.getAttribute('data-status-catatan');
-    var catatanInput = row.querySelector('input.catatan-input');
+    var catatanInput = row.querySelector('.catatan-input');
     var nilaiInput = row.querySelector('input.nilai-input');
     if (sc === 'y') {
         if (catatanInput) catatanInput.disabled = false;
@@ -2491,6 +2546,11 @@ async function deleteTimSidang(id) {
             if (pane) renumberTimRows(pane);
             // Hapus juga option penilai di dropdown tab penilaian
             removePenilaiOption(id);
+            // Kembalikan opsi Status Tim yang tadi dipakai anggota yang dihapus
+            if (pane) {
+                var timForm = pane.querySelector('form[id^="timSidangForm"]');
+                if (timForm) refreshStatusTimOptions(timForm, '');
+            }
         } else {
             showToast(data.message || 'Gagal menghapus data', 'error');
         }
@@ -2729,9 +2789,10 @@ async function savePenilaianTahap1() {
         if (row.id === 'penilaianEmptyRow') return;
 
         const idPenilaian = row.getAttribute('data-point-id');
-        const inputs = row.querySelectorAll('input');
-        const nilai = inputs[0] ? inputs[0].value : '';
-        const catatan = inputs[1] ? inputs[1].value : '';
+        const nilaiEl = row.querySelector('.nilai-input');
+        const catatanEl = row.querySelector('.catatan-input');
+        const nilai = nilaiEl ? nilaiEl.value : '';
+        const catatan = catatanEl ? catatanEl.value : '';
 
         penilaian.push({
             id_penilaian: idPenilaian,
@@ -2870,7 +2931,7 @@ function toggleLockButton(tbodyId, btnId) {
         hasVisible = true;
         var sc = row.getAttribute('data-status-catatan');
         if (sc === 'y') {
-            var catatanInput = row.querySelector('input.catatan-input');
+            var catatanInput = row.querySelector('.catatan-input');
             if (catatanInput && !catatanInput.value.trim()) {
                 allFilled = false;
                 break;
@@ -2975,7 +3036,7 @@ async function savePenilaianTahap2() {
 
         const idPenilaianInput = row.querySelector('input[name$="[id_penilaian]"]');
         const nilaiInput = row.querySelector('input[name$="[nilai]"]');
-        const catatanInput = row.querySelector('input[name$="[catatan]"]');
+        const catatanInput = row.querySelector('textarea[name$="[catatan]"]') || row.querySelector('.catatan-input');
         if (!idPenilaianInput) return;
 
         penilaian.push({
@@ -3424,6 +3485,44 @@ $(document).ready(function() {
             $el.select2(opts);
         });
     }
+
+    // Auto-isi Penilai setelah Select2 siap (Pembimbing/Penguji + siapa pun yang punya opsi selected)
+    // Auto-isi Penilai setelah Select2 siap
+    (function autoFillPenilai() {
+        var userId = String(@json(session('auth_user.id')) ?? '');
+        var configs = [
+            { sel: '#penilaiTahap2', hidden: 'selectedTimSidangTahap2', filterFn: 'filterPenilaianTahap2' },
+            { sel: '#penilaianSelect', hidden: 'selectedTimSidangTahap1', filterFn: 'filterPenilaian' },
+            { sel: '#penilaiSelect', hidden: 'selectedTimSidang', filterFn: 'loadPenilaianForm' }
+        ];
+        configs.forEach(function (cfg) {
+            var el = document.querySelector(cfg.sel);
+            if (!el) return;
+            var chosen = el.value;
+            if (!chosen) {
+                var opt = Array.from(el.options).find(function (o) {
+                    return o.value && (
+                        String(o.getAttribute('data-user-id') || '') === userId
+                        || o.selected
+                    );
+                });
+                if (!opt) opt = el.querySelector('option[selected]');
+                if (opt && opt.value) chosen = opt.value;
+            }
+            if (!chosen) return;
+            el.value = chosen;
+            if (window.jQuery && jQuery(el).data('select2')) {
+                jQuery(el).val(chosen).trigger('change');
+            } else {
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            var h = document.getElementById(cfg.hidden);
+            if (h) h.value = chosen;
+            if (typeof window[cfg.filterFn] === 'function') {
+                try { window[cfg.filterFn](); } catch (e) {}
+            }
+        });
+    })();
 
     // Nonaktifkan Status Tim yang sudah dipakai anggota tim lain
     var timForms = document.querySelectorAll('form[id^="timSidangForm"]');

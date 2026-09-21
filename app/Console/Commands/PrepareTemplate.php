@@ -228,6 +228,7 @@ class PrepareTemplate extends Command
                 ],
                 'replaceSignatureDots' => true,
                 'fixSk4PengujiRows'     => true,
+                'expandNilaiRata2Slots'  => true,
             ],
             [
                 'src' => base_path('template/surat Kesediaan Tim Penelaah Proposal.docx'),
@@ -343,6 +344,14 @@ class PrepareTemplate extends Command
             // (Penguji-1)/(Penguji-2) dan sel tanda tangan baris 5 dikosongkan.
             if (!empty($template['fixSk4PengujiRows'])) {
                 $xml = $this->fixSk4PengujiRows($xml);
+            }
+
+            // Khusus BA SK IV: $(Nilai rata2) x6 -> ${nilai_1}..${nilai_6}
+            if (!empty($template['expandNilaiRata2Slots'])) {
+                for ($i = 1; $i <= 6; $i++) {
+                    $xml = $this->fuzzyReplaceOnce($xml, '$(Nilai rata2)', '${nilai_' . $i . '}');
+                    // jika sudah jadi ${nilai_SLOT} dari replace bulk (tidak dipakai), biarkan
+                }
             }
 
             $zip->addFromString('word/document.xml', $xml);
@@ -770,15 +779,39 @@ class PrepareTemplate extends Command
 
     /**
      * Khusus BA SK IV: rapikan baris 4-5 tabel "Tim Penguji/Penilai".
-     *  - baris ke-4 label "(Penguji)" -> "(Penguji-1)"
-     *  - baris ke-5 label "(Penguji)" -> "(Penguji-2)" dan sel tanda tangan dikosongkan
-     *    (sesuai format asli: baris 5 tidak punya kolom tandatangan).
+     * Saat ini dikembalikan apa adanya (label & signature dipertahankan).
      */
     private function fixSk4PengujiRows(string $xml): string
     {
-        // Previously this function renamed (Penguji) to (Penguji-1)/(Penguji-2) and cleared the signature for the second row.
-        // The current requirement is to keep the original labels and retain the signature placeholders for both examiner rows.
-        // Therefore, we simply return the XML unchanged.
         return $xml;
+    }
+
+    /**
+     * Ganti SATU occurrence teks yang mungkin terpecah antar <w:r> di XML Word.
+     */
+    private function fuzzyReplaceOnce(string $xml, string $search, string $replace): string
+    {
+        $chars = preg_split('//u', $search, -1, PREG_SPLIT_NO_EMPTY);
+        $regex = '';
+        foreach ($chars as $char) {
+            $regex .= ($char === ' ')
+                ? '(?:\s|<[^>]+>)*?'
+                : preg_quote($char, '/') . '(?:\s|<[^>]+>)*?';
+        }
+
+        $out = preg_replace_callback('/' . $regex . '/ui', function ($matches) use ($replace) {
+            $match = $matches[0];
+            $first = true;
+            $replaced = preg_replace_callback('/>([^<]+)</', function ($m) use (&$first, $replace) {
+                if ($first) {
+                    $first = false;
+                    return '>' . $replace . '<';
+                }
+                return '><';
+            }, '>' . $match . '<');
+            return substr($replaced, 1, -1);
+        }, $xml, 1);
+
+        return $out ?? $xml;
     }
 }

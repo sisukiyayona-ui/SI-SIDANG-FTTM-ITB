@@ -3,6 +3,55 @@
 @section('title', 'Report Sidang S3 - SI SIDANG FTTM ITB')
 @section('page_title', 'Report Sidang S3')
 
+@php
+if (!function_exists('getStatusColor')) {
+    function getStatusColor($status) {
+        $s = strtolower($status ?? '');
+        switch($s) {
+            case 'belum diajukan':
+            case null:
+                return 'secondary';
+            case 'diproses di tu prodi':
+            case 'dalam proses':
+                return 'warning';
+            case 'diproses di fakultas':
+                return 'orange';
+            case 'menunggu pelaksanaan sidang':
+            case 'menunggu approve kpps':
+                return 'purple';
+            case 'terjadwal':
+                return 'primary';
+            case 'lulus':
+                return 'success';
+            case 'tidak lulus':
+                return 'danger';
+            case 'rejected':
+            case 'ditolak':
+                return 'danger';
+            default:
+                return 'info';
+        }
+    }
+}
+
+if (!function_exists('formatTahapan')) {
+    function formatTahapan($tahapan) {
+        $tahapanLower = strtolower($tahapan ?? '');
+        $labels = [
+            'tahap i'   => 'Ujian Kualifikasi',
+            'tahap ii'  => 'Ujian Proposal',
+            'tahap iii' => 'Tahap III',
+            'tahap iv'  => 'Sidang Terbuka / Tertutup',
+            'sk i'      => 'SK I',
+            'sk ii'     => 'SK II',
+            'sk iii'    => 'SK III',
+            'sk iv'     => 'SK IV',
+        ];
+        return $labels[$tahapanLower] ?? $tahapan;
+    }
+}
+@endphp
+
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
@@ -38,9 +87,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($reports as $idx => $item)
+                        @forelse($reports as $item)
                             <tr>
-                                <td>{{ $idx + 1 }}</td>
+                                <td>{{ $reports->firstItem() + $loop->index }}</td>
                                 <td>{{ $item->tahun }}</td>
                                 <td>{{ $item->NIM }}</td>
                                 <td>{{ $item->nama_mahasiswa }}</td>
@@ -71,74 +120,12 @@
                     </tbody>
                 </table>
             </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <span class="text-muted small">
+                    Menampilkan {{ $reports->total() > 0 ? $reports->firstItem() . '-' . $reports->lastItem() : 0 }} dari {{ $reports->total() }} data
+                </span>
+                {{ $reports->links('pagination::bootstrap-4') }}
+            </div>
         </div>
     </div>
 @endsection
-
-@push('styles')
-<link rel="stylesheet" href="//cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
-@endpush
-
-@push('scripts')
-<script src="//cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="//cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
-<script>
-$(document).ready(function() {
-    $('#reportTable').DataTable({
-        paging: true,
-        searching: true,
-        ordering: true,
-        info: true,
-        pageLength: 25,
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/id.json'
-        }
-    });
-});
-</script>
-@endpush
-
-@php
-function getStatusColor($status) {
-    $s = strtolower($status ?? '');
-    switch($s) {
-        case 'belum diajukan':
-        case null:
-            return 'secondary';
-        case 'diproses di tu prodi':
-        case 'dalam proses':
-            return 'warning';
-        case 'diproses di fakultas':
-            return 'orange';
-        case 'menunggu pelaksanaan sidang':
-        case 'menunggu approve kpps':
-            return 'purple';
-        case 'terjadwal':
-            return 'primary';
-        case 'lulus':
-            return 'success';
-        case 'tidak lulus':
-            return 'danger';
-        case 'rejected':
-        case 'ditolak':
-            return 'danger';
-        default:
-            return 'info';
-    }
-}
-
-function formatTahapan($tahapan) {
-    $tahapanLower = strtolower($tahapan ?? '');
-    $labels = [
-        'tahap i'   => 'Ujian Kualifikasi',
-        'tahap ii'  => 'Ujian Proposal',
-        'tahap iii' => 'Tahap III',
-        'tahap iv'  => 'Sidang Terbuka / Tertutup',
-        'sk i'      => 'SK I',
-        'sk ii'     => 'SK II',
-        'sk iii'    => 'SK III',
-        'sk iv'     => 'SK IV',
-    ];
-    return $labels[$tahapanLower] ?? $tahapan;
-}
-@endphp

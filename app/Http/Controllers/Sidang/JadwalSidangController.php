@@ -31,11 +31,30 @@ class JadwalSidangController extends Controller
         if ($user['role'] === 'Mahasiswa') {
             $query->where('a.id_user', $user['id']);
         } elseif ($user['role'] === 'TU Prodi') {
-            $query->where('a.kode_prodi', $user['kode_prodi']);
-        } elseif ($user['role'] === 'KPPS') {
-            // KPPS sees all jadwal from their prodi
-            if (isset($user['kode_prodi']) && $user['kode_prodi']) {
+            $prodiIds = $user['id_prodi'] ?? [];
+            if (!empty($prodiIds)) {
+                $query->whereIn('a.ID_PRODI', $prodiIds);
+            } elseif (!empty($user['kode_prodi'])) {
                 $query->where('a.kode_prodi', $user['kode_prodi']);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        } elseif ($user['role'] === 'KPPS') {
+            // KPPS: filter jadwal by prodi dari t_kpps
+            $kppsKode = DB::table('t_kpps')
+                ->where('ID_USER', $user['id'] ?? 0)
+                ->where('STATUS_AKTIF', 'AKTIF')
+                ->pluck('KODE_PRODI')
+                ->unique()
+                ->filter()
+                ->values()
+                ->all();
+            if (!empty($kppsKode)) {
+                $query->whereIn('a.kode_prodi', $kppsKode);
+            } elseif (!empty($user['kode_prodi'])) {
+                $query->where('a.kode_prodi', $user['kode_prodi']);
+            } else {
+                $query->whereRaw('1 = 0');
             }
         } elseif ($user['role'] === 'FS') {
             // FS sees all prodi, only status_ajukan_prodi = 'y'

@@ -5,26 +5,53 @@ namespace App\Http\Controllers;
 use App\Models\TAjuanSidang;
 use App\Models\TUser;
 use App\Models\VReportTipeI;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = session('auth_user');
 
         $query = VReportTipeI::query();
+        $this->applyRoleFilter($query, $user);
 
-        if ($user['role'] === 'TU Prodi') {
-            $query->where('kode_prodi', $user['kode_prodi']);
-        } elseif ($user['role'] === 'Monev') {
-            // Monev hanya melihat data dalam fakultasnya
-            $query->whereIn('kode_prodi', $this->prodiKodeByFs($user['kode_fs'] ?? null));
-        }
-
-        $reports = $query->get();
+        $reports = $query->paginate(25)->withQueryString();
 
         return view('report.index', compact('reports'));
+    }
+
+    /**
+     * Filter report by role (TU Prodi via t_user_prodi, Monev via FS).
+     */
+    private function applyRoleFilter($query, $user)
+    {
+        if (($user['role'] ?? '') === 'TU Prodi') {
+            $kodeList = $this->prodiKodeByUserProdi($user);
+            if (!empty($kodeList)) {
+                $query->whereIn('kode_prodi', $kodeList);
+            } elseif (!empty($user['kode_prodi'])) {
+                $query->where('kode_prodi', $user['kode_prodi']);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        } elseif (($user['role'] ?? '') === 'Monev') {
+            $query->whereIn('kode_prodi', $this->prodiKodeByFs($user['kode_fs'] ?? null));
+        }
+    }
+
+    /**
+     * Kode prodi dari t_user_prodi untuk user TU Prodi (bisa multi-prodi).
+     */
+    private function prodiKodeByUserProdi($user)
+    {
+        $prodiIds = $user['id_prodi'] ?? [];
+        if (empty($prodiIds)) {
+            return [];
+        }
+
+        return \App\Models\TProdi::whereIn('ID', $prodiIds)->pluck('KODE_PRODI')->all();
     }
 
     /**
@@ -43,14 +70,9 @@ class ReportController extends Controller
     {
         $user = session('auth_user');
 
+        // Export seluruh data (bukan hanya halaman DataTables saat ini)
         $query = VReportTipeI::query();
-
-        if ($user['role'] === 'TU Prodi') {
-            $query->where('kode_prodi', $user['kode_prodi']);
-        } elseif ($user['role'] === 'Monev') {
-            // Monev hanya melihat data dalam fakultasnya
-            $query->whereIn('kode_prodi', $this->prodiKodeByFs($user['kode_fs'] ?? null));
-        }
+        $this->applyRoleFilter($query, $user);
 
         $reports = $query->get();
         
@@ -147,7 +169,9 @@ class ReportController extends Controller
     public function showDetail($idJudul, $tahapan)
     {
         $user = session('auth_user');
-        
+
+        $tahapan = str_replace('_', ' ', $tahapan);
+
         $judul = DB::table('t_judul')->where('id', $idJudul)->first();
         
         if (!$judul) {
@@ -162,7 +186,7 @@ class ReportController extends Controller
         
         if (!$detail) {
             return response()->json([
-                'Judul' => $judul->Judul,
+                'Judul' => $judul->JUDUL,
                 'tahapan_sidang' => $tahapan,
                 'tgl_sidang' => null,
                 'waktu_sidang' => null,

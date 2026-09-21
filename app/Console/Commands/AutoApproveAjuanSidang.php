@@ -120,6 +120,7 @@ class AutoApproveAjuanSidang extends Command
      */
     private function getPendingMembers(int $ajuanId, string $kodeProdi)
     {
+        // Satu baris per ID_USER (hindari duplikat Ketua+Anggota untuk orang yang sama)
         return DB::table('t_kpps as k')
             ->leftJoin('t_app_ajuan_sidang as app', function ($join) use ($ajuanId) {
                 $join->on('app.ID_USER', '=', 'k.ID_USER')
@@ -128,8 +129,13 @@ class AutoApproveAjuanSidang extends Command
             ->where('k.KODE_PRODI', $kodeProdi)
             ->where('k.STATUS_AKTIF', 'AKTIF')
             ->whereNull('app.id')
-            ->select('k.ID_USER', 'k.NAMA', 'k.STATUS_TIM')
-            ->orderBy('k.STATUS_TIM')
+            ->select(
+                'k.ID_USER',
+                DB::raw('MAX(k.NAMA) as NAMA'),
+                DB::raw("SUBSTRING_INDEX(GROUP_CONCAT(k.STATUS_TIM ORDER BY CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END SEPARATOR ','), ',', 1) as STATUS_TIM")
+            )
+            ->groupBy('k.ID_USER')
+            ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
             ->get();
     }
 }

@@ -15,9 +15,22 @@ class ApproveAjuanSidangController extends Controller
             abort(404);
         }
 
-        $totalKpps = DB::table('t_kpps')->count();
         $authUser = session('auth_user');
         $currentUserId = $authUser['id'] ?? 0;
+
+        // Hanya ajuan prodi tempat user terdaftar di t_kpps
+        $kppsKodeProdi = DB::table('t_kpps')
+            ->where('ID_USER', $currentUserId)
+            ->where('STATUS_AKTIF', 'AKTIF')
+            ->pluck('KODE_PRODI')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        $totalKpps = !empty($kppsKodeProdi)
+            ? DB::table('t_kpps')->whereIn('KODE_PRODI', $kppsKodeProdi)->where('STATUS_AKTIF', 'AKTIF')->distinct()->count('ID_USER')
+            : 0;
 
         $approvalSub = "SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.STATUS_APPROVE IN ('t','y') AND EXISTS (SELECT 1 FROM t_kpps kk WHERE kk.ID_USER = app.ID_USER AND kk.STATUS_AKTIF = 'AKTIF')";
         $myApprovalSub = "SELECT COUNT(*) FROM t_app_ajuan_sidang app WHERE app.ID_AJUAN_SIDANG = a.id AND app.ID_USER = {$currentUserId} AND app.STATUS_APPROVE IN ('t','y')";
@@ -28,6 +41,12 @@ class ApproveAjuanSidangController extends Controller
             ->where('a.STRATA', $strata)
             ->where('a.STATUS_AJUKAN_KPPS', 'y')
             ->where('a.TAHAPAN_SIDANG', '!=', 'tahap I');
+
+        if (!empty($kppsKodeProdi)) {
+            $q->whereIn('a.KODE_PRODI', $kppsKodeProdi);
+        } else {
+            $q->whereRaw('1 = 0');
+        }
 
         // Filter pencarian
         $search = trim((string) request()->query('search', ''));

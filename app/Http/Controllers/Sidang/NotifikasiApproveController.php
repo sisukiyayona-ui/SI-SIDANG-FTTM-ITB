@@ -58,16 +58,32 @@ class NotifikasiApproveController extends Controller
         $tahapan = $ajuan->TAHAPAN_SIDANG;
         $strata = $ajuan->STRATA;
 
-        $kppsList = DB::table('t_kpps as k')
+        $kodeProdi = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null;
+
+        $kppsQuery = DB::table('t_kpps as k')
             ->leftJoin('t_app_ajuan_sidang as app', function ($join) use ($idAjuan) {
                 $join->on('k.ID_USER', '=', 'app.ID_USER')
                      ->where('app.ID_AJUAN_SIDANG', '=', $idAjuan);
             })
             ->leftJoin('t_user as u', 'k.ID_USER', '=', 'u.ID')
-            ->whereNull('app.ID')
-            ->select('k.ID_USER', 'k.NIP', 'k.NAMA', 'k.STATUS_TIM', 'u.EMAIL')
-            ->orderByRaw("CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
-            ->orderBy('k.NAMA')
+            ->where('k.STATUS_AKTIF', 'AKTIF')
+            ->whereNull('app.ID');
+
+        if (!empty($kodeProdi)) {
+            $kppsQuery->where('k.KODE_PRODI', $kodeProdi);
+        }
+
+        $kppsList = $kppsQuery
+            ->select(
+                'k.ID_USER',
+                DB::raw('MAX(k.NIP) as NIP'),
+                DB::raw('MAX(k.NAMA) as NAMA'),
+                DB::raw("SUBSTRING_INDEX(GROUP_CONCAT(k.STATUS_TIM ORDER BY CASE WHEN k.STATUS_TIM = 'Ketua' THEN 1 WHEN k.STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END SEPARATOR ','), ',', 1) as STATUS_TIM"),
+                DB::raw('MAX(u.EMAIL) as EMAIL')
+            )
+            ->groupBy('k.ID_USER')
+            ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
+            ->orderBy('NAMA')
             ->get();
 
         if ($kppsList->isEmpty()) {
