@@ -82,6 +82,11 @@ class CetakController extends Controller
             return response()->json(['error' => 'id_tim_sidang diperlukan.'], 400);
         }
 
+        // Kode prodi dari ajuan (fallback ke judul) agar point penilaian dicetak per-prodi
+        $kodeProdi = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi
+            ?? $judul->KODE_PRODI ?? $judul->kode_prodi
+            ?? null;
+
         // Data tim sidang (penilai yang dipilih)
         $timSidangRecord = TTimSidang::find($idTimSidang);
 
@@ -121,10 +126,13 @@ class CetakController extends Controller
             }
         }
 
-        // Jika belum ada record, ambil point penilaian (baris kosong)
+        // Jika belum ada record, ambil point penilaian (baris kosong) — per prodi
         if ($penilaianRows->isEmpty()) {
             $pointQuery = TPointPenilaian::where('tahapan_sidang', $tahapan)
                 ->whereIn('status_aktif', ['AKTIF', 'aktif', 'Aktif', 'y', 'Y', 't']);
+            if ($kodeProdi) {
+                $pointQuery->where('KODE_PRODI', $kodeProdi);
+            }
             if ($noForm) {
                 $pointQuery->where('no_form', $noForm);
             }
@@ -134,6 +142,7 @@ class CetakController extends Controller
                 'KETERANGAN'     => $p->KETERANGAN ?? '',
                 'NILAI'          => '',
                 'CATATAN'        => '',
+                'STATUS_CATATAN' => $p->STATUS_CATATAN ?? $p->status_catatan ?? '',
                 'NAMA'           => $timSidangRecord?->NAMA ?? '-',
                 'NIP'            => $timSidangRecord?->NIP  ?? '-',
                 'NO_FORM'        => $p->NO_FORM ?? '',
@@ -142,13 +151,22 @@ class CetakController extends Controller
             ]);
         }
 
-        // Rata-rata nilai (jumlah total skor dibagi 5, sesuai catatan pada form)
-        // Baris "Usulan Perbaikan" bukan kriteria penilaian ber-skala — jangan dihitung.
-        $nilaiValues = $penilaianRows
-            ->filter(fn($r) => strtolower(trim((string) ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? ''))) !== 'usulan perbaikan')
+        // Rata-rata nilai: jumlah total skor dibagi jumlah kriteria detail (skala dinamis).
+        // Baris "Usulan Perbaikan" dan baris bertipe teks (STATUS_CATATAN=y) bukan kriteria
+        // ber-skala (bobotnya bukan angka) — jangan dihitung.
+        $detailRows = $penilaianRows->filter(function ($r) {
+            $nama          = (string) ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? '');
+            $statusCatatan = strtolower((string) ($r->STATUS_CATATAN ?? $r->status_catatan ?? ''));
+            return strtolower(trim($nama)) !== 'usulan perbaikan'
+                && $statusCatatan !== 'y';
+        });
+        $jumlahDetail = $detailRows->count();
+        $nilaiValues  = $detailRows
             ->pluck('NILAI')
             ->filter(fn($v) => $v !== '' && $v !== null);
-        $rataNilai   = $nilaiValues->count() > 0 ? number_format($nilaiValues->sum() / 5, 2) : '';
+        $rataNilai    = $nilaiValues->count() > 0
+            ? number_format($nilaiValues->sum() / max(1, $jumlahDetail), 2)
+            : '';
 
         // Info penilai & tanggal (tanggal penilaian = tgl create penilaian)
         $firstRow    = $penilaianRows->first();
@@ -184,8 +202,11 @@ class CetakController extends Controller
         if ($noForm && !$isSk && !$isSidangDoktor) {
             $pointsForForm = TPointPenilaian::where('tahapan_sidang', $tahapan)
                 ->where('no_form', $noForm)
-                ->whereIn('status_aktif', ['AKTIF', 'aktif', 'Aktif', 'y', 'Y', 't'])
-                ->get();
+                ->whereIn('status_aktif', ['AKTIF', 'aktif', 'Aktif', 'y', 'Y', 't']);
+            if ($kodeProdi) {
+                $pointsForForm->where('KODE_PRODI', $kodeProdi);
+            }
+            $pointsForForm = $pointsForForm->get();
             $isTextForm = $pointsForForm->isNotEmpty()
                 && $pointsForForm->every(fn($p) => strtolower((string) ($p->STATUS_CATATAN ?? $p->status_catatan ?? '')) === 'y');
         }
@@ -291,7 +312,7 @@ class CetakController extends Controller
             // Template SK: isi nomor form, heading romawi, dan expand baris detail penilaian.
             // Template form penilaian SK hanya punya SATU ${signature} (milik penilai terpilih),
             // jadi jangan diisi per-peran di sini — biar embedSignature di bawah yang mengisinya.
-            $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $penilaianRows->values()->toArray(), $rataNilai);
+            $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $penilaianRows->values()->toArray(), $rataNilai, $jumlahDetail);
         } elseif ($isSidangDoktor) {
             // Template form penilaian sidang doktor: isi baris detail penilaian (5 baris) + rata-rata
             $this->postProcessSidangForm($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
@@ -937,7 +958,7 @@ class CetakController extends Controller
      * Post-process template SK: isi nomor form, ganti heading romawi (I/II/III),
      * dan isi/expand baris detail penilaian sesuai jumlah record di database.
      */
-    private function postProcessSkForm(string $docxPath, string $noForm, string $skRomawi, array $rows, string $rataNilai): void
+    private function postProcessSkForm(string $docxPath, string $noForm, string $skRomawi, array $rows, string $rataNilai, int $jumlahDetail = 5): void
     {
         $zip = new \ZipArchive();
         if ($zip->open($docxPath) !== true) {
@@ -945,6 +966,21 @@ class CetakController extends Controller
         }
 
         $xml = $zip->getFromName('word/document.xml');
+
+        // Skala dinamis: /skala N (jumlah skor detail dibagi N) sesuai jumlah detail penilaian
+        if ($jumlahDetail > 0) {
+            $xml = preg_replace(
+                '~(/skala\s*)\d+(\s*\(\s*jumlah skor detail dibagi\s*)\d+(\s*\))~i',
+                '${1}' . $jumlahDetail . '${2}' . $jumlahDetail . '${3}',
+                $xml
+            );
+            // Header "skor maksimum adalah 5)" -> angka maksimum dinamis sesuai jumlah detail
+            $xml = preg_replace(
+                '~(<w:t>)5\)(?=</w:t>)~i',
+                '${1}' . $jumlahDetail . ')',
+                $xml
+            );
+        }
 
         // (no form) -> nomor form yang dipilih (contoh: 304.1)
         if ($noForm !== '') {
@@ -963,7 +999,7 @@ class CetakController extends Controller
         // Expand + isi baris detail penilaian
         $xml = $this->fillSkDetailRows($xml, $rows);
 
-        // Nilai Rata-Rata (jumlah total skor dibagi 5)
+        // Nilai Rata-Rata (jumlah total skor dibagi N skala dinamis)
         $xml = preg_replace('/\$\{rata_nilai[^}]*\}/i', htmlspecialchars($rataNilai, ENT_XML1, 'UTF-8'), $xml);
 
         // Bersihkan sisa placeholder baris detail yang belum terganti
