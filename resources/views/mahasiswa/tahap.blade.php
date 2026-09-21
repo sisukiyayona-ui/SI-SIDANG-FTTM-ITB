@@ -385,8 +385,6 @@
                                 )
                                 ->where('app.ID_AJUAN_SIDANG', $appAjuanMhs ? $appAjuanMhs->id : 0)
                                 ->groupBy('app.ID_USER')
-                                ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
-                                ->orderBy('NAMA')
                                 ->get();
                         } else {
                             $kppsQueryMhs = \Illuminate\Support\Facades\DB::table('t_kpps as k')
@@ -412,10 +410,13 @@
                                     \Illuminate\Support\Facades\DB::raw('CASE WHEN MAX(app.ID) IS NOT NULL THEN "Sudah Diajukan" ELSE "Belum Diajukan" END as STATUS_AJUAN')
                                 )
                                 ->groupBy('k.ID_USER')
-                                ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
-                                ->orderBy('NAMA')
                                 ->get();
                         }
+                        $statusTimPriorityMhs = ['Ketua' => 1, 'Sekretaris' => 2];
+                        $kppsListMhs = $kppsListMhs->sortBy(function ($item) use ($statusTimPriorityMhs) {
+                            $priority = $statusTimPriorityMhs[trim($item->STATUS_TIM ?? '')] ?? 3;
+                            return str_pad($priority, 2, '0', STR_PAD_LEFT) . '|' . strtolower($item->NAMA ?? '');
+                        })->values();
                     @endphp
 
                     {{-- Modal Usulan Perbaikan --}}

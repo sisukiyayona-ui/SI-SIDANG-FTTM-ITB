@@ -82,9 +82,13 @@ class NotifikasiApproveController extends Controller
                 DB::raw('MAX(u.EMAIL) as EMAIL')
             )
             ->groupBy('k.ID_USER')
-            ->orderByRaw("CASE WHEN STATUS_TIM = 'Ketua' THEN 1 WHEN STATUS_TIM = 'Sekretaris' THEN 2 ELSE 3 END")
-            ->orderBy('NAMA')
             ->get();
+
+        $statusTimPriority = ['Ketua' => 1, 'Sekretaris' => 2];
+        $kppsList = $kppsList->sortBy(function ($item) use ($statusTimPriority) {
+            $priority = $statusTimPriority[trim($item->STATUS_TIM ?? '')] ?? 3;
+            return str_pad($priority, 2, '0', STR_PAD_LEFT) . '|' . strtolower($item->NAMA ?? '');
+        })->values();
 
         if ($kppsList->isEmpty()) {
             return ['empty' => true, 'sent' => 0, 'skipped' => 0, 'sent_names' => [], 'skipped_names' => []];
