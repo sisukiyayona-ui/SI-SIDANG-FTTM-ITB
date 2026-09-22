@@ -367,7 +367,7 @@
                 if (data.expired || data.error === 'Session expired') {
                     showCustomToast('Sesi habis, silakan login ulang', 'error');
                 } else {
-                    showCustomToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'), 'error');
+                    showCustomToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')') + (data.debug ? ' — ' + data.debug : ''), 'error');
                 }
             }
         })

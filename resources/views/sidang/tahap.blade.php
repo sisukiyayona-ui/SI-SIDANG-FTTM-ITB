@@ -1975,7 +1975,7 @@ function savePersyaratanTahap() {
             if (data.expired || data.error === 'Session expired') {
                 showToast('Sesi habis, silakan login ulang', 'error');
             } else {
-                showToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'), 'error');
+                showToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')') + (data.debug ? ' — ' + data.debug : ''), 'error');
             }
         }
     })
@@ -2358,7 +2358,7 @@ function savePersyaratan(tahapan) {
             if (data.expired || data.error === 'Session expired') {
                 showToast('Sesi habis, silakan login ulang', 'error');
             } else {
-                showToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'), 'error');
+                showToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')') + (data.debug ? ' — ' + data.debug : ''), 'error');
             }
         }
     })

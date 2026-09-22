@@ -776,7 +776,7 @@ function simpanPersyaratan() {
             if (data.expired || data.error === 'Session expired') {
                 showToast('error', 'Sesi habis, silakan login ulang');
             } else {
-                showToast('error', data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'));
+                showToast('error', data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')') + (data.debug ? ' — ' + data.debug : ''));
             }
         }
     })

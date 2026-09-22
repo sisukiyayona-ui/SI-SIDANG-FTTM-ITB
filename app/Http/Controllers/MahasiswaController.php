@@ -271,12 +271,9 @@ class MahasiswaController extends Controller
         // 1. Jika sudah ada data di t_cek_persyaratan (mahasiswa upload/mencentang),
         //    tampilkan data tersebut (status ceklis & file tetap muncul), apapun
         //    status lulus/layak-nya.
-        // 2. Jika belum ada data cek sama sekali:
-        //    - sudah lulus/layak  -> jangan tampilkan master (persyaratan baru
-        //      yang dibuat belakangan tidak muncul untuk yang sudah lulus/layak).
-        //    - belum lulus/layak  -> tampilkan daftar aktif dari t_syarat_sidang
-        //      (termasuk persyaratan baru yang dibuat di master).
-        $statusLulusCek = $ajuan->status_lulus ?? '';
+        // 2. Jika belum ada data cek sama sekali: tampilkan daftar aktif dari
+        //    t_syarat_sidang — termasuk untuk yang sudah lulus, supaya masih
+        //    bisa upload/ubah file persyaratan setelah status lulus.
         $persyaratanQuery = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
             ->where('TAHAPAN_SIDANG', $tahapan);
         if ($syaratIdsForProdi->isNotEmpty()) {
@@ -285,12 +282,7 @@ class MahasiswaController extends Controller
         $persyaratan = $persyaratanQuery->get();
 
         if ($persyaratan->isEmpty()) {
-            $isPassed = stripos((string) $statusLulusCek, 'Lulus') !== false
-                || stripos((string) $statusLulusCek, 'Layak') !== false;
-
-            if (!$isPassed) {
-                $persyaratan = collect($syaratSidangList());
-            }
+            $persyaratan = collect($syaratSidangList());
         }
 
         // Table penilaian - filter by user for Pembimbing/Penguji
@@ -397,6 +389,10 @@ class MahasiswaController extends Controller
 
         $tahapan = $request->tahapan_sidang;
         $idSyarat = $request->id_syarat_sidang;
+
+        if (!is_numeric($idSyarat) || (int)$idSyarat <= 0) {
+            return response()->json(['success' => false, 'message' => 'ID persyaratan tidak valid'], 422);
+        }
 
         try {
         // Handle file upload
@@ -615,6 +611,11 @@ class MahasiswaController extends Controller
         // Simpan status kelengkapan checkbox
         if ($request->has('kelengkapan')) {
             foreach ($request->kelengkapan as $idSyarat => $status) {
+                // Lewati ID non-numerik (placeholder hf_* / dummy di view)
+                if (!is_numeric($idSyarat) || (int)$idSyarat <= 0) {
+                    \Log::warning('saveAllPersyaratan: skip non-numeric id_syarat', ['id_syarat' => $idSyarat]);
+                    continue;
+                }
                 $syarat = \App\Models\TSyaratSidang::find($idSyarat);
                 $tahapSyarat = $syarat ? $syarat->TAHAPAN_SIDANG : $tahapan;
 
@@ -649,6 +650,10 @@ class MahasiswaController extends Controller
             $finfo = new \finfo(FILEINFO_MIME_TYPE);
 
             foreach ($request->file('files') as $idSyarat => $file) {
+                if (!is_numeric($idSyarat) || (int)$idSyarat <= 0) {
+                    \Log::warning('saveAllPersyaratan: skip non-numeric file id_syarat', ['id_syarat' => $idSyarat]);
+                    continue;
+                }
                 $mimeType = $finfo->file($file->getRealPath());
                 if ($mimeType !== 'application/pdf') {
                     return response()->json(['success' => false, 'message' => 'Hanya file PDF yang diizinkan'], 422);
@@ -721,14 +726,22 @@ class MahasiswaController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Persyaratan berhasil disimpan']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
             \Log::error('saveAllPersyaratan failed', [
                 'id_judul' => $idJudul,
                 'tahapan' => $tahapan,
+                'kelengkapan' => $request->kelengkapan,
+                'has_files' => $request->hasFile('files'),
                 'error' => $e->getMessage(),
                 'file' => $e->getFile() . ':' . $e->getLine(),
             ]);
-            return response()->json(['success' => false, 'message' => 'Gagal menyimpan persyaratan'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan persyaratan',
+                'debug' => $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine(),
+            ], 500);
         }
     }
 
