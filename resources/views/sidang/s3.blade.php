@@ -317,11 +317,17 @@
         }
         formData.append('id_judul', idJudul);
 
-        var checkboxes = content ? content.querySelectorAll('input[type="checkbox"][onchange]') : [];
+        var checkboxes = content ? content.querySelectorAll('input[type="checkbox"][data-syarat-id], input[type="checkbox"][onchange]') : [];
+        var seen = {};
         checkboxes.forEach(function(cb) {
-            var match = cb.getAttribute('onchange').match(/updateKelengkapan\((\d+)/);
-            if (match) {
-                formData.append('kelengkapan[' + match[1] + ']', cb.checked ? 'y' : 't');
+            var id = cb.getAttribute('data-syarat-id');
+            if (!id) {
+                var match = (cb.getAttribute('onchange') || '').match(/updateKelengkapan\((\d+)/);
+                if (match) id = match[1];
+            }
+            if (id && !seen[id]) {
+                seen[id] = true;
+                formData.append('kelengkapan[' + id + ']', cb.checked ? 'y' : 't');
             }
         });
 
@@ -339,7 +345,14 @@
             },
             body: formData
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            return r.json().catch(function() {
+                return { success: false, message: 'Server error (HTTP ' + r.status + ')' };
+            }).then(function(data) {
+                data._httpStatus = r.status;
+                return data;
+            });
+        })
         .then(function(data) {
             if (data.success) {
                 showCustomToast('Persyaratan berhasil disimpan', 'success');
@@ -350,10 +363,16 @@
                     location.reload();
                 }
             } else {
-                showCustomToast(data.message || 'Gagal menyimpan persyaratan', 'error');
+                console.error('saveAllPersyaratan failed', data);
+                if (data.expired || data.error === 'Session expired') {
+                    showCustomToast('Sesi habis, silakan login ulang', 'error');
+                } else {
+                    showCustomToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'), 'error');
+                }
             }
         })
         .catch(function(error) {
+            console.error('saveAllPersyaratan exception', error);
             showCustomToast('Terjadi kesalahan: ' + error, 'error');
         });
     }

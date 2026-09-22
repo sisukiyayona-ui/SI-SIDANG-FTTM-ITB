@@ -1958,16 +1958,29 @@ function savePersyaratanTahap() {
         },
         body: formData
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+        return r.json().catch(function() {
+            return { success: false, message: 'Server error (HTTP ' + r.status + ')' };
+        }).then(function(data) {
+            data._httpStatus = r.status;
+            return data;
+        });
+    })
     .then(function(data) {
         if (data.success) {
             showToast('Persyaratan berhasil disimpan', 'success');
             persyaratanFiles = {};
         } else {
-            showToast(data.message || 'Gagal menyimpan persyaratan', 'error');
+            console.error('saveAllPersyaratan failed', data);
+            if (data.expired || data.error === 'Session expired') {
+                showToast('Sesi habis, silakan login ulang', 'error');
+            } else {
+                showToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'), 'error');
+            }
         }
     })
     .catch(function(error) {
+        console.error('saveAllPersyaratan exception', error);
         showToast('Terjadi kesalahan: ' + error, 'error');
     })
     .finally(function() {
@@ -2328,16 +2341,29 @@ function savePersyaratan(tahapan) {
         },
         body: formData
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+        return r.json().catch(function() {
+            return { success: false, message: 'Server error (HTTP ' + r.status + ')' };
+        }).then(function(data) {
+            data._httpStatus = r.status;
+            return data;
+        });
+    })
     .then(function(data) {
         if (data.success) {
             showToast('Persyaratan berhasil disimpan', 'success');
             persyaratanFiles = {};
         } else {
-            showToast(data.message || 'Gagal menyimpan persyaratan', 'error');
+            console.error('saveAllPersyaratan failed', data);
+            if (data.expired || data.error === 'Session expired') {
+                showToast('Sesi habis, silakan login ulang', 'error');
+            } else {
+                showToast(data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'), 'error');
+            }
         }
     })
     .catch(function(error) {
+        console.error('saveAllPersyaratan exception', error);
         showToast('Terjadi kesalahan: ' + error, 'error');
     })
     .finally(function() {

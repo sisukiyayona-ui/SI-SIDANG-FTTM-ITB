@@ -754,7 +754,14 @@ function simpanPersyaratan() {
         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
         body: formData
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+        return r.json().catch(function() {
+            return { success: false, message: 'Server error (HTTP ' + r.status + ')' };
+        }).then(function(data) {
+            data._httpStatus = r.status;
+            return data;
+        });
+    })
     .then(function(data) {
         if (data.success) {
             showToast('success', 'Persyaratan berhasil disimpan');
@@ -765,11 +772,17 @@ function simpanPersyaratan() {
                 location.reload();
             }
         } else {
-            showToast('error', data.message || 'Gagal menyimpan persyaratan');
+            console.error('saveAllPersyaratan failed', data);
+            if (data.expired || data.error === 'Session expired') {
+                showToast('error', 'Sesi habis, silakan login ulang');
+            } else {
+                showToast('error', data.message || data.error || ('Gagal menyimpan persyaratan (HTTP ' + (data._httpStatus || '?') + ')'));
+            }
         }
     })
     .catch(function(error) {
-        showToast('error', 'Terjadi kesalahan');
+        console.error('saveAllPersyaratan exception', error);
+        showToast('error', 'Terjadi kesalahan: ' + error);
     })
     .finally(function() {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan'; }
