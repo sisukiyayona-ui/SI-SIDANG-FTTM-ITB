@@ -61,7 +61,7 @@ class TAjuanSidang extends Model
         'TGL_UNDANGAN' => 'date',
         'TGL_PENGUMPULAN' => 'date',
         'TGL_PENELAAH' => 'date',
-        'TGL_AJUKAN_KPPS' => 'date',
+        'TGL_AJUKAN_KPPS' => 'datetime',
         'ANGKATAN' => 'integer',
         'THN_CREATE' => 'integer',
     ];

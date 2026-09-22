@@ -1207,10 +1207,10 @@
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
                                         <th style="width: 8%;">No</th>
-                                        <th style="width: 30%;">Parameter Penilaian</th>
-                                        <th style="width: 25%;">Keterangan</th>
+                                        <th style="width: 24%;">Parameter Penilaian</th>
+                                        <th style="width: 13%;">Keterangan</th>
                                         <th style="width: 12%;">Nilai (Range 1 - 5)</th>
-                                        <th style="width: 25%;">Catatan</th>
+                                        <th style="width: 43%;">Catatan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="penilaianTahap2Body">
@@ -2641,12 +2641,13 @@ function upsertTimSidangRow(form, formData, tim) {
     var tbody = pane.querySelector('table tbody');
     if (!tbody) return;
 
-    var id          = (tim && tim.id) || formData.get('id') || '';
-    var nip         = (tim && tim.nip) || formData.get('nip') || '';
-    var statusTim   = (tim && tim.status_tim_sidang) || formData.get('status_tim_sidang') || '';
-    var urutan      = (tim && tim.urutan) || formData.get('urutan') || '';
-    var idSk        = (tim && tim.id_sk) || formData.get('id_sk') || '';
-    var idPenilai   = formData.get('id_user_penilai') || '';
+    var id            = (tim && tim.id) || formData.get('id') || '';
+    var nip           = (tim && tim.nip) || formData.get('nip') || '';
+    var statusTim     = (tim && tim.status_tim_sidang) || formData.get('status_tim_sidang') || '';
+    var urutan        = (tim && tim.urutan) || formData.get('urutan') || '';
+    var idSk          = (tim && tim.id_sk) || formData.get('id_sk') || '';
+    var idPenilai     = formData.get('id_user_penilai') || '';
+    var filePenelaah  = (tim && tim.file_penelaah) || '';
 
     // Nama penilai dari option select yang terpilih
     var nama = (tim && tim.nama) || '';
@@ -2696,6 +2697,7 @@ function upsertTimSidangRow(form, formData, tim) {
     row.setAttribute('data-nama', nama);
     row.setAttribute('data-status-tim-sidang', statusTim);
     row.setAttribute('data-urutan', urutan);
+    row.setAttribute('data-file-penelaah', filePenelaah);
 
     var tds = row.querySelectorAll('td');
     if (tds.length >= 5) {
@@ -2703,6 +2705,13 @@ function upsertTimSidangRow(form, formData, tim) {
         tds[2].textContent = nama;
         tds[3].textContent = statusTim;
         tds[4].textContent = noSk;
+    }
+    if (tds.length >= 6) {
+        if (filePenelaah) {
+            tds[5].innerHTML = '<a href="' + filePenelaah + '" target="_blank" class="text-primary" style="font-size:12px; text-decoration:underline;">Lihat file</a>';
+        } else {
+            tds[5].textContent = '-';
+        }
     }
 
     renumberTimRows(pane);

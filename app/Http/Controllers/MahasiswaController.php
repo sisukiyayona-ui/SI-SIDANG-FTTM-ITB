@@ -398,6 +398,7 @@ class MahasiswaController extends Controller
         $tahapan = $request->tahapan_sidang;
         $idSyarat = $request->id_syarat_sidang;
 
+        try {
         // Handle file upload
         if ($request->hasFile('file')) {
             $file = $request->file('file');
@@ -410,6 +411,10 @@ class MahasiswaController extends Controller
 
             $filename = time() . '_' . bin2hex(random_bytes(16)) . '.pdf';
             $path = $file->storeAs('uploads/persyaratan', $filename, 'public');
+            if ($path === false) {
+                \Log::error('uploadPersyaratan: gagal store file', ['id_judul' => $idJudul, 'id_syarat' => $idSyarat]);
+                return response()->json(['success' => false, 'message' => 'Gagal menyimpan file'], 500);
+            }
             $linkFile = '/storage/' . $path;
 
             // Check if exist in t_cek_persyaratan
@@ -464,6 +469,15 @@ class MahasiswaController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'Gagal upload file'], 400);
+        } catch (\Throwable $e) {
+            \Log::error('uploadPersyaratan failed', [
+                'id_judul' => $idJudul,
+                'id_syarat' => $idSyarat,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Gagal mengupload file'], 500);
+        }
     }
 
     public function updateKelengkapan(\Illuminate\Http\Request $request)
@@ -540,6 +554,7 @@ class MahasiswaController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
+        try {
         \Log::info('saveAllPersyaratan called', ['id_judul' => $idJudul, 'tahapan' => $tahapan, 'kelengkapan' => $request->kelengkapan]);
 
         // Check if ajuan record exists for this tahapan, if not create it
@@ -552,33 +567,48 @@ class MahasiswaController extends Controller
             $judul = \App\Models\TJudul::find($idJudul);
             if ($judul) {
                 $mahasiswa = \App\Models\TUser::find($judul->ID_USER_MHS);
-                $prodi = \App\Models\TProdi::find($judul->ID_PRODI);
 
-                $ajuan = new \App\Models\TAjuanSidang();
-                $ajuan->ID_USER = $judul->ID_USER_MHS;
-                $ajuan->NIM = $mahasiswa ? $mahasiswa->NIP_NIM : '';
-                $ajuan->NAMA_MHS = $mahasiswa ? $mahasiswa->NAMA_LENGKAP : '';
-                $ajuan->ANGKATAN = $mahasiswa && $mahasiswa->THN_ANGKATAN ? $mahasiswa->THN_ANGKATAN : (int)date('Y');
-                $ajuan->ID_JUDUL = $idJudul;
-                $ajuan->JUDUL = $judul->JUDUL;
-                $ajuan->TAHAPAN_SIDANG = $tahapan;
-                $ajuan->STRATA = $mahasiswa ? $mahasiswa->STRATA : 'S3';
-                $ajuan->STATUS_LULUS = null; // 'dalam proses'
-                $ajuan->STATUS_AJUKAN_MHS = 't';
-                $ajuan->STATUS_AJUKAN_PRODI = 't';
-                if (!$prodi && !empty($user['kode_prodi'])) {
+                // t_judul tidak punya ID_PRODI — resolve prodi dari session lalu dari data mahasiswa
+                $prodi = null;
+                if (!empty($user['kode_prodi'])) {
                     $prodi = \App\Models\TProdi::where('KODE_PRODI', $user['kode_prodi'])->first();
                 }
-                $ajuan->ID_PRODI = $prodi ? $prodi->id : null;
-                $ajuan->KODE_PRODI = $prodi ? $prodi->KODE_PRODI : ($user['kode_prodi'] ?? '');
-                $ajuan->NAMA_PRODI = $prodi ? $prodi->NAMA_PRODI : ($user['nama_prodi'] ?? '');
-                $ajuan->TGL_CREATE = date('Y-m-d');
-                $ajuan->TGL_UPDATE = date('Y-m-d');
-                $ajuan->ID_USER_CREATE = $user['id'];
-                $ajuan->NAMA_USER_CREATE = $user['nama_lengkap'];
-                $ajuan->THN_CREATE = date('Y');
-                $ajuan->save();
-                \Log::info('Created ajuan record for tahap', ['id_judul' => $idJudul, 'tahapan' => $tahapan]);
+                if (!$prodi && $mahasiswa && !empty($mahasiswa->KODE_PRODI)) {
+                    $prodi = \App\Models\TProdi::where('KODE_PRODI', $mahasiswa->KODE_PRODI)->first();
+                }
+
+                if (!$prodi) {
+                    // Kolom ID_PRODI/KODE_PRODI/NAMA_PRODI NOT NULL — jangan insert baris null
+                    \Log::error('saveAllPersyaratan: prodi tidak ditemukan, ajuan tidak dibuat', [
+                        'id_judul' => $idJudul,
+                        'tahapan' => $tahapan,
+                        'user_kode_prodi' => $user['kode_prodi'] ?? null,
+                        'mhs_kode_prodi' => $mahasiswa ? $mahasiswa->KODE_PRODI : null,
+                    ]);
+                } else {
+                    $ajuan = new \App\Models\TAjuanSidang();
+                    $ajuan->ID_USER = $judul->ID_USER_MHS;
+                    $ajuan->NIM = ($mahasiswa && $mahasiswa->NIP_NIM) ? $mahasiswa->NIP_NIM : '-';
+                    $ajuan->NAMA_MHS = ($mahasiswa && $mahasiswa->NAMA_LENGKAP) ? $mahasiswa->NAMA_LENGKAP : '-';
+                    $ajuan->ANGKATAN = $mahasiswa && $mahasiswa->THN_ANGKATAN ? $mahasiswa->THN_ANGKATAN : (int)date('Y');
+                    $ajuan->ID_JUDUL = $idJudul;
+                    $ajuan->JUDUL = $judul->JUDUL ?: '-';
+                    $ajuan->TAHAPAN_SIDANG = $tahapan;
+                    $ajuan->STRATA = ($mahasiswa && $mahasiswa->STRATA) ? $mahasiswa->STRATA : 'S3';
+                    $ajuan->STATUS_LULUS = null; // 'dalam proses'
+                    $ajuan->STATUS_AJUKAN_MHS = 't';
+                    $ajuan->STATUS_AJUKAN_PRODI = 't';
+                    $ajuan->ID_PRODI = $prodi->id;
+                    $ajuan->KODE_PRODI = $prodi->KODE_PRODI;
+                    $ajuan->NAMA_PRODI = $prodi->NAMA_PRODI;
+                    $ajuan->TGL_CREATE = date('Y-m-d');
+                    $ajuan->TGL_UPDATE = date('Y-m-d');
+                    $ajuan->ID_USER_CREATE = $user['id'];
+                    $ajuan->NAMA_USER_CREATE = $user['nama_lengkap'] ?? '-';
+                    $ajuan->THN_CREATE = date('Y');
+                    $ajuan->save();
+                    \Log::info('Created ajuan record for tahap', ['id_judul' => $idJudul, 'tahapan' => $tahapan]);
+                }
             }
         }
 
@@ -629,6 +659,10 @@ class MahasiswaController extends Controller
 
                 $filename = time() . '_' . bin2hex(random_bytes(16)) . '.pdf';
                 $path = $file->storeAs('uploads/persyaratan', $filename, 'public');
+                if ($path === false) {
+                    \Log::error('saveAllPersyaratan: gagal store file', ['id_judul' => $idJudul, 'id_syarat' => $idSyarat]);
+                    return response()->json(['success' => false, 'message' => 'Gagal menyimpan file'], 500);
+                }
                 $linkFile = '/storage/' . $path;
 
                 $syarat = \App\Models\TSyaratSidang::find($idSyarat);
@@ -687,6 +721,15 @@ class MahasiswaController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Persyaratan berhasil disimpan']);
+        } catch (\Throwable $e) {
+            \Log::error('saveAllPersyaratan failed', [
+                'id_judul' => $idJudul,
+                'tahapan' => $tahapan,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan persyaratan'], 500);
+        }
     }
 
     public function storeTimSidang(\Illuminate\Http\Request $request)
@@ -749,7 +792,9 @@ class MahasiswaController extends Controller
             $file = $request->file('file_penelaah');
             $filename = time() . '_' . bin2hex(random_bytes(16)) . '.' . $file->getClientOriginalExtension();
             $path = 'penelaah/' . $filename;
-            \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
+            if (!\Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()))) {
+                return response()->json(['success' => false, 'message' => 'Gagal mengupload file penelaah'], 500);
+            }
             $timSidang->FILE_PENELAAH = '/storage/' . $path;
         }
 
@@ -825,7 +870,9 @@ class MahasiswaController extends Controller
             $file = $request->file('file_penelaah');
             $filename = time() . '_' . bin2hex(random_bytes(16)) . '.' . $file->getClientOriginalExtension();
             $path = 'penelaah/' . $filename;
-            \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
+            if (!\Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($file->getRealPath()))) {
+                return response()->json(['success' => false, 'message' => 'Gagal mengupload file penelaah'], 500);
+            }
             $timSidang->FILE_PENELAAH = '/storage/' . $path;
         }
 

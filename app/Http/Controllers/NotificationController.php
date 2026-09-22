@@ -138,29 +138,37 @@ class NotificationController extends Controller
     /**
      * Notifikasi dinamis dari pengajuan sidang yang menunggu aksi.
      *
-     * - TU Prodi: ajuan yang sudah disubmit mahasiswa (STATUS_AJUKAN_MHS='t')
-     *   tapi belum disetujui prodi (STATUS_AJUKAN_PRODI IS NULL), khusus prodi sendiri.
-     * - FS: ajuan yang sudah disetujui prodi (STATUS_AJUKAN_PRODI='t'),
+     * - TU Prodi & Admin: ajuan yang sudah disubmit mahasiswa (STATUS_AJUKAN_MHS='y')
+     *   tapi belum disetujui prodi (STATUS_AJUKAN_PRODI belum 'y' — NULL/'', 't'),
+     *   khusus prodi sendiri. Role aktif Admin diperlakukan seperti TU Prodi
+     *   agar notifikasi tetap muncul tanpa harus ganti role.
+     * - FS: ajuan yang sudah disetujui prodi (STATUS_AJUKAN_PRODI='y'),
      *   semua prodi.
+     * - KPPS: ajuan yang sudah diajukan KPPS (STATUS_AJUKAN_KPPS='y').
      */
     protected function pendingAjuanNotifications(array $user): \Illuminate\Support\Collection
     {
         $role = $user['role'] ?? null;
+        $isProdiStaff = in_array($role, ['TU Prodi', 'Admin'], true);
 
-        if (!in_array($role, ['TU Prodi', 'FS', 'KPPS'], true)) {
+        if (!$isProdiStaff && !in_array($role, ['FS', 'KPPS'], true)) {
             return collect();
         }
 
         $query = TAjuanSidang::query()
             ->whereNotNull('JUDUL');
 
-        if ($role === 'TU Prodi') {
+        if ($isProdiStaff) {
             $query->where('STATUS_AJUKAN_MHS', 'y')
                 ->where(function ($q) {
                     $q->whereNull('STATUS_AJUKAN_PRODI')
-                        ->orWhere('STATUS_AJUKAN_PRODI', '');
-                })
-                ->where('KODE_PRODI', $user['kode_prodi'] ?? null);
+                        ->orWhere('STATUS_AJUKAN_PRODI', '')
+                        ->orWhere('STATUS_AJUKAN_PRODI', 't');
+                });
+            $kodeProdi = $user['kode_prodi'] ?? null;
+            if ($kodeProdi !== null && $kodeProdi !== '') {
+                $query->where('KODE_PRODI', $kodeProdi);
+            }
         } elseif ($role === 'FS') {
             $query->where('STATUS_AJUKAN_MHS', 'y')
                 ->where('STATUS_AJUKAN_PRODI', 'y');

@@ -40,7 +40,7 @@ function getStatusColor($status) {
         <col style="width: 125px;">
         <col style="width: 125px;">
         <col style="width: 125px;">
-        <col style="width: 125px;">
+        <col style="width: 165px;">
     </colgroup>
     <thead style="background-color: #6998d3; color: white;">
         <tr>
@@ -49,10 +49,10 @@ function getStatusColor($status) {
             <th rowspan="2" class="align-middle">Nama</th>
             <th rowspan="2" class="align-middle">Judul</th>
             <th rowspan="2" class="align-middle">Prodi</th>
-            <th rowspan="2" class="align-middle">Ujian<br>Kualifikasi</th>
-            <th rowspan="2" class="align-middle">Ujian<br>Proposal</th>
+            <th rowspan="2" class="align-middle">Ujian Kualifikasi</th>
+            <th rowspan="2" class="align-middle">Ujian Proposal</th>
             <th colspan="4" class="align-middle">Tahap III</th>
-            <th rowspan="2" class="align-middle">Sidang<br>Terbuka /<br>Tertutup</th>
+            <th rowspan="2" class="align-middle">Sidang Terbuka / Tertutup</th>
         </tr>
         <tr>
             <th class="align-middle" style="background-color: #9fbce4; color: white;">SK I</th>
