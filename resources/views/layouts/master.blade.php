@@ -2715,10 +2715,23 @@
             var yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
 
+            function parseNotifDate(dateStr) {
+                if (!dateStr) return null;
+                var d;
+                if (String(dateStr).indexOf('T') !== -1) {
+                    d = new Date(dateStr);
+                } else {
+                    d = new Date(String(dateStr).replace(' ', 'T') + 'Z');
+                }
+                return isNaN(d.getTime()) ? null : d;
+            }
+
             function timeAgo(dateStr) {
-                var d = new Date(dateStr.replace(' ', 'T') + 'Z');
+                var d = parseNotifDate(dateStr);
+                if (!d) return '';
                 var now = new Date();
                 var diff = Math.floor((now - d) / 1000);
+                if (isNaN(diff)) return '';
                 if (diff < 60) return 'Baru saja';
                 if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
                 if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
@@ -2727,7 +2740,8 @@
             }
 
             function groupLabel(d) {
-                var date = new Date(d.created_at.replace(' ', 'T') + 'Z');
+                var date = parseNotifDate(d.created_at);
+                if (!date) return 'Lainnya';
                 if (date.toDateString() === today.toDateString()) return 'Today';
                 if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
                 return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });

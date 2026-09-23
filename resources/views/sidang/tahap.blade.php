@@ -524,7 +524,7 @@
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
-                                            @unless($isDataTerkunci)
+                                            @unless($isNilaiTerkunci)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -1197,7 +1197,7 @@
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
-                                            @unless($isDataTerkunci)
+                                            @unless($isNilaiTerkunci)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -1571,19 +1571,29 @@
                                             </select>
                                         </div>
                                         <div class="col-sm-2 pl-0 d-flex align-items-center">
+                                            @if($isNilaiTerkunci && !($isKetuaPembimbing ?? false))
+                                            <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
+                                            @elseif($isNilaiTerkunci)
+                                            <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled>Simpan</button>
+                                            @else
                                             <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;">Simpan</button>
+                                            @endif
                                         </div>
                                         @if($isKetuaPembimbing ?? false)
                                         <div class="col-sm-2 pl-0 d-flex align-items-center ml-2">
+                                            @if($isNilaiTerkunci)
+                                            <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
+                                            @else
                                             <button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" title="Kunci Nilai" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                                            @endif
                                         </div>
                                         @endif
                                     </div>
-                                    
+
                                     @if($isKetuaPembimbing ?? false)
                                     <div class="d-flex align-items-center mb-2 mt-3">
                                         <span class="mr-2 font-weight-bold" style="font-size: 13px;">Status Kelulusan</span>
-                                        <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;">
+                                        <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;" {{ $isNilaiTerkunci ? 'disabled' : '' }}>
                                             <option value="">Pilih Status</option>
                                             <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
@@ -1872,8 +1882,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isNilaiTerkunci) {
         disablePenilaianInputs('penilaianReportBody');
         disablePenilaianInputs('penilaianTahap2Body');
+        disablePenilaianInputs('penilaianTableBody');
         var sel2 = document.getElementById('statusLulusTahap2');
         if (sel2) sel2.disabled = true;
+        var selP = document.getElementById('statusLulusPembimbing');
+        if (selP) selP.disabled = true;
     }
 });
 
@@ -2070,7 +2083,7 @@ function clearReferenceRows(tbodyId) {
 }
 
 function filterPenilaianTahap2() {
-    var isLocked = false;
+    var isLocked = !!isNilaiTerkunci;
     var penilaiId = document.getElementById('penilaiTahap2').value;
     var noForm = document.getElementById('formTahap2').value;
     document.getElementById('selectedTimSidangTahap2').value = penilaiId;
@@ -2124,6 +2137,18 @@ function filterPenilaianTahap2() {
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
+        if (!hasVisible) {
+            var emptyCell = emptyRow.querySelector('td');
+            if (emptyCell) {
+                if (!noForm) {
+                    emptyCell.textContent = 'Pilih Form untuk melihat parameter penilaian';
+                } else if (isNilaiTerkunci) {
+                    emptyCell.textContent = 'Nilai sudah dikunci untuk penilaian ini.';
+                } else {
+                    emptyCell.textContent = 'Tidak ada data penilaian untuk penilai/form yang dipilih.';
+                }
+            }
+        }
     }
     renumberColumn('penilaianTahap2Body');
     toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
@@ -2158,7 +2183,7 @@ function applyStatusCatatan(row) {
 }
 
 function filterPenilaian() {
-    var isLocked = false;
+    var isLocked = !!isNilaiTerkunci;
     var penilaiId = document.getElementById('penilaianSelect').value;
     var noForm = document.getElementById('formFilterSelect').value;
     var tbody = document.getElementById('penilaianReportBody');
@@ -2210,6 +2235,18 @@ function filterPenilaian() {
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
+        if (!hasVisible) {
+            var emptyCell = emptyRow.querySelector('td');
+            if (emptyCell) {
+                if (!noForm) {
+                    emptyCell.textContent = 'Pilih No Form untuk melihat parameter penilaian';
+                } else if (isNilaiTerkunci) {
+                    emptyCell.textContent = 'Nilai sudah dikunci untuk penilaian ini.';
+                } else {
+                    emptyCell.textContent = 'Tidak ada data penilaian untuk penilai/form yang dipilih.';
+                }
+            }
+        }
     }
     renumberColumn('penilaianReportBody');
     toggleLockButton('penilaianReportBody', 'lockNilaiBtn');
@@ -2218,7 +2255,7 @@ function filterPenilaian() {
 function loadPenilaianForm() {
     const timSidangId = document.getElementById('penilaiSelect').value;
     const noForm = document.getElementById('formSelect').value;
-    var isLocked = false;
+    var isLocked = !!isNilaiTerkunci;
     
     document.getElementById('selectedTimSidang').value = timSidangId;
     document.getElementById('selectedNoForm').value = noForm;
@@ -3023,8 +3060,25 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Nilai berhasil dikunci', 'success');
-            // Tetap aktifkan tombol kunci agar bisa diklik lagi
-            window.__penilaianChanged = true;
+            isNilaiTerkunci = true;
+            // Ganti tombol kunci dengan badge "Nilai Terkunci"
+            var btn = document.getElementById(btnId);
+            if (btn && btn.parentNode) {
+                var badge = document.createElement('span');
+                badge.className = 'badge bg-success px-2 py-1' + (btn.className.indexOf('mr-2') !== -1 ? ' mr-2' : '');
+                badge.style.fontSize = '12px';
+                badge.innerHTML = '<i class="fas fa-lock mr-1"></i> Nilai Terkunci';
+                btn.parentNode.replaceChild(badge, btn);
+            }
+            // Nonaktifkan input & status
+            disablePenilaianInputs(tbodyId);
+            var statusEl = document.getElementById(statusLulusId);
+            if (statusEl) statusEl.disabled = true;
+            var simpanBtn = document.getElementById('savePenilaianBtn');
+            if (simpanBtn) simpanBtn.disabled = true;
+            // Simpan di form Pembimbing/Penguji (type=submit, tanpa id)
+            var formSimpan = document.querySelector('#penilaianForm button[type="submit"]');
+            if (formSimpan) formSimpan.disabled = true;
         } else {
             showToast('Error: ' + (data.error || 'Gagal mengunci nilai'), 'error');
         }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
-use App\Models\Notification;
 use App\Models\TUserProdi;
 use App\Models\TUserRole;
 use App\Models\TUser;
@@ -271,27 +270,11 @@ class UserController extends Controller
                 $data['SIGNATURE'] = $signature;
             }
 
-            $oldStatus = $user->status_approve;
             $user->update($data);
             $this->syncRoles($user->id, $roles);
             $this->syncUserProdi($user->id, $request->input('id_prodi', ''));
-                if ($user->status_approve === 't') {
-                    Notification::createForUser(
-                        $user->id,
-                        'Akun Disetujui',
-                        'Selamat! Akun Anda (' . $user->nama_lengkap . ') telah disetujui oleh admin. Silakan login.',
-                        'success',
-                        route('login')
-                    );
-                } elseif ($user->status_approve === 'f') {
-                    Notification::createForUser(
-                        $user->id,
-                        'Akun Ditolak',
-                        'Maaf, akun Anda (' . $user->nama_lengkap . ') tidak disetujui. Silakan hubungi admin.',
-                        'error',
-                        null
-                    );
-                }
+            // Notifikasi akun (Disetujui/Ditolak) tidak disimpan ke DB —
+            // hanya notifikasi pengajuan sidang/approve yang tampil.
         }
 
         return response()->json(['success' => true]);

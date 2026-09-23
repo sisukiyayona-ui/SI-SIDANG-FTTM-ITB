@@ -287,41 +287,40 @@
 @push('scripts')
 <script>
     var _prodiLoadId = 0;
+    var PRODI_BY_FS = @json($prodis->groupBy('KODE_FS')->map(function ($items) {
+        return $items->map(fn ($p) => ['KODE_PRODI' => $p->KODE_PRODI, 'NAMA_PRODI' => $p->NAMA_PRODI])->values();
+    }));
 
     function loadProdiByFs(kodeFs, selectedKode) {
         var loadId = ++_prodiLoadId;
         var ps = document.getElementById('f_kode_prodi');
         if (!ps) return;
-        ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
         if (!kodeFs) {
+            ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
             ps.disabled = true;
             ps.value = '';
             return;
         }
         ps.disabled = false;
-        fetch('{{ route("master.user.prodi-by-fs") }}?kode_fs=' + encodeURIComponent(kodeFs), {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(prodis) {
-            if (loadId !== _prodiLoadId) return;
-            prodis = prodis || [];
-            if (prodis.length === 0) {
-                ps.innerHTML = '<option value="">Prodi tidak tersedia</option>';
-                return;
+        var prodis = (PRODI_BY_FS && PRODI_BY_FS[kodeFs]) || [];
+        if (prodis.length === 0) {
+            ps.innerHTML = '<option value="">Prodi tidak tersedia</option>';
+            return;
+        }
+        ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
+        prodis.forEach(function(p) {
+            var opt = document.createElement('option');
+            opt.value = p.KODE_PRODI;
+            opt.textContent = p.KODE_PRODI + ' - ' + p.NAMA_PRODI;
+            opt.dataset.nama = p.NAMA_PRODI;
+            if (selectedKode && String(selectedKode) === String(p.KODE_PRODI)) {
+                opt.selected = true;
             }
-            ps.innerHTML = '<option value="">-- Pilih Prodi --</option>';
-            prodis.forEach(function(p) {
-                var opt = document.createElement('option');
-                opt.value = p.KODE_PRODI;
-                opt.textContent = p.KODE_PRODI + ' - ' + p.NAMA_PRODI;
-                opt.dataset.nama = p.NAMA_PRODI;
-                if (selectedKode && String(selectedKode) === String(p.KODE_PRODI)) {
-                    opt.selected = true;
-                }
-                ps.appendChild(opt);
-            });
+            ps.appendChild(opt);
         });
+        if (selectedKode) {
+            ps.value = String(selectedKode);
+        }
     }
 
     function resetProdiSelect() {
@@ -360,8 +359,11 @@
         }
     }
 
+    var _suppressNipChange = false;
+
     jQuery(document).ready(function() {
         jQuery('#f_nip').on('change', function() {
+            if (_suppressNipChange) return;
             fillFromNip();
             var opt = this.options[this.selectedIndex];
             document.getElementById('f_id_user').value = (opt && opt.value) ? (opt.dataset.id || '') : '';
@@ -387,7 +389,7 @@
 @if($isTuProdiKpps)
         document.getElementById('f_kode_fs').value = '{{ $authUserKpps['kode_fs'] }}';
         document.getElementById('f_nama_fs').value = @js($authUserKpps['nama_fs']);
-        document.getElementById('f_kode_prodi').value = '';
+        loadProdiByFs('{{ $authUserKpps['kode_fs'] }}', '');
 @else
         document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_nama_fs').value = 'FTTM';
@@ -396,7 +398,9 @@
         document.getElementById('f_id_user').value = '';
         document.getElementById('f_nip').value = '';
         if (window.jQuery && jQuery.fn.select2) {
-            jQuery('#f_nip').trigger('change').val('').trigger('change');
+            _suppressNipChange = true;
+            jQuery('#f_nip').val('').trigger('change');
+            _suppressNipChange = false;
         }
 
         document.getElementById('listContainer').style.display = 'none';
@@ -420,11 +424,7 @@
             document.getElementById('f_status_tim').value   = item.status_tim ?? '';
             document.getElementById('f_kode_fs').value      = item.kode_fs ?? '';
             document.getElementById('f_nama_fs').value      = item.nama_fs ?? '';
-            @if($isTuProdiKpps)
-                document.getElementById('f_kode_prodi').value = item.kode_prodi ?? '';
-@else
-                loadProdiByFs(item.kode_fs ?? '', item.kode_prodi ?? '');
-@endif
+            loadProdiByFs(item.kode_fs ?? '', item.kode_prodi ?? '');
 
             var nipEl = document.getElementById('f_nip');
             if (item.nip) {
@@ -441,9 +441,11 @@
                     nipEl.appendChild(o);
                 }
             }
+            _suppressNipChange = true;
             if (window.jQuery && jQuery.fn.select2) {
                 jQuery(nipEl).val(item.nip ?? '').trigger('change');
             }
+            _suppressNipChange = false;
             document.getElementById('f_id_user').value = item.id_user ?? '';
 
             document.getElementById(item.status_aktif === 'AKTIF' ? 'saAktifKpps' : 'saNonAktifKpps').checked = true;

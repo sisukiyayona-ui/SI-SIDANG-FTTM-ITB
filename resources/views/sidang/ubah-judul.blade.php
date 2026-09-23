@@ -28,19 +28,19 @@
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Abstrak Lama</label>
-                        <textarea class="form-control" rows="3" disabled>{{ $judul->ABSTRAK ?? '' }}</textarea>
+                        <textarea class="form-control" rows="10" style="font-size: 14px;" disabled>{{ $judul->ABSTRAK ?? '' }}</textarea>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Judul Baru <span class="text-danger">*</span></label>
-                        <textarea class="form-control" name="judul_baru" rows="3" required>{{ old('judul_baru') }}</textarea>
+                        <textarea class="form-control" name="judul_baru" rows="4" style="font-size: 14px;" required>{{ old('judul_baru') }}</textarea>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Abstrak Baru <span class="text-danger">*</span></label>
-                        <textarea class="form-control" name="abstrak" rows="4" maxlength="1000" required placeholder="Masukkan abstrak baru">{{ old('abstrak') }}</textarea>
+                        <textarea class="form-control" name="abstrak" rows="10" maxlength="1000" style="font-size: 14px;" required placeholder="Masukkan abstrak baru">{{ old('abstrak') }}</textarea>
                         <small class="text-muted">Maksimal 1000 karakter</small>
                     </div>
                 </div>
@@ -56,7 +56,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Alasan Perubahan <span class="text-danger">*</span></label>
-                        <textarea class="form-control" name="alasan" rows="1" required placeholder="Masukkan alasan perubahan judul"></textarea>
+                        <textarea class="form-control" name="alasan" rows="4" style="font-size: 14px;" required placeholder="Masukkan alasan perubahan judul"></textarea>
                     </div>
                 </div>
                 <div class="mt-3">
