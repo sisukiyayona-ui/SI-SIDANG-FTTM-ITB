@@ -278,7 +278,7 @@
                                         <td>
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <a href="{{ isset($item->LINK_FILE) && $item->LINK_FILE ? $item->LINK_FILE : '#' }}" target="_blank" class="mr-2 text-primary {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}" style="font-size: 13px;" id="link-{{ $syaratId }}">Lihat file</a>
-                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
+                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE && !in_array(session('auth_user.role'), ['FS']) ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
                                                 @if(!in_array(session('auth_user.role'), ['FS']))
                                                 <div class="upload-container" style="position: relative; width: 34px;">
                                                     <input type="file" class="d-none" id="file-{{ $syaratId }}" accept=".pdf" onchange="window.uploadFile(this, '{{ $syaratId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
@@ -287,8 +287,6 @@
                                                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
                                                     </div>
                                                 </div>
-                                                @else
-                                                <span class="text-muted" style="font-size: 12px;">Tidak dapat mengunggah</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -707,7 +705,7 @@
                                         <td>
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <a href="{{ isset($item->LINK_FILE) && $item->LINK_FILE ? $item->LINK_FILE : '#' }}" target="_blank" class="mr-2 text-primary {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}" style="font-size: 13px;" id="link-{{ $syaratId }}">Lihat file</a>
-                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
+                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE && !in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
                                 @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
                                                 <div class="upload-container" style="position: relative; width: 34px;">
                                                     <input type="file" class="d-none" id="file-{{ $syaratId }}" accept=".pdf" onchange="window.uploadFile(this, '{{ $syaratId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
@@ -716,8 +714,6 @@
                                                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
                                                     </div>
                                                 </div>
-                                                @else
-                                                <span class="text-muted" style="font-size: 12px;">Tidak dapat mengunggah</span>
                                                 @endif
                                             </div>
                                         </td>

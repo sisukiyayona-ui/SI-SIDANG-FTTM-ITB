@@ -175,7 +175,6 @@
                                         @if($link)
                                             <a href="{{ $link }}" target="_blank" class="mr-2 text-primary" style="font-size: 13px;">Lihat file</a>
                                         @endif
-                                        <span class="text-muted" style="font-size: 12px;">Tidak dapat mengunggah</span>
                                     </div>
                                 </td>
                             </tr>
