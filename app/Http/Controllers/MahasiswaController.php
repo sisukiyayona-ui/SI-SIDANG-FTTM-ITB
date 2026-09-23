@@ -324,17 +324,12 @@ class MahasiswaController extends Controller
         $skList = collect();
         
         if (in_array($tahapan, ['tahap I', 'tahap II', 'SK I', 'SK II', 'SK III', 'SK IV', 'tahap IV']) && in_array($user['role'], ['TU Prodi', 'Admin', 'FS'])) {
-            // Get users for dropdown (dosen OR users with role Pembimbing/Penguji)
-            $dosenUsers = \App\Models\TUser::where('STATUS_PEGAWAI', 'Dosen')
-                ->select('ID', 'NAMA_LENGKAP', 'NIP_NIM')
-                ->pluck('ID')
-                ->toArray();
+            // Dropdown Tim: hanya user dengan role Pembimbing atau Penguji
             $pembimbingPengujiIds = \App\Models\TUserRole::whereIn('ROLE', ['Pembimbing', 'Penguji'])
                 ->pluck('ID_USER')
                 ->unique()
                 ->toArray();
-            $allUserIds = array_unique(array_merge($dosenUsers, $pembimbingPengujiIds));
-            $users = \App\Models\TUser::whereIn('ID', $allUserIds)
+            $users = \App\Models\TUser::whereIn('ID', $pembimbingPengujiIds)
                 ->select('ID', 'NAMA_LENGKAP', 'NIP_NIM')
                 ->orderBy('NAMA_LENGKAP')
                 ->get();

@@ -96,12 +96,14 @@
             $abstrakText = $abstrakRow ?? '';
         }
         // Compute isNilaiTerkunci at top level for both Tahap I and Tahap II
-        $isTUKunci = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
+        // Badge "Nilai Terkunci" HANYA untuk Pembimbing/Penguji.
+        // TU Prodi/Admin/FS: tombol Kunci Nilai tetap tampil, tapi tidak pernah jadi badge (isNilaiTerkunci=false).
+        $isCanLockNilai = in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']);
         $isNilaiTerkunci = false;
         $isDataTerkunci = false;
         if (isset($penilaian) && $penilaian->count() > 0) {
             $isDataTerkunci = $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
-            if (!$isTUKunci) {
+            if ($isCanLockNilai) {
                 $isNilaiTerkunci = $isDataTerkunci;
             }
         }
@@ -569,6 +571,7 @@
                             <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
                             @endif
                         </div>
+                        {{-- Tombol kunci: semua role kecuali FS. Badge "Nilai Terkunci" hanya Pembimbing/Penguji. --}}
                         @if(!in_array(session('auth_user.role'), ['FS']))
                         <div class="d-flex align-items-center">
                             @if($isNilaiTerkunci)
@@ -1254,6 +1257,7 @@
                             <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                                     @endif
                                 </div>
+                                {{-- Tombol kunci: semua role kecuali FS. Badge "Nilai Terkunci" hanya Pembimbing/Penguji. --}}
                                 @if(!in_array(session('auth_user.role'), ['FS']))
                                 <div class="d-flex align-items-center">
                                     @if($isNilaiTerkunci)
