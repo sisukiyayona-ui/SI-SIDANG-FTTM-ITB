@@ -96,8 +96,8 @@
             $abstrakText = $abstrakRow ?? '';
         }
         // Compute isNilaiTerkunci at top level for both Tahap I and Tahap II
-        // Badge "Nilai Terkunci" HANYA untuk Pembimbing/Penguji.
-        // TU Prodi/Admin/FS: tombol Kunci Nilai tetap tampil, tapi tidak pernah jadi badge (isNilaiTerkunci=false).
+        // TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang), tidak pernah badge.
+        // Pembimbing/Penguji: tombol saat belum terkunci; badge "Nilai Terkunci" setelah terkunci.
         $isCanLockNilai = in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']);
         $isNilaiTerkunci = false;
         $isDataTerkunci = false;
@@ -571,10 +571,12 @@
                             <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
                             @endif
                         </div>
-                        {{-- Tombol kunci: semua role kecuali FS. Badge "Nilai Terkunci" hanya Pembimbing/Penguji. --}}
+                        {{-- TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang).
+                             Pembimbing/Penguji: tombol saat belum terkunci, badge setelah terkunci.
+                             FS: tidak ada tombol. --}}
                         @if(!in_array(session('auth_user.role'), ['FS']))
                         <div class="d-flex align-items-center">
-                            @if($isNilaiTerkunci)
+                            @if($isCanLockNilai && $isNilaiTerkunci)
                             <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                             @else
                             <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
@@ -1257,10 +1259,12 @@
                             <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                                     @endif
                                 </div>
-                                {{-- Tombol kunci: semua role kecuali FS. Badge "Nilai Terkunci" hanya Pembimbing/Penguji. --}}
+                                {{-- TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang).
+                                     Pembimbing/Penguji: tombol saat belum terkunci, badge setelah terkunci.
+                                     FS: tidak ada tombol. --}}
                                 @if(!in_array(session('auth_user.role'), ['FS']))
                                 <div class="d-flex align-items-center">
-                                    @if($isNilaiTerkunci)
+                                    @if($isCanLockNilai && $isNilaiTerkunci)
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                     @else
                                     <button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
@@ -1882,6 +1886,8 @@
 var persyaratanFiles = {};
 
 var isNilaiTerkunci = {{ ($isNilaiTerkunci ?? false) ? 'true' : 'false' }};
+var isDataTerkunci = {{ ($isDataTerkunci ?? false) ? 'true' : 'false' }};
+var isCanLockNilai = {{ ($isCanLockNilai ?? false) ? 'true' : 'false' }};
 document.addEventListener('DOMContentLoaded', function() {
     if (isNilaiTerkunci) {
         disablePenilaianInputs('penilaianReportBody');
@@ -3064,25 +3070,26 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Nilai berhasil dikunci', 'success');
-            isNilaiTerkunci = true;
-            // Ganti tombol kunci dengan badge "Nilai Terkunci"
-            var btn = document.getElementById(btnId);
-            if (btn && btn.parentNode) {
-                var badge = document.createElement('span');
-                badge.className = 'badge bg-success px-2 py-1' + (btn.className.indexOf('mr-2') !== -1 ? ' mr-2' : '');
-                badge.style.fontSize = '12px';
-                badge.innerHTML = '<i class="fas fa-lock mr-1"></i> Nilai Terkunci';
-                btn.parentNode.replaceChild(badge, btn);
+            // Hanya Pembimbing/Penguji: ganti tombol → badge "Nilai Terkunci" + disable input.
+            // TU Prodi/Admin: tombol Kunci Nilai TETAP (bisa kunci berulang), tidak berubah.
+            if (isCanLockNilai) {
+                isNilaiTerkunci = true;
+                var btn = document.getElementById(btnId);
+                if (btn && btn.parentNode) {
+                    var badge = document.createElement('span');
+                    badge.className = 'badge bg-success px-2 py-1' + (btn.className.indexOf('mr-2') !== -1 ? ' mr-2' : '');
+                    badge.style.fontSize = '12px';
+                    badge.innerHTML = '<i class="fas fa-lock mr-1"></i> Nilai Terkunci';
+                    btn.parentNode.replaceChild(badge, btn);
+                }
+                disablePenilaianInputs(tbodyId);
+                var statusEl = document.getElementById(statusLulusId);
+                if (statusEl) statusEl.disabled = true;
+                var simpanBtn = document.getElementById('savePenilaianBtn');
+                if (simpanBtn) simpanBtn.disabled = true;
+                var formSimpan = document.querySelector('#penilaianForm button[type="submit"]');
+                if (formSimpan) formSimpan.disabled = true;
             }
-            // Nonaktifkan input & status
-            disablePenilaianInputs(tbodyId);
-            var statusEl = document.getElementById(statusLulusId);
-            if (statusEl) statusEl.disabled = true;
-            var simpanBtn = document.getElementById('savePenilaianBtn');
-            if (simpanBtn) simpanBtn.disabled = true;
-            // Simpan di form Pembimbing/Penguji (type=submit, tanpa id)
-            var formSimpan = document.querySelector('#penilaianForm button[type="submit"]');
-            if (formSimpan) formSimpan.disabled = true;
         } else {
             showToast('Error: ' + (data.error || 'Gagal mengunci nilai'), 'error');
         }
