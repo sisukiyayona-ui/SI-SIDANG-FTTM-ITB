@@ -16,12 +16,12 @@ class AutoApproveAjuanSidang extends Command
         // Ambil ajuan yang butuh auto-approve voting KPPS
         $ajuans = DB::table('t_ajuan_sidang as a')
             ->where(function ($q) {
-                // Kasus 1: sudah di-submit ke KPPS, tapi tunggu 3 menit sejak klik (TGL_AJUKAN_KPPS <= now-3m)
+                // Kasus 1: sudah di-submit ke KPPS, tapi tunggu 15 menit sejak klik (TGL_AJUKAN_KPPS <= now-15m)
                 $q->where(function ($q1) {
                     $q1->where('a.STATUS_AJUKAN_KPPS', 'y')
                         ->where(function ($q2) {
                             $q2->whereNull('a.TGL_AJUKAN_KPPS')
-                                ->orWhere('a.TGL_AJUKAN_KPPS', '<=', now()->subMinutes(3));
+                                ->orWhere('a.TGL_AJUKAN_KPPS', '<=', now()->subMinutes(15));
                         });
                 });
 
