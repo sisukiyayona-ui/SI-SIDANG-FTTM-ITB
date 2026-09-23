@@ -1331,7 +1331,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="mt-4 d-flex justify-content-center align-items-center" style="gap: 10px;">
+                                <div class="mt-4 d-flex justify-content-end align-items-center" style="gap: 10px;">
                                     <button type="button" class="btn btn-danger px-4 py-1" style="font-size: 14px; border-radius: 4px; color: #fff;" onclick="closeAkademikForm()">Batal</button>
                                     <button type="button" class="btn btn-dark px-4 py-1" style="font-size: 14px; border-radius: 4px; color: #fff;" onclick="saveTuProdiInput()" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>Simpan</button>
                                 </div>
