@@ -724,31 +724,9 @@
                                     </tr>
                                 @endforeach
                             @else
-                                @foreach([1 => 'Lembar pengesahan formulir yang sudah ditandatangi pembimbing', 2 => 'Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">bimbingan</span>', 3 => '<span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Dokumen proposal penelitian yang sudah ditandatangi pembimbing</span>'] as $hid => $hname)
-                                @php $hfakerId = 'hf_' . $hid; @endphp
-                                <tr style="background-color: {{ $hid % 2 == 0 ? '#e9eef6' : '#dbe5f1' }};">
-                                    <td>{{ $hid }}</td>
-                                    <td class="text-left">{!! $hname !!}</td>
-                                    <td><input type="checkbox" data-syarat-id="{{ $hfakerId }}"></td>
-                                     <td>
-                                        <div class="d-flex align-items-center justify-content-center">
-                                            <a href="#" target="_blank" class="mr-2 text-primary d-none" style="font-size: 13px;" id="link-{{ $hfakerId }}">Lihat file</a>
-                                            <span id="check-{{ $hfakerId }}" class="mr-2 text-success d-none"><i class="fas fa-check-circle"></i></span>
-                                                @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
-                                                <div class="upload-container" style="position: relative; width: 34px;">
-                                                    <input type="file" class="d-none" id="file-{{ $hfakerId }}" accept=".pdf" onchange="window.uploadFile(this, '{{ $hfakerId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
-                                                    <label for="file-{{ $hfakerId }}" class="btn btn-light bg-white border py-0 px-2 text-dark upload-btn" style="cursor: pointer; margin-bottom: 0;"><i class="fas fa-upload" style="font-size: 14px;"></i></label>
-                                                    <div id="progress-{{ $hfakerId }}" class="progress mt-1 d-none" style="height: 4px; position: absolute; bottom: -8px; left: 0; right: 0;">
-                                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
-                                                    </div>
-                                                </div>
-                                                @else
-                                                <span class="text-muted" style="font-size: 12px;">Tidak dapat mengunggah</span>
-                                                @endif
-                                        </div>
-                                    </td>
+                                <tr style="background-color: #dbe5f1;">
+                                    <td colspan="4" class="text-center text-muted">Belum ada persyaratan</td>
                                 </tr>
-                                @endforeach
                             @endif
                         </tbody>
                     </table>
@@ -3758,7 +3736,7 @@ function doKirimNotifikasiApprove() {
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Mengirim...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Memproses...';
     }
 
     fetch('{{ route("sidang.notifikasi-approve.kirim") }}', {
@@ -3792,8 +3770,9 @@ function doKirimNotifikasiApprove() {
 
         if (data.success) {
             var lines = [data.message];
-            if (data.sent_names && data.sent_names.length > 0) {
-                lines.push('Dikirim ke: ' + data.sent_names.join(', '));
+            var queued = data.queued_names || data.sent_names || [];
+            if (queued.length > 0) {
+                lines.push('Antrean: ' + queued.join(', '));
             }
             if (data.skipped_names && data.skipped_names.length > 0) {
                 lines.push('Dilewati: ' + data.skipped_names.join(', '));

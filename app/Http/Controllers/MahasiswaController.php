@@ -1140,7 +1140,7 @@ class MahasiswaController extends Controller
 
         if ($request->is_ajukan_kpps) {
             $ajuan->STATUS_AJUKAN_KPPS = 'y';
-            $ajuan->TGL_AJUKAN_KPPS = now()->toDateString();
+            $ajuan->TGL_AJUKAN_KPPS = now(); // jam klik ajukan (bukan +15). Jeda 3m di-handle oleh auto-approve
             $ajuan->STATUS_AJUKAN_PRODI = 'y';
             $ajuan->STATUS_AJUKAN_MHS = 'y';
             $ajuan->STATUS_SUBMIT = 'y';
@@ -1155,19 +1155,32 @@ class MahasiswaController extends Controller
         }
 
         if ($request->is_ajukan_kpps) {
-            $this->kirimNotifikasiKeKpps($ajuan);
-            return response()->json(['success' => true, 'message' => 'Berhasil diajukan ke KPPS']);
+            $antre = $this->kirimNotifikasiKeKpps($ajuan);
+
+            if (isset($antre['error'])) {
+                return response()->json(['success' => true, 'message' => 'Berhasil diajukan ke KPPS. (Email antrean gagal dibuat: ' . $antre['error'] . ')']);
+            }
+
+            $msg = 'Berhasil diajukan ke KPPS. ' . $antre['queued'] . ' email masuk antrean, akan dikirim otomatis.';
+            if (!empty($antre['skipped_names'])) {
+                $msg .= ' Dilewati: ' . implode(', ', $antre['skipped_names']);
+            }
+
+            return response()->json(['success' => true, 'message' => $msg, 'queued' => $antre['queued']]);
         }
 
         return response()->json(['success' => true, 'message' => 'Jadwal sidang berhasil disimpan']);
     }
 
-    private function kirimNotifikasiKeKpps(TAjuanSidang $ajuan)
+    private function kirimNotifikasiKeKpps(TAjuanSidang $ajuan): array
     {
         try {
-            app(\App\Http\Controllers\Sidang\NotifikasiApproveController::class)->kirimKeKpps($ajuan);
-        } catch (\Exception $e) {
-            Log::error('storeJadwal: Gagal kirim notifikasi KPPS - ' . $e->getMessage());
+            // Hanya masuk antrean — kirim oleh cron email:kirim-antrian
+            return app(\App\Http\Controllers\Sidang\NotifikasiApproveController::class)->antreKeKpps($ajuan);
+        } catch (\Throwable $e) {
+            Log::error('storeJadwal: Gagal antre notifikasi KPPS - ' . $e->getMessage());
+
+            return ['error' => $e->getMessage()];
         }
     }
 

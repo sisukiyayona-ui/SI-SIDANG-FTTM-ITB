@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('sidang:kirim-pengingat')->dailyAt('04:00');
-Schedule::command('sidang:auto-approve')->everyFifteenMinutes(); // TGL_AJUKAN_KPPS = ajukan+15m, cek <= now
+Schedule::command('sidang:auto-approve')->everyThreeMinutes(); // auto-approve jika TGL_AJUKAN_KPPS <= now-3m
+Schedule::command('email:kirim-antrian')->everyMinute(); // kirim email ajukan/notifikasi di background
