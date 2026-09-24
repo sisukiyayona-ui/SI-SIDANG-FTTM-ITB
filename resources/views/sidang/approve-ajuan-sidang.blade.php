@@ -25,12 +25,12 @@
             <i class="fas fa-clipboard-check mr-2"></i>Daftar Ajuan Sidang {{ $strata }}
         </h5>
         <div class="d-flex ml-auto" style="gap: 6px;">
-            <button type="button" id="btnApprove" class="btn btn-success btn-sm d-none"
-                    onclick="approveSelected()">
+            <button type="button" id="btnApprove" class="btn btn-success btn-sm"
+                    onclick="approveSelected()" disabled>
                 <i class="fas fa-check-circle mr-1"></i> Approve
             </button>
-            <button type="button" id="btnReject" class="btn btn-danger btn-sm d-none"
-                    onclick="rejectSelected()">
+            <button type="button" id="btnReject" class="btn btn-danger btn-sm"
+                    onclick="rejectSelected()" disabled>
                 <i class="fas fa-times-circle mr-1"></i> Reject
             </button>
         </div>
@@ -311,11 +311,15 @@
         var checked = document.querySelectorAll('.row-check:checked:not(:disabled)').length;
         var btnApprove = document.getElementById('btnApprove');
         var btnReject = document.getElementById('btnReject');
-        btnApprove.classList.toggle('d-none', checked < 1);
-        btnReject.classList.toggle('d-none', checked < 1);
-        if (checked > 0) {
+        var hasChecked = checked > 0;
+        btnApprove.disabled = !hasChecked;
+        btnReject.disabled = !hasChecked;
+        if (hasChecked) {
             btnApprove.textContent = ' Approve (' + checked + ')';
             btnReject.textContent = ' Reject (' + checked + ')';
+        } else {
+            btnApprove.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Approve';
+            btnReject.innerHTML = '<i class="fas fa-times-circle mr-1"></i> Reject';
         }
     }
 
