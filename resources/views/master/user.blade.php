@@ -386,6 +386,8 @@
                             </div>
                         </div>
                     </div>
+                    {{-- Status Approve disembunyikan (dikomentari) --}}
+                    {{--
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Status Approve <span class="text-danger">*</span></label>
                         <div class="d-flex gap-3">
@@ -399,6 +401,7 @@
                             </div>
                         </div>
                     </div>
+                    --}}
                 </div>
                 {{-- Signature Canvas --}}
                 <div class="row">
@@ -663,7 +666,8 @@
         document.getElementById('methodUser').value = 'POST';
         document.getElementById('formUser').reset();
         document.getElementById('saAktif').checked = true;
-        document.getElementById('spApprove').checked = true;
+        // Status Approve disembunyikan (dikomentari)
+        // document.getElementById('spApprove').checked = true;
         document.getElementById('f_password').required = false;
         document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
         toggleKkRow();
@@ -772,7 +776,8 @@
             }
 
             document.getElementById(item.status_aktif === 'AKTIF' ? 'saAktif' : 'saNonAktif').checked = true;
-            document.getElementById((item.status_approve === 't' || item.status_approve === 'y') ? 'spApprove' : 'spTolak').checked = true;
+            // Status Approve disembunyikan (dikomentari)
+            // document.getElementById((item.status_approve === 't' || item.status_approve === 'y') ? 'spApprove' : 'spTolak').checked = true;
 
             document.getElementById('listContainer').style.display = 'none';
             document.getElementById('formContainer').style.display = 'block';
