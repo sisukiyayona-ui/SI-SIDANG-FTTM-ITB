@@ -177,43 +177,89 @@
 
     <!-- Modal Tambah Judul (Mahasiswa) -->
     <div class="modal fade" id="tambahJudulModal" tabindex="-1" role="dialog" aria-labelledby="tambahJudulModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content tambah-judul-modal">
                 <form action="{{ route('mahasiswa.store-judul') }}" method="POST">
                     @csrf
                     <div class="modal-header">
-                        <h5 class="modal-title" id="tambahJudulModalLabel"><i class="fas fa-plus mr-2"></i>Tambah Judul</h5>
+                        <h5 class="modal-title" id="tambahJudulModalLabel"><i class="fas fa-plus-circle mr-2"></i>Tambah Judul</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div class="form-group">
-                            <label>Nama</label>
-                            <input type="text" class="form-control" value="{{ session('auth_user.nama_lengkap') }}" readonly>
+                        <div class="row">
+                            <div class="col-md-7">
+                                <div class="form-group">
+                                    <label class="fw-semibold">Nama <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-lg" value="{{ session('auth_user.nama_lengkap') }}" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label class="fw-semibold">NIM</label>
+                                    <input type="text" class="form-control form-control-lg" value="{{ session('auth_user.nip_nim') }}" readonly>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="form-group">
-                            <label>NIM</label>
-                            <input type="text" class="form-control" value="{{ session('auth_user.nip_nim') }}" readonly>
+                            <label class="fw-semibold">Judul <span class="text-danger">*</span></label>
+                            <textarea name="judul" class="form-control" rows="2" required placeholder="Masukkan judul penelitian"></textarea>
                         </div>
+
                         <div class="form-group">
-                            <label>Judul</label>
-                            <textarea name="judul" class="form-control" rows="3" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Abstrak</label>
-                            <textarea name="abstrak" class="form-control" rows="4" maxlength="1000" required placeholder="Masukkan abstrak penelitian"></textarea>
-                            <small class="text-muted">Maksimal 1000 karakter</small>
+                            <label class="fw-semibold">Abstrak <span class="text-danger">*</span></label>
+                            <textarea name="abstrak" id="abstrakInput" class="form-control" rows="7" required placeholder="Masukkan abstrak penelitian"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
+                        <button type="button" class="btn btn-light btn-lg px-4" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary btn-lg px-4"><i class="fas fa-save mr-1"></i> Simpan</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <style>
+        .tambah-judul-modal .modal-header {
+            background: #1a1f2e;
+            color: #fff;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: .5rem .5rem 0 0;
+        }
+        .tambah-judul-modal .modal-title { font-weight: 600; font-size: 1.15rem; }
+        .tambah-judul-modal .modal-header .close { color: #fff; opacity: .85; text-shadow: none; }
+        .tambah-judul-modal .modal-header .close:hover { opacity: 1; }
+        .tambah-judul-modal .modal-body { padding: 1.5rem; }
+        .tambah-judul-modal .form-group label { font-size: .92rem; margin-bottom: .35rem; color: var(--bs-body-color, #212529); }
+        .tambah-judul-modal .form-control { border-radius: .4rem; font-size: .95rem; padding: .55rem .8rem; }
+        .tambah-judul-modal textarea.form-control { resize: vertical; min-height: 70px; }
+        .tambah-judul-modal #abstrakInput { min-height: 140px; }
+        .tambah-judul-modal .form-control[readonly] { background-color: #f1f3f5; border-style: dashed; }
+        .tambah-judul-modal .modal-footer { border-top: 1px solid rgba(0,0,0,.08); padding: 1rem 1.5rem; }
+        .tambah-judul-modal .modal-footer .btn { border-radius: .4rem; font-weight: 500; }
+        html.dark-mode .tambah-judul-modal .form-control {
+            background-color: #2b3543;
+            border-color: #445066;
+            color: #e9ecef;
+        }
+        html.dark-mode .tambah-judul-modal .form-control[readonly] {
+            background-color: #232b36;
+            color: #adb5bd;
+        }
+        html.dark-mode .tambah-judul-modal .form-group label { color: #e9ecef; }
+        html.dark-mode .tambah-judul-modal .modal-footer { border-top-color: rgba(255,255,255,.08); }
+        html.dark-mode .tambah-judul-modal .btn-light {
+            background: #3a4454; color: #e9ecef; border-color: #4a5568;
+        }
+        html.dark-mode .tambah-judul-modal .text-muted { color: #9aa6b8 !important; }
+        @media (max-width: 576px) {
+            .tambah-judul-modal .modal-body { padding: 1rem; }
+        }
+    </style>
 @endsection
 
 @push('scripts')
