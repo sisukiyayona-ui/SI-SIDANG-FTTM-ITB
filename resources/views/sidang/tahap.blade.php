@@ -1908,6 +1908,88 @@ function disablePenilaianInputs(tbodyId) {
     });
 }
 
+var __nilaiToastAt = 0;
+function notifyNilaiRange(msg) {
+    var now = Date.now();
+    if (now - __nilaiToastAt < 2500) return;
+    __nilaiToastAt = now;
+    showToast(msg, 'error');
+}
+
+function getNilaiAttrNum(inp, attr, fallback) {
+    var raw = inp.getAttribute(attr);
+    var n = raw === null || raw === '' ? NaN : parseFloat(raw);
+    return isNaN(n) ? fallback : n;
+}
+
+function checkNilaiRange(inp, silent) {
+    if (!inp || inp.value === '') return true;
+    var v = parseFloat(inp.value);
+    if (isNaN(v)) return true;
+    var min = getNilaiAttrNum(inp, 'min', 1);
+    var max = getNilaiAttrNum(inp, 'max', 5);
+    if (v > max) {
+        if (!silent) notifyNilaiRange('Nilai tidak boleh lebih dari ' + max);
+        return false;
+    }
+    if (v < min) {
+        if (!silent) notifyNilaiRange('Nilai tidak boleh kurang dari ' + min);
+        return false;
+    }
+    return true;
+}
+
+function validateNilaiRangeInTbody(tbodyId) {
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) return true;
+    var rows = tbody.querySelectorAll('tr');
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.style.display === 'none') continue;
+        if (row.id && row.id.indexOf('Empty') !== -1) continue;
+        var inp = row.querySelector('input.nilai-input');
+        if (!inp || inp.disabled || inp.value === '') continue;
+        if (!checkNilaiRange(inp, false)) {
+            inp.focus();
+            __nilaiToastAt = 0;
+            notifyNilaiRange('Nilai tidak boleh lebih dari ' + getNilaiAttrNum(inp, 'max', 5) + ' atau kurang dari ' + getNilaiAttrNum(inp, 'min', 1) + '. Data tidak disimpan.');
+            return false;
+        }
+    }
+    return true;
+}
+
+function formatNilaiServerError(data) {
+    if (data && data.errors) {
+        var keys = Object.keys(data.errors);
+        for (var i = 0; i < keys.length; i++) {
+            var vals = data.errors[keys[i]];
+            if (vals && vals.length) {
+                if (keys[i].indexOf('nilai') !== -1) {
+                    return 'Gagal menyimpan. Nilai harus antara 1 dan 5.';
+                }
+                return 'Gagal menyimpan. ' + vals[0];
+            }
+        }
+    }
+    if (data && (data.error || data.message)) {
+        return 'Gagal menyimpan. ' + (data.error || data.message);
+    }
+    return 'Gagal menyimpan penilaian.';
+}
+
+document.addEventListener('input', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
+        checkNilaiRange(e.target, false);
+    }
+});
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
+        checkNilaiRange(e.target, false);
+    }
+});
+
+
 document.addEventListener('change', function(e) {
     if (e.target.matches('input[type="file"][data-syarat-id]')) {
         var input = e.target;
@@ -2873,6 +2955,10 @@ async function savePenilaianTahap1() {
         return;
     }
 
+    if (!validateNilaiRangeInTbody('penilaianReportBody')) {
+        return;
+    }
+
     try {
         const body = {
             id_judul: idJudul,
@@ -2896,6 +2982,10 @@ async function savePenilaianTahap1() {
             body: JSON.stringify(body)
         });
         const data = await res.json();
+        if (!res.ok) {
+            showToast(formatNilaiServerError(data), 'error');
+            return;
+        }
         if (data.success) {
             let msg = 'Penilaian berhasil disimpan';
             if (data.status_lulus_updated) {
@@ -2909,10 +2999,10 @@ async function savePenilaianTahap1() {
             }
             window.__penilaianChanged = true;
         } else {
-            showToast('Error: ' + (data.error || 'Gagal simpan'), 'error');
+            showToast(formatNilaiServerError(data), 'error');
         }
     } catch (error) {
-        showToast('Error: ' + error, 'error');
+        showToast('Gagal menyimpan penilaian: ' + error, 'error');
     }
 }
 
@@ -3136,6 +3226,10 @@ async function savePenilaianTahap2() {
         return;
     }
 
+    if (!validateNilaiRangeInTbody('penilaianTahap2Body')) {
+        return;
+    }
+
     try {
         const body = {
             id_judul: idJudul,
@@ -3160,8 +3254,7 @@ async function savePenilaianTahap2() {
         });
         const data = await res.json();
         if (!res.ok) {
-            var msg = data.error || data.message || JSON.stringify(data.errors || data);
-            showToast('Error: ' + msg, 'error');
+            showToast(formatNilaiServerError(data), 'error');
             return;
         }
         if (data.success) {
@@ -3177,10 +3270,10 @@ async function savePenilaianTahap2() {
             }
             window.__penilaianChanged = true;
         } else {
-            showToast('Error: ' + (data.error || 'Gagal simpan'), 'error');
+            showToast(formatNilaiServerError(data), 'error');
         }
     } catch (error) {
-        showToast('Error: ' + error, 'error');
+        showToast('Gagal menyimpan penilaian: ' + error, 'error');
     }
 }
 

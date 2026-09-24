@@ -68,7 +68,7 @@ class PenilaianController extends Controller
             'Tidak layak'
         ];
         
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'id_judul' => 'required',
             'tahapan_sidang' => 'required',
             'id_tim_sidang' => 'required',
@@ -76,7 +76,27 @@ class PenilaianController extends Controller
             'penilaian.*.id_penilaian' => 'required',
             'penilaian.*.nilai' => 'nullable|numeric|min:1|max:5',
             'status_lulus' => 'nullable|in:' . implode(',', $allowedStatusLulus),
+        ], [
+            'penilaian.*.nilai.min' => 'Nilai minimal 1.',
+            'penilaian.*.nilai.max' => 'Nilai maksimal 5.',
+            'penilaian.*.nilai.numeric' => 'Nilai harus berupa angka.',
+        ], [
+            'id_judul' => 'ID Judul',
+            'tahapan_sidang' => 'Tahapan Sidang',
+            'id_tim_sidang' => 'Tim Sidang',
+            'penilaian' => 'Penilaian',
+            'penilaian.*.id_penilaian' => 'Parameter Penilaian',
+            'penilaian.*.nilai' => 'Nilai',
+            'status_lulus' => 'Status Kelulusan',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Gagal menyimpan. ' . $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
 
         $idJudul = $request->id_judul;
         $tahapanSidang = $request->tahapan_sidang;
