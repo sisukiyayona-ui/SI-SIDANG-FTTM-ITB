@@ -1448,7 +1448,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Email Surat</label>
+                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Email Surat Hasil Telaah</label>
                                         <div class="col-sm-6 px-2">
                                             <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
                                         </div>
