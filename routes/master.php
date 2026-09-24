@@ -43,6 +43,7 @@ Route::prefix('master')->name('master.')->middleware(['auth.dummy'])->group(func
     // Admin & TU Prodi - User Management (1.4)
     Route::middleware(['role:Admin,TU Prodi'])->group(function () {
         Route::get('user/prodi-by-fs', [UserController::class, 'getProdiByFs'])->name('user.prodi-by-fs');
+        Route::get('user/itb-lookup', [UserController::class, 'itbLookup'])->name('user.itb-lookup');
         Route::resource('user', UserController::class)->except(['show', 'create']);
     });
 });

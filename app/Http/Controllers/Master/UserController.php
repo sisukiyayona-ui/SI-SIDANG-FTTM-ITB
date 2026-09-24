@@ -10,6 +10,7 @@ use App\Models\TUser;
 use App\Models\TProdi;
 use App\Models\TFs;
 use App\Support\EncryptedUuid;
+use App\Services\SpsiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -415,5 +416,81 @@ class UserController extends Controller
             ->get(['id', 'KODE_PRODI', 'NAMA_PRODI']);
 
         return response()->json($prodis);
+    }
+
+    public function itbLookup(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if ($q === '') {
+            return response()->json([
+                'success' => true,
+                'data' => null,
+            ]);
+        }
+
+        try {
+            $account = SpsiService::lookupItbAccount($q);
+        } catch (\Throwable $e) {
+            Log::warning('ITB account lookup failed', ['q' => $q, 'error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghubungi layanan akun ITB.',
+            ], 502);
+        }
+
+        if (!$account) {
+            return response()->json([
+                'success' => true,
+                'data' => null,
+            ]);
+        }
+
+        $nip = $account['nip'] ?? '';
+        $nim = $account['nim'] ?? '';
+        $status = $account['status'] ?? '';
+        $statusPegawai = '';
+        if (in_array($status, ['Tendik', 'Dosen', 'Mahasiswa'], true)) {
+            $statusPegawai = $status;
+        } elseif ($status !== '') {
+            $statusPegawai = $status;
+        }
+
+        $preferredId = $nip !== '' ? $nip : $nim;
+        if ($preferredId === '' && preg_match('/^[0-9]+$/', $q)) {
+            $preferredId = $q;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'nip_nim'        => $preferredId,
+                'nip'            => $nip,
+                'nim'            => $nim,
+                'nama_lengkap'   => $account['cn'] ?? '',
+                'email'          => $account['mail'] ?? ($account['mailnonitb'] ?? ''),
+                'akun_ina'       => $account['mail'] ?? ($account['mailnonitb'] ?? ($account['uid'] ?? '')),
+                'username'       => $account['mail'] ?? ($account['mailnonitb'] ?? ($account['uid'] ?? '')),
+                'status_pegawai' => $statusPegawai,
+                'unit_kerja'     => $account['unit_kerja'] ?? '',
+                'status'         => $status,
+            ],
+        ]);
+    }
+
+    public function mhsDetail(Request $request)
+    {
+        $nim = trim((string) $request->query('nim', ''));
+        if ($nim === '' || !preg_match('/^[0-9]+$/', $nim)) {
+            return response()->json(['success' => true, 'data' => null]);
+        }
+
+        try {
+            $mhs = SpsiService::lookupMhsDetail($nim);
+        } catch (\Throwable $e) {
+            Log::warning('ITB mhs_detail lookup failed', ['nim' => $nim, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil detail mahasiswa.'], 502);
+        }
+
+        return response()->json(['success' => true, 'data' => $mhs]);
     }
 }

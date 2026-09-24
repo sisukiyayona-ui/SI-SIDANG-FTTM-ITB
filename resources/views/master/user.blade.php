@@ -156,6 +156,110 @@
     html.dark-mode #signaturePreview {
         border-color: #475569 !important;
     }
+    .itb-lookup-wrap { position: relative; }
+    .itb-lookup-list {
+        position: absolute;
+        z-index: 1080;
+        left: 0;
+        right: 0;
+        top: calc(100% + 4px);
+        background: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        box-shadow: 0 10px 28px rgba(15,23,42,.16), 0 2px 6px rgba(15,23,42,.08);
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 4px;
+        margin: 0;
+        list-style: none;
+    }
+    .itb-lookup-list::before {
+        content: '';
+        display: block;
+        height: 4px;
+    }
+    html.dark-mode .itb-lookup-list {
+        background: #1e293b;
+        border-color: #475569;
+        color: #f1f5f9;
+        box-shadow: 0 12px 32px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
+    }
+    .itb-lookup-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        line-height: 1.35;
+        border: 1px solid transparent;
+        transition: background .12s ease, border-color .12s ease;
+    }
+    .itb-lookup-item + .itb-lookup-item { margin-top: 2px; }
+    .itb-lookup-item:hover,
+    .itb-lookup-item.active {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+    }
+    html.dark-mode .itb-lookup-item:hover,
+    html.dark-mode .itb-lookup-item.active {
+        background: #334155;
+        border-color: #64748b;
+    }
+    .itb-lookup-item .avatar {
+        flex: 0 0 32px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+    }
+    .itb-lookup-item .body { min-width: 0; flex: 1; }
+    .itb-lookup-item .title {
+        font-weight: 600;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    html.dark-mode .itb-lookup-item .title { color: #f1f5f9; }
+    .itb-lookup-item .meta {
+        color: #64748b;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    html.dark-mode .itb-lookup-item .meta { color: #94a3b8; }
+    .itb-lookup-item .badge-status {
+        flex: 0 0 auto;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+    }
+    html.dark-mode .itb-lookup-item .badge-status {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-color: #065f46;
+    }
+    .itb-lookup-empty {
+        padding: 12px;
+        text-align: center;
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+    html.dark-mode .itb-lookup-empty { color: #94a3b8; }
 </style>
 @endpush
 
@@ -191,7 +295,11 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NIP / NIM <span class="text-danger">*</span></label>
-                        <input type="text" name="nip_nim" id="f_nip_nim" class="form-control" placeholder="Contoh: 19901234567" inputmode="numeric" pattern="[0-9]*" maxlength="18" autocomplete="off" required>
+                        <div class="itb-lookup-wrap">
+                            <input type="text" name="nip_nim" id="f_nip_nim" class="form-control" placeholder="NIP/NIM atau akun INA" maxlength="32" autocomplete="off" required>
+                            <div id="itbLookupList" class="itb-lookup-list" style="display: none;" role="listbox"></div>
+                        </div>
+                        <small class="text-muted">Ketik NIP/NIM atau akun INA — pilih dari hasil pencarian akun ITB untuk auto-fill.</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
@@ -476,10 +584,13 @@
         var selected = select.options[select.selectedIndex];
         var namaFs = selected.dataset.nama || selected.textContent.trim();
         document.getElementById('f_nama_fs').value = namaFs;
-        fetchProdiByFs(select.value, null, true);
+        fetchProdiByFs(select.value, null, true, pendingProdiName);
+        pendingProdiName = null;
     }
 
-    function fetchProdiByFs(kodeFs, selectedProdiIds, autoSelectFirst) {
+    var pendingProdiName = null;
+
+    function fetchProdiByFs(kodeFs, selectedProdiIds, autoSelectFirst, preferredProdiName) {
         var prodiList = document.getElementById('prodiList');
         if (!prodiList) return;
         prodiList.innerHTML = '<small class="text-muted">-- Pilih Program Studi --</small>';
@@ -507,7 +618,12 @@
                 cb.className = 'form-check-input prodi-check';
                 cb.name = 'id_prodi[]';
                 cb.value = p.id;
+                var nameLc = String(p.NAMA_PRODI || '').toLowerCase();
+                var matchPreferred = preferredProdiName &&
+                    nameLc === String(preferredProdiName).trim().toLowerCase();
                 if (selectedProdiIds && selectedProdiIds.indexOf(String(p.id)) !== -1) {
+                    cb.checked = true;
+                } else if (matchPreferred) {
                     cb.checked = true;
                 }
                 var span = document.createElement('span');
@@ -696,6 +812,7 @@
 
         clearSignature();
         document.getElementById('signaturePreview').style.display = 'none';
+        hideItbLookup();
 
         document.getElementById('listContainer').style.display = 'none';
         document.getElementById('formContainer').style.display = 'block';
@@ -798,7 +915,7 @@
     function nipNimInputHandler(e) {
         var el = e.target;
         var pos = getCaretPosition(el);
-        var raw = el.value.replace(/[^0-9]/g, '');
+        var raw = el.value.replace(/[^0-9A-Za-z._@-]/g, '');
         if (el.value !== raw) {
             el.value = raw;
             setCaretPosition(el, pos);
@@ -829,13 +946,242 @@
     }
 
     var nipInput = document.getElementById('f_nip_nim');
+    var itbLookupList = document.getElementById('itbLookupList');
+    var itbLookupTimer = null;
+    var itbLookupSeq = 0;
+    var itbLookupItems = [];
+    var itbLookupActive = -1;
+
+    function hideItbLookup() {
+        if (itbLookupList) {
+            itbLookupList.style.display = 'none';
+            itbLookupList.innerHTML = '';
+        }
+        itbLookupItems = [];
+        itbLookupActive = -1;
+    }
+
+    function renderItbLookup(items) {
+        if (!itbLookupList) return;
+        itbLookupItems = items || [];
+        itbLookupActive = -1;
+        if (!itbLookupItems.length) {
+            hideItbLookup();
+            return;
+        }
+        itbLookupList.innerHTML = itbLookupItems.map(function(item, idx) {
+            var idLine = item.nip || item.nim || item.nip_nim || '-';
+            var nameLine = item.nama_lengkap || item.cn || '-';
+            var extra = [];
+            if (item.email) extra.push(item.email);
+            if (item.akun_ina || item.username) extra.push('@' + (item.akun_ina || item.username));
+            var status = item.status_pegawai || item.status || '';
+            var initials = String(nameLine).replace(/[^A-Za-z ]/g, '').trim().split(/\s+/).slice(0, 2)
+                .map(function(w) { return w.charAt(0).toUpperCase(); }).join('') || '?';
+            return '<div class="itb-lookup-item" data-idx="' + idx + '" role="option">' +
+                '<div class="avatar">' + escapeHtml(initials) + '</div>' +
+                '<div class="body">' +
+                    '<div class="title">' + escapeHtml(nameLine) + ' <span class="meta">(' + escapeHtml(idLine) + ')</span></div>' +
+                    (extra.length ? '<div class="meta">' + escapeHtml(extra.join(' · ')) + '</div>' : '') +
+                '</div>' +
+                (status ? '<span class="badge-status">' + escapeHtml(status) + '</span>' : '') +
+                '</div>';
+        }).join('');
+        itbLookupList.style.display = 'block';
+
+        itbLookupList.querySelectorAll('.itb-lookup-item').forEach(function(el) {
+            el.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                applyItbLookupItem(itbLookupItems[parseInt(el.getAttribute('data-idx'), 10)]);
+            });
+        });
+    }
+
+    function escapeHtml(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function applyMahasiswaDetail(mhs) {
+        if (!mhs) return;
+        var fill = function(id, val) {
+            var el = document.getElementById(id);
+            if (el) el.value = val == null ? '' : val;
+        };
+        if (mhs.kd_strata) fill('f_strata', mhs.kd_strata);
+        if (mhs.tahun_daftar) fill('f_thn_angkatan', mhs.tahun_daftar);
+
+        var prodiName = mhs.prodi || '';
+        var fsSel = document.getElementById('f_kode_fs');
+        if (fsSel && fsSel.tagName === 'SELECT' && mhs.kd_fak) {
+            var found = false;
+            for (var i = 0; i < fsSel.options.length; i++) {
+                if (fsSel.options[i].value === mhs.kd_fak) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                pendingProdiName = prodiName;
+                fsSel.value = mhs.kd_fak;
+                setNamaFs(fsSel);
+                return;
+            }
+        }
+        selectProdiCheckboxByName(prodiName);
+    }
+
+    function selectProdiCheckboxByName(name) {
+        if (!name) return;
+        var lower = String(name).trim().toLowerCase();
+        document.querySelectorAll('#prodiList .prodi-check, #prodiListTu .prodi-check').forEach(function(cb) {
+            var label = cb.parentElement ? cb.parentElement.querySelector('.form-check-label') : null;
+            if (!label) return;
+            var text = label.textContent || '';
+            var dash = text.indexOf(' - ');
+            var prodiLabel = dash >= 0 ? text.substring(dash + 3) : text;
+            if (prodiLabel.trim().toLowerCase() === lower || text.trim().toLowerCase() === lower) {
+                cb.checked = true;
+            }
+        });
+    }
+
+    function applyItbLookupItem(item) {
+        if (!item) return;
+        var fill = function(id, val) {
+            var el = document.getElementById(id);
+            if (el) el.value = val == null ? '' : val;
+        };
+        fill('f_nip_nim', item.nip_nim || item.nip || item.nim || '');
+        fill('f_nama_lengkap', item.nama_lengkap || '');
+        fill('f_email', item.email || '');
+        fill('f_akun_ina', item.akun_ina || '');
+        fill('f_username', item.username || item.akun_ina || '');
+        if (item.status_pegawai) {
+            fill('f_status_pegawai', item.status_pegawai);
+            toggleKkRow();
+            toggleUserFormFields();
+        }
+        fill('f_asal_instansi', 'ITB');
+        handleAsalInstansiChange();
+        hideItbLookup();
+        var isMhs = item.status_pegawai === 'Mahasiswa';
+        var nim = item.nim || (item.nip_nim && String(item.nip_nim).length <= 10 ? item.nip_nim : '');
+        if (isMhs && item.mhs_detail) {
+            applyMahasiswaDetail(item.mhs_detail);
+            if (typeof showToast === 'function') {
+                showToast('success', 'Data mahasiswa diisi otomatis (strata, tahun, prodi).');
+            }
+            return;
+        }
+        if (isMhs && nim) {
+            if (typeof showToast === 'function') {
+                showToast('success', 'Data akun ITB diisi. Mengambil detail mahasiswa…');
+            }
+            fetch('{{ route("master.user.mhs-detail") }}?nim=' + encodeURIComponent(nim), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json().catch(function() { return null; }); })
+            .then(function(res) {
+                if (res && res.success && res.data) {
+                    applyMahasiswaDetail(res.data);
+                    if (typeof showToast === 'function') {
+                        showToast('success', 'Detail mahasiswa terisi (strata, tahun, prodi).');
+                    }
+                }
+            })
+            .catch(function() {});
+            return;
+        }
+        if (typeof showToast === 'function') {
+            showToast('success', 'Data akun ITB diisi otomatis. Asal Instansi diisi ITB.');
+        }
+    }
+
+    function showItbLoading() {
+        if (!itbLookupList) return;
+        itbLookupList.innerHTML = '<div class="itb-lookup-empty"><span class="spinner-border spinner-border-sm mr-1" style="width:14px;height:14px;vertical-align:-2px;"></span> Mencari akun ITB…</div>';
+        itbLookupList.style.display = 'block';
+    }
+
+    function scheduleItbLookup(raw) {
+        clearTimeout(itbLookupTimer);
+        var q = String(raw || '').trim();
+        if (q.length < 3) {
+            hideItbLookup();
+            return;
+        }
+        var seq = ++itbLookupSeq;
+        showItbLoading();
+        itbLookupTimer = setTimeout(function() {
+            if (seq !== itbLookupSeq) return;
+            fetch('{{ route("master.user.itb-lookup") }}?q=' + encodeURIComponent(q), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json().catch(function() { return null; }); })
+            .then(function(res) {
+                if (seq !== itbLookupSeq) return;
+                if (!res || !res.success || !res.data) {
+                    hideItbLookup();
+                    return;
+                }
+                renderItbLookup([res.data]);
+            })
+            .catch(function() {
+                if (seq === itbLookupSeq) hideItbLookup();
+            });
+        }, 200);
+    }
+
     if (nipInput) {
         nipInput.addEventListener('input', nipNimInputHandler);
         nipInput.addEventListener('keydown', function(e) {
-            if (e.key === 'e' || e.key === 'E') e.preventDefault();
+            if (itbLookupList && itbLookupList.style.display !== 'none') {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    var items = itbLookupList.querySelectorAll('.itb-lookup-item');
+                    if (!items.length) return;
+                    if (e.key === 'ArrowDown') {
+                        itbLookupActive = (itbLookupActive + 1) % items.length;
+                    } else {
+                        itbLookupActive = (itbLookupActive - 1 + items.length) % items.length;
+                    }
+                    items.forEach(function(el, i) {
+                        el.classList.toggle('active', i === itbLookupActive);
+                    });
+                    return;
+                }
+                if (e.key === 'Enter' && itbLookupActive >= 0) {
+                    e.preventDefault();
+                    applyItbLookupItem(itbLookupItems[itbLookupActive]);
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    hideItbLookup();
+                    return;
+                }
+            }
+        });
+        nipInput.addEventListener('input', function() {
+            scheduleItbLookup(nipInput.value);
+        });
+        nipInput.addEventListener('blur', function() {
+            setTimeout(hideItbLookup, 150);
         });
         nipInput.addEventListener('paste', function() {
             setTimeout(nipNimInputHandler, 0);
+            setTimeout(function() { scheduleItbLookup(nipInput.value); }, 10);
+        });
+    }
+    if (document.addEventListener) {
+        document.addEventListener('click', function(e) {
+            if (!itbLookupList) return;
+            if (e.target !== nipInput && !itbLookupList.contains(e.target)) {
+                hideItbLookup();
+            }
         });
     }
 
