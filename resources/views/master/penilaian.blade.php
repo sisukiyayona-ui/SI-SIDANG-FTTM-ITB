@@ -395,7 +395,18 @@
             filterTahapanByStrata();
             document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
             var prodiSelect = document.getElementById('f_id_prodi');
-            if (prodiSelect) prodiSelect.value = item.id_prodi;
+            if (prodiSelect) {
+                var prodiVal = String(item.id_prodi != null ? item.id_prodi : '');
+                prodiSelect.value = prodiVal;
+                // If option missing (filtered out), inject it so selection matches DB
+                if (prodiVal && prodiSelect.value !== prodiVal) {
+                    var opt = document.createElement('option');
+                    opt.value = prodiVal;
+                    opt.textContent = (item.kode_prodi || '') + ' - ' + (item.nama_prodi_item || 'Prodi #' + prodiVal);
+                    opt.selected = true;
+                    prodiSelect.appendChild(opt);
+                }
+            }
             (item.status_aktif === 'AKTIF' ? document.getElementById('statusAktif') : document.getElementById('statusNonaktif')).checked = true;
             (item.status_catatan === 'y' ? document.getElementById('statusCatatanYa') : document.getElementById('statusCatatanTidak')).checked = true;
             document.getElementById('f_keterangan').value = item.Keterangan || '';

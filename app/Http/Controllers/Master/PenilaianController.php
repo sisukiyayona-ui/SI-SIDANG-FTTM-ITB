@@ -55,6 +55,8 @@ class PenilaianController extends Controller
                 'id' => $item->id,
                 'nama' => $item->penilaian ?? $item->PENILAIAN,
                 'id_prodi' => $item->id_prodi,
+                'kode_prodi' => $item->kode_prodi,
+                'nama_prodi_item' => $item->nama_prodi,
                 'tahapan_sidang' => $item->tahapan_sidang,
                 'strata' => $item->strata,
                 'status_aktif' => $item->status_aktif,
@@ -145,39 +147,31 @@ class PenilaianController extends Controller
     {
         // Debug: log request data
         \Log::info('Penilaian store request data:', $request->all());
-        
+
         $request->validate([
             'penilaian' => 'required',
             'tahapan_sidang' => 'required',
             'strata' => 'required',
             'status_aktif' => 'required',
+            'id_prodi' => 'required|integer|exists:t_prodi,id',
         ]);
 
         $user = session('auth_user');
         \Log::info('User session:', $user);
 
-        if ($user['role'] === 'TU Prodi') {
-            // TU Prodi: prodi yang di-assign dari t_user_prodi saja
-            $prodi = TProdi::whereIn('id', $user['id_prodi'] ?? [])->first();
-            $prodiId = $prodi?->id ?? $request->id_prodi;
-            $kodeProdi = $prodi?->kode_prodi ?? $user['kode_prodi'];
-            $namaProdi = $prodi?->nama_prodi ?? $user['nama_prodi'];
-        } else {
-            $prodi = TProdi::find($request->id_prodi);
-            if (!$prodi) {
-                \Log::error('Prodi not found for id:', ['id_prodi' => $request->id_prodi]);
-                return response()->json(['error' => 'Prodi tidak ditemukan'], 422);
+        $prodi = $this->resolveProdi($request, $user);
+        if (!$prodi) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['error' => 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut'], 422);
             }
-            $prodiId = $prodi->id;
-            $kodeProdi = $prodi->kode_prodi;
-            $namaProdi = $prodi->nama_prodi;
+            return redirect()->back()->with('error', 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut.');
         }
 
         TPointPenilaian::create([
             'PENILAIAN' => $request->penilaian,
-            'ID_PRODI' => $prodiId,
-            'KODE_PRODI' => $kodeProdi,
-            'NAMA_PRODI' => $namaProdi,
+            'ID_PRODI' => $prodi->id,
+            'KODE_PRODI' => $prodi->kode_prodi,
+            'NAMA_PRODI' => $prodi->nama_prodi,
             'TAHAPAN_SIDANG' => $request->tahapan_sidang,
             'STRATA' => $request->strata,
             'STATUS_AKTIF' => $request->status_aktif,
@@ -200,30 +194,26 @@ class PenilaianController extends Controller
             'tahapan_sidang' => 'required',
             'strata' => 'required',
             'status_aktif' => 'required',
+            'id_prodi' => 'required|integer|exists:t_prodi,id',
         ]);
 
         $item = TPointPenilaian::find((int) $id);
         if ($item) {
             $user = session('auth_user');
 
-            if ($user['role'] === 'TU Prodi') {
-                // TU Prodi: prodi yang di-assign dari t_user_prodi saja
-                $prodi = TProdi::whereIn('id', $user['id_prodi'] ?? [])->first();
-                $prodiId = $prodi?->id ?? $request->id_prodi;
-                $kodeProdi = $prodi?->kode_prodi ?? $user['kode_prodi'];
-                $namaProdi = $prodi?->nama_prodi ?? $user['nama_prodi'];
-            } else {
-                $prodi = TProdi::find($request->id_prodi);
-                $prodiId = $prodi->id;
-                $kodeProdi = $prodi->kode_prodi;
-                $namaProdi = $prodi->nama_prodi;
+            $prodi = $this->resolveProdi($request, $user, $item->id_prodi);
+            if (!$prodi) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['error' => 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut'], 422);
+                }
+                return redirect()->back()->with('error', 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut.');
             }
 
             $item->update([
                 'PENILAIAN' => $request->penilaian,
-                'ID_PRODI' => $prodiId,
-                'KODE_PRODI' => $kodeProdi,
-                'NAMA_PRODI' => $namaProdi,
+                'ID_PRODI' => $prodi->id,
+                'KODE_PRODI' => $prodi->kode_prodi,
+                'NAMA_PRODI' => $prodi->nama_prodi,
                 'TAHAPAN_SIDANG' => $request->tahapan_sidang,
                 'STRATA' => $request->strata,
                 'STATUS_AKTIF' => $request->status_aktif,
@@ -263,6 +253,35 @@ class PenilaianController extends Controller
         }
 
         return $query->get();
+    }
+
+    /**
+     * Resolve prodi from request by role.
+     * TU Prodi: must be one of assigned prodi (respects selected id_prodi).
+     * Other roles: any existing prodi from request.
+     */
+    private function resolveProdi(Request $request, array $user, $fallbackId = null): ?TProdi
+    {
+        $requestedId = $request->input('id_prodi');
+
+        if (($user['role'] ?? '') === 'TU Prodi') {
+            $allowedIds = array_map('intval', $user['id_prodi'] ?? []);
+            $requestedInt = (int) $requestedId;
+
+            if ($requestedInt > 0 && in_array($requestedInt, $allowedIds, true)) {
+                return TProdi::find($requestedInt);
+            }
+
+            // Fallback: keep existing prodi if still allowed, else first assigned
+            $fallbackInt = (int) $fallbackId;
+            if ($fallbackInt > 0 && in_array($fallbackInt, $allowedIds, true)) {
+                return TProdi::find($fallbackInt);
+            }
+
+            return TProdi::whereIn('id', $allowedIds)->first();
+        }
+
+        return $requestedId ? TProdi::find($requestedId) : null;
     }
 }
 
