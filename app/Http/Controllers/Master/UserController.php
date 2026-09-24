@@ -144,14 +144,14 @@ class UserController extends Controller
                 'id_prodi'       => 'required|array|min:1',
                 'status_pegawai' => 'nullable',
                 'status_aktif'   => 'required',
-                'status_approve' => 'required|in:t,f',
+                'status_approve' => 'nullable|in:t,f',
             ], [
                 'kode_fs.required'   => 'Fakultas wajib dipilih.',
                 'id_prodi.required'  => 'Program Studi wajib dipilih minimal satu.',
                 'id_prodi.array'     => 'Program Studi wajib dipilih minimal satu.',
                 'id_prodi.min'       => 'Program Studi wajib dipilih minimal satu.',
             ]);
-    
+
             [$kodeProdi, $namaProdi] = $this->resolveProdi($request);
             [$kodeFs, $namaFs]       = $this->resolveFs($request);
             $roles       = array_values(array_filter((array) $request->jenis_user));
@@ -175,7 +175,7 @@ class UserController extends Controller
                 'STRATA'         => $request->strata,
                 'THN_ANGKATAN'   => $request->thn_angkatan,
                 'STATUS_AKTIF'   => $request->status_aktif,
-                'STATUS_APPROVE' => $request->status_approve,
+                'STATUS_APPROVE' => $request->input('status_approve', 't') ?: 't',
                 'STATUS_KAPRODI' => $request->status_kaprodi,
                 'STATUS_DEKAN'   => $request->status_dekan,
                 'STATUS_WDA'     => $request->status_wda,
@@ -232,7 +232,7 @@ class UserController extends Controller
             'id_prodi'       => 'required|array|min:1',
             'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
-            'status_approve' => 'required|in:t,f',
+            'status_approve' => 'nullable|in:t,f',
         ], [
             'kode_fs.required'  => 'Fakultas wajib diisi.',
             'id_prodi.required' => 'Program Studi wajib dipilih minimal satu.',
@@ -263,7 +263,7 @@ class UserController extends Controller
                 'STRATA'         => $request->strata,
                 'THN_ANGKATAN'   => $request->thn_angkatan,
                 'STATUS_AKTIF'   => $request->status_aktif,
-                'STATUS_APPROVE' => $request->status_approve,
+                'STATUS_APPROVE' => $request->filled('status_approve') ? $request->status_approve : ($user->STATUS_APPROVE ?: 't'),
                 'STATUS_KAPRODI' => $request->status_kaprodi,
                 'STATUS_DEKAN'   => $request->status_dekan,
                 'STATUS_WDA'     => $request->status_wda,
