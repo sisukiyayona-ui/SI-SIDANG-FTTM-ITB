@@ -412,15 +412,15 @@
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
                             <div class="table-responsive" style="max-height: 45vh; overflow-y: auto;">
-                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 750px;">
+                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 900px;">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
                                         <th style="width: 40px;">No</th>
                                         <th style="min-width: 190px; white-space: nowrap;">NIP</th>
                                         <th style="min-width: 280px; white-space: nowrap;">Nama</th>
-                                        <th>Keterangan</th>
-                                        <th>No SK</th>
-                                        <th>File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th>Aksi</th>@endif
+                                        <th style="min-width: 120px;">Keterangan</th>
+                                        <th style="min-width: 180px; white-space: nowrap;">No SK</th>
+                                        <th style="min-width: 70px;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="min-width: 70px;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -438,8 +438,8 @@
                                                  <td>{{ $idx + 1 }}</td>
                                                  <td style="white-space: nowrap;">{{ $tim->nip }}</td>
                                                  <td class="text-left text-primary" style="text-decoration:underline; white-space: nowrap;">{{ $tim->Nama }}</td>
-                                                 <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
-                                                 <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
+                                                 <td class="text-danger" style="text-decoration:underline; white-space: nowrap;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
+                                                 <td class="text-left" style="white-space: nowrap; word-break: break-all;">{{ optional($tim->sk)->no_sk ?? '-' }}</td>
                                                  <td>
                                                      @if($tim->FILE_PENELAAH)
                                                          <a href="{{ $tim->FILE_PENELAAH }}" target="_blank" class="text-primary" style="font-size:12px; text-decoration:underline;">Lihat file</a>
@@ -481,7 +481,7 @@
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
                                                 @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }} ({{ $tim->nip }})</option>
+                                                <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ($tim->nip ? ' ('.$tim->nip.')' : '') . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                             @endforeach
                                         @endif
                                     </select>
@@ -844,15 +844,15 @@
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
                             <div class="table-responsive" style="max-height: 45vh; overflow-y: auto;">
-                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 750px;">
+                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 900px;">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
                                         <th style="width: 40px;">No</th>
                                         <th style="min-width: 190px; white-space: nowrap;">NIP</th>
                                         <th style="min-width: 280px; white-space: nowrap;">Nama</th>
-                                        <th>Keterangan</th>
-                                        <th>No SK</th>
-                                        <th>File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th>Aksi</th>@endif
+                                        <th style="min-width: 120px;">Keterangan</th>
+                                        <th style="min-width: 180px; white-space: nowrap;">No SK</th>
+                                        <th style="min-width: 70px;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="min-width: 70px;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -870,8 +870,8 @@
                                                  <td>{{ $idx + 1 }}</td>
                                                  <td style="white-space: nowrap;">{{ $tim->nip }}</td>
                                                  <td class="text-left text-primary" style="text-decoration:underline; white-space: nowrap;">{{ $tim->Nama }}</td>
-                                                 <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
-                                                 <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
+                                                 <td class="text-danger" style="text-decoration:underline; white-space: nowrap;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
+                                                 <td class="text-left" style="white-space: nowrap; word-break: break-all;">{{ optional($tim->sk)->no_sk ?? '-' }}</td>
                                                  <td>
                                                      @if($tim->FILE_PENELAAH)
                                                          <a href="{{ $tim->FILE_PENELAAH }}" target="_blank" class="text-primary" style="font-size:12px; text-decoration:underline;">Lihat file</a>
@@ -1149,7 +1149,7 @@
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
                                                 @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }}</option>
+                                                <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                             @endforeach
                                         @endif
                                     </select>
@@ -1562,7 +1562,7 @@
                                                 @if(isset($timSidang) && $timSidang->count() > 0)
                                                     @foreach($timSidang as $tim)
                                                         @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                        <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == $user['id'] ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ $tim->Nama }}</option>
+                                                        <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == $user['id'] ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                                     @endforeach
                                                 @endif
                                             </select>
@@ -1661,7 +1661,7 @@
                                         <select class="form-control form-control-sm border-dark rounded-0">
                                             @if(isset($timSidang) && $timSidang->count() > 0)
                                                 @foreach($timSidang as $tim)
-                                                    <option value="{{ $tim->nip }}">{{ $tim->Nama }}</option>
+                                                    <option value="{{ $tim->nip }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                                 @endforeach
                                             @endif
                                         </select>
@@ -1815,15 +1815,15 @@
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
                             <div class="table-responsive" style="max-height: 45vh; overflow-y: auto;">
-                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 750px;">
+                            <table class="table table-bordered table-sm text-center mb-0" style="min-width: 900px;">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
                                         <th style="width: 40px;">No</th>
                                         <th style="min-width: 190px; white-space: nowrap;">NIP</th>
                                         <th style="min-width: 280px; white-space: nowrap;">Nama</th>
-                                        <th>Keterangan</th>
-                                        <th>No SK</th>
-                                        <th>File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th>Aksi</th>@endif
+                                        <th style="min-width: 120px;">Keterangan</th>
+                                        <th style="min-width: 180px; white-space: nowrap;">No SK</th>
+                                        <th style="min-width: 70px;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="min-width: 70px;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1841,8 +1841,8 @@
                                                  <td>{{ $idx + 1 }}</td>
                                                  <td style="white-space: nowrap;">{{ $tim->nip }}</td>
                                                  <td class="text-left text-primary" style="text-decoration:underline; white-space: nowrap;">{{ $tim->Nama }}</td>
-                                                 <td class="text-danger" style="text-decoration:underline;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
-                                                 <td>{{ optional($tim->sk)->no_sk ?? '-' }}</td>
+                                                 <td class="text-danger" style="text-decoration:underline; white-space: nowrap;">{{ $tim->keterangan ?? $tim->status_tim_sidang }}</td>
+                                                 <td class="text-left" style="white-space: nowrap; word-break: break-all;">{{ optional($tim->sk)->no_sk ?? '-' }}</td>
                                                  <td>
                                                      @if($tim->FILE_PENELAAH)
                                                          <a href="{{ $tim->FILE_PENELAAH }}" target="_blank" class="text-primary" style="font-size:12px; text-decoration:underline;">Lihat file</a>
@@ -2794,10 +2794,12 @@ function syncPenilaiDropdowns(tim) {
             opt.value = tim.id;
             sel.appendChild(opt);
         }
-        opt.textContent = (sid === 'penilaianSelect')
-            ? ((tim.nama || '') + ' (' + (tim.nip || '') + ')')
+        var ket = (tim.status_tim_sidang || tim.keterangan || '');
+        var base = (sid === 'penilaianSelect')
+            ? ((tim.nama || '') + ((tim.nip || '') ? ' (' + tim.nip + ')' : ''))
             : (tim.nama || '');
-        opt.setAttribute('data-keterangan', tim.status_tim_sidang || '');
+        opt.textContent = ket ? (base + ' - ' + ket) : base;
+        opt.setAttribute('data-keterangan', ket);
     });
 }
 
