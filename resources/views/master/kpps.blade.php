@@ -361,6 +361,28 @@
 
     var _suppressNipChange = false;
 
+    function setNipDisabled(disabled) {
+        var nipEl = document.getElementById('f_nip');
+        if (!nipEl) return;
+        nipEl.disabled = disabled;
+        if (window.jQuery && jQuery.fn.select2) {
+            jQuery(nipEl).prop('disabled', disabled);
+            var $container = jQuery(nipEl).next('.select2-container');
+            if ($container.length) {
+                $container.find('.select2-selection')
+                    .toggleClass('select2-selection--disabled', !!disabled)
+                    .attr('aria-disabled', disabled ? 'true' : 'false');
+            }
+        }
+    }
+
+    function setNamaReadOnly(readonly) {
+        var namaEl = document.getElementById('f_nama');
+        if (!namaEl) return;
+        namaEl.readOnly = readonly;
+        namaEl.classList.toggle('bg-light', !!readonly);
+    }
+
     jQuery(document).ready(function() {
         jQuery('#f_nip').on('change', function() {
             if (_suppressNipChange) return;
@@ -396,7 +418,9 @@
         resetProdiSelect();
 @endif
         document.getElementById('f_id_user').value = '';
-        document.getElementById('f_nip').value = '';
+        // Tambah: NIP & Nama Lengkap editable
+        setNipDisabled(false);
+        setNamaReadOnly(false);
         if (window.jQuery && jQuery.fn.select2) {
             _suppressNipChange = true;
             jQuery('#f_nip').val('').trigger('change');
@@ -405,6 +429,9 @@
 
         document.getElementById('listContainer').style.display = 'none';
         document.getElementById('formContainer').style.display = 'block';
+        // Re-enable setelah form visible (Select2 butuh layout terbaca)
+        setNipDisabled(false);
+        setNamaReadOnly(false);
     }
 
     function openEdit(id) {
@@ -448,16 +475,26 @@
             _suppressNipChange = false;
             document.getElementById('f_id_user').value = item.id_user ?? '';
 
+            // Edit: NIP & Nama Lengkap tidak bisa diubah (disabled)
+            setNipDisabled(true);
+            setNamaReadOnly(true);
+
             document.getElementById(item.status_aktif === 'AKTIF' ? 'saAktifKpps' : 'saNonAktifKpps').checked = true;
 
             document.getElementById('listContainer').style.display = 'none';
             document.getElementById('formContainer').style.display = 'block';
+            // Pastikan disabled setelah form visible
+            setNipDisabled(true);
+            setNamaReadOnly(true);
         });
     }
 
     function closeForm() {
         document.getElementById('formContainer').style.display = 'none';
         document.getElementById('listContainer').style.display = 'block';
+        // Reset disabled state saat tutup form
+        setNipDisabled(false);
+        setNamaReadOnly(false);
     }
 
     function openDelete(id) {
@@ -467,13 +504,19 @@
 
     document.getElementById('formKpps').addEventListener('submit', function(e) {
         e.preventDefault();
+        var fd = new FormData(this);
+        // Select disabled tidak ikut FormData — pastikan NIP tetap terkirim saat Edit
+        var nipEl = document.getElementById('f_nip');
+        if (nipEl && nipEl.disabled) {
+            fd.set('nip', nipEl.value);
+        }
         fetch(this.action, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
                 'Accept': 'application/json'
             },
-            body: new FormData(this)
+            body: fd
         }).then(async r => {
             const data = await r.json().catch(() => ({}));
             if (r.ok && data.success) {

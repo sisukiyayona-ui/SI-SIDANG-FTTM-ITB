@@ -140,10 +140,16 @@ class UserController extends Controller
                 'username'       => 'required|unique:t_user,USERNAME',   // ✅ fix escape
                 'password'       => 'nullable|min:4',
                 'jenis_user'     => 'required|array|min:1',
-                'id_prodi'       => 'nullable',
+                'kode_fs'        => 'required|string',
+                'id_prodi'       => 'required|array|min:1',
                 'status_pegawai' => 'nullable',
                 'status_aktif'   => 'required',
-                'status_approve' => 'required|in:t,f',                    // ✅ fix escape
+                'status_approve' => 'required|in:t,f',
+            ], [
+                'kode_fs.required'   => 'Fakultas wajib dipilih.',
+                'id_prodi.required'  => 'Program Studi wajib dipilih minimal satu.',
+                'id_prodi.array'     => 'Program Studi wajib dipilih minimal satu.',
+                'id_prodi.min'       => 'Program Studi wajib dipilih minimal satu.',
             ]);
     
             [$kodeProdi, $namaProdi] = $this->resolveProdi($request);
@@ -222,10 +228,16 @@ class UserController extends Controller
             'username'       => 'required|unique:t_user,USERNAME,' . $id . ',id',
             'password'       => 'nullable|min:4',
             'jenis_user'     => 'required|array|min:1',
-            'id_prodi'       => 'nullable',
+            'kode_fs'        => 'required|string',
+            'id_prodi'       => 'required|array|min:1',
             'status_pegawai' => 'nullable',
             'status_aktif'   => 'required',
             'status_approve' => 'required|in:t,f',
+        ], [
+            'kode_fs.required'  => 'Fakultas wajib diisi.',
+            'id_prodi.required' => 'Program Studi wajib dipilih minimal satu.',
+            'id_prodi.array'    => 'Program Studi wajib dipilih minimal satu.',
+            'id_prodi.min'      => 'Program Studi wajib dipilih minimal satu.',
         ]);
 
         $user = TUser::find($id);

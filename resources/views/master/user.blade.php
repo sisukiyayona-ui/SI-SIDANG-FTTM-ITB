@@ -841,6 +841,17 @@
 
     document.getElementById('formUser').addEventListener('submit', function(e) {
         e.preventDefault();
+        const kodeFs = document.getElementById('f_kode_fs');
+        const prodiChecked = document.querySelectorAll('#formUser .prodi-check:checked');
+        if (kodeFs && !String(kodeFs.value || '').trim()) {
+            showToast('error', 'Fakultas wajib dipilih.');
+            if (typeof kodeFs.focus === 'function') { try { kodeFs.focus(); } catch (err) {} }
+            return;
+        }
+        if (prodiChecked.length < 1) {
+            showToast('error', 'Program Studi wajib dipilih minimal satu.');
+            return;
+        }
         const fd = new FormData(this);
         fetch(this.action, {
             method: 'POST',
@@ -859,7 +870,15 @@
             }
             console.error('User store response', { status: r.status, ok: r.ok, data });
             if (data?.errors) {
-                const lines = Object.entries(data.errors).map(([k, v]) => k + ': ' + (Array.isArray(v) ? v.join(', ') : v)).join('\n');
+                const friendly = {
+                    kode_fs: 'Fakultas',
+                    id_prodi: 'Program Studi',
+                };
+                const lines = Object.entries(data.errors).map(([k, v]) => {
+                    const key = String(k).replace(/\[\]$/, '');
+                    const label = friendly[key] || key;
+                    return label + ': ' + (Array.isArray(v) ? v.join(', ') : v);
+                }).join('\n');
                 showToast('error', lines || 'Data tidak valid.');
                 return;
             }
