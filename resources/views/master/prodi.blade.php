@@ -260,6 +260,69 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal Import (Preview -> Edit -> Simpan -> Hasil) --}}
+    <div class="modal fade" id="modalImport" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff;">
+                    <h5 class="modal-title" id="importModalTitle"><i class="fas fa-file-excel mr-2"></i>Preview Data Excel</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body" style="position: relative;">
+                    <div id="importLoading" style="display:none; position:absolute; inset:0; background:rgba(255,255,255,0.85); z-index:10; flex-direction:column; align-items:center; justify-content:center;">
+                        <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"></div>
+                        <div class="mt-3 font-weight-bold text-primary" id="importLoadingText">Memproses data...</div>
+                    </div>
+
+                    <div id="importPreviewWrap">
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Periksa data berikut. Anda dapat <strong>mengedit</strong> fakultas/kode/nama, atau <strong>menghapus</strong> baris yang tidak diinginkan sebelum menyimpan.
+                            Baris bertanda <span class="badge badge-warning">Duplikat</span> sudah aktif di database atau berulang di file. Data baru otomatis disimpan sebagai <strong>AKTIF</strong>.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px;">No</th>
+                                        <th style="width:180px;">Fakultas</th>
+                                        <th style="width:130px;">Kode Prodi</th>
+                                        <th>Nama Prodi</th>
+                                        <th style="width:110px;">Status</th>
+                                        <th style="width:60px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importPreviewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="importResultWrap" style="display:none;">
+                        <div class="mb-3" id="importResultSummary"></div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px;">No</th>
+                                        <th style="width:130px;">Kode</th>
+                                        <th>Nama</th>
+                                        <th style="width:110px;">Hasil</th>
+                                        <th>Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importResultBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" id="importFooter">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="importBtnCancel">Batal</button>
+                    <button type="button" class="btn btn-primary" id="importBtnSave" onclick="saveImport()"><i class="fas fa-save mr-1"></i> Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -284,13 +347,14 @@
         });
     }
 
+    let importRows = [];
+
     function uploadImport(input) {
         if (!input.files.length) return;
         const file = input.files[0];
         const fd = new FormData();
         fd.append('file', file);
-        fd.append('_token', document.querySelector('input[name="_token"]').value);
-        fetch('{{ route("master.prodi.import") }}', {
+        fetch('{{ route("master.prodi.import-preview") }}', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
@@ -298,14 +362,138 @@
             },
             body: fd
         }).then(r => r.json()).then(data => {
-            const msg = data.message || (data.errors ? Object.values(data.errors).join('\n') : 'Terjadi kesalahan.');
-            showToast(data.success ? 'success' : 'error', msg);
-            setTimeout(() => location.reload(), 1500);
-        }).catch(() => showToast('error', 'Gagal mengupload file.'));
+            if (!data.success || !data.rows || !data.rows.length) {
+                showToast('error', 'File tidak berisi data yang valid.');
+                return;
+            }
+            importRows = data.rows;
+            renderImportPreview();
+            document.getElementById('importPreviewWrap').style.display = 'block';
+            document.getElementById('importResultWrap').style.display = 'none';
+            document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-file-excel mr-2"></i>Preview Data Excel';
+            document.getElementById('importBtnSave').style.display = 'inline-block';
+            document.getElementById('importBtnCancel').innerHTML = 'Batal';
+            document.getElementById('importBtnCancel').onclick = null;
+            new bootstrap.Modal(document.getElementById('modalImport')).show();
+        }).catch(() => showToast('error', 'Gagal membaca file Excel.'));
         input.value = '';
     }
 
+    function importRowStatus(r) {
+        if (!r.kode || !r.nama) return { label: 'Tidak Valid', cls: 'danger', title: 'Kode dan Nama prodi wajib diisi' };
+        if (!r.kode_fs || !fakultasList.some(f => String(f.kode) === String(r.kode_fs))) return { label: 'Tidak Valid', cls: 'danger', title: 'Fakultas belum dipilih / tidak terdaftar' };
+        const inDb = prodiData.some(p => String(p.kode) === String(r.kode));
+        if (inDb) return { label: 'Duplikat', cls: 'warning', title: 'Kode sudah terdaftar (aktif) di database' };
+        const dupIdx = importRows.findIndex(x => x !== r && String(x.kode) === String(r.kode));
+        if (dupIdx !== -1) return { label: 'Duplikat', cls: 'warning', title: 'Kode berulang di dalam file' };
+        return { label: 'Baru', cls: 'success', title: 'Siap ditambahkan' };
+    }
+
+    function escapeAttr(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderImportPreview() {
+        const tbody = document.getElementById('importPreviewBody');
+        tbody.innerHTML = importRows.map((r, i) => {
+            const st = importRowStatus(r);
+            const fsOpts = '<option value="">-- Pilih --</option>' + fakultasList.map(f =>
+                `<option value="${escapeAttr(f.kode)}" ${String(r.kode_fs) === String(f.kode) ? 'selected' : ''}>${escapeAttr(f.nama)}</option>`).join('');
+            return `<tr data-idx="${i}">
+                <td class="text-center">${i + 1}</td>
+                <td><select class="form-control form-control-sm" onchange="updateImportRow(${i}, 'kode_fs', this.value)">${fsOpts}</select></td>
+                <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.kode)}" oninput="updateImportRow(${i}, 'kode', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.nama)}" oninput="updateImportRow(${i}, 'nama', this.value)"></td>
+                <td class="text-center"><span class="badge badge-${st.cls}" title="${st.title}">${st.label}</span></td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" title="Hapus baris" onclick="removeImportRow(${i})"><i class="fas fa-times"></i></button></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function updateImportRow(idx, field, value) {
+        importRows[idx][field] = value;
+        document.querySelectorAll('#importPreviewBody tr').forEach(tr => {
+            const i = Number(tr.dataset.idx);
+            const st = importRowStatus(importRows[i]);
+            const badge = tr.querySelector('.badge');
+            badge.className = `badge badge-${st.cls}`;
+            badge.title = st.title;
+            badge.textContent = st.label;
+        });
+    }
+
+    function removeImportRow(idx) {
+        importRows.splice(idx, 1);
+        renderImportPreview();
+    }
+
+    function saveImport() {
+        const loading = document.getElementById('importLoading');
+        const btnSave = document.getElementById('importBtnSave');
+        const btnCancel = document.getElementById('importBtnCancel');
+        document.getElementById('importLoadingText').textContent = 'Menyimpan data...';
+        loading.style.display = 'flex';
+        btnSave.disabled = true;
+        btnCancel.disabled = true;
+
+        fetch('{{ route("master.prodi.import-store") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ rows: importRows })
+        }).then(r => r.json()).then(data => {
+            loading.style.display = 'none';
+            btnSave.disabled = false;
+            btnCancel.disabled = false;
+
+            if (!data.success) {
+                showToast('error', data.message || 'Gagal menyimpan data.');
+                return;
+            }
+            renderImportResult(data);
+        }).catch(() => {
+            loading.style.display = 'none';
+            btnSave.disabled = false;
+            btnCancel.disabled = false;
+            showToast('error', 'Gagal menyimpan data.');
+        });
+    }
+
+    function renderImportResult(data) {
+        document.getElementById('importPreviewWrap').style.display = 'none';
+        document.getElementById('importResultWrap').style.display = 'block';
+        document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-clipboard-check mr-2"></i>Hasil Import';
+        document.getElementById('importBtnSave').style.display = 'none';
+        document.getElementById('importBtnCancel').innerHTML = 'Selesai';
+        document.getElementById('importBtnCancel').onclick = () => location.reload();
+
+        document.getElementById('importResultSummary').innerHTML =
+            `<div class="alert ${data.inserted > 0 ? 'alert-success' : 'alert-warning'} py-2 mb-0">
+                <i class="fas fa-check-circle mr-1"></i>
+                <strong>${data.inserted}</strong> data berhasil ditambahkan, <strong>${data.failed}</strong> gagal.
+            </div>`;
+
+        document.getElementById('importResultBody').innerHTML = data.results.map((r, i) => `
+            <tr>
+                <td class="text-center">${i + 1}</td>
+                <td>${escapeAttr(r.kode) || '-'}</td>
+                <td>${escapeAttr(r.nama) || '-'}</td>
+                <td class="text-center">
+                    ${r.status === 'success'
+                        ? '<span class="badge badge-success"><i class="fas fa-check mr-1"></i>Berhasil</span>'
+                        : '<span class="badge badge-danger"><i class="fas fa-times mr-1"></i>Gagal</span>'}
+                </td>
+                <td class="small">${escapeAttr(r.message)}</td>
+            </tr>`).join('');
+
+        showToast(data.failed > 0 ? 'error' : 'success', `Import selesai: ${data.inserted} berhasil, ${data.failed} gagal.`);
+    }
+
     const prodiData = @json($allProdi);
+    const fakultasList = @json($fakultas->map(fn($f) => ['kode' => $f->KODE_FS, 'nama' => $f->NAMA_FS])->values());
 
     function openCreate() {
         document.getElementById('modalProdiTitle').innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Prodi';

@@ -16,24 +16,96 @@ class ProdiController extends Controller
         return MasterExcelService::template('prodi');
     }
 
-    public function import(Request $request)
+    public function importPreview(Request $request)
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls',
         ]);
 
-        $result = MasterExcelService::import('prodi', $request->file('file'), session('auth_user'));
+        // File hanya dibaca dari temp PHP lalu dibuang otomatis — tidak disimpan ke folder Laravel.
+        $parsed = MasterExcelService::parse('prodi', $request->file('file'));
 
-        $message = 'Import selesai: ' . $result['inserted'] . ' data ditambahkan, ' . $result['skipped'] . ' dilewati.';
-        if (!empty($result['errors'])) {
-            $message .= ' Rincian: ' . implode(' | ', array_slice($result['errors'], 0, 10));
+        $seen = [];
+        $rows = [];
+        foreach ($parsed as $p) {
+            $kodeFs = trim((string) ($p['values'][0] ?? ''));
+            $kode = trim((string) ($p['values'][1] ?? ''));
+            $nama = trim((string) ($p['values'][2] ?? ''));
+
+            $existsInDb = $kode !== '' && TProdi::where('KODE_PRODI', $kode)->exists();
+            $dupInFile = $kode !== '' && isset($seen[$kode]);
+            $fsValid = $kodeFs === '' || TFs::where('KODE_FS', $kodeFs)->exists();
+            if ($kode !== '') {
+                $seen[$kode] = true;
+            }
+
+            $rows[] = [
+                'row' => $p['row'],
+                'kode_fs' => $kodeFs,
+                'kode' => $kode,
+                'nama' => $nama,
+                'exists' => $existsInDb,
+                'dup_in_file' => $dupInFile,
+                'fs_valid' => $fsValid,
+            ];
         }
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => $message, 'errors' => $result['errors']]);
+        return response()->json(['success' => true, 'rows' => $rows]);
+    }
+
+    public function importStore(Request $request)
+    {
+        $request->validate([
+            'rows' => 'required|array',
+        ]);
+
+        $results = [];
+        $inserted = 0;
+        $failed = 0;
+
+        foreach ($request->input('rows') as $r) {
+            $kodeFs = trim((string) ($r['kode_fs'] ?? ''));
+            $kode = trim((string) ($r['kode'] ?? ''));
+            $nama = trim((string) ($r['nama'] ?? ''));
+
+            if ($kode === '' || $nama === '') {
+                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode dan Nama prodi wajib diisi'];
+                $failed++;
+                continue;
+            }
+
+            $fs = TFs::where('KODE_FS', $kodeFs)->first();
+            if (!$fs) {
+                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode fakultas ' . ($kodeFs ?: '-') . ' tidak terdaftar'];
+                $failed++;
+                continue;
+            }
+
+            if (TProdi::where('KODE_PRODI', $kode)->exists()) {
+                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode prodi ' . $kode . ' sudah terdaftar (aktif)'];
+                $failed++;
+                continue;
+            }
+
+            TProdi::create([
+                'KODE_PRODI' => $kode,
+                'NAMA_PRODI' => $nama,
+                'STATUS_AKTIF' => 'AKTIF',
+                'KODE_FS' => $fs->KODE_FS,
+                'NAMA_FS' => $fs->NAMA_FS,
+                'TGL_CREATE' => now(),
+            ]);
+
+            $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'success', 'message' => 'Berhasil ditambahkan'];
+            $inserted++;
         }
 
-        return redirect()->route('master.prodi.index')->with('success', $message);
+        return response()->json([
+            'success' => true,
+            'inserted' => $inserted,
+            'failed' => $failed,
+            'results' => $results,
+        ]);
     }
 
     public function index(Request $request)

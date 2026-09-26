@@ -12,13 +12,15 @@ Route::prefix('master')->name('master.')->middleware(['auth.dummy'])->group(func
     // Admin only - Prodi Management (1.3)
     Route::middleware(['role:Admin'])->group(function () {
         Route::get('fakultas/template', [FakultasController::class, 'template'])->name('fakultas.template');
-        Route::post('fakultas/import', [FakultasController::class, 'import'])->name('fakultas.import');
+        Route::post('fakultas/import-preview', [FakultasController::class, 'importPreview'])->name('fakultas.import-preview');
+        Route::post('fakultas/import-store', [FakultasController::class, 'importStore'])->name('fakultas.import-store');
         Route::post('fakultas/sync-spsi', [FakultasController::class, 'syncSpsi'])->name('fakultas.sync-spsi');
         Route::resource('fakultas', FakultasController::class)->except(['show']);
         Route::get('fakultas/{id}/detail', [FakultasController::class, 'show'])->name('fakultas.detail');
 
         Route::get('prodi/template', [ProdiController::class, 'template'])->name('prodi.template');
-        Route::post('prodi/import', [ProdiController::class, 'import'])->name('prodi.import');
+        Route::post('prodi/import-preview', [ProdiController::class, 'importPreview'])->name('prodi.import-preview');
+        Route::post('prodi/import-store', [ProdiController::class, 'importStore'])->name('prodi.import-store');
         Route::post('prodi/sync-spsi', [ProdiController::class, 'syncSpsi'])->name('prodi.sync-spsi');
         Route::resource('prodi', ProdiController::class)->except(['show']);
         Route::get('prodi/{id}/detail', [ProdiController::class, 'show'])->name('prodi.detail');

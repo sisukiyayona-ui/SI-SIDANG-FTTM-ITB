@@ -15,24 +15,82 @@ class FakultasController extends Controller
         return MasterExcelService::template('fakultas');
     }
 
-    public function import(Request $request)
+    public function importPreview(Request $request)
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls',
         ]);
 
-        $result = MasterExcelService::import('fakultas', $request->file('file'), session('auth_user'));
+        // File hanya dibaca dari temp PHP lalu dibuang otomatis — tidak disimpan ke folder Laravel.
+        $parsed = MasterExcelService::parse('fakultas', $request->file('file'));
 
-        $message = 'Import selesai: ' . $result['inserted'] . ' data ditambahkan, ' . $result['skipped'] . ' dilewati.';
-        if (!empty($result['errors'])) {
-            $message .= ' Rincian: ' . implode(' | ', array_slice($result['errors'], 0, 10));
+        $seen = [];
+        $rows = [];
+        foreach ($parsed as $p) {
+            $kode = trim((string) ($p['values'][0] ?? ''));
+            $nama = trim((string) ($p['values'][1] ?? ''));
+
+            $existsInDb = $kode !== '' && TFs::where('KODE_FS', $kode)->exists();
+            $dupInFile = $kode !== '' && isset($seen[$kode]);
+            if ($kode !== '') {
+                $seen[$kode] = true;
+            }
+
+            $rows[] = [
+                'row' => $p['row'],
+                'kode' => $kode,
+                'nama' => $nama,
+                'exists' => $existsInDb,
+                'dup_in_file' => $dupInFile,
+            ];
         }
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => $message, 'errors' => $result['errors']]);
+        return response()->json(['success' => true, 'rows' => $rows]);
+    }
+
+    public function importStore(Request $request)
+    {
+        $request->validate([
+            'rows' => 'required|array',
+        ]);
+
+        $results = [];
+        $inserted = 0;
+        $failed = 0;
+
+        foreach ($request->input('rows') as $r) {
+            $kode = trim((string) ($r['kode'] ?? ''));
+            $nama = trim((string) ($r['nama'] ?? ''));
+
+            if ($kode === '' || $nama === '') {
+                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode dan Nama wajib diisi'];
+                $failed++;
+                continue;
+            }
+
+            if (TFs::where('KODE_FS', $kode)->exists()) {
+                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode fakultas ' . $kode . ' sudah terdaftar (aktif)'];
+                $failed++;
+                continue;
+            }
+
+            TFs::create([
+                'KODE_FS' => $kode,
+                'NAMA_FS' => $nama,
+                'TGL_CREATE' => now(),
+                'TGL_UPDATE' => now(),
+            ]);
+
+            $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'success', 'message' => 'Berhasil ditambahkan'];
+            $inserted++;
         }
 
-        return redirect()->route('master.fakultas.index')->with('success', $message);
+        return response()->json([
+            'success' => true,
+            'inserted' => $inserted,
+            'failed' => $failed,
+            'results' => $results,
+        ]);
     }
 
     public function index(Request $request)

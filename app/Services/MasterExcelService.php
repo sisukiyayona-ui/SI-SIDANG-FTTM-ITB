@@ -32,9 +32,9 @@ class MasterExcelService
             'KETERANGAN',
         ],
         'prodi' => [
+            'KODE FAKULTAS',
             'KODE PRODI',
             'NAMA PRODI',
-            'STATUS AKTIF',
         ],
         'fakultas' => [
             'KODE FAKULTAS',
@@ -85,6 +85,40 @@ class MasterExcelService
         }, self::FILES[$type] . '_' . date('Ymd_His') . '.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
+    }
+
+    public static function parse($type, $file): array
+    {
+        $headers = self::HEADERS[$type];
+
+        $reader = IOFactory::createReaderForFile($file->getRealPath());
+        $reader->setReadDataOnly(true);
+        $spreadsheet = $reader->load($file->getRealPath());
+        $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+
+        $out = [];
+        $rowNumber = 0;
+
+        foreach ($rows as $row) {
+            $rowNumber++;
+            if ($rowNumber === 1) {
+                continue;
+            }
+
+            $values = array_values($row);
+            $vals = [];
+            for ($i = 0; $i < count($headers); $i++) {
+                $vals[] = trim((string) ($values[$i] ?? ''));
+            }
+
+            if (count(array_filter($vals, fn ($v) => $v !== '')) === 0) {
+                continue;
+            }
+
+            $out[] = ['row' => $rowNumber, 'values' => $vals];
+        }
+
+        return $out;
     }
 
     public static function import($type, $file, $user): array
@@ -190,7 +224,7 @@ class MasterExcelService
 
     private static function storeProdi(array $v, $user, int $row, array &$return): void
     {
-        [$kode, $nama, $status] = $v;
+        [$kodeFs, $kode, $nama] = $v;
 
         if ($nama === '') {
             throw new \Exception('NAMA PRODI kosong');
@@ -200,10 +234,17 @@ class MasterExcelService
             throw new \Exception('Kode prodi ' . ($kode ?: '-') . ' sudah terdaftar');
         }
 
+        $fs = TFs::where('KODE_FS', $kodeFs)->first();
+        if (!$fs) {
+            throw new \Exception('Kode fakultas ' . ($kodeFs ?: '-') . ' tidak terdaftar');
+        }
+
         TProdi::create([
             'KODE_PRODI' => $kode,
             'NAMA_PRODI' => $nama,
-            'STATUS_AKTIF' => $status !== '' ? $status : 'AKTIF',
+            'STATUS_AKTIF' => 'AKTIF',
+            'KODE_FS' => $fs->KODE_FS,
+            'NAMA_FS' => $fs->NAMA_FS,
             'TGL_CREATE' => now(),
         ]);
     }
