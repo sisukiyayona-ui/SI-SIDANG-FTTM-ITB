@@ -8,6 +8,7 @@ use App\Models\TProdi;
 use App\Services\MasterExcelService;
 use App\Services\SpsiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProdiController extends Controller
 {
@@ -28,13 +29,18 @@ class ProdiController extends Controller
         $seen = [];
         $rows = [];
         foreach ($parsed as $p) {
-            $kodeFs = trim((string) ($p['values'][0] ?? ''));
+            $inputFs = trim((string) ($p['values'][0] ?? ''));
             $kode = trim((string) ($p['values'][1] ?? ''));
             $nama = trim((string) ($p['values'][2] ?? ''));
 
+            // Kolom FAKULTAS diisi user dengan nama; hasil resolve dikembalikan
+            // sebagai kode supaya dropdown preview langsung terpilih.
+            $fs = MasterExcelService::resolveFakultas($inputFs);
+            $kodeFs = $fs ? $fs->KODE_FS : $inputFs;
+
             $existsInDb = $kode !== '' && TProdi::where('KODE_PRODI', $kode)->exists();
             $dupInFile = $kode !== '' && isset($seen[$kode]);
-            $fsValid = $kodeFs === '' || TFs::where('KODE_FS', $kodeFs)->exists();
+            $fsValid = $inputFs === '' || $fs !== null;
             if ($kode !== '') {
                 $seen[$kode] = true;
             }
@@ -63,41 +69,59 @@ class ProdiController extends Controller
         $inserted = 0;
         $failed = 0;
 
-        foreach ($request->input('rows') as $r) {
-            $kodeFs = trim((string) ($r['kode_fs'] ?? ''));
-            $kode = trim((string) ($r['kode'] ?? ''));
-            $nama = trim((string) ($r['nama'] ?? ''));
+        // Semua atau tidak sama sekali: satu baris gagal, seluruh import dibatalkan.
+        DB::beginTransaction();
 
-            if ($kode === '' || $nama === '') {
-                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode dan Nama prodi wajib diisi'];
-                $failed++;
-                continue;
+        try {
+            foreach ($request->input('rows') as $r) {
+                $kodeFs = trim((string) ($r['kode_fs'] ?? ''));
+                $kode = trim((string) ($r['kode'] ?? ''));
+                $nama = trim((string) ($r['nama'] ?? ''));
+
+                if ($kode === '' || $nama === '') {
+                    $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode dan Nama prodi wajib diisi'];
+                    $failed++;
+                    continue;
+                }
+
+                $fs = MasterExcelService::resolveFakultas($kodeFs);
+                if (!$fs) {
+                    $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Fakultas ' . ($kodeFs ?: '-') . ' tidak terdaftar'];
+                    $failed++;
+                    continue;
+                }
+
+                if (TProdi::where('KODE_PRODI', $kode)->exists()) {
+                    $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode prodi ' . $kode . ' sudah terdaftar (aktif)'];
+                    $failed++;
+                    continue;
+                }
+
+                TProdi::create([
+                    'KODE_PRODI' => $kode,
+                    'NAMA_PRODI' => $nama,
+                    'STATUS_AKTIF' => 'AKTIF',
+                    'KODE_FS' => $fs->KODE_FS,
+                    'NAMA_FS' => $fs->NAMA_FS,
+                    'TGL_CREATE' => now(),
+                ]);
+
+                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'success', 'message' => 'Berhasil ditambahkan'];
+                $inserted++;
             }
 
-            $fs = TFs::where('KODE_FS', $kodeFs)->first();
-            if (!$fs) {
-                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode fakultas ' . ($kodeFs ?: '-') . ' tidak terdaftar'];
-                $failed++;
-                continue;
+            $rolledBack = $failed > 0;
+
+            if ($rolledBack) {
+                DB::rollBack();
+                $results = $this->markRolledBack($results);
+                $inserted = 0;
+            } else {
+                DB::commit();
             }
-
-            if (TProdi::where('KODE_PRODI', $kode)->exists()) {
-                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode prodi ' . $kode . ' sudah terdaftar (aktif)'];
-                $failed++;
-                continue;
-            }
-
-            TProdi::create([
-                'KODE_PRODI' => $kode,
-                'NAMA_PRODI' => $nama,
-                'STATUS_AKTIF' => 'AKTIF',
-                'KODE_FS' => $fs->KODE_FS,
-                'NAMA_FS' => $fs->NAMA_FS,
-                'TGL_CREATE' => now(),
-            ]);
-
-            $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'success', 'message' => 'Berhasil ditambahkan'];
-            $inserted++;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
         }
 
         return response()->json([
@@ -105,7 +129,25 @@ class ProdiController extends Controller
             'inserted' => $inserted,
             'failed' => $failed,
             'results' => $results,
+            'rolled_back' => $rolledBack,
         ]);
+    }
+
+    /**
+     * Setelah rollback tidak ada baris tersimpan, jadi status "success" pada
+     * hasil harus diganti supaya tidak berbohong ke user.
+     */
+    private function markRolledBack(array $results): array
+    {
+        foreach ($results as &$r) {
+            if (($r['status'] ?? '') === 'success') {
+                $r['status'] = 'failed';
+                $r['message'] = 'Dibatalkan — ada baris lain yang gagal, tidak ada data yang disimpan';
+            }
+        }
+        unset($r);
+
+        return $results;
     }
 
     public function index(Request $request)

@@ -7,6 +7,7 @@ use App\Models\TFs;
 use App\Services\MasterExcelService;
 use App\Services\SpsiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class FakultasController extends Controller
 {
@@ -58,31 +59,49 @@ class FakultasController extends Controller
         $inserted = 0;
         $failed = 0;
 
-        foreach ($request->input('rows') as $r) {
-            $kode = trim((string) ($r['kode'] ?? ''));
-            $nama = trim((string) ($r['nama'] ?? ''));
+        // Semua atau tidak sama sekali: satu baris gagal, seluruh import dibatalkan.
+        DB::beginTransaction();
 
-            if ($kode === '' || $nama === '') {
-                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode dan Nama wajib diisi'];
-                $failed++;
-                continue;
+        try {
+            foreach ($request->input('rows') as $r) {
+                $kode = trim((string) ($r['kode'] ?? ''));
+                $nama = trim((string) ($r['nama'] ?? ''));
+
+                if ($kode === '' || $nama === '') {
+                    $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode dan Nama wajib diisi'];
+                    $failed++;
+                    continue;
+                }
+
+                if (TFs::where('KODE_FS', $kode)->exists()) {
+                    $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode fakultas ' . $kode . ' sudah terdaftar (aktif)'];
+                    $failed++;
+                    continue;
+                }
+
+                TFs::create([
+                    'KODE_FS' => $kode,
+                    'NAMA_FS' => $nama,
+                    'TGL_CREATE' => now(),
+                    'TGL_UPDATE' => now(),
+                ]);
+
+                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'success', 'message' => 'Berhasil ditambahkan'];
+                $inserted++;
             }
 
-            if (TFs::where('KODE_FS', $kode)->exists()) {
-                $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'failed', 'message' => 'Kode fakultas ' . $kode . ' sudah terdaftar (aktif)'];
-                $failed++;
-                continue;
+            $rolledBack = $failed > 0;
+
+            if ($rolledBack) {
+                DB::rollBack();
+                $results = $this->markRolledBack($results);
+                $inserted = 0;
+            } else {
+                DB::commit();
             }
-
-            TFs::create([
-                'KODE_FS' => $kode,
-                'NAMA_FS' => $nama,
-                'TGL_CREATE' => now(),
-                'TGL_UPDATE' => now(),
-            ]);
-
-            $results[] = ['kode' => $kode, 'nama' => $nama, 'status' => 'success', 'message' => 'Berhasil ditambahkan'];
-            $inserted++;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
         }
 
         return response()->json([
@@ -90,7 +109,25 @@ class FakultasController extends Controller
             'inserted' => $inserted,
             'failed' => $failed,
             'results' => $results,
+            'rolled_back' => $rolledBack,
         ]);
+    }
+
+    /**
+     * Setelah rollback tidak ada baris tersimpan, jadi status "success" pada
+     * hasil harus diganti supaya tidak berbohong ke user.
+     */
+    private function markRolledBack(array $results): array
+    {
+        foreach ($results as &$r) {
+            if (($r['status'] ?? '') === 'success') {
+                $r['status'] = 'failed';
+                $r['message'] = 'Dibatalkan — ada baris lain yang gagal, tidak ada data yang disimpan';
+            }
+        }
+        unset($r);
+
+        return $results;
     }
 
     public function index(Request $request)

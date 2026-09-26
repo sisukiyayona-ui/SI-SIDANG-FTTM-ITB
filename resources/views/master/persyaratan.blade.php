@@ -71,14 +71,15 @@
 
     /* Card Header Styling */
     .master-data-container .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white !important;
+        background: #ffffff;
+        color: #1e293b !important;
         border: none;
+        border-bottom: 1px solid #e2e8f0;
         padding: 16px 20px;
     }
 
     .master-data-container .card-header h5 {
-        color: white !important;
+        color: #1e293b !important;
         font-weight: 600;
         margin: 0;
     }
@@ -94,12 +95,12 @@
 
     /* Dark mode: card header adapt */
     html.dark-mode .master-data-container .card-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-        color: #f1f5f9 !important;
-        border-bottom: 1px solid #334155 !important;
+        background: #ffffff !important;
+        color: #1e293b !important;
+        border-bottom: 1px solid #e2e8f0 !important;
     }
     html.dark-mode .master-data-container .card-header h5 {
-        color: #f1f5f9 !important;
+        color: #1e293b !important;
     }
     /* Dark mode: form container */
     html.dark-mode #formContainer .card-body {
@@ -148,7 +149,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-file-alt mr-2"></i>Daftar Persyaratan</h5>
             <div class="d-flex align-items-center ml-auto" style="gap: 8px;">
-                <a class="btn btn-sm btn-light" href="{{ route('master.persyaratan.template') }}">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ route('master.persyaratan.template') }}">
                     <i class="fas fa-download mr-1"></i> Template
                 </a>
                 <button type="button" class="btn btn-sm btn-warning" onclick="document.getElementById('importFile').click()">
@@ -170,7 +171,7 @@
 
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
-        <div class="card-header" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
+        <div class="card-header" style="background: #ffffff; color: #1e293b; border-bottom: 1px solid #e2e8f0;">
             <h5 class="mb-0" id="formTitle"><i class="fas fa-plus mr-2"></i>Tambah Persyaratan</h5>
         </div>
         <div class="card-body">
@@ -261,61 +262,379 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal Import (Preview -> Edit -> Simpan -> Hasil) --}}
+    <div class="modal fade" id="modalImport" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header header-white">
+                    <h5 class="modal-title" id="importModalTitle"><i class="fas fa-file-excel mr-2"></i>Preview Import Persyaratan</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body" style="position: relative;">
+                    {{-- Loading overlay --}}
+                    <div id="importLoading" style="display:none; position:absolute; inset:0; background:rgba(255,255,255,0.85); z-index:10; flex-direction:column; align-items:center; justify-content:center;">
+                        <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"></div>
+                        <div class="mt-3 font-weight-bold text-primary" id="importLoadingText">Memproses data...</div>
+                    </div>
+
+                    {{-- Preview / edit --}}
+                    <div id="importPreviewWrap">
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Periksa data berikut sebelum disimpan. Anda dapat <strong>mengedit</strong> atau <strong>menghapus</strong> baris.
+                            <span class="badge badge-success">Baru</span> aman disimpan,
+                            <span class="badge badge-warning">Duplikat</span> sudah ada di database / file,
+                            <span class="badge badge-danger">Tidak Valid</span> strata, tahapan, atau program studi tidak sesuai master.
+                        </div>
+                        <datalist id="tahapanListImport">
+                            @foreach(\App\Services\MasterExcelService::tahapanOptions() as $opt)
+                                <option value="{{ $opt }}">{{ \App\Services\MasterExcelService::tahapanLabel($opt) }}</option>
+                            @endforeach
+                        </datalist>
+                        <datalist id="prodiListImport">
+                            @foreach($prodis as $pd)
+                                <option value="{{ $pd->nama_prodi }}">{{ $pd->nama_prodi }} ({{ $pd->kode_prodi }})</option>
+                            @endforeach
+                        </datalist>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px;">No</th>
+                                        <th style="width:195px;">Program Studi</th>
+                                        <th>Nama Persyaratan</th>
+                                        <th style="width:265px; min-width:265px;">Tahapan Sidang</th>
+                                        <th style="width:140px; min-width:140px;">Strata</th>
+                                        <th style="width:170px;">Status</th>
+                                        <th style="width:45px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importPreviewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- Hasil --}}
+                    <div id="importResultWrap" style="display:none;">
+                        <div class="mb-3" id="importResultSummary"></div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width:45px;">No</th>
+                                        <th style="width:200px;">Program Studi</th>
+                                        <th>Nama Persyaratan</th>
+                                        <th style="width:150px;">Tahapan</th>
+                                        <th style="width:120px;">Hasil</th>
+                                        <th>Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importResultBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" id="importFooter">
+                    <div class="mr-auto small text-muted" id="importSummary"></div>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="importBtnCancel">Batal</button>
+                    <button type="button" class="btn btn-primary" id="importBtnSave" onclick="saveImport()"><i class="fas fa-save mr-1"></i> Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
 <script>
+    let importRows = [];
+    let importMeta = { tahapan: [], strata: ['S1', 'S2', 'S3'] };
+    var tahapanLabelsClient = @json(\App\Services\MasterExcelService::TAHAPAN_LABELS);
+
+    function csrfToken() {
+        return document.querySelector('input[name="_token"]').value;
+    }
+
+    function escapeAttr(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function normalisasiTahap(v) {
+        return String(v ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function canonicalStrataClient(v) {
+        const raw = String(v ?? '').toUpperCase().replace(/\s+/g, '');
+        return /^S?[123]$/.test(raw) ? 'S' + raw.replace(/^S?/, '') : '';
+    }
+
+    function canonicalTahapanClient(v) {
+        const raw = String(v ?? '').trim();
+        if (!raw) return '';
+        const needle = normalisasiTahap(raw);
+        for (const t of importMeta.tahapan) {
+            if (normalisasiTahap(t) === needle) return t;
+        }
+        for (const t of importMeta.tahapan) {
+            const label = tahapanLabelsClient[t];
+            if (label && normalisasiTahap(label) === needle) return t;
+        }
+        return '';
+    }
+
+    function statusBadge(r) {
+        if (r.result === 'ok') return { label: 'Baru', cls: 'success' };
+        if (r.result === 'duplicate') return { label: 'Duplikat', cls: 'warning' };
+        return { label: 'Tidak Valid', cls: 'danger' };
+    }
+
     function uploadImport(input) {
         if (!input.files.length) return;
         const file = input.files[0];
         const fd = new FormData();
         fd.append('file', file);
-        fd.append('_token', document.querySelector('input[name="_token"]').value);
-        fetch('{{ route("master.persyaratan.import") }}', {
+
+        const loading = document.getElementById('importLoading');
+        document.getElementById('importLoadingText').textContent = 'Membaca file Excel...';
+        loading.style.display = 'flex';
+
+        fetch('{{ route("master.persyaratan.import-preview") }}', {
             method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                'Accept': 'application/json'
-            },
+            headers: { 'X-CSRF-TOKEN': csrfToken(), 'Accept': 'application/json' },
             body: fd
         }).then(r => r.json()).then(data => {
-            const msg = data.message || (data.errors ? Object.values(data.errors).join('\n') : 'Terjadi kesalahan.');
-            showToast(data.success ? 'success' : 'error', msg);
-            setTimeout(() => location.reload(), 1500);
-        }).catch(() => showToast('error', 'Gagal mengupload file.'));
+            loading.style.display = 'none';
+            if (!data.success) {
+                const msg = data.message || (data.errors ? Object.values(data.errors).flat().join(' ') : 'Gagal membaca file Excel.');
+                showToast('error', msg);
+                return;
+            }
+            if (!data.rows || !data.rows.length) {
+                showToast('error', 'File tidak berisi data. Pastikan baris header sudah sesuai template.');
+                return;
+            }
+            importRows = data.rows;
+            importMeta.tahapan = data.tahapan_options || [];
+            importMeta.strata = data.strata_options || ['S1', 'S2', 'S3'];
+            renderImportPreview();
+            document.getElementById('importPreviewWrap').style.display = 'block';
+            document.getElementById('importResultWrap').style.display = 'none';
+            document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-file-excel mr-2"></i>Preview Import Persyaratan';
+            document.getElementById('importBtnSave').style.display = 'inline-block';
+            document.getElementById('importBtnCancel').innerHTML = 'Batal';
+            document.getElementById('importBtnCancel').onclick = null;
+            new bootstrap.Modal(document.getElementById('modalImport')).show();
+        }).catch(() => {
+            loading.style.display = 'none';
+            showToast('error', 'Gagal membaca file Excel.');
+        });
         input.value = '';
+    }
+
+    function tahapanSelectOptions(current) {
+        const opts = importMeta.tahapan.map(t => {
+            const label = tahapanLabelsClient[t] || t;
+            return { value: t, label: label };
+        });
+        // Nilai dari file yang tidak ada di master tetap ditampilkan agar user bisa melihat & memperbaiki.
+        if (current && !opts.some(o => o.value === current)) {
+            opts.unshift({ value: current, label: current + ' (tidak valid)' });
+        }
+        return opts;
+    }
+
+    function renderImportPreview() {
+        const tbody = document.getElementById('importPreviewBody');
+        tbody.innerHTML = importRows.map((r, i) => {
+            const st = statusBadge(r);
+            const tahapOpts = tahapanSelectOptions(r.tahapan);
+            return `<tr data-idx="${i}">
+                <td class="text-center">${i + 1}</td>
+                <td><input type="text" class="form-control form-control-sm ${r.result === 'ok' ? '' : 'is-invalid'}" list="prodiListImport" value="${escapeAttr(r.program_studi)}" oninput="updateImportRow(${i}, 'program_studi', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.nama)}" oninput="updateImportRow(${i}, 'nama', this.value)"></td>
+                <td>
+                    <select class="form-control form-control-sm ${r.result === 'ok' ? '' : 'is-invalid'}" onchange="updateImportRow(${i}, 'tahapan', this.value)">
+                        ${tahapOpts.map(o => `<option value="${escapeAttr(o.value)}" ${o.value === r.tahapan ? 'selected' : ''}>${escapeAttr(o.label)}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control form-control-sm" onchange="updateImportRow(${i}, 'strata', this.value)">
+                        ${['', 'S1', 'S2', 'S3'].map(s => `<option value="${s}" ${String(r.strata).toUpperCase() === s ? 'selected' : ''}>${s || '-'}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="text-center">
+                    <span class="badge badge-${st.cls}">${st.label}</span>
+                    <div class="small text-muted mt-1" style="max-width:180px;">${escapeAttr(r.message)}</div>
+                </td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" title="Hapus baris" onclick="removeImportRow(${i})"><i class="fas fa-times"></i></button></td>
+            </tr>`;
+        }).join('');
+
+        updateImportSummary();
+    }
+
+    function updateImportSummary() {
+        const ok = importRows.filter(r => r.result === 'ok').length;
+        const dup = importRows.filter(r => r.result === 'duplicate').length;
+        const bad = importRows.filter(r => r.result === 'error').length;
+        const el = document.getElementById('importSummary');
+        if (el) {
+            el.innerHTML = `<i class="fas fa-info-circle mr-1"></i>${ok} baris akan disimpan, ${dup} duplikat, ${bad} tidak valid.`;
+        }
+    }
+
+    function updateImportRow(idx, field, value) {
+        importRows[idx][field] = value;
+        const r = importRows[idx];
+
+        const programStudi = String(r.program_studi).trim();
+        const nama = String(r.nama).trim();
+        const strata = canonicalStrataClient(r.strata);
+        const tahapan = canonicalTahapanClient(r.tahapan);
+
+        r.result = 'ok';
+        r.message = 'Siap disimpan';
+        if (!programStudi) { r.result = 'error'; r.message = 'PROGRAM STUDI kosong'; }
+        else if (!nama) { r.result = 'error'; r.message = 'NAMA PERSYARATAN kosong'; }
+        else if (!strata) { r.result = 'error'; r.message = 'Strata harus S1/S2/S3'; }
+        else if (!tahapan) { r.result = 'error'; r.message = 'Tahapan tidak terdaftar di master'; }
+        else { r.tahapan = tahapan; r.strata = strata; }
+
+        if (r.result === 'ok') {
+            const key = programStudi.toLowerCase() + '|' + strata + '|' + String(r.tahapan).toLowerCase() + '|' + nama.toLowerCase();
+            for (let j = 0; j < importRows.length; j++) {
+                if (j === idx) continue;
+                const o = importRows[j];
+                if (String(o.result) !== 'ok') continue;
+                const okey = String(o.program_studi).trim().toLowerCase() + '|' + canonicalStrataClient(o.strata) + '|'
+                    + String(o.tahapan).toLowerCase() + '|' + String(o.nama).trim().toLowerCase();
+                if (okey === key) { r.result = 'duplicate'; r.message = 'Duplikat baris lain di file'; break; }
+            }
+        }
+
+        const tr = document.querySelector(`#importPreviewBody tr[data-idx="${idx}"]`);
+        if (tr) {
+            const st = statusBadge(r);
+            const badge = tr.querySelector('.badge');
+            badge.className = 'badge badge-' + st.cls;
+            badge.textContent = st.label;
+            const msg = tr.querySelector('.small.text-muted');
+            if (msg) msg.textContent = r.message;
+        }
+        updateImportSummary();
+    }
+
+    function removeImportRow(idx) {
+        importRows.splice(idx, 1);
+        renderImportPreview();
+    }
+
+    function saveImport() {
+        const loading = document.getElementById('importLoading');
+        const btnSave = document.getElementById('importBtnSave');
+        const btnCancel = document.getElementById('importBtnCancel');
+        document.getElementById('importLoadingText').textContent = 'Menyimpan data...';
+        loading.style.display = 'flex';
+        btnSave.disabled = true;
+        btnCancel.disabled = true;
+
+        fetch('{{ route("master.persyaratan.import-store") }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken(), 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: importRows })
+        }).then(r => r.json()).then(data => {
+            loading.style.display = 'none';
+            btnSave.disabled = false;
+            btnCancel.disabled = false;
+            if (!data.success) {
+                showToast('error', data.message || 'Gagal menyimpan data.');
+                return;
+            }
+            renderImportResult(data);
+        }).catch(() => {
+            loading.style.display = 'none';
+            btnSave.disabled = false;
+            btnCancel.disabled = false;
+            showToast('error', 'Gagal menyimpan data.');
+        });
+    }
+
+    function renderImportResult(data) {
+        document.getElementById('importPreviewWrap').style.display = 'none';
+        document.getElementById('importResultWrap').style.display = 'block';
+        document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-clipboard-check mr-2"></i>Hasil Import Persyaratan';
+        document.getElementById('importBtnSave').style.display = 'none';
+        document.getElementById('importSummary').innerHTML = '';
+        document.getElementById('importBtnCancel').innerHTML = 'Selesai';
+        document.getElementById('importBtnCancel').onclick = () => location.reload();
+
+        document.getElementById('importResultSummary').innerHTML =
+            `<div class="alert ${data.inserted > 0 ? 'alert-success' : 'alert-warning'} py-2 mb-0">
+                <i class="fas ${data.rolled_back ? 'fa-ban' : 'fa-check-circle'} mr-1"></i>
+                ${data.rolled_back
+                    ? `<strong>Import dibatalkan — tidak ada data yang disimpan.</strong> <strong>${data.failed}</strong> baris gagal, sehingga seluruh baris ikut dibatalkan.`
+                    : `<strong>${data.inserted}</strong> data berhasil disimpan, <strong>${data.failed}</strong> gagal / dilewati.`}
+            </div>`;
+
+        document.getElementById('importResultBody').innerHTML = data.results.map((r, i) => `
+            <tr>
+                <td class="text-center">${i + 1}</td>
+                <td>${escapeAttr(r.program_studi) || '-'}</td>
+                <td>${escapeAttr(r.nama) || '-'}</td>
+                <td>${escapeAttr(r.tahapan) || '-'}</td>
+                <td class="text-center">
+                    ${r.status === 'success'
+                        ? '<span class="badge badge-success"><i class="fas fa-check mr-1"></i>Berhasil</span>'
+                        : '<span class="badge badge-danger"><i class="fas fa-times mr-1"></i>Gagal</span>'}
+                </td>
+                <td class="small">${escapeAttr(r.message)}</td>
+            </tr>`).join('');
+
+        showToast(data.failed > 0 ? 'error' : 'success',
+            data.rolled_back
+                ? `Import dibatalkan: tidak ada data yang disimpan (${data.failed} baris gagal).`
+                : `Import selesai: ${data.inserted} berhasil, ${data.failed} gagal.`);
     }
 
     const userProdiId = @json($userProdiId);
     const isTuProdi = @json(session('auth_user.role')) === 'TU Prodi';
 
-    // Item 15: Mapping strata -> tahapan options
-    var tahapanByStrata = {
-        'S1': [
-            { value: 'TA 1', label: 'TA 1' },
-            { value: 'TA 2', label: 'TA 2' }
-        ],
-        'S2': [
-            { value: 'TA 1', label: 'TA 1' },
-            { value: 'TA 2', label: 'TA 2' }
-        ],
-        'S3': [
-            { value: 'tahap I', label: 'Ujian Kualifikasi' },
-            { value: 'tahap II', label: 'Ujian Proposal' },
-            { value: 'SK I', label: 'SK I' },
-            { value: 'SK II', label: 'SK II' },
-            { value: 'SK III', label: 'SK III' },
-            { value: 'SK IV', label: 'SK IV' },
-            { value: 'tahap IV', label: 'Sidang Terbuka / Tertutup' }
-        ]
-    };
+    // Options tahapan diambil dari master t_tahapan, dikelompokkan per strata.
+    // Master saat ini hanya memuat tahapan S3, jadi strata tanpa daftar sendiri
+    // tetap boleh memakai semua master tahapan (server juga memvalidasi begitu).
+    var tahapanAll = @json(
+        $tahapans->map(function ($t) {
+            return [
+                'value' => $t->tahapan,
+                'label' => \App\Services\MasterExcelService::tahapanLabel($t->tahapan),
+            ];
+        })->values()
+    );
+    var tahapanByStrata = @json(
+        collect($tahapans)->groupBy('strata')->map(function ($rows) {
+            return $rows->map(function ($t) {
+                return [
+                    'value' => $t->tahapan,
+                    'label' => \App\Services\MasterExcelService::tahapanLabel($t->tahapan),
+                ];
+            })->values();
+        })
+    );
+    ['S1', 'S2', 'S3'].forEach(function (s) {
+        if (!tahapanByStrata[s]) tahapanByStrata[s] = [];
+    });
 
     function filterTahapanByStrata() {
         var strata = document.getElementById('f_strata').value;
         var tahapanSelect = document.getElementById('f_tahapan_sidang');
         var currentVal = tahapanSelect.value;
         var options = tahapanByStrata[strata] || [];
+        if (!options.length) options = tahapanAll;
         tahapanSelect.innerHTML = '';
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- Pilih Tahapan --';
+        tahapanSelect.appendChild(placeholder);
         options.forEach(function(opt) {
             var el = document.createElement('option');
             el.value = opt.value;

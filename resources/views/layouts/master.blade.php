@@ -243,6 +243,31 @@
             color: var(--text-dark) !important;
             text-shadow: none !important;
         }
+
+        /* Header putih (seragam untuk semua modal & card header master) */
+        .modal-header.header-white {
+            background: #ffffff !important;
+            color: #1e293b !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        .modal-header.header-white .modal-title {
+            color: #1e293b !important;
+        }
+        .modal-header.header-white .close {
+            color: #1e293b !important;
+            opacity: 0.7;
+            text-shadow: none !important;
+        }
+        .modal-header.header-white .close:hover {
+            opacity: 1;
+        }
+
+        /* Modal import master: lebih lebar supaya kolom select (Tahapan, Strata) tidak terpotong */
+        @media (min-width: 576px) {
+            .modal-dialog.modal-dialog-scrollable {
+                max-width: min(1320px, calc(100vw - 2rem));
+            }
+        }
         html.dark-mode .table-bordered,
         html.dark-mode .table-bordered td,
         html.dark-mode .table-bordered th {

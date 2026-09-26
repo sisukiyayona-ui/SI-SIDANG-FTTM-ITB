@@ -16,24 +16,32 @@ class PenilaianController extends Controller
         return MasterExcelService::template('penilaian');
     }
 
-    public function import(Request $request)
+    public function importPreview(Request $request)
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls',
         ]);
 
-        $result = MasterExcelService::import('penilaian', $request->file('file'), session('auth_user'));
+        // File hanya dibaca dari temp PHP lalu dibuang otomatis — tidak disimpan ke folder Laravel.
+        $rows = MasterExcelService::previewItems('penilaian', $request->file('file'), session('auth_user') ?? []);
 
-        $message = 'Import selesai: ' . $result['inserted'] . ' data ditambahkan, ' . $result['skipped'] . ' dilewati.';
-        if (!empty($result['errors'])) {
-            $message .= ' Rincian: ' . implode(' | ', array_slice($result['errors'], 0, 10));
-        }
+        return response()->json([
+            'success' => true,
+            'rows' => $rows,
+            'tahapan_options' => MasterExcelService::tahapanOptions(),
+            'strata_options' => MasterExcelService::VALID_STRATA,
+        ]);
+    }
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => $message, 'errors' => $result['errors']]);
-        }
+    public function importStore(Request $request)
+    {
+        $request->validate([
+            'rows' => 'required|array',
+        ]);
 
-        return redirect()->route('master.penilaian.index')->with('success', $message);
+        $result = MasterExcelService::storeItems('penilaian', $request->input('rows'), session('auth_user') ?? []);
+
+        return response()->json(['success' => true] + $result);
     }
 
     public function create()
@@ -145,9 +153,6 @@ class PenilaianController extends Controller
 
     public function store(Request $request)
     {
-        // Debug: log request data
-        \Log::info('Penilaian store request data:', $request->all());
-
         $request->validate([
             'penilaian' => 'required',
             'tahapan_sidang' => 'required',
@@ -157,27 +162,38 @@ class PenilaianController extends Controller
         ]);
 
         $user = session('auth_user');
-        \Log::info('User session:', $user);
 
         $prodi = $this->resolveProdi($request, $user);
         if (!$prodi) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['error' => 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut'], 422);
-            }
-            return redirect()->back()->with('error', 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut.');
+            return $this->failResponse($request, 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut');
+        }
+
+        $check = MasterExcelService::validateItemRow([
+            $prodi->kode_prodi,
+            $request->penilaian,
+            $request->no_form,
+            $request->tahapan_sidang,
+            $request->strata,
+            $request->status_catatan,
+            $request->Keterangan,
+        ], 'penilaian');
+
+        if ($check['result'] !== 'ok') {
+            return $this->failResponse($request, $check['message']);
         }
 
         TPointPenilaian::create([
-            'PENILAIAN' => $request->penilaian,
+            'PENILAIAN' => $check['nama'],
             'ID_PRODI' => $prodi->id,
             'KODE_PRODI' => $prodi->kode_prodi,
             'NAMA_PRODI' => $prodi->nama_prodi,
-            'TAHAPAN_SIDANG' => $request->tahapan_sidang,
-            'STRATA' => $request->strata,
-            'STATUS_AKTIF' => $request->status_aktif,
-            'NO_FORM' => $request->no_form,
-            'STATUS_CATATAN' => $request->status_catatan,
-            'KETERANGAN' => $request->Keterangan,
+            'TAHAPAN_SIDANG' => $check['tahapan'],
+            'STRATA' => $check['strata'],
+            // Form manual tetap memakai pilihan user; import selalu AKTIF.
+            'STATUS_AKTIF' => $request->status_aktif === 'NON AKTIF' ? 'NON AKTIF' : 'AKTIF',
+            'NO_FORM' => $check['no_form'],
+            'STATUS_CATATAN' => $check['status_catatan'],
+            'KETERANGAN' => $check['keterangan'],
             'TGL_CREATE' => now(),
         ]);
 
@@ -203,23 +219,35 @@ class PenilaianController extends Controller
 
             $prodi = $this->resolveProdi($request, $user, $item->id_prodi);
             if (!$prodi) {
-                if ($request->ajax() || $request->wantsJson()) {
-                    return response()->json(['error' => 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut'], 422);
-                }
-                return redirect()->back()->with('error', 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut.');
+                return $this->failResponse($request, 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut');
+            }
+
+            $check = MasterExcelService::validateItemRow([
+                $prodi->kode_prodi,
+                $request->penilaian,
+                $request->no_form,
+                $request->tahapan_sidang,
+                $request->strata,
+                $request->status_catatan,
+                $request->Keterangan,
+            ], 'penilaian', [], $item->id);
+
+            if ($check['result'] !== 'ok') {
+                return $this->failResponse($request, $check['message']);
             }
 
             $item->update([
-                'PENILAIAN' => $request->penilaian,
+                'PENILAIAN' => $check['nama'],
                 'ID_PRODI' => $prodi->id,
                 'KODE_PRODI' => $prodi->kode_prodi,
                 'NAMA_PRODI' => $prodi->nama_prodi,
-                'TAHAPAN_SIDANG' => $request->tahapan_sidang,
-                'STRATA' => $request->strata,
-                'STATUS_AKTIF' => $request->status_aktif,
-                'NO_FORM' => $request->no_form,
-                'STATUS_CATATAN' => $request->status_catatan,
-                'KETERANGAN' => $request->Keterangan,
+                'TAHAPAN_SIDANG' => $check['tahapan'],
+                'STRATA' => $check['strata'],
+                // Form manual tetap memakai pilihan user; import selalu AKTIF.
+                'STATUS_AKTIF' => $request->status_aktif === 'NON AKTIF' ? 'NON AKTIF' : 'AKTIF',
+                'NO_FORM' => $check['no_form'],
+                'STATUS_CATATAN' => $check['status_catatan'],
+                'KETERANGAN' => $check['keterangan'],
                 'TGL_UPDATE' => now(),
             ]);
         }
@@ -228,6 +256,15 @@ class PenilaianController extends Controller
             return response()->json(['success' => true]);
         }
         return redirect()->route('master.penilaian.index')->with('success', 'Data komponen berhasil disimpan.');
+    }
+
+    private function failResponse(Request $request, string $message)
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['error' => $message], 422);
+        }
+
+        return redirect()->back()->with('error', $message);
     }
 
     public function destroy($id)

@@ -29,11 +29,13 @@ Route::prefix('master')->name('master.')->middleware(['auth.dummy'])->group(func
     // Admin & TU Prodi - Persyaratan & Penilaian (1.1, 1.2, 2.1a, 2.1b)
     Route::middleware(['role:Admin,TU Prodi'])->group(function () {
         Route::get('persyaratan/template', [PersyaratanController::class, 'template'])->name('persyaratan.template');
-        Route::post('persyaratan/import', [PersyaratanController::class, 'import'])->name('persyaratan.import');
+        Route::post('persyaratan/import-preview', [PersyaratanController::class, 'importPreview'])->name('persyaratan.import-preview');
+        Route::post('persyaratan/import-store', [PersyaratanController::class, 'importStore'])->name('persyaratan.import-store');
         Route::resource('persyaratan', PersyaratanController::class)->except(['show']);
 
         Route::get('penilaian/template', [PenilaianController::class, 'template'])->name('penilaian.template');
-        Route::post('penilaian/import', [PenilaianController::class, 'import'])->name('penilaian.import');
+        Route::post('penilaian/import-preview', [PenilaianController::class, 'importPreview'])->name('penilaian.import-preview');
+        Route::post('penilaian/import-store', [PenilaianController::class, 'importStore'])->name('penilaian.import-store');
         Route::resource('penilaian', PenilaianController::class)->except(['show']);
     });
 

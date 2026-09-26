@@ -16,24 +16,32 @@ class PersyaratanController extends Controller
         return MasterExcelService::template('persyaratan');
     }
 
-    public function import(Request $request)
+    public function importPreview(Request $request)
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls',
         ]);
 
-        $result = MasterExcelService::import('persyaratan', $request->file('file'), session('auth_user'));
+        // File hanya dibaca dari temp PHP lalu dibuang otomatis — tidak disimpan ke folder Laravel.
+        $rows = MasterExcelService::previewItems('persyaratan', $request->file('file'), session('auth_user') ?? []);
 
-        $message = 'Import selesai: ' . $result['inserted'] . ' data ditambahkan, ' . $result['skipped'] . ' dilewati.';
-        if (!empty($result['errors'])) {
-            $message .= ' Rincian: ' . implode(' | ', array_slice($result['errors'], 0, 10));
-        }
+        return response()->json([
+            'success' => true,
+            'rows' => $rows,
+            'tahapan_options' => MasterExcelService::tahapanOptions(),
+            'strata_options' => MasterExcelService::VALID_STRATA,
+        ]);
+    }
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => $message, 'errors' => $result['errors']]);
-        }
+    public function importStore(Request $request)
+    {
+        $request->validate([
+            'rows' => 'required|array',
+        ]);
 
-        return redirect()->route('master.persyaratan.index')->with('success', $message);
+        $result = MasterExcelService::storeItems('persyaratan', $request->input('rows'), session('auth_user') ?? []);
+
+        return response()->json(['success' => true] + $result);
     }
 
     public function create()
@@ -188,14 +196,26 @@ class PersyaratanController extends Controller
 
         [$prodiId, $kodeProdi, $namaProdi] = $this->resolveProdiFromSession();
 
+        $check = MasterExcelService::validateItemRow([
+            $kodeProdi,
+            $request->nama_persyaratan,
+            $request->tahapan_sidang,
+            $request->strata,
+        ], 'persyaratan');
+
+        if ($check['result'] !== 'ok') {
+            return $this->failResponse($request, $check['message']);
+        }
+
         TSyaratSidang::create([
-            'NAMA_PERSYARATAN' => $request->nama_persyaratan,
+            'NAMA_PERSYARATAN' => $check['nama'],
             'ID_PRODI' => $prodiId,
             'KODE_PRODI' => $kodeProdi,
             'NAMA_PRODI' => $namaProdi,
-            'TAHAPAN_SIDANG' => $request->tahapan_sidang,
-            'STRATA' => $request->strata,
-            'STATUS_AKTIF' => $request->status_aktif,
+            'TAHAPAN_SIDANG' => $check['tahapan'],
+            'STRATA' => $check['strata'],
+            // Form manual tetap memakai pilihan user; import selalu AKTIF.
+            'STATUS_AKTIF' => $request->status_aktif === 'NON AKTIF' ? 'NON AKTIF' : 'AKTIF',
             'TGL_CREATE' => now(),
         ]);
 
@@ -218,14 +238,26 @@ class PersyaratanController extends Controller
         if ($item) {
             [$prodiId, $kodeProdi, $namaProdi] = $this->resolveProdiFromSession();
 
+            $check = MasterExcelService::validateItemRow([
+                $kodeProdi,
+                $request->nama_persyaratan,
+                $request->tahapan_sidang,
+                $request->strata,
+            ], 'persyaratan', [], $item->id);
+
+            if ($check['result'] !== 'ok') {
+                return $this->failResponse($request, $check['message']);
+            }
+
             $item->update([
-                'NAMA_PERSYARATAN' => $request->nama_persyaratan,
+                'NAMA_PERSYARATAN' => $check['nama'],
                 'ID_PRODI' => $prodiId,
                 'KODE_PRODI' => $kodeProdi,
                 'NAMA_PRODI' => $namaProdi,
-                'TAHAPAN_SIDANG' => $request->tahapan_sidang,
-                'STRATA' => $request->strata,
-                'STATUS_AKTIF' => $request->status_aktif,
+                'TAHAPAN_SIDANG' => $check['tahapan'],
+                'STRATA' => $check['strata'],
+                // Form manual tetap memakai pilihan user; import selalu AKTIF.
+                'STATUS_AKTIF' => $request->status_aktif === 'NON AKTIF' ? 'NON AKTIF' : 'AKTIF',
                 'TGL_UPDATE' => now(),
             ]);
         }
@@ -243,6 +275,15 @@ class PersyaratanController extends Controller
             $item->delete();
         }
         return response()->json(['success' => true]);
+    }
+
+    private function failResponse(Request $request, string $message)
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['error' => $message], 422);
+        }
+
+        return redirect()->back()->with('error', $message);
     }
 }
 

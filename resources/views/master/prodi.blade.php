@@ -71,14 +71,15 @@
 
     /* Card Header Styling */
     .master-data-container .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white !important;
+        background: #ffffff;
+        color: #1e293b !important;
         border: none;
+        border-bottom: 1px solid #e2e8f0;
         padding: 16px 20px;
     }
 
     .master-data-container .card-header h5 {
-        color: white !important;
+        color: #1e293b !important;
         font-weight: 600;
         margin: 0;
     }
@@ -94,12 +95,12 @@
 
     /* Dark mode: card header adapt */
     html.dark-mode .master-data-container .card-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-        color: #f1f5f9 !important;
-        border-bottom: 1px solid #334155 !important;
+        background: #ffffff !important;
+        color: #1e293b !important;
+        border-bottom: 1px solid #e2e8f0 !important;
     }
     html.dark-mode .master-data-container .card-header h5 {
-        color: #f1f5f9 !important;
+        color: #1e293b !important;
     }
     /* Dark mode: form container */
     html.dark-mode #formContainer .card-body {
@@ -135,7 +136,7 @@
                 <button type="button" class="btn btn-sm btn-info" id="btnSyncSpsi" onclick="syncSpsi()">
                     <i class="fas fa-sync-alt mr-1"></i> Tarik Data SPSI
                 </button>
-                <a class="btn btn-sm btn-light" href="{{ route('master.prodi.template') }}">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ route('master.prodi.template') }}">
                     <i class="fas fa-download mr-1"></i> Template
                 </a>
                 <button type="button" class="btn btn-sm btn-warning" onclick="document.getElementById('importFile').click()">
@@ -159,7 +160,7 @@
 
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
-        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <div class="card-header" style="background: #ffffff; color: #1e293b; border-bottom: 1px solid #e2e8f0;">
             <h5 class="mb-0" id="modalProdiTitle"><i class="fas fa-plus mr-2"></i>Tambah Prodi</h5>
         </div>
         <div class="card-body">
@@ -223,9 +224,9 @@
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header" style="background: #2f5597; color: #fff;">
+                <div class="modal-header header-white">
                     <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Detail Program Studi</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
                 <div class="modal-body">
                     <table class="table table-bordered mb-0">
@@ -263,11 +264,11 @@
 
     {{-- Modal Import (Preview -> Edit -> Simpan -> Hasil) --}}
     <div class="modal fade" id="modalImport" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff;">
-                    <h5 class="modal-title" id="importModalTitle"><i class="fas fa-file-excel mr-2"></i>Preview Data Excel</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <div class="modal-header header-white">
+                    <h5 class="modal-title" id="importModalTitle"><i class="fas fa-file-excel mr-2"></i>Preview Import Prodi</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
                 <div class="modal-body" style="position: relative;">
                     <div id="importLoading" style="display:none; position:absolute; inset:0; background:rgba(255,255,255,0.85); z-index:10; flex-direction:column; align-items:center; justify-content:center;">
@@ -278,19 +279,21 @@
                     <div id="importPreviewWrap">
                         <div class="alert alert-info py-2 small mb-3">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Periksa data berikut. Anda dapat <strong>mengedit</strong> fakultas/kode/nama, atau <strong>menghapus</strong> baris yang tidak diinginkan sebelum menyimpan.
-                            Baris bertanda <span class="badge badge-warning">Duplikat</span> sudah aktif di database atau berulang di file. Data baru otomatis disimpan sebagai <strong>AKTIF</strong>.
+                            Periksa data berikut sebelum disimpan. Anda dapat <strong>mengedit</strong> atau <strong>menghapus</strong> baris.
+                            <span class="badge badge-success">Baru</span> aman disimpan,
+                            <span class="badge badge-warning">Duplikat</span> sudah ada di database / file,
+                            <span class="badge badge-danger">Tidak Valid</span> fakultas atau kode prodi tidak sesuai master.
                         </div>
                         <div class="table-responsive">
                             <table class="table table-bordered table-sm align-middle">
                                 <thead>
                                     <tr>
-                                        <th style="width:50px;">No</th>
-                                        <th style="width:180px;">Fakultas</th>
+                                        <th style="width:45px;">No</th>
+                                        <th style="width:200px;">Fakultas</th>
                                         <th style="width:130px;">Kode Prodi</th>
                                         <th>Nama Prodi</th>
-                                        <th style="width:110px;">Status</th>
-                                        <th style="width:60px;"></th>
+                                        <th style="width:190px;">Status</th>
+                                        <th style="width:40px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="importPreviewBody"></tbody>
@@ -304,10 +307,10 @@
                             <table class="table table-bordered table-sm align-middle">
                                 <thead>
                                     <tr>
-                                        <th style="width:50px;">No</th>
+                                        <th style="width:45px;">No</th>
                                         <th style="width:130px;">Kode</th>
                                         <th>Nama</th>
-                                        <th style="width:110px;">Hasil</th>
+                                        <th style="width:120px;">Hasil</th>
                                         <th>Keterangan</th>
                                     </tr>
                                 </thead>
@@ -317,6 +320,7 @@
                     </div>
                 </div>
                 <div class="modal-footer" id="importFooter">
+                    <div class="mr-auto small text-muted" id="importSummary"></div>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal" id="importBtnCancel">Batal</button>
                     <button type="button" class="btn btn-primary" id="importBtnSave" onclick="saveImport()"><i class="fas fa-save mr-1"></i> Simpan</button>
                 </div>
@@ -352,6 +356,9 @@
     function uploadImport(input) {
         if (!input.files.length) return;
         const file = input.files[0];
+        const loading = document.getElementById('importLoading');
+        document.getElementById('importLoadingText').textContent = 'Membaca file Excel...';
+        loading.style.display = 'flex';
         const fd = new FormData();
         fd.append('file', file);
         fetch('{{ route("master.prodi.import-preview") }}', {
@@ -362,6 +369,7 @@
             },
             body: fd
         }).then(r => r.json()).then(data => {
+            loading.style.display = 'none';
             if (!data.success || !data.rows || !data.rows.length) {
                 showToast('error', 'File tidak berisi data yang valid.');
                 return;
@@ -370,12 +378,15 @@
             renderImportPreview();
             document.getElementById('importPreviewWrap').style.display = 'block';
             document.getElementById('importResultWrap').style.display = 'none';
-            document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-file-excel mr-2"></i>Preview Data Excel';
+            document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-file-excel mr-2"></i>Preview Import Prodi';
             document.getElementById('importBtnSave').style.display = 'inline-block';
             document.getElementById('importBtnCancel').innerHTML = 'Batal';
             document.getElementById('importBtnCancel').onclick = null;
             new bootstrap.Modal(document.getElementById('modalImport')).show();
-        }).catch(() => showToast('error', 'Gagal membaca file Excel.'));
+        }).catch(() => {
+            loading.style.display = 'none';
+            showToast('error', 'Gagal membaca file Excel.');
+        });
         input.value = '';
     }
 
@@ -407,7 +418,19 @@
                 <td class="text-center"><span class="badge badge-${st.cls}" title="${st.title}">${st.label}</span></td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" title="Hapus baris" onclick="removeImportRow(${i})"><i class="fas fa-times"></i></button></td>
             </tr>`;
-        }).join('');
+        }            ).join('');
+
+        updateImportSummary();
+    }
+
+    function updateImportSummary() {
+        const ok = importRows.filter(r => importRowStatus(r).label === 'Baru').length;
+        const dup = importRows.filter(r => importRowStatus(r).label === 'Duplikat').length;
+        const bad = importRows.filter(r => importRowStatus(r).label === 'Tidak Valid').length;
+        const el = document.getElementById('importSummary');
+        if (el) {
+            el.innerHTML = `<i class="fas fa-info-circle mr-1"></i>${ok} baris akan disimpan, ${dup} duplikat, ${bad} tidak valid.`;
+        }
     }
 
     function updateImportRow(idx, field, value) {
@@ -420,6 +443,7 @@
             badge.title = st.title;
             badge.textContent = st.label;
         });
+        updateImportSummary();
     }
 
     function removeImportRow(idx) {
@@ -465,15 +489,18 @@
     function renderImportResult(data) {
         document.getElementById('importPreviewWrap').style.display = 'none';
         document.getElementById('importResultWrap').style.display = 'block';
-        document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-clipboard-check mr-2"></i>Hasil Import';
+        document.getElementById('importModalTitle').innerHTML = '<i class="fas fa-clipboard-check mr-2"></i>Hasil Import Prodi';
         document.getElementById('importBtnSave').style.display = 'none';
+        document.getElementById('importSummary').innerHTML = '';
         document.getElementById('importBtnCancel').innerHTML = 'Selesai';
         document.getElementById('importBtnCancel').onclick = () => location.reload();
 
         document.getElementById('importResultSummary').innerHTML =
             `<div class="alert ${data.inserted > 0 ? 'alert-success' : 'alert-warning'} py-2 mb-0">
-                <i class="fas fa-check-circle mr-1"></i>
-                <strong>${data.inserted}</strong> data berhasil ditambahkan, <strong>${data.failed}</strong> gagal.
+                <i class="fas ${data.rolled_back ? 'fa-ban' : 'fa-check-circle'} mr-1"></i>
+                ${data.rolled_back
+                    ? `<strong>Import dibatalkan — tidak ada data yang disimpan.</strong> <strong>${data.failed}</strong> baris gagal, sehingga seluruh baris ikut dibatalkan.`
+                    : `<strong>${data.inserted}</strong> data berhasil ditambahkan, <strong>${data.failed}</strong> gagal.`}
             </div>`;
 
         document.getElementById('importResultBody').innerHTML = data.results.map((r, i) => `
@@ -489,7 +516,10 @@
                 <td class="small">${escapeAttr(r.message)}</td>
             </tr>`).join('');
 
-        showToast(data.failed > 0 ? 'error' : 'success', `Import selesai: ${data.inserted} berhasil, ${data.failed} gagal.`);
+        showToast(data.failed > 0 ? 'error' : 'success',
+            data.rolled_back
+                ? `Import dibatalkan: tidak ada data yang disimpan (${data.failed} baris gagal).`
+                : `Import selesai: ${data.inserted} berhasil, ${data.failed} gagal.`);
     }
 
     const prodiData = @json($allProdi);
