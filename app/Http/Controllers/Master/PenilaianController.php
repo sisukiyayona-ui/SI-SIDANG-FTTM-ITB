@@ -127,7 +127,7 @@ class PenilaianController extends Controller
                 'id' => $item->id,
                 'nama' => $item->penilaian ?? $item->PENILAIAN,
                 'keterangan' => 'Tahapan: ' . $item->tahapan_sidang . ' (' . $item->strata . ') - ' . $item->nama_prodi,
-                'status' => $item->status_aktif === 'AKTIF' ? 'Aktif' : 'Nonaktif',
+                'status' => $item->status_aktif === 'AKTIF' ? 'AKTIF' : 'NON AKTIF',
                 'id_prodi' => $item->id_prodi,
                 'kode_prodi' => $item->kode_prodi,
                 'nama_prodi' => $item->nama_prodi,

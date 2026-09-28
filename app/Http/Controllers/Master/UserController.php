@@ -18,6 +18,50 @@ use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
+    /**
+     * Cek apakah NIP/NIM (atau akun INA/username) sudah terpakai akun lain.
+     * Dipakai form user untuk notif realtime saat mengetik/memilih dari data pusat ITB.
+     */
+    public function checkNipNim(Request $request)
+    {
+        $value = trim((string) $request->query('value', ''));
+        if ($value === '') {
+            return response()->json(['available' => true]);
+        }
+
+        $excludeId = null;
+        if ($request->filled('exclude')) {
+            $excludeId = EncryptedUuid::decode((string) $request->query('exclude'));
+        }
+
+        $value = strtolower($value);
+        $users = TUser::select(['id', 'NIP_NIM', 'AKUN_INA', 'USERNAME', 'NAMA_LENGKAP'])
+            ->where(function ($q) use ($value) {
+                $q->whereRaw('LOWER(NIP_NIM) = ?', [$value])
+                    ->orWhereRaw('LOWER(AKUN_INA) = ?', [$value])
+                    ->orWhereRaw('LOWER(USERNAME) = ?', [$value]);
+            })
+            ->when($excludeId !== null, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->get();
+
+        if ($users->isEmpty()) {
+            return response()->json(['available' => true]);
+        }
+
+        $u = $users->first();
+        $field = strtolower((string) $u->nip_nim) === $value
+            ? 'NIP/NIM'
+            : (strtolower((string) $u->akun_ina) === $value ? 'Akun INA' : 'Username');
+
+        return response()->json([
+            'available' => false,
+            'field'     => $field,
+            'nama'      => $u->nama_lengkap,
+            'nip_nim'   => $u->nip_nim,
+            'akun_ina'  => $u->akun_ina,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $authUser = session('auth_user');
@@ -153,6 +197,15 @@ class UserController extends Controller
                 'id_prodi.min'       => 'Program Studi wajib dipilih minimal satu.',
             ]);
 
+            // Guard: NIP/NIM (dan padanan akun) harus belum terpakai akun lain
+            if ($conflict = $this->validateNipNimAvailable($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $conflict['message'],
+                    'errors'  => ['nip_nim' => [$conflict['message']]],
+                ], 422);
+            }
+
             [$kodeProdi, $namaProdi] = $this->resolveProdi($request);
             [$kodeFs, $namaFs]       = $this->resolveFs($request);
             $roles       = array_values(array_filter((array) $request->jenis_user));
@@ -241,7 +294,16 @@ class UserController extends Controller
             'id_prodi.min'      => 'Program Studi wajib dipilih minimal satu.',
         ]);
 
+        // Guard: NIP/NIM (dan padanan akun) harus belum dipakai user lain
         $user = TUser::find($id);
+        if ($conflict = $this->validateNipNimAvailable($request, $user)) {
+            return response()->json([
+                'success' => false,
+                'message' => $conflict['message'],
+                'errors'  => ['nip_nim' => [$conflict['message']]],
+            ], 422);
+        }
+
         if ($user) {
             [$kodeProdi, $namaProdi] = $this->resolveProdi($request, $user);
             [$kodeFs, $namaFs] = $this->resolveFs($request, $user);
@@ -291,6 +353,40 @@ class UserController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Guard: pastikan NIP/NIM (dan padanan AKUN_INA/USERNAME) belum dipakai akun lain.
+     * Mengembalikan array berisi pesan error siap kirim ke klien, atau null jika aman.
+     */
+    private function validateNipNimAvailable(Request $request, ?TUser $existing = null): ?array
+    {
+        $value = strtolower(trim((string) $request->input('nip_nim')));
+        if ($value === '') {
+            return null; // biarkan validasi required yang menangani
+        }
+
+        $conflict = TUser::where(function ($q) use ($value) {
+            $q->whereRaw('LOWER(NIP_NIM) = ?', [$value])
+                ->orWhereRaw('LOWER(AKUN_INA) = ?', [$value])
+                ->orWhereRaw('LOWER(USERNAME) = ?', [$value]);
+        })
+            ->when($existing !== null, fn ($q) => $q->where('id', '!=', $existing->id))
+            ->first();
+
+        if (!$conflict) {
+            return null;
+        }
+
+        $field = strtolower((string) $conflict->nip_nim) === $value
+            ? 'NIP/NIM'
+            : (strtolower((string) $conflict->akun_ina) === $value ? 'Akun INA' : 'Username');
+
+        return [
+            'message' => $field . ' ' . $value . ' sudah terpakai oleh akun lain: '
+                . ($conflict->nama_lengkap ?: '-')
+                . ' (' . ($conflict->nip_nim ?: $conflict->akun_ina ?: $conflict->username) . ').',
+        ];
     }
 
     private function resolveProdi(Request $request, ?TUser $existing = null): array

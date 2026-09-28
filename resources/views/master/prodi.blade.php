@@ -565,7 +565,7 @@
         if (!item) return;
         document.getElementById('detailKode').innerHTML = '<span class="badge bg-info">' + item.kode + '</span>';
         document.getElementById('detailNama').textContent = item.nama;
-        document.getElementById('detailStatus').innerHTML = '<span class="badge bg-' + (item.status === 'Aktif' ? 'success' : 'danger') + '">' + item.status + '</span>';
+        document.getElementById('detailStatus').innerHTML = '<span class="badge bg-' + (item.status === 'AKTIF' ? 'success' : 'danger') + '">' + item.status + '</span>';
         new bootstrap.Modal(document.getElementById('modalDetail')).show();
     }
 

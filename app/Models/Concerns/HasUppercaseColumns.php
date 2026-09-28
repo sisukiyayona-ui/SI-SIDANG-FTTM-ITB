@@ -26,6 +26,15 @@ trait HasUppercaseColumns
 
         $upper = strtoupper((string) $key);
         if (in_array($upper, $this->getFillable(), true)) {
+            // Normalisasi nilai status: selalu simpan AKTIF / NON AKTIF (uppercase)
+            // apa pun sumbernya (form manual, import Excel, sync SPSI, seeder).
+            if ($upper === 'STATUS_AKTIF' && is_string($value)) {
+                $value = strtoupper(trim($value));
+                if ($value === 'NONAKTIF') {
+                    $value = 'NON AKTIF';
+                }
+            }
+
             return parent::setAttribute($upper, $value);
         }
 

@@ -238,11 +238,11 @@
                             <div class="d-flex align-items-center" style="gap: 20px;">
                                 <div class="form-check form-check-inline m-0">
                                     <input type="radio" name="status_aktif" value="AKTIF" class="form-check-input" id="statusAktif" checked>
-                                    <label class="form-check-label" for="statusAktif">Aktif</label>
+                                    <label class="form-check-label" for="statusAktif">AKTIF</label>
                                 </div>
                                 <div class="form-check form-check-inline m-0">
                                     <input type="radio" name="status_aktif" value="NON AKTIF" class="form-check-input" id="statusNonaktif">
-                                    <label class="form-check-label" for="statusNonaktif">Non Aktif</label>
+                                    <label class="form-check-label" for="statusNonaktif">NON AKTIF</label>
                                 </div>
                             </div>
                         </div>

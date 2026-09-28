@@ -300,6 +300,7 @@
                             <div id="itbLookupList" class="itb-lookup-list" style="display: none;" role="listbox"></div>
                         </div>
                         <small class="text-muted">Ketik NIP/NIM atau akun INA — pilih dari hasil pencarian akun ITB untuk auto-fill.</small>
+                        <div id="nipDupBadge" class="d-none mt-1"></div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
@@ -813,6 +814,8 @@
         clearSignature();
         document.getElementById('signaturePreview').style.display = 'none';
         hideItbLookup();
+        window.__userEditId = null;
+        setNipDupState(null);
 
         document.getElementById('listContainer').style.display = 'none';
         document.getElementById('formContainer').style.display = 'block';
@@ -838,6 +841,9 @@
             document.getElementById('f_password').value     = '';
             document.getElementById('f_password').required  = false;
             document.getElementById('f_password').placeholder = 'Password (kosongkan jika tidak diubah)';
+            window.__userEditId = id;
+            setNipDupState(null);
+            scheduleNipDupCheck(600);
 
             var roles = item.roles && item.roles.length ? item.roles : (item.jenis_user ? [item.jenis_user] : []);
             document.querySelectorAll('.role-check').forEach(function(cb) {
@@ -961,6 +967,96 @@
         itbLookupActive = -1;
     }
 
+    // ─── Cek NIP/NIM sudah terpakai (notif realtime) ────────────────────
+    var nipDupState = null;      // null = belum dicek, 'checking', true = bebas, false = terpakai
+    var nipDupMessage = '';
+    var nipDupTimer = null;
+    var nipDupSeq = 0;
+    var nipDupToastOnResult = false;
+    var nipDupBadge = document.getElementById('nipDupBadge');
+
+    function setNipDupState(state) {
+        nipDupState = state;
+        renderNipDupBadge();
+    }
+
+    function renderNipDupBadge() {
+        if (!nipDupBadge) return;
+        var val = String((nipInput && nipInput.value) || '').trim();
+        if (nipDupState === null || !val) {
+            nipDupBadge.className = 'd-none mt-1';
+            nipDupBadge.innerHTML = '';
+            return;
+        }
+        if (nipDupState === 'checking') {
+            nipDupBadge.className = 'small mt-1 text-muted';
+            nipDupBadge.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Memeriksa ketersediaan NIP/NIM…';
+            return;
+        }
+        if (nipDupState === true) {
+            nipDupBadge.className = 'small mt-1 text-success';
+            nipDupBadge.innerHTML = '<i class="fas fa-check-circle mr-1"></i>NIP/NIM belum terdaftar — bisa dipakai.';
+            return;
+        }
+        nipDupBadge.className = 'small mt-1 text-danger font-weight-bold';
+        nipDupBadge.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i>' + escapeHtml(nipDupMessage);
+    }
+
+    function scheduleNipDupCheck(delay) {
+        clearTimeout(nipDupTimer);
+        var val = String((nipInput && nipInput.value) || '').trim();
+        if (!val) {
+            nipDupMessage = '';
+            setNipDupState(null);
+            return;
+        }
+        var seq = ++nipDupSeq;
+        nipDupState = 'checking';
+        renderNipDupBadge();
+        nipDupTimer = setTimeout(function() {
+            if (seq !== nipDupSeq) return;
+            var url = '{{ route("master.user.check-nip-nim") }}?value=' + encodeURIComponent(val);
+            if (window.__userEditId) {
+                url += '&exclude=' + encodeURIComponent(window.__userEditId);
+            }
+            fetch(url, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json().catch(function() { return null; }); })
+            .then(function(res) {
+                if (seq !== nipDupSeq) return;
+                if (res && res.available) {
+                    nipDupMessage = '';
+                    nipDupState = true;
+                } else if (res && res.available === false) {
+                    nipDupMessage = (res.field ? res.field : 'NIP/NIM') + ' ' + val + ' sudah terpakai oleh: ' + (res.nama || '-') + (res.akun_ina ? ' (' + res.akun_ina + ')' : '') + '. Gunakan NIP/NIM/akun lain.';
+                    nipDupState = false;
+                    if (nipDupToastOnResult && typeof showToast === 'function') {
+                        showToast('error', nipDupMessage);
+                    }
+                } else {
+                    nipDupMessage = '';
+                    nipDupState = null;
+                }
+                nipDupToastOnResult = false;
+                renderNipDupBadge();
+            })
+            .catch(function() {
+                if (seq === nipDupSeq) {
+                    nipDupMessage = '';
+                    nipDupState = null;
+                    nipDupToastOnResult = false;
+                    renderNipDupBadge();
+                }
+            });
+        }, delay || 400);
+    }
+
+    if (nipInput) {
+        nipInput.addEventListener('input', function() { scheduleNipDupCheck(500); });
+        nipInput.addEventListener('change', function() { scheduleNipDupCheck(0); });
+    }
+
     function renderItbLookup(items) {
         if (!itbLookupList) return;
         itbLookupItems = items || [];
@@ -1068,6 +1164,8 @@
         fill('f_asal_instansi', 'ITB');
         handleAsalInstansiChange();
         hideItbLookup();
+        nipDupToastOnResult = true;
+        scheduleNipDupCheck(250);
         var isMhs = item.status_pegawai === 'Mahasiswa';
         var nim = item.nim || (item.nip_nim && String(item.nip_nim).length <= 10 ? item.nip_nim : '');
         if (isMhs && item.mhs_detail) {
@@ -1203,6 +1301,11 @@
             showToast('error', 'Program Studi wajib dipilih minimal satu.');
             return;
         }
+        if (nipDupState === false) {
+            showToast('error', nipDupMessage || 'NIP/NIM sudah terpakai akun lain. Periksa kembali.');
+            if (nipInput) { try { nipInput.focus(); } catch (err) {} }
+            return;
+        }
         const fd = new FormData(this);
         fetch(this.action, {
             method: 'POST',
@@ -1224,6 +1327,7 @@
                 const friendly = {
                     kode_fs: 'Fakultas',
                     id_prodi: 'Program Studi',
+                    nip_nim: 'NIP/NIM',
                 };
                 const lines = Object.entries(data.errors).map(([k, v]) => {
                     const key = String(k).replace(/\[\]$/, '');

@@ -48,6 +48,8 @@ Route::prefix('master')->name('master.')->middleware(['auth.dummy'])->group(func
     Route::middleware(['role:Admin,TU Prodi'])->group(function () {
         Route::get('user/prodi-by-fs', [UserController::class, 'getProdiByFs'])->name('user.prodi-by-fs');
         Route::get('user/itb-lookup', [UserController::class, 'itbLookup'])->name('user.itb-lookup');
+        Route::get('user/mhs-detail', [UserController::class, 'mhsDetail'])->name('user.mhs-detail');
+        Route::get('user/check-nip-nim', [UserController::class, 'checkNipNim'])->name('user.check-nip-nim');
         Route::resource('user', UserController::class)->except(['show', 'create']);
     });
 });
