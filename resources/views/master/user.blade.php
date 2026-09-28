@@ -268,9 +268,16 @@
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-users mr-2"></i>Daftar User</h5>
-            <button class="btn btn-sm btn-primary" onclick="openCreate()">
-                <i class="fas fa-plus mr-1"></i> Tambah
-            </button>
+            <div class="d-flex align-items-center ml-auto" style="gap: 8px;">
+                @if(session('auth_user.role') === 'Admin')
+                <button class="btn btn-sm btn-success" id="btnSyncItb" onclick="syncItbData()" title="Perbarui nama dosen/tendik (t_user & t_kpps) dari data pusat ITB">
+                    <i class="fas fa-sync-alt mr-1"></i> Update Data ITB
+                </button>
+                @endif
+                <button class="btn btn-sm btn-primary" onclick="openCreate()">
+                    <i class="fas fa-plus mr-1"></i> Tambah
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive" id="userTableContainer">
@@ -560,6 +567,7 @@
             </div>
         </div>
     </div>
+
 @endsection
 
 @push('scripts')
@@ -1423,6 +1431,51 @@
         });
     }
     bindFilters('{{ route("master.user.index") }}', 'userTableContainer');
+
+    // ─── Sinkron nama dosen/tendik dari data pusat ITB ────────────────────
+    function syncItbData() {
+        showConfirmDialog({
+            title: 'Update Data ITB',
+            message: 'Apakah Anda yakin ingin memperbarui data dosen/tendik menggunakan data terbaru dari pusat ITB?'
+            confirmText: 'Ya, Update',
+            type: 'warning'
+        }).then(function(ok) {
+            if (!ok) return;
+            runSyncItb();
+        });
+    }
+
+    function runSyncItb() {
+        var btn = document.getElementById('btnSyncItb');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Memproses…';
+
+        fetch('{{ route("master.user.sync-itb") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToast('success', data.message);
+                    ajaxFilter('{{ route("master.user.index") }}', 'userTableContainer');
+                } else {
+                    showToast('error', data.message || 'Gagal menyinkronkan data dari ITB.');
+                }
+            })
+            .catch(function(err) {
+                console.error('Sync ITB error:', err);
+                showToast('error', 'Terjadi kesalahan saat menghubungi server.');
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Update Data ITB';
+            });
+    }
 
     // ─── Signature Canvas Init ─────────────────────────────────────────────
     var isDrawing = false;

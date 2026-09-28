@@ -110,7 +110,37 @@ class SpsiService
         }
         curl_multi_close($mh);
 
+        if ($result !== null) {
+            $result['nip'] = self::pickIdToken((string) ($result['nip'] ?? ''));
+            $result['nim'] = self::pickIdToken((string) ($result['nim'] ?? ''));
+        }
+
         return $result;
+    }
+
+    /**
+     * Field nip/nim dari SPSI bisa berisi beberapa nilai terpisah ";"
+     * (mis. "12125001;16425187"). Ambil satu nilai yang benar:
+     * buang token berawalan 16/19 (NIP pegawai yang nyelip), sisakan sisanya.
+     */
+    private static function pickIdToken(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || !str_contains($value, ';')) {
+            return $value;
+        }
+
+        $tokens = array_values(array_filter(
+            array_map('trim', explode(';', $value)),
+            fn ($t) => $t !== ''
+        ));
+
+        $preferred = array_values(array_filter(
+            $tokens,
+            fn ($t) => !preg_match('/^(16|19)/', $t)
+        ));
+
+        return $preferred[0] ?? ($tokens[0] ?? '');
     }
 
     /**

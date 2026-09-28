@@ -9,8 +9,10 @@ use App\Models\TUserRole;
 use App\Models\TUser;
 use App\Models\TProdi;
 use App\Models\TFs;
+use App\Models\TKpps;
 use App\Support\EncryptedUuid;
 use App\Services\SpsiService;
+use App\Services\OneAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -588,5 +590,77 @@ class UserController extends Controller
         }
 
         return response()->json(['success' => true, 'data' => $mhs]);
+    }
+
+    /**
+     * Sinkron nama dosen/tendik dari data pusat ITB (oneapp).
+     * Memperbarui NAMA_LENGKAP di t_user dan NAMA di t_kpps berdasarkan NIP.
+     * Format nama: gelar_depan + nama + gelar_belakang.
+     */
+    public function syncItb()
+    {
+        if ((session('auth_user')['role'] ?? null) !== 'Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya role Admin yang dapat menyinkronkan data ITB.',
+            ], 403);
+        }
+
+        try {
+            $records = OneAppService::fetchDosenTendikFttm();
+        } catch (\Throwable $e) {
+            Log::error('Sync ITB dosen/tendik failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data dari oneapp ITB: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        $userUpdated = 0;
+        $kppsUpdated = 0;
+        $userNotFound = 0;
+
+        foreach ($records as $record) {
+            $nip = trim((string) ($record['nip'] ?? ''));
+            $nama = OneAppService::formatNama($record);
+            if ($nip === '' || $nama === '') {
+                continue;
+            }
+
+            $user = TUser::whereRaw('LOWER(NIP_NIM) = ?', [strtolower($nip)])->first();
+            if ($user) {
+                if ((string) $user->nama_lengkap !== $nama) {
+                    $user->update([
+                        'NAMA_LENGKAP' => $nama,
+                        'TGL_UPDATE'   => now(),
+                    ]);
+                    $userUpdated++;
+                }
+            } else {
+                $userNotFound++;
+            }
+
+            $kppsRows = TKpps::whereRaw('LOWER(NIP) = ?', [strtolower($nip)])->get();
+            foreach ($kppsRows as $kpps) {
+                if ((string) $kpps->nama !== $nama) {
+                    $kpps->update([
+                        'NAMA'       => $nama,
+                        'TGL_UPDATE' => now(),
+                    ]);
+                    $kppsUpdated++;
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sinkronisasi selesai. '
+                . $userUpdated . ' data user dan ' . $kppsUpdated . ' data KPPS diperbarui'
+                . ($userNotFound > 0 ? ' (' . $userNotFound . ' NIP tidak ditemukan di t_user)' : '.') . '.',
+            'user_updated'   => $userUpdated,
+            'kpps_updated'   => $kppsUpdated,
+            'user_not_found' => $userNotFound,
+            'total_api'      => count($records),
+        ]);
     }
 }
