@@ -47,7 +47,7 @@ class PersyaratanController extends Controller
     public function create()
     {
         [$prodis, $userProdiId] = $this->prodiFormContext();
-        $tahapans = TTahapan::all();
+        $tahapans = TTahapan::orderBy('id')->get();
         return view('master.persyaratan-form', compact('prodis', 'tahapans', 'userProdiId'))->with('persyaratan', null);
     }
 
@@ -79,7 +79,7 @@ class PersyaratanController extends Controller
         ];
 
         [$prodis, $userProdiId] = $this->prodiFormContext();
-        $tahapans = TTahapan::all();
+        $tahapans = TTahapan::orderBy('id')->get();
         return view('master.persyaratan-form', compact('persyaratan', 'prodis', 'tahapans', 'userProdiId'));
     }
 
@@ -124,7 +124,7 @@ class PersyaratanController extends Controller
         });
 
         [$prodis, $userProdiId] = $this->prodiFormContext();
-        $tahapans = TTahapan::all();
+        $tahapans = TTahapan::orderBy('id')->get();
 
         if ($request->ajax()) {
             $tableHtml = view('master._persyaratan_table', compact('persyaratan'))->render();

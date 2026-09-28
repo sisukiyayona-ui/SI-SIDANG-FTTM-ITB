@@ -47,7 +47,7 @@ class PenilaianController extends Controller
     public function create()
     {
         $prodis = $this->filteredProdis();
-        $tahapans = TTahapan::all();
+        $tahapans = TTahapan::orderBy('id')->get();
         return view('master.penilaian-form', compact('prodis', 'tahapans'))->with('penilaian', null);
     }
 
@@ -87,7 +87,7 @@ class PenilaianController extends Controller
         ];
 
         $prodis = $this->filteredProdis();
-        $tahapans = TTahapan::all();
+        $tahapans = TTahapan::orderBy('id')->get();
         return view('master.penilaian-form', compact('penilaian', 'prodis', 'tahapans'));
     }
 
@@ -141,7 +141,7 @@ class PenilaianController extends Controller
         });
 
         $prodis = $this->filteredProdis();
-        $tahapans = TTahapan::all();
+        $tahapans = TTahapan::orderBy('id')->get();
 
         if ($request->ajax()) {
             $tableHtml = view('master._penilaian_table', compact('penilaian'))->render();

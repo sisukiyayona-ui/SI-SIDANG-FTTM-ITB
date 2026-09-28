@@ -129,20 +129,8 @@
 
 @section('content')
 @php
-    $tahapanLabels = [
-        'tahap 1' => 'Ujian Kualifikasi',
-        'tahap I' => 'Ujian Kualifikasi',
-        'tahap 2' => 'Ujian Proposal',
-        'tahap II' => 'Ujian Proposal',
-        'tahap 3' => 'Tahap III',
-        'tahap III' => 'Tahap III',
-        'tahap 4' => 'Sidang Terbuka / Tertutup',
-        'tahap IV' => 'Sidang Terbuka / Tertutup',
-        'SK I' => 'SK I',
-        'SK II' => 'SK II',
-        'SK III' => 'SK III',
-        'SK IV' => 'SK IV',
-    ];
+    // Label tahapan dibaca langsung dari master t_tahapan.
+    $tahapanLabels = \App\Services\MasterExcelService::tahapanLabelMap();
 @endphp
 <div class="master-data-container">
     <div id="listContainer" class="card">
@@ -332,7 +320,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:50px;">No</th>
-                                        <th style="width:195px;">Program Studi</th>
+                                        <th style="width:195px;">Nama Prodi</th>
                                         <th>Parameter Penilaian</th>
                                         <th style="width:100px;">No Form</th>
                                         <th style="width:265px; min-width:265px;">Tahapan Sidang</th>
@@ -355,7 +343,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:45px;">No</th>
-                                        <th style="width:200px;">Program Studi</th>
+                                        <th style="width:200px;">Nama Prodi</th>
                                         <th>Parameter</th>
                                         <th style="width:150px;">Tahapan</th>
                                         <th style="width:120px;">Hasil</th>
@@ -403,14 +391,15 @@
         }
         // Cocokkan juga lewat label tampilan, mis. "Ujian Kualifikasi" -> "tahap I"
         for (const t of importMeta.tahapan) {
-            const label = tahapanLabelsClient[t];
+            const label = tahapanLabelsClient[String(t).toLowerCase()];
             if (label && normalisasiTahap(label) === needle) return t;
         }
         return '';
     }
 
     function labelTahapanClient(v) {
-        return tahapanLabelsClient[v] || v || '-';
+        const key = String(v ?? '').toLowerCase().trim();
+        return tahapanLabelsClient[key] || v || '-';
     }
 
     function statusBadge(r) {
@@ -464,7 +453,7 @@
 
     function tahapanSelectOptions(current) {
         const opts = importMeta.tahapan.map(t => {
-            const label = tahapanLabelsClient[t] || t;
+            const label = tahapanLabelsClient[String(t).toLowerCase()] || t;
             return { value: t, label: label };
         });
         // Nilai dari file yang tidak ada di master tetap ditampilkan agar user bisa melihat & memperbaiki.
@@ -533,7 +522,7 @@
         const tahapan = canon;
         r.result = 'ok';
         r.message = 'Siap disimpan';
-        if (!programStudi) { r.result = 'error'; r.message = 'PROGRAM STUDI kosong'; }
+        if (!programStudi) { r.result = 'error'; r.message = 'NAMA PRODI kosong'; }
         else if (!nama) { r.result = 'error'; r.message = 'PARAMETER PENILAIAN kosong'; }
         else if (!strata) { r.result = 'error'; r.message = 'Strata harus S1/S2/S3'; }
         else if (!tahapan) { r.result = 'error'; r.message = 'Tahapan tidak terdaftar di master'; }
@@ -641,7 +630,8 @@
                 : `Import selesai: ${data.inserted} berhasil, ${data.failed} gagal.`);
     }
 
-    var tahapanLabelsClient = @json(\App\Services\MasterExcelService::TAHAPAN_LABELS);
+    // Label tahapan dibaca dari master t_tahapan (key lowercase, lengkap dengan alias ejaan lama).
+    var tahapanLabelsClient = @json(\App\Services\MasterExcelService::tahapanLabelMap());
 
     // Options tahapan diambil dari master t_tahapan, dikelompokkan per strata.
     // Master saat ini hanya memuat tahapan S3, jadi strata tanpa daftar sendiri

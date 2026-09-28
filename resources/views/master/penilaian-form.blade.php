@@ -39,7 +39,7 @@
                     <label for="tahapan_sidang" class="form-label">Tahapan Sidang</label>
                     <select name="tahapan_sidang" id="tahapan_sidang" class="form-control" required>
                         @foreach($tahapans as $t)
-                            <option value="{{ $t->Tahapan }}" {{ isset($penilaian) && $penilaian['tahapan_sidang'] == $t->Tahapan ? 'selected' : '' }}>{{ $t->Tahapan }}</option>
+                            <option value="{{ $t->Tahapan }}" {{ isset($penilaian) && $penilaian['tahapan_sidang'] == $t->Tahapan ? 'selected' : '' }}>{{ \App\Services\MasterExcelService::tahapanLabel($t->Tahapan) }}</option>
                         @endforeach
                     </select>
                 </div>

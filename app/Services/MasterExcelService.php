@@ -17,13 +17,13 @@ class MasterExcelService
 {
     public const HEADERS = [
         'persyaratan' => [
-            'PROGRAM STUDI',
+            'NAMA PRODI',
             'NAMA PERSYARATAN',
             'TAHAPAN SIDANG',
             'STRATA',
         ],
         'penilaian' => [
-            'PROGRAM STUDI',
+            'NAMA PRODI',
             'PARAMETER PENILAIAN',
             'NO FORM',
             'TAHAPAN SIDANG',
@@ -47,6 +47,8 @@ class MasterExcelService
      * tetap dikenali sebagai baris header supaya datanya tidak ikut terbaca.
      */
     private const HEADER_ALIASES = [
+        'persyaratan' => ['PROGRAM STUDI', 'NAMA PRODI'],
+        'penilaian' => ['PROGRAM STUDI', 'NAMA PRODI'],
         'prodi' => ['FAKULTAS', 'KODE FAKULTAS', 'NAMA FAKULTAS'],
     ];
 
@@ -72,8 +74,13 @@ class MasterExcelService
     ];
 
     /**
-     * Label ramah yang ditampilkan untuk nilai tahapan di t_tahapan.
-     * Key = TAHAPAN (canonical), Value = label tampilan.
+     * Label ramah yang ditampilkan untuk nilai tahapan.
+     * Key = TAHAPAN (canonical) beserta varian ejaan lama ("tahap 1", dst),
+     * Value = label tampilan.
+     *
+     * Nilai tahapan yang TIDAK terdaftar di sini tetap ditampilkan memakai
+     * nama langsung dari master t_tahapan (mis. "tahap V" baru ditambah di
+     * master -> otomatis tampil "tahap V" tanpa ubah kode).
      */
     public const TAHAPAN_LABELS = [
         'tahap I' => 'Ujian Kualifikasi',
@@ -89,6 +96,13 @@ class MasterExcelService
         'SK III' => 'SK III',
         'SK IV' => 'SK IV',
     ];
+
+    /**
+     * Cache label tampilan per request: TAHAPAN (lowercase) => label.
+     * Prioritas: TAHAPAN_LABELS dulu, lalu nama di master t_tahapan untuk
+     * nilai yang tidak tercakup konstanta.
+     */
+    private static ?array $tahapanLabelMap = null;
 
     /**
      * Normalisasi input user (kode/label/typo ringan) -> nilai TAHAPAN kanonik.
@@ -108,17 +122,27 @@ class MasterExcelService
         };
 
         $needle = $norm($raw);
+        $tahapans = TTahapan::all();
 
-        foreach (TTahapan::all() as $t) {
+        foreach ($tahapans as $t) {
             if ($norm($t->TAHAPAN) === $needle) {
                 return $t->TAHAPAN;
             }
         }
 
-        // Cocokkan lewat label tampilan (mis. "Ujian Kualifikasi" -> "tahap I")
+        // Cocokkan lewat konstanta label (nama maupun label tampilan), lalu
+        // terjemahkan ke nama yang benar-benar terdaftar di master t_tahapan.
+        // Contoh: "tahap 1" & "Ujian Kualifikasi" sama-sama berlabel
+        // "Ujian Kualifikasi" yang di master bernama "tahap I".
         foreach (self::TAHAPAN_LABELS as $canonical => $label) {
-            if ($norm($label) === $needle && TTahapan::where('TAHAPAN', $canonical)->exists()) {
-                return $canonical;
+            if ($norm($label) !== $needle && $norm($canonical) !== $needle) {
+                continue;
+            }
+
+            foreach (self::TAHAPAN_LABELS as $db => $sameLabel) {
+                if ($norm($sameLabel) === $norm($label) && $tahapans->firstWhere('TAHAPAN', $db) !== null) {
+                    return $db;
+                }
             }
         }
 
@@ -221,7 +245,7 @@ class MasterExcelService
         }
 
         if ($clean['program_studi'] === '') {
-            return ['result' => 'error', 'message' => 'PROGRAM STUDI kosong'] + $clean;
+            return ['result' => 'error', 'message' => 'NAMA PRODI kosong'] + $clean;
         }
         if ($clean['nama'] === '') {
             return ['result' => 'error', 'message' => ($type === 'penilaian' ? 'PARAMETER PENILAIAN' : 'NAMA PERSYARATAN') . ' kosong'] + $clean;
@@ -489,13 +513,59 @@ class MasterExcelService
         return $rows;
     }
 
+    /**
+     * Label tampilan untuk satu nilai tahapan, dibaca dari master t_tahapan.
+     * Nilai yang tidak terdaftar di master (mis. data lama) ditampilkan apa adanya.
+     */
     public static function tahapanLabel(?string $tahapan): string
     {
         if ($tahapan === null || $tahapan === '') {
             return '-';
         }
 
-        return self::TAHAPAN_LABELS[$tahapan] ?? $tahapan;
+        self::loadTahapanLabelMap();
+
+        return self::$tahapanLabelMap[mb_strtolower(trim($tahapan))] ?? $tahapan;
+    }
+
+    /**
+     * Peta lengkap TAHAPAN (master) => label tampilan untuk semua strata,
+     * dibaca langsung dari tabel t_tahapan (key lowercase agar toleran ejaan).
+     */
+    public static function tahapanLabelMap(): array
+    {
+        self::loadTahapanLabelMap();
+
+        return self::$tahapanLabelMap;
+    }
+
+    private static function loadTahapanLabelMap(): void
+    {
+        if (self::$tahapanLabelMap !== null) {
+            return;
+        }
+
+        $map = [];
+
+        // 1) Label ramah dari konstanta (termasuk varian ejaan lama "tahap 1", dst).
+        foreach (self::TAHAPAN_LABELS as $canonical => $label) {
+            $key = mb_strtolower(trim($canonical));
+            if ($key !== '' && !isset($map[$key])) {
+                $map[$key] = $label;
+            }
+        }
+
+        // 2) Nilai yang tidak tercakup konstanta memakai nama langsung dari
+        //    master t_tahapan, jadi tahapan baru di master langsung tampil.
+        foreach (TTahapan::query()->orderBy('id')->get(['id', 'TAHAPAN']) as $t) {
+            $key = mb_strtolower(trim((string) $t->TAHAPAN));
+            if ($key === '' || isset($map[$key])) {
+                continue;
+            }
+            $map[$key] = $t->TAHAPAN;
+        }
+
+        self::$tahapanLabelMap = $map;
     }
 
     /**

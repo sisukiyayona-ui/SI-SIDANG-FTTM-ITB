@@ -129,20 +129,8 @@
 
 @section('content')
 @php
-    $tahapanLabels = [
-        'tahap 1' => 'Ujian Kualifikasi',
-        'tahap I' => 'Ujian Kualifikasi',
-        'tahap 2' => 'Ujian Proposal',
-        'tahap II' => 'Ujian Proposal',
-        'tahap 3' => 'Tahap III',
-        'tahap III' => 'Tahap III',
-        'tahap 4' => 'Sidang Terbuka / Tertutup',
-        'tahap IV' => 'Sidang Terbuka / Tertutup',
-        'SK I' => 'SK I',
-        'SK II' => 'SK II',
-        'SK III' => 'SK III',
-        'SK IV' => 'SK IV',
-    ];
+    // Label tahapan dibaca langsung dari master t_tahapan.
+    $tahapanLabels = \App\Services\MasterExcelService::tahapanLabelMap();
 @endphp
 <div class="master-data-container">
     <div id="listContainer" class="card">
@@ -302,7 +290,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:50px;">No</th>
-                                        <th style="width:195px;">Program Studi</th>
+                                        <th style="width:195px;">Nama Prodi</th>
                                         <th>Nama Persyaratan</th>
                                         <th style="width:265px; min-width:265px;">Tahapan Sidang</th>
                                         <th style="width:140px; min-width:140px;">Strata</th>
@@ -323,7 +311,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width:45px;">No</th>
-                                        <th style="width:200px;">Program Studi</th>
+                                        <th style="width:200px;">Nama Prodi</th>
                                         <th>Nama Persyaratan</th>
                                         <th style="width:150px;">Tahapan</th>
                                         <th style="width:120px;">Hasil</th>
@@ -349,7 +337,7 @@
 <script>
     let importRows = [];
     let importMeta = { tahapan: [], strata: ['S1', 'S2', 'S3'] };
-    var tahapanLabelsClient = @json(\App\Services\MasterExcelService::TAHAPAN_LABELS);
+    var tahapanLabelsClient = @json(\App\Services\MasterExcelService::tahapanLabelMap());
 
     function csrfToken() {
         return document.querySelector('input[name="_token"]').value;
@@ -376,7 +364,7 @@
             if (normalisasiTahap(t) === needle) return t;
         }
         for (const t of importMeta.tahapan) {
-            const label = tahapanLabelsClient[t];
+            const label = tahapanLabelsClient[String(t).toLowerCase()];
             if (label && normalisasiTahap(label) === needle) return t;
         }
         return '';
@@ -433,7 +421,7 @@
 
     function tahapanSelectOptions(current) {
         const opts = importMeta.tahapan.map(t => {
-            const label = tahapanLabelsClient[t] || t;
+            const label = tahapanLabelsClient[String(t).toLowerCase()] || t;
             return { value: t, label: label };
         });
         // Nilai dari file yang tidak ada di master tetap ditampilkan agar user bisa melihat & memperbaiki.
@@ -494,7 +482,7 @@
 
         r.result = 'ok';
         r.message = 'Siap disimpan';
-        if (!programStudi) { r.result = 'error'; r.message = 'PROGRAM STUDI kosong'; }
+        if (!programStudi) { r.result = 'error'; r.message = 'NAMA PRODI kosong'; }
         else if (!nama) { r.result = 'error'; r.message = 'NAMA PERSYARATAN kosong'; }
         else if (!strata) { r.result = 'error'; r.message = 'Strata harus S1/S2/S3'; }
         else if (!tahapan) { r.result = 'error'; r.message = 'Tahapan tidak terdaftar di master'; }

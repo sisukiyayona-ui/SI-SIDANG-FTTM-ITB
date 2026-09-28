@@ -1,18 +1,6 @@
 @php
-    $tahapanLabels = [
-        'tahap 1' => 'Ujian Kualifikasi',
-        'tahap I' => 'Ujian Kualifikasi',
-        'tahap 2' => 'Ujian Proposal',
-        'tahap II' => 'Ujian Proposal',
-        'tahap 3' => 'Tahap III',
-        'tahap III' => 'Tahap III',
-        'tahap 4' => 'Sidang Terbuka / Tertutup',
-        'tahap IV' => 'Sidang Terbuka / Tertutup',
-        'SK I' => 'SK I',
-        'SK II' => 'SK II',
-        'SK III' => 'SK III',
-        'SK IV' => 'SK IV',
-    ];
+    // Label tahapan dibaca langsung dari master t_tahapan.
+    $tahapanLabels = \App\Services\MasterExcelService::tahapanLabelMap();
 @endphp
 <table class="table table-striped table-hover">
     <thead>
@@ -49,7 +37,7 @@
                 <td>{{ $penilaian->firstItem() + $i }}</td>
                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
                 <td>{{ $item['no_form'] ?? '-' }}</td>
-                <td>{{ $tahapanLabels[$item['tahapan_sidang']] ?? $item['tahapan_sidang'] }}</td>
+                <td>{{ \App\Services\MasterExcelService::tahapanLabel($item['tahapan_sidang']) }}</td>
                 <td>{{ $item['strata'] }}</td>
                 <td>{{ $item['kode_prodi'] }} - {{ $item['nama_prodi'] }}</td>
                 <td>{{ $item['Keterangan'] ?? '-' }}</td>
