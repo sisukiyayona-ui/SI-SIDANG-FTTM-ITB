@@ -184,7 +184,10 @@ class MasterExcelService
 
         $digit = $strata !== null ? (self::STRATA_DIGIT[$strata] ?? null) : null;
 
+        // Prodi NON AKTIF dianggap tidak tersedia: import tidak boleh menautkan
+        // data baru ke prodi yang sudah dinonaktifkan di master.
         $byName = TProdi::query()
+            ->where('STATUS_AKTIF', 'AKTIF')
             ->whereRaw('UPPER(TRIM(NAMA_PRODI)) = ?', [mb_strtoupper($value)])
             ->when($digit, fn ($q) => $q->where('KODE_PRODI', 'like', $digit . '%'))
             ->first();
@@ -193,12 +196,33 @@ class MasterExcelService
             return $byName;
         }
 
-        $byCode = TProdi::query()->where('KODE_PRODI', $value)->first();
+        $byCode = TProdi::query()
+            ->where('STATUS_AKTIF', 'AKTIF')
+            ->where('KODE_PRODI', $value)
+            ->first();
         if ($byCode && ($digit === null || substr($byCode->kode_prodi, 0, 1) === $digit)) {
             return $byCode;
         }
 
         return null;
+    }
+
+    /**
+     * Daftar prodi untuk validasi NAMA PRODI di sisi client saat preview import.
+     * Sengaja membaca seluruh t_prodi (tanpa filter fakultas/role) supaya
+     * resolveProdiClient() meniru resolveProdi() persis dan status di preview
+     * tidak berbeda dengan hasil validasi server.
+     */
+    public static function prodiLookup(): array
+    {
+        return TProdi::query()
+            ->orderBy('KODE_PRODI')
+            ->get(['KODE_PRODI', 'NAMA_PRODI'])
+            ->map(fn ($p) => [
+                'kode' => (string) $p->KODE_PRODI,
+                'nama' => (string) $p->NAMA_PRODI,
+            ])
+            ->all();
     }
 
     /**
@@ -260,9 +284,17 @@ class MasterExcelService
         $prodi = self::resolveProdi($clean['program_studi'], $strataVal);
         if (!$prodi) {
             $message = 'Program studi "' . $clean['program_studi'] . '" tidak terdaftar';
-            $otherStrata = self::prodiStrataList($clean['program_studi']);
-            if ($otherStrata && !in_array($strataVal, $otherStrata, true)) {
-                $message .= ' pada strata ' . $strataVal . ' (tersedia di ' . implode(', ', $otherStrata) . ')';
+            $inactive = TProdi::query()
+                ->where('STATUS_AKTIF', '!=', 'AKTIF')
+                ->whereRaw('UPPER(TRIM(NAMA_PRODI)) = ?', [mb_strtoupper($clean['program_studi'])])
+                ->exists();
+            if ($inactive) {
+                $message = 'Program studi "' . $clean['program_studi'] . '" berstatus NON AKTIF di master prodi';
+            } else {
+                $otherStrata = self::prodiStrataList($clean['program_studi']);
+                if ($otherStrata && !in_array($strataVal, $otherStrata, true)) {
+                    $message .= ' pada strata ' . $strataVal . ' (tersedia di ' . implode(', ', $otherStrata) . ')';
+                }
             }
 
             return ['result' => 'error', 'message' => $message] + $clean;

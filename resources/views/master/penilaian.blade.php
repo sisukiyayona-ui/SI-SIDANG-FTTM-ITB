@@ -369,6 +369,8 @@
 <script>
     let importRows = [];
     let importMeta = { tahapan: [], strata: ['S1', 'S2', 'S3'] };
+    var prodisClient = @json(\App\Services\MasterExcelService::prodiLookup());
+    var strataDigitClient = @json(\App\Services\MasterExcelService::STRATA_DIGIT);
 
     function csrfToken() {
         return document.querySelector('input[name="_token"]').value;
@@ -471,16 +473,16 @@
             const tahapOpts = tahapanSelectOptions(r.tahapan);
             return `<tr data-idx="${i}">
                 <td class="text-center">${i + 1}</td>
-                <td><input type="text" class="form-control form-control-sm ${canSave ? '' : 'is-invalid'}" list="prodiListImport" value="${escapeAttr(r.program_studi)}" oninput="updateImportRow(${i}, 'program_studi', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm ${canSave ? '' : 'is-invalid'}" data-validate-prodi list="prodiListImport" value="${escapeAttr(r.program_studi)}" oninput="updateImportRow(${i}, 'program_studi', this.value)"></td>
                 <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.nama)}" oninput="updateImportRow(${i}, 'nama', this.value)"></td>
                 <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.no_form)}" oninput="updateImportRow(${i}, 'no_form', this.value)"></td>
                 <td>
-                    <select class="form-control form-control-sm ${canSave ? '' : 'is-invalid'}" onchange="updateImportRow(${i}, 'tahapan', this.value)">
+                    <select class="form-control form-control-sm ${canSave ? '' : 'is-invalid'}" data-validate-tahapan onchange="updateImportRow(${i}, 'tahapan', this.value)">
                         ${tahapOpts.map(o => `<option value="${escapeAttr(o.value)}" ${o.value === r.tahapan ? 'selected' : ''}>${escapeAttr(o.label)}</option>`).join('')}
                     </select>
                 </td>
                 <td>
-                    <select class="form-control form-control-sm" onchange="updateImportRow(${i}, 'strata', this.value)">
+                    <select class="form-control form-control-sm" data-validate-strata onchange="updateImportRow(${i}, 'strata', this.value)">
                         ${['', 'S1', 'S2', 'S3'].map(s => `<option value="${s}" ${String(r.strata).toUpperCase() === s ? 'selected' : ''}>${s || '-'}</option>`).join('')}
                     </select>
                 </td>
@@ -522,21 +524,24 @@
         const tahapan = canon;
         r.result = 'ok';
         r.message = 'Siap disimpan';
+        // Urutan & isi pesan meniru validateItemRow() di server.
+        const prodi = strata ? resolveProdiClient(programStudi, strata) : null;
         if (!programStudi) { r.result = 'error'; r.message = 'NAMA PRODI kosong'; }
         else if (!nama) { r.result = 'error'; r.message = 'PARAMETER PENILAIAN kosong'; }
         else if (!strata) { r.result = 'error'; r.message = 'Strata harus S1/S2/S3'; }
+        else if (!prodi) { r.result = 'error'; r.message = prodiErrorClient(programStudi, strata); }
         else if (!tahapan) { r.result = 'error'; r.message = 'Tahapan tidak terdaftar di master'; }
-        else { r.tahapan = tahapan; r.strata = strata; }
+        else { r.tahapan = tahapan; r.strata = strata; r.kode_prodi = prodi.kode; r.nama_prodi = prodi.nama; }
 
-        // cek duplikat antar baris (program studi+tahapan+nama)
+        // cek duplikat antar baris (kode prodi+tahapan+nama)
         if (r.result === 'ok') {
-            const key = programStudi.toLowerCase() + '|' + strata + '|' + String(r.tahapan).toLowerCase() + '|' + nama.toLowerCase();
+            const key = r.kode_prodi + '|' + String(r.tahapan).toLowerCase() + '|' + nama.toLowerCase();
             for (let j = 0; j < importRows.length; j++) {
                 if (j === idx) continue;
                 const o = importRows[j];
                 if (String(o.result) !== 'ok') continue;
-                const okey = String(o.program_studi).trim().toLowerCase() + '|' + canonicalStrataClient(o.strata) + '|'
-                    + String(o.tahapan).toLowerCase() + '|' + String(o.nama).trim().toLowerCase();
+                const okey = String(o.kode_prodi || '') + '|' + String(o.tahapan).toLowerCase() + '|'
+                    + String(o.nama).trim().toLowerCase();
                 if (okey === key) { r.result = 'duplicate'; r.message = 'Duplikat baris lain di file'; break; }
             }
         }
@@ -549,6 +554,10 @@
             badge.textContent = st.label;
             const msg = tr.querySelector('.small.text-muted');
             if (msg) msg.textContent = r.message;
+            // Samakan penanda kolom wajib dengan status baris terbaru.
+            tr.querySelectorAll('[data-validate-prodi], [data-validate-tahapan], [data-validate-strata]').forEach(el => {
+                el.classList.toggle('is-invalid', r.result !== 'ok');
+            });
         }
         updateImportSummary();
     }
@@ -556,6 +565,38 @@
     function canonicalStrataClient(v) {
         const raw = String(v ?? '').toUpperCase().replace(/\s+/g, '');
         return /^S?[123]$/.test(raw) ? 'S' + raw.replace(/^S?/, '') : '';
+    }
+
+    function normalisasiNamaProdi(v) {
+        return String(v ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
+    }
+
+    // Cermin MasterExcelService::resolveProdi(): nama prodi (case/trim tolerant)
+    // dibatasi digit pertama kode sesuai strata, kode prodi lama jadi cadangan.
+    function resolveProdiClient(value, strata) {
+        const raw = String(value ?? '').trim();
+        if (!raw) return null;
+        const digit = strataDigitClient[strata] || null;
+        const needle = normalisasiNamaProdi(raw);
+        const byName = prodisClient.find(p => normalisasiNamaProdi(p.nama) === needle
+            && (!digit || String(p.kode).charAt(0) === digit));
+        if (byName) return byName;
+        const byCode = prodisClient.find(p => String(p.kode) === raw);
+        if (byCode && (!digit || String(byCode.kode).charAt(0) === digit)) return byCode;
+        return null;
+    }
+
+    // Cermin pesan error MasterExcelService: nama prodi terdaftar, tapi tidak di strata ini.
+    function prodiErrorClient(value, strata) {
+        let message = 'Program studi "' + String(value).trim() + '" tidak terdaftar';
+        const needle = normalisasiNamaProdi(value);
+        const lain = [...new Set(prodisClient
+            .filter(p => normalisasiNamaProdi(p.nama) === needle)
+            .map(p => 'S' + String(p.kode).charAt(0)))];
+        if (lain.length && !lain.includes(strata)) {
+            message += ' pada strata ' + strata + ' (tersedia di ' + lain.join(', ') + ')';
+        }
+        return message;
     }
 
     function removeImportRow(idx) {
