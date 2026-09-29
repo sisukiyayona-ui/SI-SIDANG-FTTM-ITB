@@ -82,6 +82,49 @@
             background-color: #0f172a !important;
             color: #ffffff !important;
         }
+
+        /* Override di atas menetralkan .text-danger menjadi warna teks biasa.
+           Warning upload perlu selalu merah & terbaca, jadi pakai kelas khusus
+           yang menang dari override tersebut. */
+        .tahap-container .warning-file-upload {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            border-left: 4px solid #dc2626;
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #991b1b;
+        }
+        html:not(.dark-mode) .tahap-container .warning-file-upload,
+        html.dark-mode .tahap-container .warning-file-upload {
+            color: #991b1b;
+        }
+        .tahap-container .warning-file-upload .warning-file-upload-icon {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background-color: #dc2626;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        html:not(.dark-mode) .tahap-container .warning-file-upload .warning-file-upload-icon,
+        html.dark-mode .tahap-container .warning-file-upload .warning-file-upload-icon {
+            color: #ffffff;
+        }
+        html.dark-mode .tahap-container .warning-file-upload {
+            background-color: #450a0a;
+            border-color: #7f1d1d;
+            border-left-color: #ef4444;
+            color: #fecaca;
+        }
     </style>
     @php
         $isTahap1 = strtolower($tahapan) === 'tahap i';
@@ -257,6 +300,10 @@
                 <div class="tab-pane fade show active" id="persyaratan" role="tabpanel">
                     <div class="text-muted font-weight-bold mb-2 ml-1">
                         Mengambil Mata Kuliah Ujian Kualifikasi
+                    </div>
+                    <div class="warning-file-upload mb-3">
+                        <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                        <span class="warning-file-upload-text">File penelitian tidak perlu diupload. Ukuran maksimal file <strong>2 MB</strong>.</span>
                     </div>
                     <table class="table table-bordered table-sm text-center mb-4">
                         <thead class="bg-light text-dark">
@@ -571,7 +618,9 @@
                             <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
                             @endif
                         </div>
-                        {{-- TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang).
+                        {{-- TU Prodi: tombol Kunci Nilai disembunyikan, baru muncul saat penilai terpilih
+                             ber-keterangan "Ketua Pembimbing" (data-lock-gate + syncLockNilaiGate).
+                             Admin: tombol SELALU tampil (bisa kunci berulang).
                              Pembimbing/Penguji: tombol saat belum terkunci, badge setelah terkunci.
                              FS: tidak ada tombol. --}}
                         @if(!in_array(session('auth_user.role'), ['FS']))
@@ -579,7 +628,7 @@
                             @if($isCanLockNilai && $isNilaiTerkunci)
                             <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                             @else
-                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button>
                             @endif
                             <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                         </div>
@@ -687,6 +736,10 @@
                 <div class="tab-pane fade show active" id="persyaratan" role="tabpanel">
                     <div class="text-muted font-weight-bold mb-2 ml-1">
                         Persyaratan Sidang <span class="text-danger text-decoration-underline">{{ getTahapLabel($tahapan) }}</span>
+                    </div>
+                    <div class="warning-file-upload mb-3">
+                        <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                        <span class="warning-file-upload-text">File penelitian tidak perlu diupload. Ukuran maksimal file <strong>2 MB</strong>.</span>
                     </div>
                     <table class="table table-bordered table-sm text-center mb-4">
                         <thead style="background-color: #6998d3; color: white;">
@@ -1259,7 +1312,9 @@
                             <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                                     @endif
                                 </div>
-                                {{-- TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang).
+                                {{-- TU Prodi: tombol Kunci Nilai disembunyikan, baru muncul saat penilai terpilih
+                                     ber-keterangan "Ketua Pembimbing" (data-lock-gate + syncLockNilaiGate).
+                                     Admin: tombol SELALU tampil (bisa kunci berulang).
                                      Pembimbing/Penguji: tombol saat belum terkunci, badge setelah terkunci.
                                      FS: tidak ada tombol. --}}
                                 @if(!in_array(session('auth_user.role'), ['FS']))
@@ -1267,7 +1322,7 @@
                                     @if($isCanLockNilai && $isNilaiTerkunci)
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                     @else
-                                    <button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                                    <button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button>
                                     @endif
                                     <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                                 </div>
@@ -2244,6 +2299,7 @@ function filterPenilaianTahap2() {
     }
     renumberColumn('penilaianTahap2Body');
     toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
+    syncLockNilaiGate('penilaiTahap2', 'lockNilaiTahap2Btn');
 }
 
 function renumberColumn(tbodyId) {
@@ -2342,6 +2398,7 @@ function filterPenilaian() {
     }
     renumberColumn('penilaianReportBody');
     toggleLockButton('penilaianReportBody', 'lockNilaiBtn');
+    syncLockNilaiGate('penilaianSelect', 'lockNilaiBtn');
 }
 
 function loadPenilaianForm() {
@@ -3064,6 +3121,19 @@ function saveStatusLulus2() {
     .catch(error => {
         showToast('Error: ' + error, 'error');
     });
+}
+
+// Gerbang tombol Kunci Nilai untuk TU Prodi: tombol hanya tampil bila penilai
+// terpilih ber-keterangan "Ketua Pembimbing". Tombol tanpa data-lock-gate tidak
+// dipengaruhi (Admin/Pembimbing/Penguji tetap perilaku lamanya).
+function syncLockNilaiGate(selectId, btnId) {
+    var btn = document.getElementById(btnId);
+    if (!btn || !btn.hasAttribute('data-lock-gate')) return;
+    var sel = document.getElementById(selectId);
+    var opt = (sel && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex] : null;
+    var keterangan = opt ? (opt.getAttribute('data-keterangan') || '') : '';
+    var isKetuaPembimbing = /ketua\s*pembimbing/i.test(keterangan);
+    btn.style.display = isKetuaPembimbing ? '' : 'none';
 }
 
 function toggleLockButton(tbodyId, btnId) {
