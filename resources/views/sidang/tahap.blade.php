@@ -142,6 +142,8 @@
         // TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang), tidak pernah badge.
         // Pembimbing/Penguji: tombol saat belum terkunci; badge "Nilai Terkunci" setelah terkunci.
         $isCanLockNilai = in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']);
+        $kelengkapanNilai = $kelengkapanNilai ?? ['lengkap' => false, 'ada_tim' => false, 'belum' => [], 'belum_parameter' => []];
+        $pesanKelengkapanNilai = \App\Services\KelengkapanNilaiSidang::pesan($kelengkapanNilai);
         $isNilaiTerkunci = false;
         $isDataTerkunci = false;
         if (isset($penilaian) && $penilaian->count() > 0) {
@@ -628,7 +630,7 @@
                             @if($isCanLockNilai && $isNilaiTerkunci)
                             <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                             @else
-                            <button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button>
+                            <span class="lock-nilai-wrap" id="lockNilaiBtnWrap" @if(session('auth_user.role') === 'TU Prodi') style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                             @endif
                             <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                         </div>
@@ -1322,7 +1324,7 @@
                                     @if($isCanLockNilai && $isNilaiTerkunci)
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                     @else
-                                    <button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button>
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" @if(session('auth_user.role') === 'TU Prodi') style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                     @endif
                                     <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                                 </div>
@@ -1936,6 +1938,21 @@
 #penilaianReportBody tr.penilaian-data-row { display: none; }
 .locked-overlay { position: relative; }
 .locked-overlay input:disabled { opacity: 0.7; background-color: #e9ecef !important; cursor: not-allowed; }
+
+.lock-nilai-wrap { display: inline-flex; cursor: not-allowed; }
+.lock-nilai-wrap.is-ready { cursor: default; }
+.lock-nilai-wrap .btn[disabled] { cursor: not-allowed; opacity: 0.65; }
+
+.tooltip.lock-nilai-tooltip { max-width: 340px; }
+.tooltip.lock-nilai-tooltip .tooltip-inner {
+    max-width: 340px;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.4;
+    font-size: 12px;
+}
 </style>
 <script>
 var persyaratanFiles = {};
@@ -1943,6 +1960,36 @@ var persyaratanFiles = {};
 var isNilaiTerkunci = {{ ($isNilaiTerkunci ?? false) ? 'true' : 'false' }};
 var isDataTerkunci = {{ ($isDataTerkunci ?? false) ? 'true' : 'false' }};
 var isCanLockNilai = {{ ($isCanLockNilai ?? false) ? 'true' : 'false' }};
+var isTUPandi = {{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin']) ? 'true' : 'false' }};
+var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
+var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
+
+function initLockNilaiTooltips() {
+    if (typeof $ === 'undefined' || !$.fn || !$.fn.tooltip) return;
+    $('[data-toggle="tooltip"]').each(function() {
+        if ($(this).data('bs.tooltip')) return;
+        $(this).tooltip({ trigger: 'hover focus', container: 'body' });
+    });
+}
+
+function setLockNilaiTooltip(btnId, message) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    var wrap = btn.closest('.lock-nilai-wrap') || btn;
+    var text = message || 'Kunci Nilai';
+    if (typeof $ !== 'undefined' && $.fn && $.fn.tooltip) {
+        $(wrap).attr('data-original-title', text).tooltip('dispose').tooltip({
+            trigger: 'hover focus',
+            container: 'body',
+            html: true,
+            template: '<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">' + text + '</div></div>'
+        });
+    } else {
+        wrap.setAttribute('title', text);
+    }
+    wrap.classList.toggle('is-ready', !btn.disabled);
+    wrap.classList.toggle('is-blocked', !!btn.disabled);
+}
 document.addEventListener('DOMContentLoaded', function() {
     if (isNilaiTerkunci) {
         disablePenilaianInputs('penilaianReportBody');
@@ -3134,13 +3181,15 @@ function syncLockNilaiGate(selectId, btnId) {
     var keterangan = opt ? (opt.getAttribute('data-keterangan') || '') : '';
     var isKetuaPembimbing = /ketua\s*pembimbing/i.test(keterangan);
     btn.style.display = isKetuaPembimbing ? '' : 'none';
+    var wrap = btn.closest('.lock-nilai-wrap');
+    if (wrap) wrap.style.display = isKetuaPembimbing ? '' : 'none';
 }
 
 function toggleLockButton(tbodyId, btnId) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
     var tbody = document.getElementById(tbodyId);
-    if (!tbody) { btn.disabled = true; return; }
+    if (!tbody) { btn.disabled = true; setLockNilaiTooltip(btnId, PESAN_KELENGKAPAN); return; }
 
     var statusLulusId = '';
     if (tbodyId === 'penilaianReportBody') statusLulusId = 'statusLulusDisplay';
@@ -3171,12 +3220,30 @@ function toggleLockButton(tbodyId, btnId) {
             }
         }
     }
-    var enabled = hasVisible && allFilled;
+
+    // TU Prodi hanya boleh mengunci setelah SELURUH Pembimbing & Penguji
+    // selesai mengisi nilainya, bukan hanya penilai yang sedang dipilih.
+    var timLengkap = true;
+    if (isTUPandi && btn.hasAttribute('data-lock-gate')) {
+        timLengkap = !!(KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.lengkap);
+    }
+
+    var enabled = hasVisible && allFilled && timLengkap;
     btn.disabled = !enabled;
     if (statusEl) statusEl.disabled = !enabled;
+
+    if (isTUPandi && btn.hasAttribute('data-lock-gate')) {
+        setLockNilaiTooltip(btnId, enabled ? 'Kunci nilai. Setelah dikunci, nilai tidak dapat diubah.' : PESAN_KELENGKAPAN);
+    }
 }
 
 async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
+    // TU Prodi: jangan buka konfirmasi kalau tombol sedang terkunci oleh gate
+    var btnEl = document.getElementById(btnId);
+    if (isTUPandi && btnEl && btnEl.disabled) {
+        showToast(PESAN_KELENGKAPAN || 'Pembimbing/Penguji belum mengisi nilai.', 'error');
+        return;
+    }
     var ok = await showConfirmDialog({
         title: 'Kunci Nilai',
         message: 'Apakah Anda yakin ingin mengunci nilai? Setelah dikunci, nilai tidak dapat diubah.',
@@ -3253,7 +3320,7 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
                 if (formSimpan) formSimpan.disabled = true;
             }
         } else {
-            showToast('Error: ' + (data.error || 'Gagal mengunci nilai'), 'error');
+            showToast('Error: ' + (data.error || data.message || 'Gagal mengunci nilai'), 'error');
         }
     })
     .catch(function(error) {
@@ -3703,6 +3770,14 @@ function showToast(message, type) {
 
 // Tab switching for Tahap I
 $(document).ready(function() {
+    // Tooltip Kunci Nilai (di-init ulang karena sebagian konten masuk via AJAX)
+    initLockNilaiTooltips();
+    if (isTUPandi) {
+        var _blocked = PESAN_KELENGKAPAN || 'Pembimbing/Penguji belum mengisi nilai.';
+        setLockNilaiTooltip('lockNilaiBtn', _blocked);
+        setLockNilaiTooltip('lockNilaiTahap2Btn', _blocked);
+    }
+
     $('#myTab a').on('click', function(e) {
         e.preventDefault();
         $(this).tab('show');

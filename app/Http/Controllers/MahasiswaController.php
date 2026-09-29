@@ -352,14 +352,19 @@ class MahasiswaController extends Controller
             $isKetuaPembimbing = $ketuaPembimbing !== null;
         }
             
+        // Kelengkapan nilai seluruh tim Pembimbing & Penguji (gate tombol Kunci Nilai)
+        $kelengkapanNilai = \App\Services\KelengkapanNilaiSidang::cek($idJudul, $tahapan, $kodeProdi);
+
         // Return HTML fragment for AJAX request
         $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
 
+        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList', 'kelengkapanNilai');
+
         if (request()->ajax()) {
-            return view($viewName, compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList'))->render();
+            return view($viewName, $viewData)->render();
         }
         
-        return view($viewName, compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList'));
+        return view($viewName, $viewData);
     }
     
     public function uploadPersyaratan(\Illuminate\Http\Request $request)
