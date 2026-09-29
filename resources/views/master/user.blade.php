@@ -1436,7 +1436,7 @@
     function syncItbData() {
         showConfirmDialog({
             title: 'Update Data ITB',
-            message: 'Apakah Anda yakin ingin memperbarui data dosen/tendik menggunakan data terbaru dari pusat ITB?'
+            message: 'Apakah Anda yakin ingin memperbarui data dosen/tendik menggunakan data terbaru dari pusat ITB?',
             confirmText: 'Ya, Update',
             type: 'warning'
         }).then(function(ok) {

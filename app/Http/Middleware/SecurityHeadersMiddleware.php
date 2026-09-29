@@ -59,10 +59,10 @@ class SecurityHeadersMiddleware
     {
         $configured = parse_url((string) config('app.url'), PHP_URL_SCHEME);
 
-        if (! in_array($configured, ['http', 'https'], true)) {
+        if ($configured !== 'http') {
             return;
         }
 
-        $request->server->set('HTTPS', $configured === 'https' ? 'on' : 'off');
+        $request->server->set('HTTPS', 'off');
     }
 }
