@@ -9,17 +9,25 @@ class SecurityHeadersMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
+        $this->syncRequestScheme($request);
+
         $nonce = bin2hex(random_bytes(16));
         $request->attributes->set('csp_nonce', $nonce);
 
         $response = $next($request);
+
+        $isHttps = $request->isSecure();
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+
+        if ($isHttps) {
+            $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+        }
+
         $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
         $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
 
@@ -36,10 +44,25 @@ class SecurityHeadersMiddleware
                "connect-src 'self' https://cdn.jsdelivr.net; " .
                "frame-ancestors 'none'; " .
                "form-action 'self'; " .
-               "base-uri 'self'; " .
-               "upgrade-insecure-requests;";
+               "base-uri 'self';";
+
+        if ($isHttps) {
+            $csp .= " upgrade-insecure-requests;";
+        }
+
         $response->headers->set('Content-Security-Policy', $csp);
 
         return $response;
+    }
+
+    private function syncRequestScheme(Request $request): void
+    {
+        $configured = parse_url((string) config('app.url'), PHP_URL_SCHEME);
+
+        if (! in_array($configured, ['http', 'https'], true)) {
+            return;
+        }
+
+        $request->server->set('HTTPS', $configured === 'https' ? 'on' : 'off');
     }
 }
