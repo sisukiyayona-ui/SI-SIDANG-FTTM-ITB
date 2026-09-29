@@ -152,6 +152,24 @@
                 $isNilaiTerkunci = $isDataTerkunci;
             }
         }
+
+        // Sebuah role "Pembimbing"/"Penguji" ikut diperlakukan seperti TU Prodi
+        // bila user tersebut adalah Ketua Pembimbing pada judul + tahapan ini:
+        // tombol Kunci Nilai ikut ter-gate (disabled + tooltip sampai tim lengkap).
+        $isKetuaPembimbingUser = false;
+        if ($isCanLockNilai && isset($timSidang) && $timSidang->count() > 0) {
+            $authUserId = (int) session('auth_user.id');
+            $isKetuaPembimbingUser = $timSidang->contains(function ($t) use ($authUserId) {
+                if ((int) $t->id_user_penilai !== $authUserId) {
+                    return false;
+                }
+                $peran = strtolower(trim((string) ($t->keterangan ?? $t->status_tim_sidang ?? '')));
+
+                return str_contains($peran, 'ketua pembimbing');
+            });
+        }
+
+        $isGateLockNilai = session('auth_user.role') === 'TU Prodi' || $isKetuaPembimbingUser;
     @endphp
 
     <!-- Modal Tambah No SK -->
@@ -620,17 +638,20 @@
                             <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
                             @endif
                         </div>
-                        {{-- TU Prodi: tombol Kunci Nilai disembunyikan, baru muncul saat penilai terpilih
-                             ber-keterangan "Ketua Pembimbing" (data-lock-gate + syncLockNilaiGate).
+                        {{-- TU Prodi dan Pembimbing/Penguji yang menjadi Ketua Pembimbing:
+                             tombol Kunci Nilai disembunyikan, baru muncul saat penilai
+                             terpilih ber-keterangan "Ketua Pembimbing" (data-lock-gate +
+                             syncLockNilaiGate), dan disabled sampai tim nilai lengkap.
                              Admin: tombol SELALU tampil (bisa kunci berulang).
-                             Pembimbing/Penguji: tombol saat belum terkunci, badge setelah terkunci.
+                             Pembimbing/Penguji biasa: tombol saat belum terkunci, badge
+                             setelah terkunci.
                              FS: tidak ada tombol. --}}
                         @if(!in_array(session('auth_user.role'), ['FS']))
                         <div class="d-flex align-items-center">
                             @if($isCanLockNilai && $isNilaiTerkunci)
                             <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                             @else
-                            <span class="lock-nilai-wrap" id="lockNilaiBtnWrap" @if(session('auth_user.role') === 'TU Prodi') style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                            <span class="lock-nilai-wrap" id="lockNilaiBtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                             @endif
                             <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                         </div>
@@ -1324,7 +1345,7 @@
                                     @if($isCanLockNilai && $isNilaiTerkunci)
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                     @else
-                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" @if(session('auth_user.role') === 'TU Prodi') style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai" @if(session('auth_user.role') === 'TU Prodi') data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                     @endif
                                     <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
                                 </div>
@@ -1961,6 +1982,10 @@ var isNilaiTerkunci = {{ ($isNilaiTerkunci ?? false) ? 'true' : 'false' }};
 var isDataTerkunci = {{ ($isDataTerkunci ?? false) ? 'true' : 'false' }};
 var isCanLockNilai = {{ ($isCanLockNilai ?? false) ? 'true' : 'false' }};
 var isTUPandi = {{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin']) ? 'true' : 'false' }};
+// Gate Kunci Nilai aktif untuk TU Prodi, atau untuk Pembimbing/Penguji yang
+// kebetulan menjadi Ketua Pembimbing pada judul + tahapan ini.
+var isLockGateActive = {{ ($isGateLockNilai ?? false) ? 'true' : 'false' }};
+var isKetuaPembimbingUser = {{ ($isKetuaPembimbingUser ?? false) ? 'true' : 'false' }};
 var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
 var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
 
@@ -3170,9 +3195,10 @@ function saveStatusLulus2() {
     });
 }
 
-// Gerbang tombol Kunci Nilai untuk TU Prodi: tombol hanya tampil bila penilai
-// terpilih ber-keterangan "Ketua Pembimbing". Tombol tanpa data-lock-gate tidak
-// dipengaruhi (Admin/Pembimbing/Penguji tetap perilaku lamanya).
+// Gerbang tombol Kunci Nilai: tombol hanya tampil bila penilai terpilih
+// ber-keterangan "Ketua Pembimbing". Berlaku untuk TU Prodi dan untuk
+// Pembimbing/Penguji yang menjadi Ketua Pembimbing (tombolnya punya
+// data-lock-gate). Tombol tanpa data-lock-gate tidak dipengaruhi.
 function syncLockNilaiGate(selectId, btnId) {
     var btn = document.getElementById(btnId);
     if (!btn || !btn.hasAttribute('data-lock-gate')) return;
@@ -3221,10 +3247,11 @@ function toggleLockButton(tbodyId, btnId) {
         }
     }
 
-    // TU Prodi hanya boleh mengunci setelah SELURUH Pembimbing & Penguji
-    // selesai mengisi nilainya, bukan hanya penilai yang sedang dipilih.
+    // Gate aktif (TU Prodi, atau Pembimbing/Penguji yang menjadi Ketua Pembimbing)
+    // hanya boleh mengunci setelah SELURUH Pembimbing & Penguji selesai mengisi
+    // nilainya, bukan hanya penilai yang sedang dipilih.
     var timLengkap = true;
-    if (isTUPandi && btn.hasAttribute('data-lock-gate')) {
+    if (isLockGateActive && btn.hasAttribute('data-lock-gate')) {
         timLengkap = !!(KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.lengkap);
     }
 
@@ -3232,15 +3259,15 @@ function toggleLockButton(tbodyId, btnId) {
     btn.disabled = !enabled;
     if (statusEl) statusEl.disabled = !enabled;
 
-    if (isTUPandi && btn.hasAttribute('data-lock-gate')) {
+    if (isLockGateActive && btn.hasAttribute('data-lock-gate')) {
         setLockNilaiTooltip(btnId, enabled ? 'Kunci nilai. Setelah dikunci, nilai tidak dapat diubah.' : PESAN_KELENGKAPAN);
     }
 }
 
 async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
-    // TU Prodi: jangan buka konfirmasi kalau tombol sedang terkunci oleh gate
+    // Jangan buka konfirmasi kalau tombol sedang terkunci oleh gate
     var btnEl = document.getElementById(btnId);
-    if (isTUPandi && btnEl && btnEl.disabled) {
+    if (isLockGateActive && btnEl && btnEl.disabled) {
         showToast(PESAN_KELENGKAPAN || 'Pembimbing/Penguji belum mengisi nilai.', 'error');
         return;
     }

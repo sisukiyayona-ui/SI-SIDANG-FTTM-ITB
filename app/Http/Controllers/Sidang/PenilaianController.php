@@ -286,9 +286,18 @@ class PenilaianController extends Controller
 
             $statusLulus = $request->filled('status_lulus') ? $request->status_lulus : null;
 
-            // 0. Guard kelengkapan tim (khusus TU Prodi): seluruh Pembimbing & Penguji
-            //    harus sudah mengisi nilai sebelum nilai boleh dikunci.
-            if (($user['role'] ?? null) === 'TU Prodi' && $request->nilai_terkunci === 'y') {
+            // 0. Guard kelengkapan tim. Berlaku untuk TU Prodi, dan juga untuk
+            //    Pembimbing/Penguji yang merupakan Ketua Pembimbing pada judul +
+            //    tahapan ini (mereka punya wewenang mengunci semua nilai).
+            $isKetuaPembimbingRequest = TTimSidang::where('id', $request->id_tim_sidang)
+                ->where('ID_JUDUL', $id)
+                ->where('STATUS_TIM_SIDANG', 'LIKE', '%Ketua Pembimbing%')
+                ->exists();
+
+            $perluGate = ($user['role'] ?? null) === 'TU Prodi'
+                || (in_array($user['role'] ?? null, ['Pembimbing', 'Penguji'], true) && $isKetuaPembimbingRequest);
+
+            if ($perluGate && $request->nilai_terkunci === 'y') {
                 $kodeProdi = DB::table('t_ajuan_sidang')
                     ->where('ID_JUDUL', $id)
                     ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
@@ -329,9 +338,12 @@ class PenilaianController extends Controller
                 ->exists();
 
             // 2. Update t_penilaian.
-            //    - Ketua Pembimbing mengunci  -> SELURUH penilai pada judul+tahapan
-            //      ini ikut terkunci (NILAI_TERKUNCI=1 dan STATUS_LULUS ikut terisi).
-            //    - Penilai lain              -> hanya baris miliknya sendiri.
+            //    - TU Prodi mengunci (mewakili Ketua Pembimbing terpilih) -> SELURUH
+            //      penilai pada judul+tahapan ini ikut terkunci: NILAI_TERKUNCI=1
+            //      dan STATUS_LULUS ikut terisi.
+            //    - Role lain, termasuk Pembimbing yang menjadi Ketua Pembimbing
+            //      -> HANYA baris miliknya sendiri. Nilai penilai lain tidak
+            //      boleh diubah dari ROLE 'Pembimbing'.
             $nilaiTerkunciInt = $request->nilai_terkunci === 'y' ? 1 : 0;
             $updatePenilaian = [
                 'NILAI_TERKUNCI' => $nilaiTerkunciInt,
@@ -341,11 +353,13 @@ class PenilaianController extends Controller
                 $updatePenilaian['STATUS_LULUS'] = $statusLulus;
             }
 
+            $isTuProdi = ($user['role'] ?? null) === 'TU Prodi';
+
             $queryPenilaian = DB::table('t_penilaian')
                 ->where('ID_JUDUL', $id)
                 ->where('TAHAPAN_SIDANG', $request->tahapan_sidang);
 
-            if (! $isKetuaPembimbing) {
+            if (! $isTuProdi) {
                 $queryPenilaian->where('ID_TIM_SIDANG', $request->id_tim_sidang);
             }
 
@@ -353,25 +367,24 @@ class PenilaianController extends Controller
 
             \Log::info('Lock Nilai: Updated t_penilaian', [
                 'id_judul' => $id,
+                'role' => $user['role'] ?? null,
                 'tahapan_sidang' => $request->tahapan_sidang,
                 'id_tim_sidang' => $request->id_tim_sidang,
                 'peran' => $timSidang->STATUS_TIM_SIDANG ?? null,
                 'is_ketua_pembimbing' => $isKetuaPembimbing,
-                'scope' => $isKetuaPembimbing ? 'semua penilai' : 'hanya penilai sendiri',
+                'scope' => $isTuProdi ? 'semua penilai (TU Prodi)' : 'hanya penilai sendiri',
                 'nilai_terkunci' => $request->nilai_terkunci,
                 'status_lulus' => $statusLulus,
                 'rows_affected' => $jumlahPenilaian,
             ]);
 
-            // 3. Sync t_ajuan_sidang - HANYA Ketua Pembimbing.
-            //    - Ketua Pembimbing mengunci  -> NILAI_TERKUNCI + STATUS_LULUS.
-            //      NILAI_TERKUNCI tidak lagi tertahan bila dropdown "Pilih status"
-            //      kosong (dulu membuat t_ajuan_sidang tetap NILAI_TERKUNCI='t'
-            //      padahal nilai sudah dikunci).
-            //    - Penilai lain (Pembimbing I, Penguji, dll.) TIDAK boleh menyentuh
-            //      t_ajuan_sidang sama sekali, walaupun tim tidak punya Ketua
-            //      Pembimbing. Nilai mereka tetap bisa dikunci sendiri di
-            //      t_penilaian, tetapi status ajuan harus disetujui Ketua.
+            // 3. Sync t_ajuan_sidang - hak ini milik orang yang mengunci dalam
+            //    peran Ketua Pembimbing: baik dia sendiri (role 'Pembimbing')
+            //    maupun TU Prodi yang bertindak mewakilinya. Penilai lain
+            //    tidak boleh menyentuh t_ajuan_sidang.
+            //    NILAI_TERKUNCI tidak lagi tertahan bila dropdown "Pilih status"
+            //    kosong (dulu membuat t_ajuan_sidang tetap NILAI_TERKUNCI='t'
+            //    padahal nilai sudah dikunci).
             if ($isKetuaPembimbing) {
                 $updateAjuan = [
                     'NILAI_TERKUNCI' => $request->nilai_terkunci,
@@ -379,18 +392,15 @@ class PenilaianController extends Controller
                 ];
                 $statusLulusFinal = null;
 
-                if ($isKetuaPembimbing) {
-                    $statusLulusFinal = $statusLulus ?: DB::table('t_penilaian')
-                        ->where('ID_JUDUL', $id)
-                        ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
-                        ->where('ID_TIM_SIDANG', $request->id_tim_sidang)
-                        ->whereNotNull('STATUS_LULUS')
-                        ->where('STATUS_LULUS', '<>', '')
-                        ->value('STATUS_LULUS');
+                $statusLulusFinal = $statusLulus ?: DB::table('t_penilaian')
+                    ->where('ID_JUDUL', $id)
+                    ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                    ->whereNotNull('STATUS_LULUS')
+                    ->where('STATUS_LULUS', '<>', '')
+                    ->value('STATUS_LULUS');
 
-                    if ($statusLulusFinal) {
-                        $updateAjuan['STATUS_LULUS'] = $statusLulusFinal;
-                    }
+                if ($statusLulusFinal) {
+                    $updateAjuan['STATUS_LULUS'] = $statusLulusFinal;
                 }
 
                 $jumlahAjuan = DB::table('t_ajuan_sidang')
@@ -400,6 +410,7 @@ class PenilaianController extends Controller
 
                 \Log::info('Lock Nilai: Updated t_ajuan_sidang', [
                     'id_judul' => $id,
+                    'role' => $user['role'] ?? null,
                     'tahapan_sidang' => $request->tahapan_sidang,
                     'id_tim_sidang' => $request->id_tim_sidang,
                     'peran' => $timSidang->STATUS_TIM_SIDANG ?? null,
