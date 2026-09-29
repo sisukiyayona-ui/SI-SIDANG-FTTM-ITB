@@ -27,6 +27,9 @@ class KelengkapanNilaiSidang
             'lengkap' => false,
             'ada_tim' => $penilai->isNotEmpty(),
             'belum' => [],
+            'belum_parameter' => [],
+            'sudah_pakai_form' => [],
+            'per_tim' => [],
         ];
 
         if ($penilai->isEmpty()) {
@@ -39,6 +42,7 @@ class KelengkapanNilaiSidang
             ->get(['ID_TIM_SIDANG', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'CATATAN']);
 
         $filled = [];
+        $filledByTim = [];
         foreach ($rows as $r) {
             $nilai = $r->NILAI === null ? '' : trim((string) $r->NILAI);
             $catatan = $r->CATATAN === null ? '' : trim((string) $r->CATATAN);
@@ -46,8 +50,12 @@ class KelengkapanNilaiSidang
                 continue;
             }
             $filled[] = (int) $r->ID_PENILAIAN;
+            $filledByTim[(int) $r->ID_TIM_SIDANG][] = (int) $r->ID_PENILAIAN;
         }
         $filled = array_unique($filled);
+        foreach ($filledByTim as $k => $v) {
+            $filledByTim[$k] = array_unique($v);
+        }
 
         $perTim = $rows->groupBy('ID_TIM_SIDANG');
         foreach ($penilai as $t) {
@@ -59,17 +67,46 @@ class KelengkapanNilaiSidang
         $forms = $rows->pluck('NO_FORM')->filter()->unique()->values();
         $belumParameter = [];
 
+        // Hitung sekali saja point aktif per form, dipakai untuk cek tim maupun per tim.
+        $pointPerForm = [];
         foreach ($forms as $form) {
             $pointIds = self::pointIds($tahapan, $form, $prodi);
-            if ($pointIds === []) {
-                continue;
+            if ($pointIds !== []) {
+                $pointPerForm[$form] = $pointIds;
             }
+        }
+
+        foreach ($pointPerForm as $form => $pointIds) {
             foreach ($pointIds as $pointId) {
                 if (! in_array($pointId, $filled, true)) {
                     $belumParameter[] = $form;
                     break;
                 }
             }
+        }
+
+        // Rincian per penilai: dipakai untuk membedakan "belum mengisi sama sekali"
+        // dari "sudah mengisi di form tapi belum klik Simpan" (data di DB masih kosong).
+        $hasil['per_tim'] = [];
+        foreach ($penilai as $t) {
+            $own = $filledByTim[$t->id] ?? [];
+            $belumOwn = [];
+            foreach ($pointPerForm as $form => $pointIds) {
+                foreach ($pointIds as $pointId) {
+                    if (! in_array($pointId, $own, true)) {
+                        $belumOwn[] = $form;
+                        break;
+                    }
+                }
+            }
+            $belumOwn = array_values(array_unique($belumOwn));
+            $ada = ! ($perTim[$t->id] ?? collect())->isEmpty();
+
+            $hasil['per_tim'][(string) $t->id] = [
+                'ada' => $ada,
+                'lengkap' => $ada && $belumOwn === [],
+                'belum_parameter' => $belumOwn,
+            ];
         }
 
         $hasil['belum_parameter'] = array_values(array_unique($belumParameter));

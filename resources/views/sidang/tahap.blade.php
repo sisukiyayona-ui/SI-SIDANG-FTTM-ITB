@@ -1670,7 +1670,7 @@
                                             @if($isNilaiTerkunci)
                                             <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                             @else
-                                            <button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" title="Kunci Nilai" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button>
+                                            <span class="lock-nilai-wrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" title="Kunci Nilai" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                             @endif
                                         </div>
                                         @endif
@@ -1988,6 +1988,7 @@ var isLockGateActive = {{ ($isGateLockNilai ?? false) ? 'true' : 'false' }};
 var isKetuaPembimbingUser = {{ ($isKetuaPembimbingUser ?? false) ? 'true' : 'false' }};
 var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
 var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
+var PESAN_BELUM_DISIMPAN = 'Nilai Anda belum disimpan. Simpan terlebih dahulu sebelum mengunci nilai.';
 
 function initLockNilaiTooltips() {
     if (typeof $ === 'undefined' || !$.fn || !$.fn.tooltip) return;
@@ -3211,6 +3212,17 @@ function syncLockNilaiGate(selectId, btnId) {
     if (wrap) wrap.style.display = isKetuaPembimbing ? '' : 'none';
 }
 
+// Select penilai yang dimiliki tiap tombol Kunci Nilai.
+function selectPenilaiUntuk(btnId) {
+    var map = {
+        lockNilaiBtn: 'penilaianSelect',
+        lockNilaiTahap2Btn: 'penilaiTahap2',
+        lockNilaiPembimbingBtn: 'penilaiPembimbing'
+    };
+    var sel = document.getElementById(map[btnId]);
+    return (sel && sel.value) ? sel.value : null;
+}
+
 function toggleLockButton(tbodyId, btnId) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
@@ -3247,28 +3259,45 @@ function toggleLockButton(tbodyId, btnId) {
         }
     }
 
-    // Gate aktif (TU Prodi, atau Pembimbing/Penguji yang menjadi Ketua Pembimbing)
-    // hanya boleh mengunci setelah SELURUH Pembimbing & Penguji selesai mengisi
-    // nilainya, bukan hanya penilai yang sedang dipilih.
+    // Level 1 - nilai milik penilai terpilih harus sudah tersimpan di database.
+    // Kalau form sudah terisi tapi belum diklik "Simpan", data di DB masih kosong
+    // sehingga tombol harus disabled dengan pesan "belum disimpan".
+    var perTim = (KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.per_tim) || {};
+    var timId = selectPenilaiUntuk(btnId);
+    var infoTim = timId ? perTim[timId] : null;
+    var belumDisimpan = !infoTim || !infoTim.lengkap;
+
+    // Level 2 - gate aktif (TU Prodi, atau Pembimbing/Penguji yang menjadi Ketua
+    // Pembimbing) hanya boleh mengunci setelah SELURUH Pembimbing & Penguji
+    // selesai mengisi, bukan hanya penilai yang sedang dipilih.
     var timLengkap = true;
     if (isLockGateActive && btn.hasAttribute('data-lock-gate')) {
         timLengkap = !!(KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.lengkap);
     }
 
-    var enabled = hasVisible && allFilled && timLengkap;
+    var enabled = hasVisible && allFilled && !belumDisimpan && timLengkap;
     btn.disabled = !enabled;
     if (statusEl) statusEl.disabled = !enabled;
 
-    if (isLockGateActive && btn.hasAttribute('data-lock-gate')) {
-        setLockNilaiTooltip(btnId, enabled ? 'Kunci nilai. Setelah dikunci, nilai tidak dapat diubah.' : PESAN_KELENGKAPAN);
+    var pesan = 'Kunci nilai. Setelah dikunci, nilai tidak dapat diubah.';
+    if (!enabled) {
+        if (belumDisimpan) {
+            pesan = PESAN_BELUM_DISIMPAN;
+        } else if (!timLengkap) {
+            pesan = PESAN_KELENGKAPAN;
+        } else {
+            pesan = 'Lengkapi dulu nilai pada baris yang terlihat sebelum mengunci.';
+        }
     }
+    setLockNilaiTooltip(btnId, pesan);
 }
 
 async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     // Jangan buka konfirmasi kalau tombol sedang terkunci oleh gate
     var btnEl = document.getElementById(btnId);
-    if (isLockGateActive && btnEl && btnEl.disabled) {
-        showToast(PESAN_KELENGKAPAN || 'Pembimbing/Penguji belum mengisi nilai.', 'error');
+    if (btnEl && btnEl.disabled) {
+        var wrapEl = btnEl.closest('.lock-nilai-wrap') || btnEl;
+        showToast(wrapEl.getAttribute('data-original-title') || 'Nilai belum disimpan.', 'error');
         return;
     }
     var ok = await showConfirmDialog({
