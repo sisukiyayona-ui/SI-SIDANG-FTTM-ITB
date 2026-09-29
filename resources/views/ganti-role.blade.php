@@ -64,7 +64,7 @@
                         <button type="submit"
                                 class="btn {{ $role->ROLE === $activeRole ? 'btn-primary' : 'btn-outline-primary' }}"
                                 style="border-radius: 20px; padding: 6px 16px;">
-                            {{ $role->ROLE }}
+                            {{ \App\Models\TUserRole::label($role->ROLE) }}
                             @if($role->STATUS_DEFAULT === 't')
                                 <span class="badge badge-light ml-1">default</span>
                             @endif

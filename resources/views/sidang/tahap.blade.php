@@ -305,7 +305,7 @@
                     </div>
                     <div class="warning-file-upload mb-3">
                         <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                        <span class="warning-file-upload-text">File penelitian tidak perlu diupload. Ukuran maksimal file <strong>2 MB</strong>.</span>
+                        <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>2MB</strong></span>
                     </div>
                     <table class="table table-bordered table-sm text-center mb-4">
                         <thead class="bg-light text-dark">
@@ -741,7 +741,7 @@
                     </div>
                     <div class="warning-file-upload mb-3">
                         <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                        <span class="warning-file-upload-text">File penelitian tidak perlu diupload. Ukuran maksimal file <strong>2 MB</strong>.</span>
+                        <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>2MB</strong></span>
                     </div>
                     <table class="table table-bordered table-sm text-center mb-4">
                         <thead style="background-color: #6998d3; color: white;">

@@ -2219,7 +2219,7 @@
         <a href="{{ route('dashboard') }}" class="brand-link d-flex align-items-center" style="gap: 10px; padding: 1.5rem 1.25rem !important;">
             <img src="{{ asset('images/itb-logo.svg') }}"
                  alt="ITB Logo" style="width: 38px; height: 38px; background: #fff; border-radius: 50%; padding: 6px; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-            <span class="brand-text" style="font-size: 1.15rem; line-height: 1.2; font-weight: 700; color: #fff; letter-spacing: 0.5px;">SI SIDANG<br><span style="font-size: 0.75rem; font-weight: 500; opacity: 0.8;">FTTM ITB</span><br><span style="font-size: 0.65rem; font-weight: 400; opacity: 0.6; text-transform: capitalize;">Role : {{ session('auth_user.role') }}</span></span>
+            <span class="brand-text" style="font-size: 1.15rem; line-height: 1.2; font-weight: 700; color: #fff; letter-spacing: 0.5px;">SI SIDANG<br><span style="font-size: 0.75rem; font-weight: 500; opacity: 0.8;">FTTM ITB</span><br><span style="font-size: 0.65rem; font-weight: 400; opacity: 0.6; text-transform: capitalize;">Role : {{ \App\Models\TUserRole::label(session('auth_user.role')) }}</span></span>
         </a>
 
         <div class="sidebar">
