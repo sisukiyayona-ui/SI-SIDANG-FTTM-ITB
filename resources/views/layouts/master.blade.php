@@ -17,17 +17,18 @@
         })();
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('vendor/inter/300.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/inter/400.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/inter/500.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/inter/600.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/inter/700.css') }}">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ionicons@2.0.1/css/ionicons.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/styles/overlayscrollbars.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-theme@0.1.0-beta.10/dist/select2-bootstrap.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/adminlte/css/adminlte.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/ionicons/css/ionicons.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/select2-bootstrap/css/select2-bootstrap.min.css') }}">
 
     <style>
         /* Select2 Custom Styling */
@@ -2585,12 +2586,11 @@
     </div>
 </div>
 
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/dist/overlayscrollbars.min.js"></script>
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('vendor/adminlte/js/adminlte.min.js') }}"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('vendor/chartjs/chart.umd.js') }}"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('vendor/select2/js/select2.min.js') }}"></script>
 
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
     var toastTimer = null;
@@ -2936,12 +2936,26 @@ function showConfirmDialog(opts) {
     </div>
 </div>
 
+@php
+    $authUser = session('auth_user');
+    $sessionRemaining = 0;
+    if ($authUser) {
+        $createdAt = $authUser['session_created_at'] ?? 0;
+        $duration = $authUser['session_duration'] ?? 21600;
+        $now = now()->timestamp;
+        $remainingAtRender = $duration - ($now - $createdAt);
+        $absoluteRemaining = 28800 - ($now - ($authUser['session_login_at'] ?? $createdAt));
+        $sessionRemaining = max(0, min($remainingAtRender, $absoluteRemaining));
+    }
+@endphp
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (function() {
-    var SESSION_CHECK_URL = '{{ route("session.check") }}';
     var SESSION_RENEW_URL = '{{ route("session.renew") }}';
     var LOGOUT_URL = '{{ route("logout") }}';
     var csrfToken = '{{ csrf_token() }}';
+    var remaining = {{ (int) $sessionRemaining }};
+    var WARNING_SECONDS = 300;
+
     var logoutForm = document.createElement('form');
     logoutForm.method = 'POST';
     logoutForm.action = LOGOUT_URL;
@@ -2952,12 +2966,11 @@ function showConfirmDialog(opts) {
     csrfField.value = csrfToken;
     logoutForm.appendChild(csrfField);
     document.body.appendChild(logoutForm);
-    var CHECK_INTERVAL = 30000;
-    var WARNING_SECONDS = 300;
 
-    var modalTimer = null;
-    var countdownInterval = null;
+    var timer = null;
     var warningShown = false;
+    var modalOpen = false;
+    var loggedOut = false;
 
     function formatTime(seconds) {
         var m = Math.floor(seconds / 60);
@@ -2974,50 +2987,44 @@ function showConfirmDialog(opts) {
         $('#sessionToast').hide();
     }
 
-    function checkSession() {
-        $.ajax({
-            url: SESSION_CHECK_URL,
-            method: 'GET',
-            dataType: 'json',
-            success: function(data) {
-                if (data.expired) {
-                    showSessionToast('Session telah habis. Silakan login kembali.');
-                    setTimeout(function() { logoutForm.submit(); }, 3000);
-                    return;
-                }
-
-                if (data.show_warning && !warningShown) {
-                    warningShown = true;
-                    showRenewalModal(data.remaining);
-                }
-            },
-            error: function() {
-                showSessionToast('Gagal memeriksa session. Mengarahkan ke login...');
-                setTimeout(function() { logoutForm.submit(); }, 3000);
-            }
-        });
+    function doLogout() {
+        if (loggedOut) return;
+        loggedOut = true;
+        showSessionToast('Session telah habis. Silakan login kembali.');
+        setTimeout(function() { logoutForm.submit(); }, 2000);
     }
 
-    function showRenewalModal(remaining) {
+    function openRenewalModal() {
+        warningShown = true;
+        modalOpen = true;
+        $('#sessionCountdown').text(formatTime(remaining));
+        $('#sessionRenewalModal').modal('show');
+    }
+
+    function tick() {
+        remaining--;
+
         if (remaining <= 0) {
-            logoutForm.submit();
+            clearInterval(timer);
+            if (modalOpen) $('#sessionRenewalModal').modal('hide');
+            doLogout();
             return;
         }
 
-        $('#sessionCountdown').text(formatTime(remaining));
-        $('#sessionRenewalModal').modal('show');
+        if (remaining <= WARNING_SECONDS && !warningShown) {
+            openRenewalModal();
+        }
 
-        countdownInterval = setInterval(function() {
-            remaining--;
+        if (modalOpen) {
             $('#sessionCountdown').text(formatTime(remaining));
+        }
+    }
 
-            if (remaining <= 0) {
-                clearInterval(countdownInterval);
-                $('#sessionRenewalModal').modal('hide');
-                showSessionToast('Session telah habis. Silakan login kembali.');
-                setTimeout(function() { logoutForm.submit(); }, 2000);
-            }
-        }, 1000);
+    if (remaining > 0) {
+        if (remaining <= WARNING_SECONDS) {
+            openRenewalModal();
+        }
+        timer = setInterval(tick, 1000);
     }
 
     $('#sessionRenewBtn').on('click', function() {
@@ -3028,12 +3035,15 @@ function showConfirmDialog(opts) {
             dataType: 'json',
             success: function(data) {
                 if (data.success) {
-                    $('#sessionRenewalModal').modal('hide');
-                    if (countdownInterval) clearInterval(countdownInterval);
+                    remaining = data.remaining;
                     warningShown = false;
+                    modalOpen = false;
+                    $('#sessionRenewalModal').modal('hide');
                     hideSessionToast();
                     showSessionToast('Session berhasil diperpanjang.');
                     setTimeout(hideSessionToast, 3000);
+                } else {
+                    doLogout();
                 }
             },
             error: function() {
@@ -3045,9 +3055,6 @@ function showConfirmDialog(opts) {
     $('#sessionLogoutBtn').on('click', function() {
         logoutForm.submit();
     });
-
-    setInterval(checkSession, CHECK_INTERVAL);
-    checkSession();
 })();
 </script>
 

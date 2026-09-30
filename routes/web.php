@@ -22,7 +22,6 @@ Route::middleware(['auth.dummy'])->group(function () {
     Route::post('ganti-role', [DashboardController::class, 'gantiRole'])->name('ganti-role');
 
     // Session management
-    Route::get('session/check', [SessionController::class, 'check'])->name('session.check');
     Route::post('session/renew', [SessionController::class, 'renew'])->name('session.renew')->middleware('throttle:10,1');
     
     // Upload persyaratan - accessible by all authenticated roles (Mahasiswa, Admin, TU Prodi, etc.)

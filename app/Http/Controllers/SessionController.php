@@ -9,31 +9,6 @@ class SessionController extends Controller
     private const ABSOLUTE_TIMEOUT = 28800; // 8 hours max absolute session
     private const MAX_RENEWALS = 3;
 
-    public function check(Request $request)
-    {
-        $user = session('auth_user');
-        if (!$user) {
-            return response()->json(['expired' => true], 401);
-        }
-
-        $createdAt = $user['session_created_at'] ?? 0;
-        $duration = $user['session_duration'] ?? 21600;
-        $now = now()->timestamp;
-        $remaining = $duration - ($now - $createdAt);
-        $absoluteRemaining = self::ABSOLUTE_TIMEOUT - ($now - ($user['session_login_at'] ?? $createdAt));
-
-        if ($remaining <= 0 || $absoluteRemaining <= 0) {
-            return response()->json(['expired' => true, 'remaining' => 0]);
-        }
-
-        return response()->json([
-            'expired' => false,
-            'remaining' => min($remaining, $absoluteRemaining),
-            'show_warning' => $remaining <= 300,
-            'absolute_remaining' => $absoluteRemaining,
-        ]);
-    }
-
     public function renew(Request $request)
     {
         $user = session('auth_user');
