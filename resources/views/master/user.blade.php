@@ -326,8 +326,8 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Username <span class="text-danger">*</span></label>
-                        <input type="text" name="username" id="f_username" class="form-control" placeholder="Username login" required>
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" id="f_username" class="form-control" placeholder="Username login">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Password</label>
@@ -374,9 +374,9 @@
                         <small class="text-muted">Klik role untuk memilih lebih dari satu. Role pertama yang dipilih menjadi role default.</small>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Status Pegawai</label>
-                        <select name="status_pegawai" id="f_status_pegawai" class="form-control">
-                            <option value="">-- Pilih Status Pegawai --</option>
+                        <label class="form-label">Status User <span class="text-danger">*</span></label>
+                        <select name="status_pegawai" id="f_status_pegawai" class="form-control" required>
+                            <option value="">-- Pilih Status User --</option>
                             <option value="Tendik">Tendik</option>
                             <option value="Dosen">Dosen</option>
                             <option value="Mahasiswa">Mahasiswa</option>
@@ -402,7 +402,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Fakultas *</label>
+                        <label class="form-label">Fakultas <span class="text-danger">*</span></label>
                         @if(session('auth_user.role') === 'TU Prodi')
                             {{-- TU Prodi: fakultas dari login, disable --}}
                             <input type="hidden" name="kode_fs" id="f_kode_fs" value="{{ session('auth_user.kode_fs') }}">
@@ -443,12 +443,12 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">KK</label>
                         <input type="text" name="kk" id="f_kk" class="form-control" placeholder="Contoh: 322.1" maxlength="250">
-                        <small class="text-muted">Diisi jika Status Pegawai Dosen</small>
+                        <small class="text-muted">Diisi jika Status User Dosen</small>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Asal Instansi *</label>
+                        <label class="form-label">Asal Instansi</label>
                         <select name="asal_instansi" id="f_asal_instansi" class="form-control" onchange="handleAsalInstansiChange()">
                             <option value="">-- Pilih Asal Instansi --</option>
                             <option value="ITB">ITB</option>
@@ -457,7 +457,7 @@
                         <small class="text-muted">Isi jika role untuk Pembimbing atau Penguji</small>
                     </div>
                     <div class="col-md-6 mb-3" id="instansiContainer">
-                        <label class="form-label">Instansi <span class="text-danger">*</span></label>
+                        <label class="form-label">Instansi</label>
                         <input type="text" name="instansi" id="f_instansi" class="form-control" placeholder="Nama instansi (untuk pengguna luar ITB)">
                         <small class="text-muted">Isi jika role untuk Pembimbing atau Penguji</small>
                     </div>

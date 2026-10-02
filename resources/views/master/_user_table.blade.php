@@ -5,7 +5,7 @@
             <th>NIP/NIM</th>
             <th>Nama Lengkap</th>
             <th>Email</th>
-            <th>Status Pegawai</th>
+            <th>Status User</th>
             <th>Program Studi</th>
             <th>Status Aktif</th>
         </tr>

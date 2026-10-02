@@ -184,12 +184,12 @@ class UserController extends Controller
                 'nip_nim'        => ['required', 'string', 'regex:/^[0-9]+$/'],
                 'nama_lengkap'   => 'required',
                 'email'          => 'required|email',
-                'username'       => 'required|unique:t_user,USERNAME',   // ✅ fix escape
+                'username'       => 'nullable|unique:t_user,USERNAME',   // ✅ fix escape
                 'password'       => 'nullable|min:4',
                 'jenis_user'     => 'required|array|min:1',
                 'kode_fs'        => 'required|string',
                 'id_prodi'       => 'required|array|min:1',
-                'status_pegawai' => 'nullable',
+                'status_pegawai' => 'required',
                 'status_aktif'   => 'required',
                 'status_approve' => 'nullable|in:t,f',
             ], [
@@ -197,6 +197,7 @@ class UserController extends Controller
                 'id_prodi.required'  => 'Program Studi wajib dipilih minimal satu.',
                 'id_prodi.array'     => 'Program Studi wajib dipilih minimal satu.',
                 'id_prodi.min'       => 'Program Studi wajib dipilih minimal satu.',
+                'status_pegawai.required' => 'Status User wajib dipilih.',
             ]);
 
             // Guard: NIP/NIM (dan padanan akun) harus belum terpakai akun lain
@@ -281,12 +282,12 @@ class UserController extends Controller
             'nip_nim'        => ['required', 'string', 'regex:/^[0-9]+$/'],
             'nama_lengkap'   => 'required',
             'email'          => 'required|email',
-            'username'       => 'required|unique:t_user,USERNAME,' . $id . ',id',
+            'username'       => 'nullable|unique:t_user,USERNAME,' . $id . ',id',
             'password'       => 'nullable|min:4',
             'jenis_user'     => 'required|array|min:1',
             'kode_fs'        => 'required|string',
             'id_prodi'       => 'required|array|min:1',
-            'status_pegawai' => 'nullable',
+            'status_pegawai' => 'required',
             'status_aktif'   => 'required',
             'status_approve' => 'nullable|in:t,f',
         ], [
@@ -294,6 +295,7 @@ class UserController extends Controller
             'id_prodi.required' => 'Program Studi wajib dipilih minimal satu.',
             'id_prodi.array'    => 'Program Studi wajib dipilih minimal satu.',
             'id_prodi.min'      => 'Program Studi wajib dipilih minimal satu.',
+            'status_pegawai.required' => 'Status User wajib dipilih.',
         ]);
 
         // Guard: NIP/NIM (dan padanan akun) harus belum dipakai user lain
