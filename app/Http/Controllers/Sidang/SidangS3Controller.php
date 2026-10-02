@@ -71,7 +71,15 @@ class SidangS3Controller extends Controller
             ->leftJoin(DB::raw($tahapSub('SK III') . ' as a5'), 'j.id', '=', 'a5.id_judul')
             ->leftJoin(DB::raw($tahapSub('SK IV') . ' as a6'), 'j.id', '=', 'a6.id_judul')
             ->leftJoin(DB::raw($tahapSub('tahap IV') . ' as a7'), 'j.id', '=', 'a7.id_judul')
-            ->where('u.STRATA', $strata)
+            ->where(function ($q) use ($strata) {
+                $q->where('u.STRATA', $strata)
+                  ->orWhereExists(function ($sub) use ($strata) {
+                      $sub->selectRaw('1')
+                          ->from('t_ajuan_sidang as xs')
+                          ->whereColumn('xs.id_judul', 'j.id')
+                          ->where('xs.STRATA', $strata);
+                  });
+            })
             ->groupBy('j.id', 'j.JUDUL', 'j.NIM', 'u.NAMA_LENGKAP', 'u.NAMA_PRODI');
 
         if ($user['role'] === 'TU Prodi') {
