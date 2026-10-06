@@ -57,12 +57,18 @@ class SecurityHeadersMiddleware
 
     private function syncRequestScheme(Request $request): void
     {
+        $forwardedProto = strtolower((string) $request->headers->get('X-Forwarded-Proto'));
         $configured = parse_url((string) config('app.url'), PHP_URL_SCHEME);
 
-        if ($configured !== 'http') {
+        if ($forwardedProto === 'https' || $configured === 'https') {
+            $request->server->set('HTTPS', 'on');
+            $request->headers->set('X-Forwarded-Proto', 'https');
+
             return;
         }
 
-        $request->server->set('HTTPS', 'off');
+        if ($configured === 'http') {
+            $request->server->set('HTTPS', 'off');
+        }
     }
 }

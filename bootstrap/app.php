@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ownership' => \App\Http\Middleware\OwnershipMiddleware::class,
         ]);
 
+        $middleware->trustProxies(at: '*');
+
         $middleware->prepend(\App\Http\Middleware\SecurityHeadersMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {

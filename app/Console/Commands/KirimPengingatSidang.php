@@ -124,8 +124,8 @@ class KirimPengingatSidang extends Command
             ]);
         }
 
-        $tim = DB::table('T_TIM_SIDANG as ts')
-            ->join('T_USER as u', 'ts.ID_USER_PENILAI', '=', 'u.id')
+        $tim = DB::table('t_tim_sidang as ts')
+            ->join('t_user as u', 'ts.ID_USER_PENILAI', '=', 'u.id')
             ->where('ts.ID_JUDUL', $ajuan->ID_JUDUL)
             ->where(function ($query) {
                 $query->where('ts.STATUS_TIM_SIDANG', 'like', '%Pembimbing%')
@@ -146,7 +146,7 @@ class KirimPengingatSidang extends Command
         }
 
         $kpps = DB::table('t_kpps as tk')
-            ->leftJoin('T_USER as u', function ($join) {
+            ->leftJoin('t_user as u', function ($join) {
                 $join->on('u.id', '=', 'tk.ID_USER')->orOn('u.NIP_NIM', '=', 'tk.NIP');
             })
             ->where('tk.STATUS_AKTIF', 'AKTIF')
