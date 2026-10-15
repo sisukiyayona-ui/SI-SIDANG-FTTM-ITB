@@ -89,14 +89,36 @@ class SidangS3Controller extends Controller
                 ->all();
 
             if (!empty($prodiIds)) {
-                $query->whereExists(function ($sub) use ($prodiIds) {
-                    $sub->selectRaw('1')
-                        ->from('t_ajuan_sidang as xp')
-                        ->whereColumn('xp.id_judul', 'j.id')
-                        ->whereIn('xp.ID_PRODI', $prodiIds);
+                $kodeProdiList = \App\Models\TProdi::whereIn('id', $prodiIds)->pluck('KODE_PRODI')->all();
+                // Muncul jika ajuan punya ID_PRODI/KODE_PRODI prodi TU, ATAU mahasiswa prodinya cocok
+                // (agar judul yang belum punya ajuan / ID_PRODI kosong tetap terlihat)
+                $query->where(function ($q) use ($prodiIds, $kodeProdiList) {
+                    $q->whereExists(function ($sub) use ($prodiIds) {
+                        $sub->selectRaw('1')
+                            ->from('t_ajuan_sidang as xp')
+                            ->whereColumn('xp.ID_JUDUL', 'j.id')
+                            ->whereIn('xp.ID_PRODI', $prodiIds);
+                    });
+                    if (!empty($kodeProdiList)) {
+                        $q->orWhereIn('u.KODE_PRODI', $kodeProdiList)
+                          ->orWhereExists(function ($sub) use ($kodeProdiList) {
+                              $sub->selectRaw('1')
+                                  ->from('t_ajuan_sidang as xp')
+                                  ->whereColumn('xp.ID_JUDUL', 'j.id')
+                                  ->whereIn('xp.KODE_PRODI', $kodeProdiList);
+                          });
+                    }
                 });
             } else {
-                $query->where('u.KODE_PRODI', $user['kode_prodi']);
+                $query->where(function ($q) use ($user) {
+                    $q->where('u.KODE_PRODI', $user['kode_prodi'])
+                      ->orWhereExists(function ($sub) use ($user) {
+                          $sub->selectRaw('1')
+                              ->from('t_ajuan_sidang as xp')
+                              ->whereColumn('xp.ID_JUDUL', 'j.id')
+                              ->where('xp.KODE_PRODI', $user['kode_prodi']);
+                      });
+                });
             }
         } elseif ($user['role'] === 'FS') {
             // FS sees all records
@@ -126,7 +148,7 @@ class SidangS3Controller extends Controller
                     }
                 }
             })
-            ->paginate(10)->withQueryString();
+            ->paginate($this->resolvePerPage($request))->withQueryString();
 
         if ($request->ajax()) {
             $tableHtml = view('sidang._s3_table', compact('tracking', 'strata'))->render();
@@ -283,48 +305,88 @@ class SidangS3Controller extends Controller
             return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
         }
 
-        $existingJudul = DB::table('t_judul')->where('NIM', $mhs->NIP_NIM)->first();
-        if ($existingJudul) {
-            return redirect()->back()->with('error', 'Mahasiswa dengan NIM ' . $mhs->NIP_NIM . ' sudah memiliki judul.');
+        $prodi = \App\Models\TProdi::where('KODE_PRODI', $mhs->KODE_PRODI)->first();
+        if (!$prodi) {
+            return redirect()->back()->with('error', 'Prodi mahasiswa tidak ditemukan. Periksa data prodi mahasiswa.');
         }
 
-        $judulId = DB::table('t_judul')->insertGetId([
-            'JUDUL' => $request->judul,
-            'ABSTRAK' => $request->abstrak ?? null,
-            'ID_USER_MHS' => $request->id_user_mhs,
-            'NIM' => $mhs->NIP_NIM,
-            'THN_CREATE' => date('Y'),
-            'TGL_CREATE' => now(),
-            'TGL_UPDATE' => now(),
-        ]);
+        $existingJudul = DB::table('t_judul')
+            ->where(function ($q) use ($mhs) {
+                $q->where('NIM', $mhs->NIP_NIM)
+                  ->orWhere('ID_USER_MHS', $mhs->id);
+            })
+            ->first();
 
-        $prodi = \App\Models\TProdi::where('KODE_PRODI', $mhs->KODE_PRODI)->first();
+        // Judul sudah ada + ajuan tahap I ada → tolak
+        // Judul sudah ada tapi ajuan hilang → lengkapi ajuan (auto-ajukan karena dibuat dari TU Prodi)
+        if ($existingJudul) {
+            $judulId = $existingJudul->id ?? $existingJudul->ID;
+            $hasAjuanTahap1 = DB::table('t_ajuan_sidang')
+                ->where('ID_JUDUL', $judulId)
+                ->where('TAHAPAN_SIDANG', 'tahap I')
+                ->exists();
 
+            if ($hasAjuanTahap1) {
+                return redirect()->back()->with('error', 'Mahasiswa dengan NIM ' . $mhs->NIP_NIM . ' sudah memiliki judul.');
+            }
+
+            $this->insertAjuanTahap1FromTuProdi($judulId, $existingJudul->JUDUL ?? $request->judul, $mhs, $prodi, $user);
+
+            return redirect()->back()->with('success', 'Judul sudah ada; pengajuan tahap I dilengkapi dan langsung Diproses di TU Prodi.');
+        }
+
+        try {
+            DB::transaction(function () use ($request, $mhs, $prodi, $user) {
+                $judulId = DB::table('t_judul')->insertGetId([
+                    'JUDUL' => $request->judul,
+                    'ABSTRAK' => $request->abstrak ?? null,
+                    'ID_USER_MHS' => $request->id_user_mhs,
+                    'NIM' => $mhs->NIP_NIM,
+                    'THN_CREATE' => date('Y'),
+                    'TGL_CREATE' => now(),
+                    'TGL_UPDATE' => now(),
+                ]);
+
+                $this->insertAjuanTahap1FromTuProdi($judulId, $request->judul, $mhs, $prodi, $user);
+            });
+        } catch (\Throwable $e) {
+            \Log::error('storeJudul S3 gagal', ['error' => $e->getMessage(), 'mhs' => $mhs->id]);
+            return redirect()->back()->with('error', 'Gagal menambah judul: ' . $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Judul berhasil ditambahkan dan langsung Diproses di TU Prodi.');
+    }
+
+    /**
+     * Insert ajuan tahap I saat judul dibuat oleh TU Prodi/FS.
+     * STATUS_AJUKAN_MHS = 'y' agar status langsung "Diproses di TU Prodi"
+     * (beda dengan mahasiswa yang harus ajukan dulu).
+     */
+    private function insertAjuanTahap1FromTuProdi($judulId, string $judul, $mhs, $prodi, array $user): void
+    {
         DB::table('t_ajuan_sidang')->insert([
-            'ID_USER' => $request->id_user_mhs,
+            'ID_USER' => $mhs->id,
             'NIM' => $mhs->NIP_NIM,
             'NAMA_MHS' => $mhs->NAMA_LENGKAP,
             'ANGKATAN' => $mhs->THN_ANGKATAN ?? date('Y'),
             'ID_JUDUL' => $judulId,
-            'JUDUL' => $request->judul,
+            'JUDUL' => $judul,
             'TAHAPAN_SIDANG' => 'tahap I',
-            'STRATA' => 'S3',
+            'STRATA' => $mhs->STRATA ?: 'S3',
             'TGL_SIDANG' => null,
             'WAKTU_SIDANG' => null,
             'RUANG_SIDANG' => null,
             'STATUS_LULUS' => null,
             'STATUS_AJUKAN_MHS' => 'y',
-            'STATUS_AJUKAN_PRODI' => null,
+            'STATUS_AJUKAN_PRODI' => 't',
             'TGL_CREATE' => now(),
             'TGL_UPDATE' => now(),
             'ID_USER_CREATE' => $user['id'],
-            'NAMA_USER_CREATE' => $user['nama_lengkap'],
+            'NAMA_USER_CREATE' => $user['nama_lengkap'] ?? '-',
             'THN_CREATE' => date('Y'),
-            'ID_PRODI' => $prodi?->id,
-            'KODE_PRODI' => $mhs->KODE_PRODI,
-            'NAMA_PRODI' => $mhs->NAMA_PRODI,
+            'ID_PRODI' => $prodi->id,
+            'KODE_PRODI' => $prodi->KODE_PRODI,
+            'NAMA_PRODI' => $prodi->NAMA_PRODI,
         ]);
-
-        return redirect()->back()->with('success', 'Judul berhasil ditambahkan.');
     }
 }

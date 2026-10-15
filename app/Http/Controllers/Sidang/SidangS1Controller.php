@@ -110,7 +110,7 @@ class SidangS1Controller extends Controller
                     }
                 }
             })
-            ->paginate(10)->withQueryString();
+            ->paginate($this->resolvePerPage($request))->withQueryString();
 
         if ($request->ajax()) {
             $tableHtml = view('sidang._s1_table', compact('tracking', 'strata'))->render();

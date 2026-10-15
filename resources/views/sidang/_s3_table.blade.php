@@ -205,6 +205,17 @@ function getStatusColor($status) {
         @endforeach
     </tbody>
 </table>
-<div class="mt-3">
-    {{ $tracking->links('pagination::bootstrap-4') }}
+<div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+    <div class="d-flex align-items-center mb-2 mb-md-0">
+        <label class="mb-0 mr-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">Tampilkan</label>
+        <select class="form-control form-control-sm column-search" name="per_page" style="width: auto; min-width: 70px; color: #495057;">
+            @foreach([10, 25, 50, 100] as $n)
+                <option value="{{ $n }}" {{ (int) $tracking->perPage() === $n ? 'selected' : '' }}>{{ $n }}</option>
+            @endforeach
+        </select>
+        <span class="ml-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">data per halaman</span>
+    </div>
+    <div>
+        {{ $tracking->links('pagination::bootstrap-4') }}
+    </div>
 </div>

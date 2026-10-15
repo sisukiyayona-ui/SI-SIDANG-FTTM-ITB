@@ -1227,39 +1227,64 @@ class MahasiswaController extends Controller
             'abstrak' => 'required|string|max:1000',
         ]);
 
-        $judul = TJudul::create([
-            'JUDUL' => $request->judul,
-            'ABSTRAK' => $request->abstrak,
-            'ID_USER_MHS' => $user['id'],
-            'NIM' => $user['nip_nim'],
-            'THN_CREATE' => date('Y'),
-            'TGL_CREATE' => now(),
-            'TGL_UPDATE' => now(),
-        ]);
-
         $prodi = \App\Models\TProdi::where('KODE_PRODI', $user['kode_prodi'])->first();
+        if (!$prodi) {
+            return redirect()->back()->with('error', 'Prodi tidak ditemukan. Periksa data prodi akun Anda.');
+        }
 
-        DB::table('t_ajuan_sidang')->insert([
-            'ID_USER' => $user['id'],
-            'NIM' => $user['nip_nim'],
-            'NAMA_MHS' => $user['nama_lengkap'],
-            'ANGKATAN' => $user['thn_angkatan'] ?? date('Y'),
-            'ID_JUDUL' => $judul->id,
-            'JUDUL' => $request->judul,
-            'TAHAPAN_SIDANG' => 'tahap I',
-            'STRATA' => $user['strata'],
-            'STATUS_AJUKAN_MHS' => 'f',
-            'TGL_CREATE' => now(),
-            'TGL_UPDATE' => now(),
-            'ID_USER_CREATE' => $user['id'],
-            'NAMA_USER_CREATE' => $user['nama_lengkap'],
-            'THN_CREATE' => date('Y'),
-            'ID_PRODI' => $prodi?->id,
-            'KODE_PRODI' => $user['kode_prodi'],
-            'NAMA_PRODI' => $user['nama_prodi'],
-        ]);
+        $existingJudul = DB::table('t_judul')
+            ->where(function ($q) use ($user) {
+                $q->where('NIM', $user['nip_nim'])
+                  ->orWhere('ID_USER_MHS', $user['id']);
+            })
+            ->first();
+        if ($existingJudul) {
+            return redirect()->back()->with('error', 'Anda sudah memiliki judul.');
+        }
 
-        session(['active_judul_id' => $judul->id]);
+        try {
+            $judulId = null;
+            DB::transaction(function () use ($request, $user, $prodi, &$judulId) {
+                $judul = TJudul::create([
+                    'JUDUL' => $request->judul,
+                    'ABSTRAK' => $request->abstrak,
+                    'ID_USER_MHS' => $user['id'],
+                    'NIM' => $user['nip_nim'],
+                    'THN_CREATE' => date('Y'),
+                    'TGL_CREATE' => now(),
+                    'TGL_UPDATE' => now(),
+                ]);
+                $judulId = $judul->id;
+
+                // Mahasiswa: belum diajukan ke TU Prodi (status list = "Belum diajukan")
+                // Baru jadi "Diproses di TU Prodi" setelah mahasiswa klik Ajukan
+                DB::table('t_ajuan_sidang')->insert([
+                    'ID_USER' => $user['id'],
+                    'NIM' => $user['nip_nim'],
+                    'NAMA_MHS' => $user['nama_lengkap'],
+                    'ANGKATAN' => $user['thn_angkatan'] ?? date('Y'),
+                    'ID_JUDUL' => $judul->id,
+                    'JUDUL' => $request->judul,
+                    'TAHAPAN_SIDANG' => 'tahap I',
+                    'STRATA' => $user['strata'] ?: 'S3',
+                    'STATUS_AJUKAN_MHS' => 't',
+                    'STATUS_AJUKAN_PRODI' => 't',
+                    'TGL_CREATE' => now(),
+                    'TGL_UPDATE' => now(),
+                    'ID_USER_CREATE' => $user['id'],
+                    'NAMA_USER_CREATE' => $user['nama_lengkap'],
+                    'THN_CREATE' => date('Y'),
+                    'ID_PRODI' => $prodi->id,
+                    'KODE_PRODI' => $prodi->KODE_PRODI,
+                    'NAMA_PRODI' => $prodi->NAMA_PRODI,
+                ]);
+            });
+        } catch (\Throwable $e) {
+            \Log::error('storeJudul mahasiswa gagal', ['error' => $e->getMessage(), 'user' => $user['id'] ?? null]);
+            return redirect()->back()->with('error', 'Gagal menambah judul: ' . $e->getMessage());
+        }
+
+        session(['active_judul_id' => $judulId]);
 
         return redirect()->back()->with('success', 'Judul berhasil ditambahkan.');
     }
