@@ -356,7 +356,13 @@
                         $votingStatusLulusMhs = $appAjuanMhs->status_lulus ?? ($ajuan->status_lulus ?? '');
                         $isVotingLulusMhs = stripos((string) $votingStatusLulusMhs, 'Lulus') !== false
                             || stripos((string) $votingStatusLulusMhs, 'Layak') !== false;
-                        $ajuanKodeProdiMhs = $appAjuanMhs->KODE_PRODI ?? $appAjuanMhs->kode_prodi
+                        $kodeProdiVotingMhs = null;
+                        if (!empty($idJudul)) {
+                            $judulVoting = \App\Models\TJudul::find($idJudul);
+                            $kodeProdiVotingMhs = $judulVoting?->user?->KODE_PRODI;
+                        }
+                        $ajuanKodeProdiMhs = $kodeProdiVotingMhs
+                            ?? $appAjuanMhs->KODE_PRODI ?? $appAjuanMhs->kode_prodi
                             ?? ($ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null);
                         $ajuanIdProdiMhs = $appAjuanMhs->ID_PRODI ?? $appAjuanMhs->id_prodi
                             ?? ($ajuan->ID_PRODI ?? $ajuan->id_prodi ?? null);

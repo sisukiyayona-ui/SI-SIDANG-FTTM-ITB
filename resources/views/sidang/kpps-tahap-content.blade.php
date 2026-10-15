@@ -240,7 +240,13 @@
                 $appAjuanKpps = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
                     ->where('tahapan_sidang', $tahapan)
                     ->first();
-                $ajuanKodeProdi = $appAjuanKpps->KODE_PRODI ?? $appAjuanKpps->kode_prodi
+                $kodeProdiVotingMhs = null;
+                if (!empty($idJudul)) {
+                    $judulVoting = \App\Models\TJudul::find($idJudul);
+                    $kodeProdiVotingMhs = $judulVoting?->user?->KODE_PRODI;
+                }
+                $ajuanKodeProdi = $kodeProdiVotingMhs
+                    ?? $appAjuanKpps->KODE_PRODI ?? $appAjuanKpps->kode_prodi
                     ?? ($ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null);
                 $ajuanIdProdi = $appAjuanKpps->ID_PRODI ?? $appAjuanKpps->id_prodi
                     ?? ($ajuan->ID_PRODI ?? $ajuan->id_prodi ?? null);

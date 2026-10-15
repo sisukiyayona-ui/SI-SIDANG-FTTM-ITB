@@ -195,7 +195,10 @@ class NotifikasiApproveController extends Controller
     private function kumpulkanPenerimaKpps(TAjuanSidang $ajuan): array
     {
         $idAjuan = $ajuan->id;
-        $kodeProdi = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null;
+        $kodeProdiMhs = $ajuan->ID_JUDUL
+            ? \App\Models\TJudul::find($ajuan->ID_JUDUL)?->user?->KODE_PRODI
+            : null;
+        $kodeProdi = $kodeProdiMhs ?? $ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null;
 
         $kppsQuery = DB::table('t_kpps as k')
             ->leftJoin('t_app_ajuan_sidang as app', function ($join) use ($idAjuan) {
