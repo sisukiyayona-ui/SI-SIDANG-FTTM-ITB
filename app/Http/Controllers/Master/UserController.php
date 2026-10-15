@@ -99,7 +99,7 @@ class UserController extends Controller
             $query->where('STATUS_AKTIF', $searchStatusAktif);
         }
 
-        $users = $query->orderBy('id', 'desc')->paginate(10)->withQueryString()->through(function ($u) {
+        $users = $query->orderBy('id', 'desc')->paginate($this->resolvePerPage($request))->withQueryString()->through(function ($u) {
             return [
                 'id'             => EncryptedUuid::encode($u->id),
                 'nip_nim'        => $u->nip_nim,

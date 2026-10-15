@@ -120,12 +120,31 @@ if (!function_exists('formatTahapan')) {
                     </tbody>
                 </table>
             </div>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <span class="text-muted small">
-                    Menampilkan {{ $reports->total() > 0 ? $reports->firstItem() . '-' . $reports->lastItem() : 0 }} dari {{ $reports->total() }} data
-                </span>
-                {{ $reports->links('pagination::bootstrap-4') }}
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <label class="mb-0 mr-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">Tampilkan</label>
+                    <select class="form-control form-control-sm" name="per_page" style="width: auto; min-width: 70px; color: #495057;" onchange="changeReportPerPage(this.value)">
+                        @foreach([10, 25, 50, 100] as $n)
+                            <option value="{{ $n }}" {{ (int) $reports->perPage() === $n ? 'selected' : '' }}>{{ $n }}</option>
+                        @endforeach
+                    </select>
+                    <span class="ml-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">data per halaman</span>
+                </div>
+                <div class="d-flex flex-column align-items-end">
+                    <span class="text-muted small mb-1">
+                        Menampilkan {{ $reports->total() > 0 ? $reports->firstItem() . '-' . $reports->lastItem() : 0 }} dari {{ $reports->total() }} data
+                    </span>
+                    {{ $reports->links('pagination::bootstrap-4') }}
+                </div>
             </div>
         </div>
     </div>
+    <script>
+        function changeReportPerPage(value) {
+            var url = new URL(window.location.href);
+            url.searchParams.set('per_page', value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        }
+    </script>
 @endsection

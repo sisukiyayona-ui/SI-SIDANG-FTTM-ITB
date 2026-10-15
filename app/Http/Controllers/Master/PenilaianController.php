@@ -122,7 +122,7 @@ class PenilaianController extends Controller
             $query->where('STATUS_AKTIF', $s);
         }
 
-        $penilaian = $query->orderBy('id', 'desc')->paginate(10)->withQueryString()->through(function($item) {
+        $penilaian = $query->orderBy('id', 'desc')->paginate($this->resolvePerPage($request))->withQueryString()->through(function($item) {
             return [
                 'id' => $item->id,
                 'nama' => $item->penilaian ?? $item->PENILAIAN,

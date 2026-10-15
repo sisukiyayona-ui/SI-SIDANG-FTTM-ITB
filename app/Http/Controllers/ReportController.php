@@ -17,7 +17,7 @@ class ReportController extends Controller
         $query = VReportTipeI::query();
         $this->applyRoleFilter($query, $user);
 
-        $reports = $query->paginate(25)->withQueryString();
+        $reports = $query->paginate($this->resolvePerPage($request, 25))->withQueryString();
 
         return view('report.index', compact('reports'));
     }

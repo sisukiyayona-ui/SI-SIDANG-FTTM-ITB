@@ -167,7 +167,7 @@ class ProdiController extends Controller
             $query->where('STATUS_AKTIF', $s);
         }
 
-        $prodi = $query->orderBy('KODE_PRODI', 'asc')->paginate(10)->withQueryString()->through(function($p) {
+        $prodi = $query->orderBy('KODE_PRODI', 'asc')->paginate($this->resolvePerPage($request))->withQueryString()->through(function($p) {
             return [
                 'id' => $p->id,
                 'kode' => $p->kode_prodi,

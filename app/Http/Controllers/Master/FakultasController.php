@@ -141,7 +141,7 @@ class FakultasController extends Controller
             $query->where('NAMA_FS', 'like', '%' . $s . '%');
         }
 
-        $fakultas = $query->orderBy('KODE_FS', 'asc')->paginate(10)->withQueryString()->through(function ($f) {
+        $fakultas = $query->orderBy('KODE_FS', 'asc')->paginate($this->resolvePerPage($request))->withQueryString()->through(function ($f) {
             return [
                 'id' => $f->id,
                 'kode' => $f->kode_fs,

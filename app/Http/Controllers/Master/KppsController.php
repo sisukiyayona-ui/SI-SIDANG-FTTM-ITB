@@ -36,7 +36,7 @@ class KppsController extends Controller
             $query->where('STATUS_AKTIF', $searchStatus);
         }
 
-        $kpps = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+        $kpps = $query->orderBy('id', 'desc')->paginate($this->resolvePerPage($request))->withQueryString();
 
         // Daftar prodi: TU Prodi hanya melihat prodi yang di-assign
         $prodiQuery = TProdi::where('STATUS_AKTIF', 'AKTIF');

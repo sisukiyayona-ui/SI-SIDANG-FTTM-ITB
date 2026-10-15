@@ -108,7 +108,7 @@ class PersyaratanController extends Controller
             $query->where('STATUS_AKTIF', $s);
         }
 
-        $persyaratan = $query->orderBy('id', 'desc')->paginate(10)->withQueryString()->through(function($item) {
+        $persyaratan = $query->orderBy('id', 'desc')->paginate($this->resolvePerPage($request))->withQueryString()->through(function($item) {
             return [
                 'id' => $item->id,
                 'nama' => $item->nama_persyaratan,
