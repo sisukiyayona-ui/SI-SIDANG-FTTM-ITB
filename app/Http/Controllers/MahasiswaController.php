@@ -355,10 +355,13 @@ class MahasiswaController extends Controller
         // Kelengkapan nilai seluruh tim Pembimbing & Penguji (gate tombol Kunci Nilai)
         $kelengkapanNilai = \App\Services\KelengkapanNilaiSidang::cek($idJudul, $tahapan, $kodeProdi);
 
+        // Gate approve KPPS prodi (input nilai & Kunci Nilai Pembimbing/Penguji)
+        $kppsGate = \App\Services\KppsApproveGate::cek($idJudul, $tahapan, $mahasiswaProdi);
+
         // Return HTML fragment for AJAX request
         $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
 
-        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList', 'kelengkapanNilai');
+        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList', 'kelengkapanNilai', 'kppsGate');
 
         if (request()->ajax()) {
             return view($viewName, $viewData)->render();

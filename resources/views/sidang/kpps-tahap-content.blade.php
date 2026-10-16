@@ -324,7 +324,16 @@
                                         $stApprove = strtolower(trim((string) ($kpps->STATUS_APPROVE ?? '')));
                                         $isApproved = in_array($stApprove, ['t', 'y'], true);
                                         $isRejected = $stApprove === 'f';
-                                    @endphp
+    @endphp
+    @php
+        // Penilaian selesai (terkunci / status lulus ditentukan): KPPS hanya
+        // melihat parameter yang ada di t_penilaian; parameter master baru
+        // (belum dinilai) tidak ditampilkan.
+        $penilaianSelesai = \App\Services\PenilaianSelesai::cek(
+            $ajuan ?? null,
+            isset($penilaian) ? $penilaian : null
+        );
+    @endphp
                                     <td>
                                         @if($isApproved)
                                             <span class="badge bg-success" style="white-space: nowrap;">Sudah Di Approve</span>
@@ -441,7 +450,7 @@
                             <tr id="kppsPenilaianEmptyRow" style="background-color: #dbe5f1;">
                                 <td colspan="5" class="text-center text-muted">Pilih Form untuk melihat parameter penilaian</td>
                             </tr>
-                            @if($allPointPenilaian && $allPointPenilaian->count() > 0)
+                            @if($allPointPenilaian && $allPointPenilaian->count() > 0 && !$penilaianSelesai)
                                 @foreach($allPointPenilaian as $idx => $point)
                                     <tr style="background-color: {{ $idx % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}">
                                         <td>{{ $idx + 1 }}</td>

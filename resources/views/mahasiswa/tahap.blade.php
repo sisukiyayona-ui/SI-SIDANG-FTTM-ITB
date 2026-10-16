@@ -659,11 +659,21 @@
                                     <td colspan="5" class="text-center text-muted">Pilih Form untuk melihat parameter penilaian</td>
                                 </tr>
                                 @if(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
+                                    @php
+                                        // Penilaian selesai (terkunci / status lulus ditentukan):
+                                        // tampilkan hanya baris dari t_penilaian, parameter master
+                                        // yang belum dinilai tidak muncul.
+                                        $penilaianSelesai = \App\Services\PenilaianSelesai::cek(
+                                            $ajuan ?? null,
+                                            isset($penilaian) ? $penilaian : null
+                                        );
+                                    @endphp
                                     @php $rowNum = 0; @endphp
                                     @foreach($allPointPenilaian as $point)
                                         @php
                                             $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                         @endphp
+                                        @unless($penilaianSelesai)
                                         @php $rowNum++; @endphp
                                         <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-view-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}">
                                             <td>{{ $rowNum }}</td>
@@ -672,6 +682,7 @@
                                             <td>-</td>
                                             <td>-</td>
                                         </tr>
+                                        @endunless
                                         @foreach($existingRecords as $existing)
                                             @php $rowNum++; @endphp
                                             <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-view-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}">

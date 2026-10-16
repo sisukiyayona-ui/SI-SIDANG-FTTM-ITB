@@ -111,6 +111,14 @@ class PenilaianController extends Controller
             return response()->json(['error' => 'Data ajuan sidang tidak ditemukan'], 404);
         }
 
+        $gate = $this->kppsGateForRole($user, $idJudul, $tahapanSidang);
+        if ($gate) {
+            return response()->json([
+                'success' => false,
+                'error' => $gate,
+            ], 403);
+        }
+
         // Get tim sidang data
         $timSidang = TTimSidang::find($idTimSidang);
         if (!$timSidang) {
@@ -200,6 +208,14 @@ class PenilaianController extends Controller
             return response()->json(['error' => 'Anda tidak memiliki akses untuk mengubah penilaian ini'], 403);
         }
 
+        $gate = $this->kppsGateForRole($user, $penilaian->ID_JUDUL, $penilaian->TAHAPAN_SIDANG);
+        if ($gate) {
+            return response()->json([
+                'success' => false,
+                'error' => $gate,
+            ], 403);
+        }
+
         $penilaian->update([
             'NILAI' => $request->nilai,
             'CATATAN' => $request->catatan,
@@ -285,6 +301,16 @@ class PenilaianController extends Controller
             ]);
 
             $statusLulus = $request->filled('status_lulus') ? $request->status_lulus : null;
+
+            // Gate approve KPPS prodi: Pembimbing/Penguji tidak boleh mengunci
+            // nilai sebelum seluruh KPPS AKTIF prodi approve ajuan. TU Prodi/Admin/FS tidak terpengaruh.
+            $gate = $this->kppsGateForRole($user, $id, $request->tahapan_sidang);
+            if ($gate) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $gate,
+                ], 403);
+            }
 
             // 0. Guard kelengkapan tim. Berlaku untuk TU Prodi, dan juga untuk
             //    Pembimbing/Penguji yang merupakan Ketua Pembimbing pada judul +
@@ -433,5 +459,27 @@ class PenilaianController extends Controller
             ]);
             return response()->json(['error' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Gate approve KPPS prodi untuk role Pembimbing/Penguji.
+     * Mengembalikan pesan error bila input nilai / kunci nilai harus diblokir,
+     * atau null/false bila tidak terblokir (termasuk untuk TU Prodi/Admin/FS).
+     */
+    private function kppsGateForRole($user, $idJudul, $tahapanSidang)
+    {
+        $role = $user['role'] ?? '';
+
+        if (!in_array($role, ['Pembimbing', 'Penguji'], true)) {
+            return null;
+        }
+
+        $gate = \App\Services\KppsApproveGate::cek($idJudul, $tahapanSidang);
+
+        if (empty($gate['blocked'])) {
+            return null;
+        }
+
+        return \App\Services\KppsApproveGate::pesan($gate);
     }
 }

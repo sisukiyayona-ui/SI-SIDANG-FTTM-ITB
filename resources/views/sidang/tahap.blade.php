@@ -153,6 +153,17 @@
             }
         }
 
+        // Penilaian dianggap SELESAI bila nilai sudah dikunci (berlaku untuk semua
+        // role, termasuk TU Prodi/Admin yang $isNilaiTerkunci-nya selalu false)
+        // atau status lulus sudah ditentukan. Saat selesai, baris referensi
+        // (parameter master yang belum punya data di t_penilaian — mis. parameter
+        // baru ditambahkan setelah mahasiswa lulus) tidak ditampilkan & tidak
+        // diisi; yang tampil hanya baris dari t_penilaian.
+        $penilaianSelesai = \App\Services\PenilaianSelesai::cek(
+            $ajuan ?? null,
+            isset($penilaian) ? $penilaian : null
+        );
+
         // Sebuah role "Pembimbing"/"Penguji" ikut diperlakukan seperti TU Prodi
         // bila user tersebut adalah Ketua Pembimbing pada judul + tahapan ini:
         // tombol Kunci Nilai ikut ter-gate (disabled + tooltip sampai tim lengkap).
@@ -170,6 +181,14 @@
         }
 
         $isGateLockNilai = session('auth_user.role') === 'TU Prodi' || $isKetuaPembimbingUser;
+
+        // Gate approve KPPS prodi: input nilai & Kunci Nilai Pembimbing/Penguji
+        // dibuka hanya setelah semua anggota KPPS AKTIF prodi approve ajuan.
+        // TU Prodi/Admin/FS tidak terpengaruh (flag selalu false untuk mereka).
+        $kppsGate = $kppsGate ?? \App\Services\KppsApproveGate::cek($idJudul, $tahapan);
+        $isKppsGateBlocking = ! empty($kppsGate['blocked'])
+            && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji'], true);
+        $pesanKppsGate = \App\Services\KppsApproveGate::pesan($kppsGate);
     @endphp
 
     <!-- Modal Tambah No SK -->
@@ -593,7 +612,7 @@
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
-                                            @unless($isNilaiTerkunci)
+                                            @unless($penilaianSelesai)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -1207,6 +1226,11 @@
                         <div class="text-muted mb-3" style="font-size: 13px;">
                             Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penilaian</span> Seminar/Sidang {{ getTahapLabel($tahapan) }}
                         </div>
+                        @if($isKppsGateBlocking)
+                        <div class="alert alert-warning py-2 px-2 mb-2" style="font-size: 12px;" role="alert">
+                            <i class="fas fa-hourglass-half mr-1"></i>{{ $pesanKppsGate }}
+                        </div>
+                        @endif
                         <form id="penilaianFormTahap2Form" onsubmit="return false">
                             @csrf
                             <input type="hidden" name="id_judul" value="{{ $idJudul }}">
@@ -1284,7 +1308,7 @@
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
-                                            @unless($isNilaiTerkunci)
+                                            @unless($penilaianSelesai)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -1351,9 +1375,9 @@
                                     @if($isCanLockNilai && $isNilaiTerkunci)
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                     @else
-                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" title="Kunci Nilai" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                     @endif
-                                    <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
+                                    <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" @if($isNilaiTerkunci || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif>Simpan</button>
                                 </div>
                                 @endif
                             </div>
@@ -1632,6 +1656,11 @@
                                     $isPembimbingOrPenguji = in_array($user['role'] ?? '', ['Pembimbing', 'Penguji']);
                                 @endphp
                                 @if($isPembimbingOrPenguji)
+                                @if($isKppsGateBlocking)
+                                <div class="alert alert-warning py-2 px-2 mb-2" style="font-size: 12px;" role="alert">
+                                    <i class="fas fa-hourglass-half mr-1"></i>{{ $pesanKppsGate }}
+                                </div>
+                                @endif
                                 <form id="penilaianForm" onsubmit="submitPenilaian(event)">
                                     @csrf
                                     <input type="hidden" name="id_judul" value="{{ $idJudul }}">
@@ -1667,6 +1696,8 @@
                                             <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                             @elseif($isNilaiTerkunci)
                                             <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled>Simpan</button>
+                                            @elseif($isKppsGateBlocking)
+                                            <button type="button" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled title="{{ $pesanKppsGate }}">Simpan</button>
                                             @else
                                             <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;">Simpan</button>
                                             @endif
@@ -1676,7 +1707,7 @@
                                             @if($isNilaiTerkunci)
                                             <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                             @else
-                                            <span class="lock-nilai-wrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" title="Kunci Nilai" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                                            <span class="lock-nilai-wrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                             @endif
                                         </div>
                                         @endif
@@ -1720,7 +1751,7 @@
                                                     </td>
                                                 </tr>
                                             @endforeach
-                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && !$isDataTerkunci)
+                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && !$penilaianSelesai)
                                                 @foreach($allPointPenilaian as $idx => $point)
                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $idx + 1 }}</td>
@@ -1994,6 +2025,8 @@ var isLockGateActive = {{ ($isGateLockNilai ?? false) ? 'true' : 'false' }};
 var isKetuaPembimbingUser = {{ ($isKetuaPembimbingUser ?? false) ? 'true' : 'false' }};
 var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
 var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
+var isKppsGateBlocking = {{ ($isKppsGateBlocking ?? false) ? 'true' : 'false' }};
+var PESAN_KPPS_GATE = {!! json_encode($pesanKppsGate ?? '') !!};
 var PESAN_BELUM_DISIMPAN = 'Nilai Anda belum disimpan. Simpan terlebih dahulu sebelum mengunci nilai.';
 
 function initLockNilaiTooltips() {
@@ -2031,6 +2064,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sel2) sel2.disabled = true;
         var selP = document.getElementById('statusLulusPembimbing');
         if (selP) selP.disabled = true;
+    }
+    if (isKppsGateBlocking) {
+        disablePenilaianInputs('penilaianTahap2Body');
+        disablePenilaianInputs('penilaianTableBody');
     }
 });
 
@@ -2233,6 +2270,10 @@ function updateStatusLulus(idAjuan) {
 function submitPenilaian(event) {
     event.preventDefault();
     event.stopPropagation();
+    if (isKppsGateBlocking) {
+        showToast(PESAN_KPPS_GATE || 'Menunggu approve KPPS prodi.', 'error');
+        return;
+    }
     const form = event.target;
     const formData = new FormData(form);
 
@@ -2309,7 +2350,7 @@ function clearReferenceRows(tbodyId) {
 }
 
 function filterPenilaianTahap2() {
-    var isLocked = !!isNilaiTerkunci;
+    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking;
     var penilaiId = document.getElementById('penilaiTahap2').value;
     var noForm = document.getElementById('formTahap2').value;
     document.getElementById('selectedTimSidangTahap2').value = penilaiId;
@@ -2410,7 +2451,7 @@ function applyStatusCatatan(row) {
 }
 
 function filterPenilaian() {
-    var isLocked = !!isNilaiTerkunci;
+    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking;
     var penilaiId = document.getElementById('penilaianSelect').value;
     var noForm = document.getElementById('formFilterSelect').value;
     var tbody = document.getElementById('penilaianReportBody');
@@ -2483,7 +2524,7 @@ function filterPenilaian() {
 function loadPenilaianForm() {
     const timSidangId = document.getElementById('penilaiSelect').value;
     const noForm = document.getElementById('formSelect').value;
-    var isLocked = !!isNilaiTerkunci;
+    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking;
     
     document.getElementById('selectedTimSidang').value = timSidangId;
     document.getElementById('selectedNoForm').value = noForm;
@@ -3232,6 +3273,15 @@ function selectPenilaiUntuk(btnId) {
 function toggleLockButton(tbodyId, btnId) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
+
+    // Gate approve KPPS prodi (khusus Pembimbing/Penguji): Kunci Nilai diblokir
+    // sampai semua anggota KPPS AKTIF prodi approve. Status Lulus tidak disentuh.
+    if (isKppsGateBlocking) {
+        btn.disabled = true;
+        setLockNilaiTooltip(btnId, PESAN_KPPS_GATE || 'Menunggu approve KPPS prodi.');
+        return;
+    }
+
     var tbody = document.getElementById(tbodyId);
     if (!tbody) { btn.disabled = true; setLockNilaiTooltip(btnId, PESAN_KELENGKAPAN); return; }
 
@@ -3302,6 +3352,10 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     // Jangan buka konfirmasi kalau tombol sedang terkunci oleh gate
     var btnEl = document.getElementById(btnId);
     if (btnEl && btnEl.disabled) {
+        if (isKppsGateBlocking) {
+            showToast(PESAN_KPPS_GATE || 'Menunggu approve KPPS prodi.', 'error');
+            return;
+        }
         var wrapEl = btnEl.closest('.lock-nilai-wrap') || btnEl;
         showToast(wrapEl.getAttribute('data-original-title') || 'Nilai belum disimpan.', 'error');
         return;
@@ -3391,6 +3445,10 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
 }
 
 async function savePenilaianTahap2() {
+    if (isKppsGateBlocking) {
+        showToast(PESAN_KPPS_GATE || 'Menunggu approve KPPS prodi.', 'error');
+        return;
+    }
     const idJudul = '{{ $idJudul }}';
     const tahapan = '{{ $tahapan }}';
     const idTimSidang = document.getElementById('selectedTimSidangTahap2').value;
