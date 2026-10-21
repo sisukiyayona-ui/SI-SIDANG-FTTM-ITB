@@ -144,14 +144,12 @@
         $isCanLockNilai = in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']);
         $kelengkapanNilai = $kelengkapanNilai ?? ['lengkap' => false, 'ada_tim' => false, 'belum' => [], 'belum_parameter' => []];
         $pesanKelengkapanNilai = \App\Services\KelengkapanNilaiSidang::pesan($kelengkapanNilai);
-        $isNilaiTerkunci = false;
-        $isDataTerkunci = false;
-        if (isset($penilaian) && $penilaian->count() > 0) {
-            $isDataTerkunci = $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
-            if ($isCanLockNilai) {
-                $isNilaiTerkunci = $isDataTerkunci;
-            }
-        }
+        $isDataTerkunci = isset($penilaian) && $penilaian->count() > 0
+            && $penilaian->where('NILAI_TERKUNCI', 1)->count() > 0;
+        // Terkunci kalau ajuan NILAI_TERKUNCI='y' ATAU ada baris nilai terkunci.
+        // Kalau hanya cek baris t_penilaian, ajuan terkunci tanpa baris nilai
+        // bikin tombol Simpan & input tetap aktif padahal nilai sudah dikunci.
+        $isNilaiTerkunci = \App\Services\PenilaianSelesai::terkunci($ajuan ?? null, $penilaian ?? null);
 
         // Penilaian dianggap SELESAI bila nilai sudah dikunci (berlaku untuk semua
         // role, termasuk TU Prodi/Admin yang $isNilaiTerkunci-nya selalu false)
@@ -1377,7 +1375,7 @@
                                     @else
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                     @endif
-                                    <button type="button" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" @if($isNilaiTerkunci || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif>Simpan</button>
+                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" @if($isNilaiTerkunci || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif>Simpan</button>
                                 </div>
                                 @endif
                             </div>
@@ -2275,6 +2273,8 @@ function submitPenilaian(event) {
         return;
     }
     const form = event.target;
+    const btn = event.submitter || form.querySelector('button[type="submit"]');
+    if (btn && btn.disabled) return;
     const formData = new FormData(form);
 
     // Convert to JSON
@@ -2294,7 +2294,13 @@ function submitPenilaian(event) {
         }
     });
 
+    if (!data.id_tim_sidang) {
+        showToast('Pilih penilai terlebih dahulu', 'error');
+        return;
+    }
+
     data.penilaian = Object.values(penilaianArr);
+    setSavePenilaianLoading(btn, true);
     fetch('/sidang/penilaian', {
         method: 'POST',
         headers: {
@@ -2316,11 +2322,17 @@ function submitPenilaian(event) {
     .then(function(data) {
         if (data.success) {
             showToast('Penilaian berhasil disimpan', 'success');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-check"></i> Tersimpan';
+            }
         } else {
+            setSavePenilaianLoading(btn, false);
             showToast('Error: ' + (data.error || 'Terjadi kesalahan'), 'error');
         }
     })
     .catch(function(error) {
+        setSavePenilaianLoading(btn, false);
         showToast('Error: ' + error.message, 'error');
     });
 }
@@ -3096,7 +3108,26 @@ function removePenilaiOption(id) {
     });
 }
 
+// Kunci tombol simpan selama request berjalan (cegah dobel-klik -> data dobel).
+// Setelah sukses tombol sengaja dikunci; konten form akan direload ulang.
+function setSavePenilaianLoading(btn, isLoading) {
+    if (!btn) return;
+    if (isLoading) {
+        if (!btn.dataset.labelAwal) btn.dataset.labelAwal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    } else {
+        btn.disabled = false;
+        if (btn.dataset.labelAwal) {
+            btn.innerHTML = btn.dataset.labelAwal;
+            delete btn.dataset.labelAwal;
+        }
+    }
+}
+
 async function savePenilaianTahap1() {
+    const btn = document.getElementById('savePenilaianBtn');
+    if (btn && btn.disabled) return;
     const idJudul = '{{ $idJudul }}';
     const tahapan = '{{ $tahapan }}';
     const idTimSidang = document.getElementById('selectedTimSidangTahap1').value;
@@ -3136,6 +3167,7 @@ async function savePenilaianTahap1() {
         return;
     }
 
+    let saved = false;
     try {
         const body = {
             id_judul: idJudul,
@@ -3149,6 +3181,7 @@ async function savePenilaianTahap1() {
             body.status_lulus = statusLulus;
         }
 
+        setSavePenilaianLoading(btn, true);
         const res = await fetch('/sidang/penilaian', {
             method: 'POST',
             headers: {
@@ -3164,6 +3197,7 @@ async function savePenilaianTahap1() {
             return;
         }
         if (data.success) {
+            saved = true;
             let msg = 'Penilaian berhasil disimpan';
             if (data.status_lulus_updated) {
                 msg += ' & status lulus tersimpan';
@@ -3180,6 +3214,8 @@ async function savePenilaianTahap1() {
         }
     } catch (error) {
         showToast('Gagal menyimpan penilaian: ' + error, 'error');
+    } finally {
+        if (!saved) setSavePenilaianLoading(btn, false);
     }
 }
 
@@ -3445,6 +3481,8 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
 }
 
 async function savePenilaianTahap2() {
+    const btn = document.getElementById('savePenilaianTahap2Btn');
+    if (btn && btn.disabled) return;
     if (isKppsGateBlocking) {
         showToast(PESAN_KPPS_GATE || 'Menunggu approve KPPS prodi.', 'error');
         return;
@@ -3487,6 +3525,7 @@ async function savePenilaianTahap2() {
         return;
     }
 
+    let saved = false;
     try {
         const body = {
             id_judul: idJudul,
@@ -3500,6 +3539,7 @@ async function savePenilaianTahap2() {
             body.status_lulus = statusLulus;
         }
 
+        setSavePenilaianLoading(btn, true);
         const res = await fetch('/sidang/penilaian', {
             method: 'POST',
             headers: {
@@ -3515,6 +3555,7 @@ async function savePenilaianTahap2() {
             return;
         }
         if (data.success) {
+            saved = true;
             let msg = 'Penilaian berhasil disimpan';
             if (data.status_lulus_updated) {
                 msg += ' & status lulus tersimpan';
@@ -3531,6 +3572,8 @@ async function savePenilaianTahap2() {
         }
     } catch (error) {
         showToast('Gagal menyimpan penilaian: ' + error, 'error');
+    } finally {
+        if (!saved) setSavePenilaianLoading(btn, false);
     }
 }
 
@@ -3838,8 +3881,14 @@ function reloadTahapForm(tahapan, idJudul) {
         // Pulihkan pilihan penilai & form, lalu filter ulang
         var p2 = document.getElementById('penilaiTahap2');
         var f2 = document.getElementById('formTahap2');
-        if (p2) p2.value = selPenilai2;
-        if (f2) f2.value = selForm2;
+        if (p2) {
+            p2.value = selPenilai2;
+            if (window.jQuery && jQuery.fn.select2 && jQuery(p2).data('select2')) jQuery(p2).trigger('change');
+        }
+        if (f2) {
+            f2.value = selForm2;
+            if (window.jQuery && jQuery.fn.select2 && jQuery(f2).data('select2')) jQuery(f2).trigger('change');
+        }
         // Pulihkan hidden input id_tim_sidang & no_form untuk tahap2
         var h2 = document.getElementById('selectedTimSidangTahap2');
         if (h2) h2.value = selPenilai2;
@@ -3848,8 +3897,14 @@ function reloadTahapForm(tahapan, idJudul) {
         if (p2 && typeof filterPenilaianTahap2 === 'function') filterPenilaianTahap2();
         var p1 = document.getElementById('penilaianSelect');
         var f1 = document.getElementById('formFilterSelect');
-        if (p1) p1.value = selPenilai1;
-        if (f1) f1.value = selForm1;
+        if (p1) {
+            p1.value = selPenilai1;
+            if (window.jQuery && jQuery.fn.select2 && jQuery(p1).data('select2')) jQuery(p1).trigger('change');
+        }
+        if (f1) {
+            f1.value = selForm1;
+            if (window.jQuery && jQuery.fn.select2 && jQuery(f1).data('select2')) jQuery(f1).trigger('change');
+        }
         // Pulihkan hidden input id_tim_sidang agar save tidak gagal
         var h1 = document.getElementById('selectedTimSidangTahap1');
         if (h1) h1.value = selPenilai1;

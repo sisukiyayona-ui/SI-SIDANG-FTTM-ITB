@@ -385,14 +385,14 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Strata</label>
+                        <label class="form-label">Strata <span class="text-danger" id="strataReq" style="display:none;">*</span></label>
                         <select name="strata" id="f_strata" class="form-control">
                             <option value="">-- Pilih Strata --</option>
                             <option value="S1">S1</option>
                             <option value="S2">S2</option>
                             <option value="S3">S3</option>
                         </select>
-                        <small class="text-muted">Isi jika Role User Mahasiswa</small>
+                        <small class="text-muted">Wajib diisi jika Status User Mahasiswa</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tahun Angkatan</label>
@@ -661,8 +661,11 @@
         var fThnAngkatan = document.getElementById('f_thn_angkatan');
         if (fStrata) {
             fStrata.disabled = !isMahasiswa;
+            fStrata.required = isMahasiswa;
             fStrata.style.backgroundColor = isMahasiswa ? '' : '#e9ecef';
         }
+        var strataReq = document.getElementById('strataReq');
+        if (strataReq) strataReq.style.display = isMahasiswa ? '' : 'none';
         if (fThnAngkatan) {
             fThnAngkatan.disabled = !isMahasiswa;
             fThnAngkatan.style.backgroundColor = isMahasiswa ? '' : '#e9ecef';
@@ -1309,6 +1312,13 @@
             showToast('error', 'Program Studi wajib dipilih minimal satu.');
             return;
         }
+        const fStatusPegawai = document.getElementById('f_status_pegawai');
+        const fStrataEl = document.getElementById('f_strata');
+        if (fStatusPegawai && fStatusPegawai.value === 'Mahasiswa' && fStrataEl && !fStrataEl.value) {
+            showToast('error', 'Strata wajib dipilih untuk Status User Mahasiswa.');
+            try { fStrataEl.focus(); } catch (err) {}
+            return;
+        }
         if (nipDupState === false) {
             showToast('error', nipDupMessage || 'NIP/NIM sudah terpakai akun lain. Periksa kembali.');
             if (nipInput) { try { nipInput.focus(); } catch (err) {} }
@@ -1336,6 +1346,7 @@
                     kode_fs: 'Fakultas',
                     id_prodi: 'Program Studi',
                     nip_nim: 'NIP/NIM',
+                    strata: 'Strata',
                 };
                 const lines = Object.entries(data.errors).map(([k, v]) => {
                     const key = String(k).replace(/\[\]$/, '');

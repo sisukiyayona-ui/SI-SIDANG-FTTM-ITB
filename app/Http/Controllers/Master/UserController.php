@@ -180,7 +180,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
     try {
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
                 'nip_nim'        => ['required', 'string', 'regex:/^[0-9]+$/'],
                 'nama_lengkap'   => 'required',
                 'email'          => 'required|email',
@@ -190,6 +190,7 @@ class UserController extends Controller
                 'kode_fs'        => 'required|string',
                 'id_prodi'       => 'required|array|min:1',
                 'status_pegawai' => 'required',
+                'strata'         => 'nullable|required_if:status_pegawai,Mahasiswa|in:S1,S2,S3',
                 'status_aktif'   => 'required',
                 'status_approve' => 'nullable|in:t,f',
             ], [
@@ -198,7 +199,17 @@ class UserController extends Controller
                 'id_prodi.array'     => 'Program Studi wajib dipilih minimal satu.',
                 'id_prodi.min'       => 'Program Studi wajib dipilih minimal satu.',
                 'status_pegawai.required' => 'Status User wajib dipilih.',
+                'strata.required_if' => 'Strata wajib dipilih untuk Status User Mahasiswa.',
+                'strata.in'          => 'Strata tidak valid (harus S1, S2, atau S3).',
             ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                    'errors'  => $validator->errors(),
+                ], 422);
+            }
 
             // Guard: NIP/NIM (dan padanan akun) harus belum terpakai akun lain
             if ($conflict = $this->validateNipNimAvailable($request)) {
@@ -288,6 +299,7 @@ class UserController extends Controller
             'kode_fs'        => 'required|string',
             'id_prodi'       => 'required|array|min:1',
             'status_pegawai' => 'required',
+            'strata'         => 'nullable|required_if:status_pegawai,Mahasiswa|in:S1,S2,S3',
             'status_aktif'   => 'required',
             'status_approve' => 'nullable|in:t,f',
         ], [
@@ -296,6 +308,8 @@ class UserController extends Controller
             'id_prodi.array'    => 'Program Studi wajib dipilih minimal satu.',
             'id_prodi.min'      => 'Program Studi wajib dipilih minimal satu.',
             'status_pegawai.required' => 'Status User wajib dipilih.',
+            'strata.required_if' => 'Strata wajib dipilih untuk Status User Mahasiswa.',
+            'strata.in'          => 'Strata tidak valid (harus S1, S2, atau S3).',
         ]);
 
         // Guard: NIP/NIM (dan padanan akun) harus belum dipakai user lain
