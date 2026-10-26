@@ -640,7 +640,7 @@
                                 </div>
                             </div>
                             <div class="col-md-5 text-right">
-                                <button type="button" class="btn btn-outline-dark px-3 py-1" style="font-size: 13px; border-radius: 0;" onclick="window.open('#'); return false;">BA Sidang</button>
+                                {{-- Tombol BA Sidang sengaja dihide untuk user mahasiswa --}}
                             </div>
                         </div>
                         

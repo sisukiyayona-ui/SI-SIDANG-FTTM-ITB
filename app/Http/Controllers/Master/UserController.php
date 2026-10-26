@@ -129,7 +129,7 @@ class UserController extends Controller
         if ($authUser['role'] === 'TU Prodi') {
             $prodiQuery->whereIn('id', $authUser['id_prodi'] ?? []);
         }
-        $prodis = $prodiQuery->get();
+        $prodis = $prodiQuery->orderBy('KODE_PRODI')->get();
         $fakultas = TFs::all();
 
         if ($request->ajax()) {
@@ -190,7 +190,7 @@ class UserController extends Controller
                 'kode_fs'        => 'required|string',
                 'id_prodi'       => 'required|array|min:1',
                 'status_pegawai' => 'required',
-                'strata'         => 'nullable|required_if:status_pegawai,Mahasiswa|in:S1,S2,S3',
+                'strata'         => ['nullable', 'in:S1,S2,S3'],
                 'status_aktif'   => 'required',
                 'status_approve' => 'nullable|in:t,f',
             ], [
@@ -199,7 +199,6 @@ class UserController extends Controller
                 'id_prodi.array'     => 'Program Studi wajib dipilih minimal satu.',
                 'id_prodi.min'       => 'Program Studi wajib dipilih minimal satu.',
                 'status_pegawai.required' => 'Status User wajib dipilih.',
-                'strata.required_if' => 'Strata wajib dipilih untuk Status User Mahasiswa.',
                 'strata.in'          => 'Strata tidak valid (harus S1, S2, atau S3).',
             ]);
 
@@ -208,6 +207,14 @@ class UserController extends Controller
                     'success' => false,
                     'message' => $validator->errors()->first(),
                     'errors'  => $validator->errors(),
+                ], 422);
+            }
+
+            if ($strataError = $this->strataMahasiswaError($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $strataError,
+                    'errors'  => ['strata' => [$strataError]],
                 ], 422);
             }
 
@@ -299,7 +306,7 @@ class UserController extends Controller
             'kode_fs'        => 'required|string',
             'id_prodi'       => 'required|array|min:1',
             'status_pegawai' => 'required',
-            'strata'         => 'nullable|required_if:status_pegawai,Mahasiswa|in:S1,S2,S3',
+            'strata'         => ['nullable', 'in:S1,S2,S3'],
             'status_aktif'   => 'required',
             'status_approve' => 'nullable|in:t,f',
         ], [
@@ -308,9 +315,16 @@ class UserController extends Controller
             'id_prodi.array'    => 'Program Studi wajib dipilih minimal satu.',
             'id_prodi.min'      => 'Program Studi wajib dipilih minimal satu.',
             'status_pegawai.required' => 'Status User wajib dipilih.',
-            'strata.required_if' => 'Strata wajib dipilih untuk Status User Mahasiswa.',
             'strata.in'          => 'Strata tidak valid (harus S1, S2, atau S3).',
         ]);
+
+        if ($strataError = $this->strataMahasiswaError($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => $strataError,
+                'errors'  => ['strata' => [$strataError]],
+            ], 422);
+        }
 
         // Guard: NIP/NIM (dan padanan akun) harus belum dipakai user lain
         $user = TUser::find($id);
@@ -447,6 +461,25 @@ class UserController extends Controller
         return ['164', 'FTTM'];
     }
 
+    /**
+     * Strata wajib untuk Role Mahasiswa atau Status User Mahasiswa.
+     * Aturan closure di dalam validator tidak berjalan karena field "strata"
+     * berstatus nullable (Laravel melewati sisa rule saat nilainya kosong),
+     * jadi pemeriksaan dilakukan eksplisit setelah validasi.
+     */
+    private function strataMahasiswaError(\Illuminate\Http\Request $request): ?string
+    {
+        $status = mb_strtolower((string) $request->input('status_pegawai', ''));
+        $roles = array_map(fn ($r) => mb_strtolower((string) $r), (array) $request->input('jenis_user', []));
+        $strata = trim((string) $request->input('strata', ''));
+
+        if (($status === 'mahasiswa' || in_array('mahasiswa', $roles, true)) && $strata === '') {
+            return 'Strata wajib dipilih untuk Role Mahasiswa atau Status User Mahasiswa.';
+        }
+
+        return null;
+    }
+
     private function syncRoles(int $userId, array $roles): void
     {
         TUserRole::where('ID_USER', $userId)->delete();
@@ -526,7 +559,7 @@ class UserController extends Controller
             $query->whereIn('id', $user['id_prodi'] ?? []);
         }
 
-        $prodis = $query->orderBy('NAMA_PRODI')
+        $prodis = $query->orderBy('KODE_PRODI')
             ->get(['id', 'KODE_PRODI', 'NAMA_PRODI']);
 
         return response()->json($prodis);

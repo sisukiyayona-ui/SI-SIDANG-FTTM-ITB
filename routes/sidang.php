@@ -25,8 +25,8 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
     Route::get('seminar-kemajuan-iv', [SeminarKemajuanIVController::class, 'index'])->name('seminar-kemajuan-iv');
     Route::get('sidang-akhir', [SidangAkhirController::class, 'index'])->name('sidang-akhir');
     
-    // Route baru untuk S1, S2, S3 - TU Prodi, Admin, Pembimbing, Penguji, FS (2.3 Menu Sidang)
-    Route::middleware(['role:Admin,TU Prodi,Pembimbing,Penguji,FS'])->group(function () {
+    // Route baru untuk S1, S2, S3 - TU Prodi, Admin, Pembimbing, Penguji, Ketua Sidang, FS (2.3 Menu Sidang)
+    Route::middleware(['role:Admin,TU Prodi,Pembimbing,Penguji,Ketua Sidang,FS'])->group(function () {
         Route::get('tahap/{tahapan}', [\App\Http\Controllers\MahasiswaController::class, 'showTahap'])->name('tahap');
         Route::post('penilaian', [\App\Http\Controllers\Sidang\PenilaianController::class, 'store'])->name('penilaian.store');
         Route::post('penilaian-tu-prodi', [\App\Http\Controllers\Sidang\PenilaianController::class, 'storeTuProdi'])->name('penilaian-tu-prodi.store');

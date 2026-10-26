@@ -186,10 +186,13 @@ class MasterExcelService
 
         // Prodi NON AKTIF dianggap tidak tersedia: import tidak boleh menautkan
         // data baru ke prodi yang sudah dinonaktifkan di master.
+        // urutkan berdasarkan kode supaya nama yang terdaftar di banyak prodi
+        // dengan digit sama (mis. "Non Reguler") tidak menempel ke baris acak.
         $byName = TProdi::query()
             ->where('STATUS_AKTIF', 'AKTIF')
             ->whereRaw('UPPER(TRIM(NAMA_PRODI)) = ?', [mb_strtoupper($value)])
             ->when($digit, fn ($q) => $q->where('KODE_PRODI', 'like', $digit . '%'))
+            ->orderBy('KODE_PRODI')
             ->first();
 
         if ($byName) {
@@ -228,8 +231,7 @@ class MasterExcelService
     /**
      * Daftar strata tempat program studi ini terdaftar (untuk pesan error).
      */
-    private static function prodiStrataList(string $input): array
-    {
+    private static function prodiStrataList(string $input): array    {
         return TProdi::query()
             ->whereRaw('UPPER(TRIM(NAMA_PRODI)) = ?', [mb_strtoupper(trim($input))])
             ->orderBy('KODE_PRODI')
@@ -238,6 +240,48 @@ class MasterExcelService
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * TU Prodi bisa memegang beberapa prodi sekaligus (mis. 221 dan 321 dengan
+     * nama sama). Kolom prodi pada baris import dipaksa ke prodi milik user,
+     * jadi pemilihannya harus ikut strata baris tersebut — bukan satu kode
+     * tunggal dari session yang bisa menempel ke strata lain.
+     */
+    public static function tuProdiKodeForStrata(array $user, ?string $strata): ?string
+    {
+        $ids = array_values(array_filter(array_map('intval', $user['id_prodi'] ?? [])));
+        if (!$ids) {
+            return $user['kode_prodi'] ?? null;
+        }
+
+        $query = TProdi::query()
+            ->whereIn('id', $ids)
+            ->where('STATUS_AKTIF', 'AKTIF')
+            ->orderBy('KODE_PRODI');
+
+        $digit = $strata !== null ? (self::STRATA_DIGIT[$strata] ?? null) : null;
+        if ($digit !== null) {
+            $query->where('KODE_PRODI', 'like', $digit . '%');
+        }
+
+        return $query->value('KODE_PRODI') ?? ($user['kode_prodi'] ?? null);
+    }
+
+    /**
+     * Kode prodi berdigit pertama sesuai strata (1xx=S1, 2xx=S2, 3xx=S3).
+     * Dipakai form manual supaya prodi S2 tidak ikut tersimpan saat strata S3.
+     */
+    public static function strataProdiMismatch($strata, $kodeProdi): ?string
+    {
+        $strataVal = self::canonicalStrata((string) $strata);
+        $digit = $strataVal !== null ? (self::STRATA_DIGIT[$strataVal] ?? null) : null;
+
+        if ($digit !== null && $kodeProdi !== null && $kodeProdi !== '' && substr((string) $kodeProdi, 0, 1) !== $digit) {
+            return 'Program studi "' . $kodeProdi . '" tidak terdaftar pada strata ' . $strataVal . '. Pilih program studi yang sesuai strata.';
+        }
+
+        return null;
     }
 
     public static function validateItemRow(array $values, string $type, array $seen = [], $ignoreId = null): array
@@ -316,10 +360,11 @@ class MasterExcelService
             return ['result' => 'duplicate', 'message' => 'Duplikat dari baris lain di file yang sama'] + $clean;
         }
 
-        // Duplikat di database (prodi + tahapan + nama sama)
+        // Duplikat di database (strata + prodi + tahapan + nama sama)
         $namaColumn = $type === 'penilaian' ? 'PENILAIAN' : 'NAMA_PERSYARATAN';
         $query = ($type === 'penilaian' ? TPointPenilaian::query() : TSyaratSidang::query())
             ->where('KODE_PRODI', $clean['kode_prodi'])
+            ->where('STRATA', $strataVal)
             ->where('TAHAPAN_SIDANG', $tahapanVal)
             ->whereRaw('LOWER(' . $namaColumn . ') = ?', [mb_strtolower($clean['nama'])]);
 
@@ -328,7 +373,7 @@ class MasterExcelService
         }
 
         if ($query->exists()) {
-            return ['result' => 'duplicate', 'message' => 'Sudah ada di database (prodi + tahapan + nama sama)'] + $clean;
+            return ['result' => 'duplicate', 'message' => 'Data sudah ada, mohon diperiksa kembali'] + $clean;
         }
 
         return ['result' => 'ok', 'message' => 'Siap disimpan'] + $clean;
@@ -510,7 +555,7 @@ class MasterExcelService
             $values = $parsed['values'];
 
             if (($user['role'] ?? '') === 'TU Prodi') {
-                $values[0] = $user['kode_prodi'] ?? ($values[0] ?? '');
+                $values[0] = self::tuProdiKodeForStrata($user, self::canonicalStrata($values[3] ?? ''));
             }
 
             $check = self::validateItemRow($values, $type, $seen);
@@ -621,7 +666,7 @@ class MasterExcelService
                 $values = self::toValues($row, $type);
 
                 if (($user['role'] ?? '') === 'TU Prodi') {
-                    $values[0] = $user['kode_prodi'] ?? ($values[0] ?? '');
+                    $values[0] = self::tuProdiKodeForStrata($user, self::canonicalStrata($values[4] ?? ''));
                 }
 
                 $check = self::validateItemRow($values, $type, $seen, $row['id'] ?? null);
@@ -761,7 +806,7 @@ class MasterExcelService
     private static function storePersyaratan(array $v, $user, int $row, array &$return): void
     {
         if (($user['role'] ?? '') === 'TU Prodi') {
-            $v[0] = $user['kode_prodi'] ?? ($v[0] ?? '');
+            $v[0] = self::tuProdiKodeForStrata($user, self::canonicalStrata($v[3] ?? ''));
         }
 
         $check = self::validateItemRow($v, 'persyaratan', $return['seen'] ?? []);
@@ -777,7 +822,7 @@ class MasterExcelService
     private static function storePenilaian(array $v, $user, int $row, array &$return): void
     {
         if (($user['role'] ?? '') === 'TU Prodi') {
-            $v[0] = $user['kode_prodi'] ?? ($v[0] ?? '');
+            $v[0] = self::tuProdiKodeForStrata($user, self::canonicalStrata($v[4] ?? ''));
         }
 
         $check = self::validateItemRow($v, 'penilaian', $return['seen'] ?? []);

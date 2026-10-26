@@ -370,6 +370,10 @@
                                 <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="KPPS">
                                 <span class="form-check-label">KPPS</span>
                             </label>
+                            <label class="form-check d-block mb-1" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input role-check" name="jenis_user[]" value="Ketua Sidang">
+                                <span class="form-check-label">Ketua Sidang</span>
+                            </label>
                         </div>
                         <small class="text-muted">Klik role untuk memilih lebih dari satu. Role pertama yang dipilih menjadi role default.</small>
                     </div>
@@ -653,7 +657,8 @@
     // Item 14: Toggle field aktif berdasarkan status_pegawai
     function toggleUserFormFields() {
         var statusPegawai = document.getElementById('f_status_pegawai').value;
-        var isMahasiswa = (statusPegawai === 'Mahasiswa');
+        var isMahasiswa = (statusPegawai === 'Mahasiswa')
+            || !!document.querySelector('.role-check[value="Mahasiswa"]:checked');
         var isDosen = (statusPegawai === 'Dosen');
 
         // Strata & Tahun Angkatan: aktif jika Mahasiswa
@@ -1299,6 +1304,10 @@
         toggleUserFormFields();
     });
 
+    document.querySelectorAll('.role-check').forEach(function(cb) {
+        cb.addEventListener('change', toggleUserFormFields);
+    });
+
     document.getElementById('formUser').addEventListener('submit', function(e) {
         e.preventDefault();
         const kodeFs = document.getElementById('f_kode_fs');
@@ -1314,8 +1323,10 @@
         }
         const fStatusPegawai = document.getElementById('f_status_pegawai');
         const fStrataEl = document.getElementById('f_strata');
-        if (fStatusPegawai && fStatusPegawai.value === 'Mahasiswa' && fStrataEl && !fStrataEl.value) {
-            showToast('error', 'Strata wajib dipilih untuk Status User Mahasiswa.');
+        const isMahasiswaUser = (fStatusPegawai && fStatusPegawai.value === 'Mahasiswa')
+            || !!document.querySelector('.role-check[value="Mahasiswa"]:checked');
+        if (isMahasiswaUser && fStrataEl && !fStrataEl.value) {
+            showToast('error', 'Strata wajib dipilih untuk Role Mahasiswa atau Status User Mahasiswa.');
             try { fStrataEl.focus(); } catch (err) {}
             return;
         }

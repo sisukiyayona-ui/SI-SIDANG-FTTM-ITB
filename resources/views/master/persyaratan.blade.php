@@ -198,9 +198,9 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="f_id_prodi" class="form-label fw-semibold text-secondary">Program Studi</label>
-                            <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;">
+                            <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
                                 @forelse($prodis as $p)
-                                    <option value="{{ $p->id }}" {{ (string) ($userProdiId ?? '') === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                                    <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" {{ (string) ($userProdiId ?? '') === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                                 @empty
                                     <option value="">Prodi tidak tersedia</option>
                                 @endforelse
@@ -472,7 +472,8 @@
             const tahapOpts = tahapanSelectOptions(r.tahapan);
             return `<tr data-idx="${i}">
                 <td class="text-center">${i + 1}</td>
-                <td><input type="text" class="form-control form-control-sm ${r.result === 'ok' ? '' : 'is-invalid'}" data-validate-prodi list="prodiListImport" value="${escapeAttr(r.program_studi)}" oninput="updateImportRow(${i}, 'program_studi', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm ${r.result === 'ok' ? '' : 'is-invalid'}" data-validate-prodi list="prodiListImport" value="${escapeAttr(r.program_studi)}" oninput="updateImportRow(${i}, 'program_studi', this.value)">
+                    <div class="small text-muted mt-1" data-resolved-prodi>${r.kode_prodi ? 'Kode prodi: ' + escapeAttr(r.kode_prodi) + ' (' + escapeAttr(r.strata || '-') + ')' : ''}</div></td>
                 <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.nama)}" oninput="updateImportRow(${i}, 'nama', this.value)"></td>
                 <td>
                     <select class="form-control form-control-sm ${r.result === 'ok' ? '' : 'is-invalid'}" data-validate-tahapan onchange="updateImportRow(${i}, 'tahapan', this.value)">
@@ -486,7 +487,7 @@
                 </td>
                 <td class="text-center">
                     <span class="badge badge-${st.cls}">${st.label}</span>
-                    <div class="small text-muted mt-1" style="max-width:180px;">${escapeAttr(r.message)}</div>
+                    <div class="small text-muted mt-1" data-row-message style="max-width:180px;">${escapeAttr(r.message)}</div>
                 </td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" title="Hapus baris" onclick="removeImportRow(${i})"><i class="fas fa-times"></i></button></td>
             </tr>`;
@@ -526,14 +527,14 @@
         else { r.tahapan = tahapan; r.strata = strata; r.kode_prodi = prodi.kode; r.nama_prodi = prodi.nama; }
 
         if (r.result === 'ok') {
-            // Kunci duplikat pakai kode prodi hasil resolusi, sama seperti server
-            // (yang memakai id prodi), supaya ejaan nama berbeda tidak lolos.
-            const key = r.kode_prodi + '|' + String(r.tahapan).toLowerCase() + '|' + nama.toLowerCase();
+            // Kunci duplikat pakai kode prodi + strata hasil resolusi, sama
+            // seperti server, supaya ejaan nama berbeda tidak lolos.
+            const key = r.kode_prodi + '|' + strata + '|' + String(r.tahapan).toLowerCase() + '|' + nama.toLowerCase();
             for (let j = 0; j < importRows.length; j++) {
                 if (j === idx) continue;
                 const o = importRows[j];
                 if (String(o.result) !== 'ok') continue;
-                const okey = String(o.kode_prodi || '') + '|' + String(o.tahapan).toLowerCase() + '|'
+                const okey = String(o.kode_prodi || '') + '|' + canonicalStrataClient(o.strata) + '|' + String(o.tahapan).toLowerCase() + '|'
                     + String(o.nama).trim().toLowerCase();
                 if (okey === key) { r.result = 'duplicate'; r.message = 'Duplikat baris lain di file'; break; }
             }
@@ -545,8 +546,10 @@
             const badge = tr.querySelector('.badge');
             badge.className = 'badge badge-' + st.cls;
             badge.textContent = st.label;
-            const msg = tr.querySelector('.small.text-muted');
+            const msg = tr.querySelector('[data-row-message]');
             if (msg) msg.textContent = r.message;
+            const resolved = tr.querySelector('[data-resolved-prodi]');
+            if (resolved) resolved.textContent = r.kode_prodi ? 'Kode prodi: ' + r.kode_prodi + ' (' + (r.strata || '-') + ')' : '';
             // Samakan penanda kolom wajib dengan status baris terbaru.
             tr.querySelectorAll('[data-validate-prodi], [data-validate-tahapan], [data-validate-strata]').forEach(el => {
                 el.classList.toggle('is-invalid', r.result !== 'ok');
@@ -655,12 +658,50 @@
         if (!tahapanByStrata[s]) tahapanByStrata[s] = [];
     });
 
+    const strataDigit = @json(\App\Services\MasterExcelService::STRATA_DIGIT);
+
+    // Pilihan prodi mengikuti strata: digit pertama kode prodi harus sama
+    // dengan angka strata (1xx=S1, 2xx=S2, 3xx=S3).
+    function filterProdiByStrata(keepIfCompatible) {
+        var strata = document.getElementById('f_strata').value;
+        var digit = strataDigit[strata] || null;
+        var select = document.getElementById('f_id_prodi');
+        if (!select || !digit) return;
+        var current = select.value;
+        var first = null;
+        var visible = 0;
+        Array.prototype.forEach.call(select.options, function (opt) {
+            var kode = String(opt.dataset.kode || '');
+            var show = !kode || kode.charAt(0) === digit;
+            opt.hidden = !show;
+            opt.disabled = !show;
+            if (show) {
+                visible++;
+                if (first === null) first = opt.value;
+            }
+            if (!show && opt.value === current) {
+                current = '';
+            }
+        });
+        if (visible === 0) {
+            Array.prototype.forEach.call(select.options, function (opt) { opt.hidden = false; opt.disabled = false; });
+            return;
+        }
+        if (!current && !keepIfCompatible && first) {
+            select.value = first;
+        }
+    }
+
     function filterTahapanByStrata() {
         var strata = document.getElementById('f_strata').value;
         var tahapanSelect = document.getElementById('f_tahapan_sidang');
         var currentVal = tahapanSelect.value;
         var options = tahapanByStrata[strata] || [];
         if (!options.length) options = tahapanAll;
+        if (currentVal && options.length && !options.some(function (o) { return o.value === currentVal; })) {
+            var master = tahapanAll.find(function (o) { return o.value === currentVal; });
+            options = options.concat([master || { value: currentVal, label: currentVal }]);
+        }
         tahapanSelect.innerHTML = '';
         var placeholder = document.createElement('option');
         placeholder.value = '';
@@ -681,6 +722,7 @@
                 }
             }
         }
+        filterProdiByStrata();
     }
 
     function openCreate() {
@@ -716,6 +758,7 @@
             filterTahapanByStrata();
             document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
             if (item.id_prodi) {
+                filterProdiByStrata(true);
                 document.getElementById('f_id_prodi').value = item.id_prodi;
             } else if (isTuProdi && userProdiId) {
                 document.getElementById('f_id_prodi').value = userProdiId;
@@ -758,7 +801,7 @@
                 showToast('success', 'Data persyaratan berhasil disimpan.');
                 setTimeout(() => location.reload(), 1200);
             } else {
-                var msg = res.data && res.data.message ? res.data.message : 'Data tidak valid. Periksa kembali inputan.';
+                var msg = (res.data && (res.data.error || res.data.message)) ? (res.data.error || res.data.message) : 'Data tidak valid. Periksa kembali inputan.';
                 if (res.data && res.data.errors) {
                     msg = Object.values(res.data.errors).flat().join('\n');
                 }

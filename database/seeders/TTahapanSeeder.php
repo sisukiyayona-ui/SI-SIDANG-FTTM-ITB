@@ -17,6 +17,8 @@ class TTahapanSeeder extends Seeder
             ['TAHAPAN' => 'SK III', 'KODE_TAHAP' => 'SK3', 'STRATA' => 'S3', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
             ['TAHAPAN' => 'SK IV', 'KODE_TAHAP' => 'SK4', 'STRATA' => 'S3', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
             ['TAHAPAN' => 'tahap IV', 'KODE_TAHAP' => 'T4', 'STRATA' => 'S3', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
+            ['TAHAPAN' => 'Tesis I', 'KODE_TAHAP' => 'TS1', 'STRATA' => 'S2', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
+            ['TAHAPAN' => 'Tesis II', 'KODE_TAHAP' => 'TS2', 'STRATA' => 'S2', 'TGL_BUAT' => now(), 'TGL_UPDATE' => now()],
         ]);
     }
 }

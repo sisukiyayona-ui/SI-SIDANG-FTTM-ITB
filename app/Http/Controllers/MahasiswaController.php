@@ -235,9 +235,23 @@ class MahasiswaController extends Controller
         }
             
         // Table t_tim_sidang (Pembimbing / Penguji)
+        // Urutan tampil: Ketua Sidang, Ketua Pembimbing, Pembimbing I/II,
+        // Penguji I/II/III — baru role lain, lalu urutan input.
         $timSidangQuery = \App\Models\TTimSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan);
-        
+            ->where('tahapan_sidang', $tahapan)
+            ->orderByRaw("CASE
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 0
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 1
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 2
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 3
+                ELSE 4 END")
+            ->orderByRaw("CASE
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'II$' THEN 2
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'I$' THEN 1
+                ELSE 0 END")
+            ->orderBy('URUTAN');
+
         // For Pembimbing/Penguji, show all team members
         $timSidang = $timSidangQuery->get();
             
@@ -286,10 +300,27 @@ class MahasiswaController extends Controller
         }
 
         // Table penilaian - filter by user for Pembimbing/Penguji
+        // Ketua Sidang melihat seluruh nilai tim (tanpa menginput nilai).
+        $ketuaSidangSaya = $timSidang->first(function ($item) use ($user) {
+            return strtolower(trim((string) ($item->status_tim_sidang ?? ''))) === 'ketua sidang'
+                && (int) $item->id_user_penilai === (int) $user['id'];
+        }) !== null;
+
+        // Bila user yang sama juga tercatat sebagai pembimbing/penguji pada
+        // tahapan ini, hak input nilainya tetap berlaku (form tidak view-only).
+        $peranLainSaya = $timSidang->first(function ($item) use ($user) {
+            $status = strtolower(trim((string) ($item->status_tim_sidang ?? '')));
+
+            return $status !== '' && $status !== 'ketua sidang'
+                && (int) $item->id_user_penilai === (int) $user['id'];
+        }) !== null;
+
+        $isKetuaSidangTim = ($ketuaSidangSaya || ($user['role'] ?? '') === 'Ketua Sidang') && ! $peranLainSaya;
+
         $penilaianQuery = \App\Models\TPenilaian::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan);
         
-        if (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
+        if (in_array($user['role'], ['Pembimbing', 'Penguji']) && !$isKetuaSidangTim) {
             $penilaianQuery->where('id_user_penilai', $user['id']);
         }
         
@@ -359,9 +390,9 @@ class MahasiswaController extends Controller
         $kppsGate = \App\Services\KppsApproveGate::cek($idJudul, $tahapan, $mahasiswaProdi);
 
         // Return HTML fragment for AJAX request
-        $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
+        $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji', 'Ketua Sidang'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
 
-        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'users', 'skList', 'kelengkapanNilai', 'kppsGate');
+        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'isKetuaSidangTim', 'users', 'skList', 'kelengkapanNilai', 'kppsGate');
 
         if (request()->ajax()) {
             return view($viewName, $viewData)->render();
@@ -758,7 +789,9 @@ class MahasiswaController extends Controller
             'tahapan_sidang' => 'required',
             'status_tim_sidang' => 'required',
             'urutan' => 'nullable',
-            'file_penelaah' => 'nullable|file|mimes:pdf',
+            'file_penelaah' => 'nullable|file|mimes:pdf|max:2048',
+        ], [
+            'file_penelaah.max' => 'Maksimal ukuran file 2MB',
         ]);
 
         // External penguji (manual input)
@@ -836,7 +869,9 @@ class MahasiswaController extends Controller
         $request->validate([
             'status_tim_sidang' => 'required',
             'urutan' => 'nullable',
-            'file_penelaah' => 'nullable|file|mimes:pdf',
+            'file_penelaah' => 'nullable|file|mimes:pdf|max:2048',
+        ], [
+            'file_penelaah.max' => 'Maksimal ukuran file 2MB',
         ]);
 
         $timSidang = \App\Models\TTimSidang::find($id);

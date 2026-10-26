@@ -125,6 +125,14 @@ class PenilaianController extends Controller
             return response()->json(['error' => 'Data tim sidang tidak ditemukan'], 404);
         }
 
+        // Ketua Sidang tidak menginput nilai (hanya melihat, status lulus, kunci nilai).
+        if (strtolower(trim((string) $timSidang->STATUS_TIM_SIDANG)) === 'ketua sidang') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Ketua Sidang tidak dapat menginput nilai.',
+            ], 403);
+        }
+
         // Allow TU Prodi/Admin to save on behalf of penilai
         $isAdmin = in_array($user['role'] ?? '', ['TU Prodi', 'Admin', 'FS']);
         if ($timSidang->ID_USER_PENILAI != $user['id'] && !$isAdmin) {
@@ -251,7 +259,7 @@ class PenilaianController extends Controller
             return response()->json(['error' => 'Data ajuan sidang tidak ditemukan'], 404);
         }
 
-        // Check if user is Pembimbing (any type) or TU Prodi
+        // Check if user is Pembimbing (any type), Ketua Sidang, or TU Prodi
         $isPembimbing = TTimSidang::where('ID_JUDUL', $ajuan->ID_JUDUL)
             ->where('TAHAPAN_SIDANG', $ajuan->TAHAPAN_SIDANG)
             ->where('ID_USER_PENILAI', $user['id'])
@@ -264,9 +272,10 @@ class PenilaianController extends Controller
             ->first();
 
         $isTUProdi = in_array($user['role'] ?? '', ['TU Prodi', 'Admin']);
+        $isKetuaSidang = $this->isKetuaSidang($user, $ajuan->ID_JUDUL, $ajuan->TAHAPAN_SIDANG);
 
-        if (!$isPembimbing && !$isTUProdi) {
-            return response()->json(['error' => 'Hanya Pembimbing atau TU Prodi yang dapat mengubah status kelulusan'], 403);
+        if (!$isPembimbing && !$isTUProdi && !$isKetuaSidang) {
+            return response()->json(['error' => 'Hanya Pembimbing, Ketua Sidang atau TU Prodi yang dapat mengubah status kelulusan'], 403);
         }
 
         DB::table('t_ajuan_sidang')
@@ -320,8 +329,14 @@ class PenilaianController extends Controller
                 ->where('STATUS_TIM_SIDANG', 'LIKE', '%Ketua Pembimbing%')
                 ->exists();
 
+            // Ketua Sidang tidak menginput nilai, tapi berhak mengunci seluruh
+            // nilai tim setelah semua penilai selesai (kelengkapan dicek tanpa
+            // baris Ketua Sidang, lihat KelengkapanNilaiSidang).
+            $isKetuaSidangRequest = $this->isKetuaSidang($user, $id, $request->tahapan_sidang);
+
             $perluGate = ($user['role'] ?? null) === 'TU Prodi'
-                || (in_array($user['role'] ?? null, ['Pembimbing', 'Penguji'], true) && $isKetuaPembimbingRequest);
+                || (in_array($user['role'] ?? null, ['Pembimbing', 'Penguji'], true) && $isKetuaPembimbingRequest)
+                || $isKetuaSidangRequest;
 
             if ($perluGate && $request->nilai_terkunci === 'y') {
                 $kodeProdi = DB::table('t_ajuan_sidang')
@@ -364,9 +379,10 @@ class PenilaianController extends Controller
                 ->exists();
 
             // 2. Update t_penilaian.
-            //    - TU Prodi mengunci (mewakili Ketua Pembimbing terpilih) -> SELURUH
-            //      penilai pada judul+tahapan ini ikut terkunci: NILAI_TERKUNCI=1
-            //      dan STATUS_LULUS ikut terisi.
+            //    - TU Prodi mengunci (mewakili Ketua Pembimbing terpilih), dan
+            //      Ketua Sidang yang mengunci seluruh tim -> SELURUH penilai pada
+            //      judul+tahapan ini ikut terkunci: NILAI_TERKUNCI=1 dan
+            //      STATUS_LULUS ikut terisi.
             //    - Role lain, termasuk Pembimbing yang menjadi Ketua Pembimbing
             //      -> HANYA baris miliknya sendiri. Nilai penilai lain tidak
             //      boleh diubah dari ROLE 'Pembimbing'.
@@ -380,12 +396,13 @@ class PenilaianController extends Controller
             }
 
             $isTuProdi = ($user['role'] ?? null) === 'TU Prodi';
+            $kunciSemuaPenilai = $isTuProdi || $isKetuaSidangRequest;
 
             $queryPenilaian = DB::table('t_penilaian')
                 ->where('ID_JUDUL', $id)
                 ->where('TAHAPAN_SIDANG', $request->tahapan_sidang);
 
-            if (! $isTuProdi) {
+            if (! $kunciSemuaPenilai) {
                 $queryPenilaian->where('ID_TIM_SIDANG', $request->id_tim_sidang);
             }
 
@@ -398,7 +415,8 @@ class PenilaianController extends Controller
                 'id_tim_sidang' => $request->id_tim_sidang,
                 'peran' => $timSidang->STATUS_TIM_SIDANG ?? null,
                 'is_ketua_pembimbing' => $isKetuaPembimbing,
-                'scope' => $isTuProdi ? 'semua penilai (TU Prodi)' : 'hanya penilai sendiri',
+                'is_ketua_sidang' => $isKetuaSidangRequest,
+                'scope' => $kunciSemuaPenilai ? 'semua penilai' : 'hanya penilai sendiri',
                 'nilai_terkunci' => $request->nilai_terkunci,
                 'status_lulus' => $statusLulus,
                 'rows_affected' => $jumlahPenilaian,
@@ -406,12 +424,12 @@ class PenilaianController extends Controller
 
             // 3. Sync t_ajuan_sidang - hak ini milik orang yang mengunci dalam
             //    peran Ketua Pembimbing: baik dia sendiri (role 'Pembimbing')
-            //    maupun TU Prodi yang bertindak mewakilinya. Penilai lain
-            //    tidak boleh menyentuh t_ajuan_sidang.
+            //    maupun TU Prodi yang bertindak mewakilinya, atau Ketua Sidang.
+            //    Penilai lain tidak boleh menyentuh t_ajuan_sidang.
             //    NILAI_TERKUNCI tidak lagi tertahan bila dropdown "Pilih status"
             //    kosong (dulu membuat t_ajuan_sidang tetap NILAI_TERKUNCI='t'
             //    padahal nilai sudah dikunci).
-            if ($isKetuaPembimbing) {
+            if ($isKetuaPembimbing || $isKetuaSidangRequest) {
                 $updateAjuan = [
                     'NILAI_TERKUNCI' => $request->nilai_terkunci,
                     'TGL_UPDATE' => now(),
@@ -470,7 +488,7 @@ class PenilaianController extends Controller
     {
         $role = $user['role'] ?? '';
 
-        if (!in_array($role, ['Pembimbing', 'Penguji'], true)) {
+        if (!in_array($role, ['Pembimbing', 'Penguji', 'Ketua Sidang'], true)) {
             return null;
         }
 
@@ -481,5 +499,22 @@ class PenilaianController extends Controller
         }
 
         return \App\Services\KppsApproveGate::pesan($gate);
+    }
+
+    /**
+     * Akses Ketua Sidang: role 'Ketua Sidang', atau tercatat sebagai
+     * "Ketua Sidang" pada t_tim_sidang judul + tahapan ini.
+     */
+    private function isKetuaSidang($user, $idJudul, $tahapanSidang)
+    {
+        if (($user['role'] ?? '') === 'Ketua Sidang') {
+            return true;
+        }
+
+        return TTimSidang::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapanSidang)
+            ->where('ID_USER_PENILAI', $user['id'] ?? 0)
+            ->whereRaw("LOWER(TRIM(STATUS_TIM_SIDANG)) = ?", ['ketua sidang'])
+            ->exists();
     }
 }

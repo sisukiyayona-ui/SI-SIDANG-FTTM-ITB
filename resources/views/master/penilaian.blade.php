@@ -212,7 +212,7 @@
                             @php $loginProdiP = (isset($penilaian) && is_object($penilaian) && property_exists($penilaian, 'id_prodi') && $penilaian->id_prodi) ? \App\Models\TProdi::find($penilaian->id_prodi) : null; @endphp
                             <select name="id_prodi" id="f_id_prodi" class="form-control" required>
                                 @foreach($prodis as $p)
-                                    <option value="{{ $p->id }}" {{ $loginProdiP && (string) $loginProdiP->id === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                                    <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" {{ $loginProdiP && (string) $loginProdiP->id === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -473,7 +473,8 @@
             const tahapOpts = tahapanSelectOptions(r.tahapan);
             return `<tr data-idx="${i}">
                 <td class="text-center">${i + 1}</td>
-                <td><input type="text" class="form-control form-control-sm ${canSave ? '' : 'is-invalid'}" data-validate-prodi list="prodiListImport" value="${escapeAttr(r.program_studi)}" oninput="updateImportRow(${i}, 'program_studi', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm ${canSave ? '' : 'is-invalid'}" data-validate-prodi list="prodiListImport" value="${escapeAttr(r.program_studi)}" oninput="updateImportRow(${i}, 'program_studi', this.value)">
+                    <div class="small text-muted mt-1" data-resolved-prodi>${r.kode_prodi ? 'Kode prodi: ' + escapeAttr(r.kode_prodi) + ' (' + escapeAttr(r.strata || '-') + ')' : ''}</div></td>
                 <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.nama)}" oninput="updateImportRow(${i}, 'nama', this.value)"></td>
                 <td><input type="text" class="form-control form-control-sm" value="${escapeAttr(r.no_form)}" oninput="updateImportRow(${i}, 'no_form', this.value)"></td>
                 <td>
@@ -489,7 +490,7 @@
                 <td class="small">${escapeAttr(r.keterangan)}</td>
                 <td class="text-center">
                     <span class="badge badge-${st.cls}">${st.label}</span>
-                    <div class="small text-muted mt-1" style="max-width:180px;">${escapeAttr(r.message)}</div>
+                    <div class="small text-muted mt-1" data-row-message style="max-width:180px;">${escapeAttr(r.message)}</div>
                 </td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" title="Hapus baris" onclick="removeImportRow(${i})"><i class="fas fa-times"></i></button></td>
             </tr>`;
@@ -533,14 +534,14 @@
         else if (!tahapan) { r.result = 'error'; r.message = 'Tahapan tidak terdaftar di master'; }
         else { r.tahapan = tahapan; r.strata = strata; r.kode_prodi = prodi.kode; r.nama_prodi = prodi.nama; }
 
-        // cek duplikat antar baris (kode prodi+tahapan+nama)
+        // cek duplikat antar baris (kode prodi+strata+tahapan+nama)
         if (r.result === 'ok') {
-            const key = r.kode_prodi + '|' + String(r.tahapan).toLowerCase() + '|' + nama.toLowerCase();
+            const key = r.kode_prodi + '|' + strata + '|' + String(r.tahapan).toLowerCase() + '|' + nama.toLowerCase();
             for (let j = 0; j < importRows.length; j++) {
                 if (j === idx) continue;
                 const o = importRows[j];
                 if (String(o.result) !== 'ok') continue;
-                const okey = String(o.kode_prodi || '') + '|' + String(o.tahapan).toLowerCase() + '|'
+                const okey = String(o.kode_prodi || '') + '|' + canonicalStrataClient(o.strata) + '|' + String(o.tahapan).toLowerCase() + '|'
                     + String(o.nama).trim().toLowerCase();
                 if (okey === key) { r.result = 'duplicate'; r.message = 'Duplikat baris lain di file'; break; }
             }
@@ -552,8 +553,10 @@
             const badge = tr.querySelector('.badge');
             badge.className = 'badge badge-' + st.cls;
             badge.textContent = st.label;
-            const msg = tr.querySelector('.small.text-muted');
+            const msg = tr.querySelector('[data-row-message]');
             if (msg) msg.textContent = r.message;
+            const resolved = tr.querySelector('[data-resolved-prodi]');
+            if (resolved) resolved.textContent = r.kode_prodi ? 'Kode prodi: ' + r.kode_prodi + ' (' + (r.strata || '-') + ')' : '';
             // Samakan penanda kolom wajib dengan status baris terbaru.
             tr.querySelectorAll('[data-validate-prodi], [data-validate-tahapan], [data-validate-strata]').forEach(el => {
                 el.classList.toggle('is-invalid', r.result !== 'ok');
@@ -675,8 +678,8 @@
     var tahapanLabelsClient = @json(\App\Services\MasterExcelService::tahapanLabelMap());
 
     // Options tahapan diambil dari master t_tahapan, dikelompokkan per strata.
-    // Master saat ini hanya memuat tahapan S3, jadi strata tanpa daftar sendiri
-    // tetap boleh memakai semua master tahapan (server juga memvalidasi begitu).
+    // Strata tanpa daftar tahapan sendiri (mis. S1) memakai semua master tahapan.
+    var strataDigit = @json(\App\Services\MasterExcelService::STRATA_DIGIT);
     var tahapanAll = @json(
         $tahapans->map(function ($t) {
             return [
@@ -699,12 +702,48 @@
         if (!tahapanByStrata[s]) tahapanByStrata[s] = [];
     });
 
+    // Pilihan prodi mengikuti strata: digit pertama kode prodi harus sama
+    // dengan angka strata (1xx=S1, 2xx=S2, 3xx=S3).
+    function filterProdiByStrata(keepIfCompatible) {
+        var strata = document.getElementById('f_strata').value;
+        var digit = strataDigit[strata] || null;
+        var select = document.getElementById('f_id_prodi');
+        if (!select || !digit) return;
+        var current = select.value;
+        var first = null;
+        var visible = 0;
+        Array.prototype.forEach.call(select.options, function (opt) {
+            var kode = String(opt.dataset.kode || '');
+            var show = !kode || kode.charAt(0) === digit;
+            opt.hidden = !show;
+            opt.disabled = !show;
+            if (show) {
+                visible++;
+                if (first === null) first = opt.value;
+            }
+            if (!show && opt.value === current) {
+                current = '';
+            }
+        });
+        if (visible === 0) {
+            Array.prototype.forEach.call(select.options, function (opt) { opt.hidden = false; opt.disabled = false; });
+            return;
+        }
+        if (!current && !keepIfCompatible && first) {
+            select.value = first;
+        }
+    }
+
     function filterTahapanByStrata() {
         var strata = document.getElementById('f_strata').value;
         var tahapanSelect = document.getElementById('f_tahapan_sidang');
         var currentVal = tahapanSelect.value;
         var options = tahapanByStrata[strata] || [];
         if (!options.length) options = tahapanAll;
+        if (currentVal && options.length && !options.some(function (o) { return o.value === currentVal; })) {
+            var master = tahapanAll.find(function (o) { return o.value === currentVal; });
+            options = options.concat([master || { value: currentVal, label: currentVal }]);
+        }
         tahapanSelect.innerHTML = '';
         var placeholder = document.createElement('option');
         placeholder.value = '';
@@ -724,6 +763,7 @@
                 }
             }
         }
+        filterProdiByStrata();
     }
 
     function openCreate() {
@@ -763,12 +803,14 @@
             document.getElementById('f_tahapan_sidang').value = item.tahapan_sidang;
             var prodiSelect = document.getElementById('f_id_prodi');
             if (prodiSelect) {
+                filterProdiByStrata(true);
                 var prodiVal = String(item.id_prodi != null ? item.id_prodi : '');
                 prodiSelect.value = prodiVal;
                 // If option missing (filtered out), inject it so selection matches DB
                 if (prodiVal && prodiSelect.value !== prodiVal) {
                     var opt = document.createElement('option');
                     opt.value = prodiVal;
+                    opt.dataset.kode = item.kode_prodi || '';
                     opt.textContent = (item.kode_prodi || '') + ' - ' + (item.nama_prodi_item || 'Prodi #' + prodiVal);
                     opt.selected = true;
                     prodiSelect.appendChild(opt);
@@ -819,20 +861,19 @@
             },
             body: formData
         }).then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    let msg = 'Terjadi kesalahan.';
-                    if (data.errors) {
-                        msg = Object.values(data.errors).flat().join('\n');
-                    }
-                    showToast('error', msg);
-                }).catch(() => {
-                    showToast('error', 'Terjadi kesalahan saat menyimpan.');
-                });
+            return response.json().then(data => ({ ok: response.ok, data: data })).catch(() => ({ ok: response.ok, data: null }));
+        }).then(res => {
+            if (res.ok && res.data && res.data.success) {
+                closeForm();
+                showToast('success', 'Data komponen berhasil disimpan.');
+                setTimeout(() => location.reload(), 1200);
+                return;
             }
-            closeForm();
-            showToast('success', 'Data komponen berhasil disimpan.');
-            setTimeout(() => location.reload(), 1200);
+            let msg = (res.data && (res.data.error || res.data.message)) ? (res.data.error || res.data.message) : 'Terjadi kesalahan.';
+            if (res.data && res.data.errors) {
+                msg = Object.values(res.data.errors).flat().join('\n');
+            }
+            showToast('error', msg);
         }).catch(() => {
             showToast('error', 'Gagal terhubung ke server.');
         });

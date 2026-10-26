@@ -43,7 +43,7 @@ class KppsController extends Controller
         if ($authUser['role'] === 'TU Prodi') {
             $prodiQuery->whereIn('id', $authUser['id_prodi'] ?? []);
         }
-        $prodis = $prodiQuery->get();
+        $prodis = $prodiQuery->orderBy('KODE_PRODI')->get();
         $fakultas = TFs::all();
         $users = TUser::where('STATUS_AKTIF', 'AKTIF')
             ->where('STATUS_PEGAWAI', 'Dosen')
@@ -83,6 +83,10 @@ class KppsController extends Controller
         ]);
 
         $this->applyTuProdiScope($request);
+
+        if ($conflict = $this->findDuplicate($request)) {
+            return $conflict;
+        }
 
         $fs = null;
         if ($request->filled('kode_fs')) {
@@ -156,6 +160,10 @@ class KppsController extends Controller
 
         $kpps = TKpps::find((int) $id);
         if ($kpps) {
+            if ($conflict = $this->findDuplicate($request, $kpps->id)) {
+                return $conflict;
+            }
+
             $fs = null;
             if ($request->filled('kode_fs')) {
                 $fs = TFs::where('KODE_FS', $request->kode_fs)->first();
@@ -181,6 +189,35 @@ class KppsController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * NIP + prodi + status tim yang sama tidak boleh terdaftar dua kali.
+     */
+    private function findDuplicate(Request $request, $ignoreId = null)
+    {
+        if (!$request->filled('nip')) {
+            return null;
+        }
+
+        $query = TKpps::query()
+            ->where('NIP', (string) $request->input('nip'))
+            ->whereRaw("COALESCE(KODE_PRODI, '') = ?", [(string) $request->input('kode_prodi', '')])
+            ->whereRaw("COALESCE(STATUS_TIM, '') = ?", [(string) $request->input('status_tim', '')]);
+
+        if ($ignoreId) {
+            $query->where('id', '!=', (int) $ignoreId);
+        }
+
+        if (!$query->exists()) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'error'   => 'Data sudah ada, harap dicek kembali',
+            'message' => 'Data sudah ada, harap dicek kembali',
+        ], 422);
     }
 
     private function applyTuProdiScope(Request $request): void

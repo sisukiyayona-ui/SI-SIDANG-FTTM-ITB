@@ -55,7 +55,7 @@
                     <label for="id_prodi" class="form-label">Program Studi</label>
                     <select name="id_prodi" id="id_prodi" class="form-control" required>
                         @foreach($prodis as $p)
-                            <option value="{{ $p->id }}" {{ isset($penilaian) && $penilaian['id_prodi'] == $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                            <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" {{ isset($penilaian) && $penilaian['id_prodi'] == $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -102,3 +102,51 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    var tahapanByStrata = @json(
+        collect($tahapans)->groupBy('strata')->map(function ($rows) {
+            return $rows->map(fn ($t) => ['value' => $t->tahapan, 'label' => \App\Services\MasterExcelService::tahapanLabel($t->tahapan)])->values();
+        })
+    );
+    var tahapanAll = @json($tahapans->map(fn ($t) => ['value' => $t->tahapan, 'label' => \App\Services\MasterExcelService::tahapanLabel($t->tahapan)])->values());
+    var strataDigit = @json(\App\Services\MasterExcelService::STRATA_DIGIT);
+
+    function filterByStrata() {
+        var strata = document.getElementById('strata').value;
+        var digit = strataDigit[strata] || null;
+
+        var options = (tahapanByStrata[strata] && tahapanByStrata[strata].length) ? tahapanByStrata[strata] : tahapanAll;
+        var tahapanSelect = document.getElementById('tahapan_sidang');
+        var current = tahapanSelect.value;
+        tahapanSelect.innerHTML = '';
+        options.forEach(function (o) {
+            var el = document.createElement('option');
+            el.value = o.value;
+            el.textContent = o.label;
+            tahapanSelect.appendChild(el);
+        });
+        if (current && Array.prototype.some.call(tahapanSelect.options, function (o) { return o.value === current; })) {
+            tahapanSelect.value = current;
+        }
+
+        var prodiSelect = document.getElementById('id_prodi');
+        var currentProdi = prodiSelect.value;
+        var first = null, visible = 0;
+        Array.prototype.forEach.call(prodiSelect.options, function (opt) {
+            var kode = String(opt.dataset.kode || '');
+            var show = !digit || !kode || kode.charAt(0) === digit;
+            opt.hidden = !show;
+            opt.disabled = !show;
+            if (show) { visible++; if (first === null) first = opt.value; }
+        });
+        if (visible > 0 && (!currentProdi || prodiSelect.options[prodiSelect.selectedIndex].disabled)) {
+            prodiSelect.value = first;
+        }
+    }
+
+    document.getElementById('strata').addEventListener('change', filterByStrata);
+    filterByStrata();
+</script>
+@endpush

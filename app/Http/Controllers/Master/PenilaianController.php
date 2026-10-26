@@ -168,6 +168,11 @@ class PenilaianController extends Controller
             return $this->failResponse($request, 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut');
         }
 
+        $strataError = MasterExcelService::strataProdiMismatch($request->strata, $prodi->kode_prodi);
+        if ($strataError) {
+            return $this->failResponse($request, $strataError);
+        }
+
         $check = MasterExcelService::validateItemRow([
             $prodi->kode_prodi,
             $request->penilaian,
@@ -220,6 +225,11 @@ class PenilaianController extends Controller
             $prodi = $this->resolveProdi($request, $user, $item->id_prodi);
             if (!$prodi) {
                 return $this->failResponse($request, 'Prodi tidak ditemukan atau tidak berhak mengakses prodi tersebut');
+            }
+
+            $strataError = MasterExcelService::strataProdiMismatch($request->strata, $prodi->kode_prodi);
+            if ($strataError) {
+                return $this->failResponse($request, $strataError);
             }
 
             $check = MasterExcelService::validateItemRow([
@@ -289,7 +299,7 @@ class PenilaianController extends Controller
             $query->where('kode_fs', $user['kode_fs']);
         }
 
-        return $query->get();
+        return $query->orderBy('kode_prodi')->get();
     }
 
     /**

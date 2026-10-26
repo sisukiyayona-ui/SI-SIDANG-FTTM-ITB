@@ -149,7 +149,7 @@ class PersyaratanController extends Controller
             $query->where('kode_fs', $user['kode_fs']);
         }
 
-        $prodis = $query->get();
+        $prodis = $query->orderBy('kode_prodi')->get();
         $userProdiId = $prodis->first()?->id;
 
         return [$prodis, $userProdiId];
@@ -192,9 +192,15 @@ class PersyaratanController extends Controller
             'tahapan_sidang' => 'required',
             'strata' => 'required',
             'status_aktif' => 'required',
+            'id_prodi' => 'required|integer|exists:t_prodi,id',
         ]);
 
         [$prodiId, $kodeProdi, $namaProdi] = $this->resolveProdiFromSession();
+
+        $strataError = MasterExcelService::strataProdiMismatch($request->strata, $kodeProdi);
+        if ($strataError) {
+            return $this->failResponse($request, $strataError);
+        }
 
         $check = MasterExcelService::validateItemRow([
             $kodeProdi,
@@ -238,6 +244,11 @@ class PersyaratanController extends Controller
         if ($item) {
             [$prodiId, $kodeProdi, $namaProdi] = $this->resolveProdiFromSession();
 
+            $strataError = MasterExcelService::strataProdiMismatch($request->strata, $kodeProdi);
+            if ($strataError) {
+                return $this->failResponse($request, $strataError);
+            }
+
             $check = MasterExcelService::validateItemRow([
                 $kodeProdi,
                 $request->nama_persyaratan,
@@ -277,8 +288,7 @@ class PersyaratanController extends Controller
         return response()->json(['success' => true]);
     }
 
-    private function failResponse(Request $request, string $message)
-    {
+    private function failResponse(Request $request, string $message)    {
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['error' => $message], 422);
         }

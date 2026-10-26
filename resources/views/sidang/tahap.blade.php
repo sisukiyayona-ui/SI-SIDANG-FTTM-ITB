@@ -141,7 +141,15 @@
         // Compute isNilaiTerkunci at top level for both Tahap I and Tahap II
         // TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang), tidak pernah badge.
         // Pembimbing/Penguji: tombol saat belum terkunci; badge "Nilai Terkunci" setelah terkunci.
-        $isCanLockNilai = in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']);
+        $isCanLockNilai = in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']);
+
+        // Item 10: Ketua Sidang (role 'Ketua Sidang', atau anggota t_tim_sidang
+        // ber-status "Ketua Sidang" pada judul + tahapan ini) melihat nilai
+        // SELURUH penilai hanya untuk dibaca, mengubah status lulus, dan
+        // mengunci nilai setelah semua penilai mengisi.
+        $isKetuaSidangTim = ($isKetuaSidangTim ?? false) || session('auth_user.role') === 'Ketua Sidang';
+        $isCanLockNilai = $isCanLockNilai || $isKetuaSidangTim;
+        $canManageKelulusan = ($isKetuaPembimbing ?? false) || $isKetuaSidangTim;
         $kelengkapanNilai = $kelengkapanNilai ?? ['lengkap' => false, 'ada_tim' => false, 'belum' => [], 'belum_parameter' => []];
         $pesanKelengkapanNilai = \App\Services\KelengkapanNilaiSidang::pesan($kelengkapanNilai);
         $isDataTerkunci = isset($penilaian) && $penilaian->count() > 0
@@ -178,14 +186,14 @@
             });
         }
 
-        $isGateLockNilai = session('auth_user.role') === 'TU Prodi' || $isKetuaPembimbingUser;
+        $isGateLockNilai = session('auth_user.role') === 'TU Prodi' || $isKetuaPembimbingUser || $isKetuaSidangTim;
 
         // Gate approve KPPS prodi: input nilai & Kunci Nilai Pembimbing/Penguji
         // dibuka hanya setelah semua anggota KPPS AKTIF prodi approve ajuan.
         // TU Prodi/Admin/FS tidak terpengaruh (flag selalu false untuk mereka).
         $kppsGate = $kppsGate ?? \App\Services\KppsApproveGate::cek($idJudul, $tahapan);
         $isKppsGateBlocking = ! empty($kppsGate['blocked'])
-            && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji'], true);
+            && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang'], true);
         $pesanKppsGate = \App\Services\KppsApproveGate::pesan($kppsGate);
     @endphp
 
@@ -472,11 +480,12 @@
                                         </div>
                                     </div>
                                     <input type="hidden" name="urutan" value="">
-                                    @if(session('auth_user.role') !== 'Pembimbing' && session('auth_user.role') !== 'Penguji')
+                                    @if(session('auth_user.role') !== 'Pembimbing' && session('auth_user.role') !== 'Penguji' && session('auth_user.role') !== 'Ketua Sidang')
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">File Penelaah</label>
                                         <div class="col-sm-8 px-2">
                                             <input type="file" name="file_penelaah" class="form-control form-control-sm border-dark rounded-0" accept="application/pdf">
+                                            <small class="text-muted d-block mt-1">tipe file upload pdf, maksimal ukuran file 2MB</small>
                                         </div>
                                     </div>
                                     @endif
@@ -803,8 +812,8 @@
                                         <td>
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <a href="{{ isset($item->LINK_FILE) && $item->LINK_FILE ? $item->LINK_FILE : '#' }}" target="_blank" class="mr-2 text-primary {{ isset($item->LINK_FILE) && $item->LINK_FILE ? '' : 'd-none' }}" style="font-size: 13px;" id="link-{{ $syaratId }}">Lihat file</a>
-                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE && !in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
-                                @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
+                                                <span id="check-{{ $syaratId }}" class="mr-2 text-success {{ isset($item->LINK_FILE) && $item->LINK_FILE && !in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) ? '' : 'd-none' }}"><i class="fas fa-check-circle"></i></span>
+                                @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']))
                                                 <div class="upload-container" style="position: relative; width: 34px;">
                                                     <input type="file" class="d-none" id="file-{{ $syaratId }}" accept=".pdf" onchange="window.uploadFile(this, '{{ $syaratId }}', '{{ $tahapan }}', '{{ $idJudul }}')">
                                                     <label for="file-{{ $syaratId }}" class="btn btn-light bg-white border py-0 px-2 text-dark upload-btn" style="cursor: pointer; margin-bottom: 0;"><i class="fas fa-upload" style="font-size: 14px;"></i></label>
@@ -825,7 +834,7 @@
                         </tbody>
                     </table>
                     <div class="text-right mt-3">
-                        @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']))
+                        @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']))
                         <button type="button" class="btn btn-primary" onclick="savePersyaratanTahap()">
                             <i class="fas fa-save mr-1"></i> Simpan
                         </button>
@@ -912,11 +921,12 @@
                                         </div>
                                     </div>
                                     <input type="hidden" name="urutan" id="urutanHidden" value="">
-                                    @if(session('auth_user.role') !== 'Pembimbing' && session('auth_user.role') !== 'Penguji')
+                                    @if(session('auth_user.role') !== 'Pembimbing' && session('auth_user.role') !== 'Penguji' && session('auth_user.role') !== 'Ketua Sidang')
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">File Penelaah</label>
                                         <div class="col-sm-8 px-2">
                                             <input type="file" name="file_penelaah" class="form-control form-control-sm border-dark rounded-0" accept="application/pdf">
+                                            <small class="text-muted d-block mt-1">tipe file upload pdf, maksimal ukuran file 2MB</small>
                                         </div>
                                     </div>
                                     @endif
@@ -1144,7 +1154,7 @@
                             <div class="text-muted font-weight-bold">
                                 Jadwal Sidang {{ getTahapLabel($tahapan) }}
                             </div>
-                            <button type="button" class="btn btn-primary btn-sm" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? 'disabled' : '' }} onclick="openJadwalForm(null)"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                            <button type="button" class="btn btn-primary btn-sm" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) ? 'disabled' : '' }} onclick="openJadwalForm(null)"><i class="fas fa-plus mr-1"></i> Tambah</button>
                         </div>
                         <table class="table table-bordered table-sm text-center">
                             <thead style="background-color: #6998d3; color: white;">
@@ -1168,7 +1178,7 @@
                                             $ajuanProdi = ($a->status_ajukan_prodi ?? $a->STATUS_AJUKAN_PRODI ?? 't') === 'y';
                                             // TU Prodi: disabled jika mahasiswa belum ajukan
                                             // FS: disabled jika prodi belum ajukan
-                                            $disabledLink = in_array($role, ['Pembimbing', 'Penguji'])
+                                            $disabledLink = in_array($role, ['Pembimbing', 'Penguji', 'Ketua Sidang'])
                                                 || ($a->status_lulus ?? '') === 'tidak lulus'
                                                 || ($role === 'TU Prodi' && !$ajuanMhs)
                                                 || ($role === 'FS' && !$ajuanProdi);
@@ -1248,7 +1258,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
                                 <div class="d-flex align-items-center">
                                     <label class="text-danger mb-0 text-nowrap mr-2" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Penilai</label>
-                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
+                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'disabled' : '' }}>
                                         <option value="">Pilih Penilai</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
@@ -1446,7 +1456,7 @@
                         @endif
                     </div>
 
-                    @if(in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
+                    @if(in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']))
                     <script>
                         (function() {
                             var sel = document.getElementById('penilaiTahap2');
@@ -1489,7 +1499,7 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Jenis Sidang</label>
                                         <div class="col-sm-6 px-2">
-                                            <select class="form-control form-control-sm border-dark rounded-0" name="jenis_sidang" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
+                                            <select class="form-control form-control-sm border-dark rounded-0" name="jenis_sidang" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'disabled' : '' }}>
                                                 <option value="">Pilih Jenis</option>
                                                 <option value="Terbuka" {{ (isset($ajuan) && strtolower($ajuan->JENIS_SIDANG ?? '') == 'terbuka') ? 'selected' : '' }}>Terbuka</option>
                                                 <option value="Tertutup" {{ (isset($ajuan) && strtolower($ajuan->JENIS_SIDANG ?? '') == 'tertutup') ? 'selected' : '' }}>Tertutup</option>
@@ -1500,31 +1510,31 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tgl Seminar/Sidang</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_sidang" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_sidang" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Waktu Mulai</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_sidang" value="{{ isset($ajuan) ? $ajuan->waktu_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_sidang" value="{{ isset($ajuan) ? $ajuan->waktu_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Waktu Selesai</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_selesai" value="{{ isset($ajuan) ? ($ajuan->waktu_selesai ?? '') : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_selesai" value="{{ isset($ajuan) ? ($ajuan->waktu_selesai ?? '') : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Ruangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="ruang_sidang" value="{{ isset($ajuan) ? $ajuan->ruang_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="ruang_sidang" value="{{ isset($ajuan) ? $ajuan->ruang_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Undangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                 </div>
@@ -1532,37 +1542,37 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Undangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->no_surat_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->no_surat_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->tgl_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->tgl_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Hasil Penilaian</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_hasil_penelahan" value="{{ isset($ajuan) ? $ajuan->TGL_HASIL_PENELAHAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_hasil_penelahan" value="{{ isset($ajuan) ? $ajuan->TGL_HASIL_PENELAHAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Email Surat Hasil Telaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'readonly' : '' }}>
+                                            <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <!-- <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No SK Kelulusan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_sk_kelulusan" value="{{ isset($ajuan) ? $ajuan->SK_LULUS : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) ? 'readonly' : '' }}>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_sk_kelulusan" value="{{ isset($ajuan) ? $ajuan->SK_LULUS : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) ? 'readonly' : '' }}>
                                         </div>
                                     </div> -->
                                 </div>
@@ -1573,7 +1583,7 @@
                                  </div>
                                  <div>
 <input type="hidden" name="is_ajukan_fs" value="">
-                                      @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'FS']) && (!isset($ajuan) || $ajuan->STATUS_AJUKAN_PRODI !== 'y'))
+                                      @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) && (!isset($ajuan) || $ajuan->STATUS_AJUKAN_PRODI !== 'y'))
                                        <button type="button" class="btn btn-success px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);">Ajukan ke FS</button>
                                       @endif
                                       @if(session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
@@ -1584,7 +1594,7 @@
                                        <input type="hidden" name="is_ajukan_kpps" value="">
                                        <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan Ulang ke KPPS (Reject)</button>
                                       @endif
-                                      @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
+                                      @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']))
                                        <button type="submit" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="submitJadwalTahap2(event)">Simpan</button>
                                       @endif
                                  </div>
@@ -1617,7 +1627,7 @@
                                         <input type="text" class="form-control form-control-sm border-dark rounded-0 bg-light" value="{{ isset($ajuan) ? $ajuan->ruang_sidang : '' }}" disabled>
                                     </div>
                                 </div>
-                                @if($isKetuaPembimbing ?? false)
+                                @if($canManageKelulusan)
                                 <div class="form-group row align-items-center mb-3 px-1">
                                     <label class="col-sm-4 mb-0" style="font-size: 13px; color: #555;">Status Lulus</label>
                                     <div class="col-sm-8 px-2">
@@ -1638,7 +1648,7 @@
                                     </div>
                                     @endif
                                 <div class="text-right mt-4">
-                                    @if($isKetuaPembimbing ?? false)
+                                    @if($canManageKelulusan)
                                     <button type="button" class="btn btn-primary mr-2" style="font-size: 13px; border-radius: 0;" onclick="updateStatusLulus({{ $ajuan->id ?? 0 }})">Simpan Status</button>
                                     @endif
                                     <button type="button" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
@@ -1651,9 +1661,23 @@
                                 </div>
                                 @php
                                     $user = session('auth_user');
-                                    $isPembimbingOrPenguji = in_array($user['role'] ?? '', ['Pembimbing', 'Penguji']);
+                                    $isPenilaiPanel = in_array($user['role'] ?? '', ['Pembimbing', 'Penguji', 'Ketua Sidang']) || $isKetuaSidangTim;
+                                    // Ketua Sidang: seluruh penilai ditampilkan, nilainya hanya dibaca.
+                                    $isViewOnlyPenilai = $isKetuaSidangTim;
+                                    $penilaiAwal = null;
+                                    if ($isViewOnlyPenilai && isset($timSidang)) {
+                                        $penilaiPertama = $timSidang->first(function ($t) {
+                                            return strtolower(trim((string) ($t->keterangan ?? $t->status_tim_sidang ?? ''))) !== 'ketua sidang';
+                                        });
+                                        $penilaiAwal = $penilaiPertama ? $penilaiPertama->id : null;
+                                    }
                                 @endphp
-                                @if($isPembimbingOrPenguji)
+                                @if($isPenilaiPanel)
+                                @if($isViewOnlyPenilai)
+                                <div class="alert alert-secondary py-2 px-2 mb-2" style="font-size: 12px;">
+                                    <i class="fas fa-eye mr-1"></i> Anda Ketua Sidang. Nilai seluruh penilai ditampilkan hanya untuk dilihat; gunakan Status Kelulusan dan Kunci Nilai.
+                                </div>
+                                @endif
                                 @if($isKppsGateBlocking)
                                 <div class="alert alert-warning py-2 px-2 mb-2" style="font-size: 12px;" role="alert">
                                     <i class="fas fa-hourglass-half mr-1"></i>{{ $pesanKppsGate }}
@@ -1672,8 +1696,8 @@
                                                 <option value="">Pilih Penilai</option>
                                                 @if(isset($timSidang) && $timSidang->count() > 0)
                                                     @foreach($timSidang as $tim)
-                                                        @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                        <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == $user['id'] ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
+                                                        @if(!$isViewOnlyPenilai && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                        <option value="{{ $tim->id }}" {{ $isViewOnlyPenilai ? ($penilaiAwal == $tim->id ? 'selected' : '') : ($tim->id_user_penilai == $user['id'] ? 'selected' : '') }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                                     @endforeach
                                                 @endif
                                             </select>
@@ -1690,7 +1714,9 @@
                                             </select>
                                         </div>
                                         <div class="col-sm-2 pl-0 d-flex align-items-center">
-                                            @if($isNilaiTerkunci && !($isKetuaPembimbing ?? false))
+                                            @if($isViewOnlyPenilai)
+                                            {{-- Ketua Sidang tidak menginput nilai: tanpa tombol Simpan --}}
+                                            @elseif($isNilaiTerkunci && !$canManageKelulusan)
                                             <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                             @elseif($isNilaiTerkunci)
                                             <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled>Simpan</button>
@@ -1700,7 +1726,7 @@
                                             <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;">Simpan</button>
                                             @endif
                                         </div>
-                                        @if($isKetuaPembimbing ?? false)
+                                        @if($canManageKelulusan)
                                         <div class="col-sm-2 pl-0 d-flex align-items-center ml-2">
                                             @if($isNilaiTerkunci)
                                             <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
@@ -1711,7 +1737,7 @@
                                         @endif
                                     </div>
 
-                                    @if($isKetuaPembimbing ?? false)
+                                    @if($canManageKelulusan)
                                     <div class="d-flex align-items-center mb-2 mt-3">
                                         <span class="mr-2 font-weight-bold" style="font-size: 13px;">Status Kelulusan</span>
                                         <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;" {{ $isNilaiTerkunci ? 'disabled' : '' }}>
@@ -1737,7 +1763,7 @@
                                             </tr>
                                             @if(isset($penilaian) && $penilaian->count() > 0)
                                                 @foreach($penilaian as $idx => $nilai)
-                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}">
+                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-tim="{{ $nilai->id_tim_sidang }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
                                                     <td>
@@ -1749,7 +1775,7 @@
                                                     </td>
                                                 </tr>
                                             @endforeach
-                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && !$penilaianSelesai)
+                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && !$penilaianSelesai && !$isViewOnlyPenilai)
                                                 @foreach($allPointPenilaian as $idx => $point)
                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $idx + 1 }}</td>
@@ -1903,11 +1929,12 @@
                                         </div>
                                     </div>
                                     <input type="hidden" name="urutan" id="urutanHidden" value="">
-                                    @if(session('auth_user.role') !== 'Pembimbing' && session('auth_user.role') !== 'Penguji')
+                                    @if(session('auth_user.role') !== 'Pembimbing' && session('auth_user.role') !== 'Penguji' && session('auth_user.role') !== 'Ketua Sidang')
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">File Penelaah</label>
                                         <div class="col-sm-8 px-2">
                                             <input type="file" name="file_penelaah" class="form-control form-control-sm border-dark rounded-0" accept="application/pdf">
+                                            <small class="text-muted d-block mt-1">tipe file upload pdf, maksimal ukuran file 2MB</small>
                                         </div>
                                     </div>
                                     @endif
@@ -2024,6 +2051,8 @@ var isKetuaPembimbingUser = {{ ($isKetuaPembimbingUser ?? false) ? 'true' : 'fal
 var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
 var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
 var isKppsGateBlocking = {{ ($isKppsGateBlocking ?? false) ? 'true' : 'false' }};
+// Ketua Sidang: form penilaian hanya untuk melihat nilai penilai lain.
+var isViewOnlyPenilai = {{ ($isKetuaSidangTim ?? false) ? 'true' : 'false' }};
 var PESAN_KPPS_GATE = {!! json_encode($pesanKppsGate ?? '') !!};
 var PESAN_BELUM_DISIMPAN = 'Nilai Anda belum disimpan. Simpan terlebih dahulu sebelum mengunci nilai.';
 
@@ -2536,7 +2565,7 @@ function filterPenilaian() {
 function loadPenilaianForm() {
     const timSidangId = document.getElementById('penilaiSelect').value;
     const noForm = document.getElementById('formSelect').value;
-    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking;
+    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking || isViewOnlyPenilai;
     
     document.getElementById('selectedTimSidang').value = timSidangId;
     document.getElementById('selectedNoForm').value = noForm;
@@ -2553,6 +2582,10 @@ function loadPenilaianForm() {
         } else {
             var rowNoForm = row.getAttribute('data-no-form');
             if (!rowNoForm || rowNoForm !== noForm) {
+                show = false;
+            }
+            var rowTim = row.getAttribute('data-tim');
+            if (rowTim && String(rowTim) !== String(timSidangId)) {
                 show = false;
             }
         }
@@ -2891,6 +2924,11 @@ function submitTimSidang(event) {
     event.preventDefault();
     event.stopPropagation();
     const form = event.target;
+    const penelaahFile = form.querySelector('[name="file_penelaah"]');
+    if (penelaahFile && penelaahFile.files.length && penelaahFile.files[0].size > 2 * 1024 * 1024) {
+        showToast('Maksimal ukuran file 2MB', 'error');
+        return;
+    }
     const formData = new FormData(form);
     const timId = form.querySelector('[name="id"]').value;
 
@@ -3300,7 +3338,7 @@ function selectPenilaiUntuk(btnId) {
     var map = {
         lockNilaiBtn: 'penilaianSelect',
         lockNilaiTahap2Btn: 'penilaiTahap2',
-        lockNilaiPembimbingBtn: 'penilaiPembimbing'
+        lockNilaiPembimbingBtn: 'penilaiSelect'
     };
     var sel = document.getElementById(map[btnId]);
     return (sel && sel.value) ? sel.value : null;

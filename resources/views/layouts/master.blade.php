@@ -2435,7 +2435,7 @@
                     </li>
                     @endif
 
-                    @if(in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']))
+                    @if(in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']))
                     <!-- PEMBIMBING & PENGUJI NAVIGATION -->
                     <li class="nav-item has-treeview {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ request()->routeIs('sidang.s1', 'sidang.s2', 'sidang.s3') ? 'active' : '' }}">

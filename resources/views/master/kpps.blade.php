@@ -157,9 +157,9 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">NIP <span class="text-danger">*</span></label>
+                    <label class="form-label">Cari dari NIP/ Nama <span class="text-danger">*</span></label>
                     <select name="nip" id="f_nip" class="form-control select2-nip" required>
-                        <option value="">-- Pilih NIP / Cari --</option>
+                        <option value="">-- Cari dari NIP / Nama --</option>
                         @foreach($users as $u)
                             <option value="{{ $u->NIP_NIM }}"
                                 data-id="{{ $u->id }}"
@@ -173,7 +173,7 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
-                    <input type="text" name="nama" id="f_nama" class="form-control" placeholder="Nama lengkap" required>
+                    <input type="text" name="nama" id="f_nama" class="form-control bg-light" placeholder="Terisi otomatis dari NIP" required disabled>
                 </div>
             </div>
 
@@ -376,11 +376,13 @@
         }
     }
 
-    function setNamaReadOnly(readonly) {
+    // Nama selalu terkunci: hanya ikut pilihan NIP dari master user.
+    function setNamaDisabled(disabled) {
         var namaEl = document.getElementById('f_nama');
         if (!namaEl) return;
-        namaEl.readOnly = readonly;
-        namaEl.classList.toggle('bg-light', !!readonly);
+        namaEl.disabled = true;
+        namaEl.readOnly = true;
+        namaEl.classList.toggle('bg-light', true);
     }
 
     jQuery(document).ready(function() {
@@ -395,7 +397,7 @@
             jQuery('.select2-nip').select2({
                 theme: 'bootstrap',
                 width: '100%',
-                placeholder: '-- Pilih NIP / Cari --',
+                placeholder: '-- Cari dari NIP / Nama --',
                 allowClear: true
             });
         }
@@ -420,7 +422,7 @@
         document.getElementById('f_id_user').value = '';
         // Tambah: NIP & Nama Lengkap editable
         setNipDisabled(false);
-        setNamaReadOnly(false);
+        setNamaDisabled(false);
         if (window.jQuery && jQuery.fn.select2) {
             _suppressNipChange = true;
             jQuery('#f_nip').val('').trigger('change');
@@ -431,7 +433,7 @@
         document.getElementById('formContainer').style.display = 'block';
         // Re-enable setelah form visible (Select2 butuh layout terbaca)
         setNipDisabled(false);
-        setNamaReadOnly(false);
+        setNamaDisabled(false);
     }
 
     function openEdit(id) {
@@ -477,7 +479,7 @@
 
             // Edit: NIP & Nama Lengkap tidak bisa diubah (disabled)
             setNipDisabled(true);
-            setNamaReadOnly(true);
+            setNamaDisabled(true);
 
             document.getElementById(item.status_aktif === 'AKTIF' ? 'saAktifKpps' : 'saNonAktifKpps').checked = true;
 
@@ -485,7 +487,7 @@
             document.getElementById('formContainer').style.display = 'block';
             // Pastikan disabled setelah form visible
             setNipDisabled(true);
-            setNamaReadOnly(true);
+            setNamaDisabled(true);
         });
     }
 
@@ -494,7 +496,7 @@
         document.getElementById('listContainer').style.display = 'block';
         // Reset disabled state saat tutup form
         setNipDisabled(false);
-        setNamaReadOnly(false);
+        setNamaDisabled(false);
     }
 
     function openDelete(id) {
@@ -505,10 +507,14 @@
     document.getElementById('formKpps').addEventListener('submit', function(e) {
         e.preventDefault();
         var fd = new FormData(this);
-        // Select disabled tidak ikut FormData — pastikan NIP tetap terkirim saat Edit
+        // Select/input disabled tidak ikut FormData — pastikan NIP & Nama tetap terkirim
         var nipEl = document.getElementById('f_nip');
         if (nipEl && nipEl.disabled) {
             fd.set('nip', nipEl.value);
+        }
+        var namaEl = document.getElementById('f_nama');
+        if (namaEl && namaEl.disabled) {
+            fd.set('nama', namaEl.value);
         }
         fetch(this.action, {
             method: 'POST',
@@ -530,7 +536,7 @@
                 showToast('error', Array.isArray(firstError) ? firstError[0] : firstError);
                 return;
             }
-            showToast('error', data.message || 'Gagal menyimpan data KPPS. Periksa data form.');
+            showToast('error', data.error || data.message || 'Gagal menyimpan data KPPS. Periksa data form.');
         }).catch(() => {
             showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
