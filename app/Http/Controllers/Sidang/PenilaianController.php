@@ -394,24 +394,17 @@ class PenilaianController extends Controller
                 }
             }
 
-            // 1. Tentukan peran penilai yang mengunci.
+            // 1. Tentukan peran penilai yang mengunci. Hak kunci nilai milik
+            //    Ketua Sidang (dulu Ketua Pembimbing).
             $timSidang = $idTimSidang ? TTimSidang::find($idTimSidang) : null;
-            $isKetuaPembimbing = $timSidang && (
-                $timSidang->STATUS_TIM_SIDANG === 'Ketua Pembimbing' ||
-                strpos($timSidang->STATUS_TIM_SIDANG, 'Ketua Pembimbing') !== false
-            );
-
-            // Apakah tim pada tahapan ini punya Ketua Pembimbing sama sekali?
-            $adaKetuaPembimbing = TTimSidang::where('ID_JUDUL', $id)
-                ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
-                ->where('STATUS_TIM_SIDANG', 'LIKE', '%Ketua Pembimbing%')
-                ->exists();
+            $statusTimTerpilih = strtolower(trim((string) ($timSidang->STATUS_TIM_SIDANG ?? '')));
+            $isKetuaSidangDipilih = str_contains($statusTimTerpilih, 'ketua sidang');
 
             // 2. Update t_penilaian.
             //    - Ketua Sidang mengunci -> SELURUH penilai pada judul+tahapan ini
             //      ikut terkunci: NILAI_TERKUNCI=1 dan STATUS_LULUS ikut terisi.
-            //    - TU Prodi ikut mengunci seluruh penilai (mewakili Ketua
-            //      Pembimbing); Admin/FS hanya baris penilai yang dipilih.
+            //    - TU Prodi mengunci lewat baris Ketua Sidang ikut mengunci
+            //      seluruh penilai; Admin/FS hanya baris penilai yang dipilih.
             $nilaiTerkunciInt = $request->nilai_terkunci === 'y' ? 1 : 0;
             $updatePenilaian = [
                 'NILAI_TERKUNCI' => $nilaiTerkunciInt,
@@ -447,7 +440,7 @@ class PenilaianController extends Controller
                 'tahapan_sidang' => $request->tahapan_sidang,
                 'id_tim_sidang' => $idTimSidang,
                 'peran' => $timSidang->STATUS_TIM_SIDANG ?? null,
-                'is_ketua_pembimbing' => $isKetuaPembimbing,
+                'is_ketua_sidang_dipilih' => $isKetuaSidangDipilih,
                 'is_ketua_sidang' => $isKetuaSidangRequest,
                 'scope' => $kunciSemuaPenilai ? 'semua penilai' : 'hanya penilai sendiri',
                 'nilai_terkunci' => $request->nilai_terkunci,
@@ -455,14 +448,15 @@ class PenilaianController extends Controller
                 'rows_affected' => $jumlahPenilaian,
             ]);
 
-            // 3. Sync t_ajuan_sidang - hak ini milik orang yang mengunci dalam
-            //    peran Ketua Pembimbing: baik dia sendiri (role 'Pembimbing')
-            //    maupun TU Prodi yang bertindak mewakilinya, atau Ketua Sidang.
+            // 3. Sync t_ajuan_sidang - ikut terisi setiap kali nilai dikunci
+            //    atas nama Ketua Sidang: dia sendiri (role 'Ketua Sidang' atau
+            //    tercatat sebagai Ketua Sidang di tim sidang) maupun TU Prodi
+            //    yang memilih baris Ketua Sidang di dropdown Penilai.
             //    Penilai lain tidak boleh menyentuh t_ajuan_sidang.
             //    NILAI_TERKUNCI tidak lagi tertahan bila dropdown "Pilih status"
             //    kosong (dulu membuat t_ajuan_sidang tetap NILAI_TERKUNCI='t'
             //    padahal nilai sudah dikunci).
-            if ($isKetuaPembimbing || $isKetuaSidangRequest) {
+            if ($isKetuaSidangRequest || $isKetuaSidangDipilih) {
                 $updateAjuan = [
                     'NILAI_TERKUNCI' => $request->nilai_terkunci,
                     'TGL_UPDATE' => now(),
@@ -491,8 +485,8 @@ class PenilaianController extends Controller
                     'tahapan_sidang' => $request->tahapan_sidang,
                     'id_tim_sidang' => $request->id_tim_sidang,
                     'peran' => $timSidang->STATUS_TIM_SIDANG ?? null,
-                    'is_ketua_pembimbing' => $isKetuaPembimbing,
-                    'ada_ketua_pembimbing' => $adaKetuaPembimbing,
+                    'is_ketua_sidang_dipilih' => $isKetuaSidangDipilih,
+                    'is_ketua_sidang' => $isKetuaSidangRequest,
                     'nilai_terkunci' => $request->nilai_terkunci,
                     'status_lulus' => $statusLulusFinal,
                     'rows_affected' => $jumlahAjuan,

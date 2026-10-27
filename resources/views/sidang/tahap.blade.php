@@ -171,6 +171,8 @@
             isset($penilaian) ? $penilaian : null
         );
 
+        // TU Prodi: tombol Kunci Nilai hanya muncul saat penilai terpilih =
+        // Ketua Sidang (pemegang hak kunci nilai, dulu Ketua Pembimbing).
         $isGateLockNilai = session('auth_user.role') === 'TU Prodi';
 
         // Gate approve KPPS prodi: input nilai & Kunci Nilai Pembimbing/Penguji
@@ -649,13 +651,13 @@
                             <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
                             @endif
                         </div>
-                        {{-- TU Prodi dan Pembimbing/Penguji yang menjadi Ketua Pembimbing:
-                             tombol Kunci Nilai disembunyikan, baru muncul saat penilai
-                             terpilih ber-keterangan "Ketua Pembimbing" (data-lock-gate +
-                             syncLockNilaiGate), dan disabled sampai tim nilai lengkap.
+                        {{-- TU Prodi: tombol Kunci Nilai tersembunyi sampai penilai
+                             terpilih ber-keterangan "Ketua Sidang" (data-lock-gate +
+                             syncLockNilaiGate), lalu disabled sampai nilai seluruh
+                             penilai lengkap.
                              Admin: tombol SELALU tampil (bisa kunci berulang).
-                             Pembimbing/Penguji biasa: tombol saat belum terkunci, badge
-                             setelah terkunci.
+                             Pembimbing/Penguji biasa: tombol saat belum terkunci,
+                             badge setelah terkunci.
                              FS: tidak ada tombol. --}}
                         @if(!in_array(session('auth_user.role'), ['FS']))
                         <div class="d-flex align-items-center">
@@ -1361,19 +1363,18 @@
                             <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                                     @endif
                                 </div>
-                                {{-- Kunci Nilai hanya untuk Ketua Sidang dan TU Prodi/Admin.
-                                     TU Prodi: tombol disembunyikan sampai penilai terpilih
-                                     ber-keterangan "Ketua Pembimbing" (data-lock-gate +
-                                     syncLockNilaiGate). Ketua Sidang: tombol selalu tampil.
-                                     Pembimbing/Penguji: tanpa tombol, hanya badge saat terkunci.
-                                     FS: tidak ada tombol. --}}
+                                {{-- Kunci Nilai: Ketua Sidang selalu tampil; Admin
+                                     tampil (untuk koreksi); TU Prodi hanya tampil saat
+                                     penilai terpilih = Ketua Sidang (data-lock-gate);
+                                     Pembimbing/Penguji tanpa tombol, hanya badge saat
+                                     terkunci; FS tidak ada tombol. --}}
                                 @if(!in_array(session('auth_user.role'), ['FS']))
                                 <div class="d-flex align-items-center">
                                     @if($isNilaiTerkunciUi && ! $isTuProdiAtauAdmin)
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                     @endif
                                     @if($isKetuaSidangTim)
-                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                     <button type="button" class="btn btn-outline-secondary" style="font-size: 14px;" onclick="saveStatusLulusTahap2()">Simpan Status</button>
                                     @elseif($isTuProdiAtauAdmin)
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
@@ -2036,8 +2037,8 @@ var isNilaiTerkunci = {{ ($isNilaiTerkunci ?? false) ? 'true' : 'false' }};
 var isNilaiTerkunciUi = {{ ($isNilaiTerkunciUi ?? false) ? 'true' : 'false' }};
 var isDataTerkunci = {{ ($isDataTerkunci ?? false) ? 'true' : 'false' }};
 var isTUPandi = {{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin']) ? 'true' : 'false' }};
-// Gate Kunci Nilai aktif untuk TU Prodi: tombol baru muncul saat penilai
-// terpilih ber-keterangan "Ketua Pembimbing".
+// Gerbang Kunci Nilai TU Prodi: tombol baru muncul saat penilai terpilih =
+// Ketua Sidang, satu-satunya pemegang hak kunci nilai.
 var isLockGateActive = {{ ($isGateLockNilai ?? false) ? 'true' : 'false' }};
 var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
 var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
@@ -3369,31 +3370,31 @@ function saveStatusLulus2() {
     });
 }
 
-// Gerbang tombol Kunci Nilai: tombol hanya tampil bila penilai terpilih
-// ber-keterangan "Ketua Pembimbing". Berlaku untuk TU Prodi dan untuk
-// Pembimbing/Penguji yang menjadi Ketua Pembimbing (tombolnya punya
-// data-lock-gate). Tombol tanpa data-lock-gate tidak dipengaruhi.
-function syncLockNilaiGate(selectId, btnId) {
-    var btn = document.getElementById(btnId);
-    if (!btn || !btn.hasAttribute('data-lock-gate')) return;
-    var sel = document.getElementById(selectId);
-    var opt = (sel && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex] : null;
-    var keterangan = opt ? (opt.getAttribute('data-keterangan') || '') : '';
-    var isKetuaPembimbing = /ketua\s*pembimbing/i.test(keterangan);
-    btn.style.display = isKetuaPembimbing ? '' : 'none';
-    var wrap = btn.closest('.lock-nilai-wrap');
-    if (wrap) wrap.style.display = isKetuaPembimbing ? '' : 'none';
-}
-
 // Select penilai yang dimiliki tiap tombol Kunci Nilai.
-function selectPenilaiUntuk(btnId) {
+function selectPenilaiEl(btnId) {
     var map = {
         lockNilaiBtn: 'penilaianSelect',
         lockNilaiTahap2Btn: 'penilaiTahap2',
         lockNilaiPembimbingBtn: 'penilaiSelect'
     };
-    var sel = document.getElementById(map[btnId]);
+    return document.getElementById(map[btnId] || '');
+}
+
+function selectPenilaiUntuk(btnId) {
+    var sel = selectPenilaiEl(btnId);
     return (sel && sel.value) ? sel.value : null;
+}
+
+// Gerbang tombol Kunci Nilai TU Prodi: tombol hanya tampil bila penilai
+// terpilih adalah Ketua Sidang — dialah pemegang hak kunci nilai, bukan
+// Ketua Pembimbing lagi.
+function syncLockNilaiGate(selectId, btnId) {
+    var btn = document.getElementById(btnId);
+    if (!btn || !btn.hasAttribute('data-lock-gate')) return;
+    var tampil = isPenilaiKetuaSidang(document.getElementById(selectId));
+    btn.style.display = tampil ? '' : 'none';
+    var wrap = btn.closest('.lock-nilai-wrap');
+    if (wrap) wrap.style.display = tampil ? '' : 'none';
 }
 
 function toggleLockButton(tbodyId, btnId) {
@@ -3414,7 +3415,10 @@ function toggleLockButton(tbodyId, btnId) {
     // Ketua Sidang tidak menginput nilai (tabelnya memang dikosongkan), jadi
     // tombol kunci hanya bergantung pada kelengkapan nilai SELURUH penilai
     // yang dihitung server (KELENGKAPAN_NILAI), bukan baris yang terlihat.
-    if (isViewOnlyPenilai) {
+    // Sama untuk TU Prodi yang memilih Ketua Sidang di dropdown Penilai.
+    var kunciPeranKetua = isViewOnlyPenilai
+        || (isLockGateActive && isPenilaiKetuaSidang(selectPenilaiEl(btnId)));
+    if (kunciPeranKetua) {
         var lengkapKetua = !!(KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.lengkap);
         btn.disabled = !lengkapKetua;
         setLockNilaiTooltip(btnId, lengkapKetua
@@ -3461,15 +3465,7 @@ function toggleLockButton(tbodyId, btnId) {
     var infoTim = timId ? perTim[timId] : null;
     var belumDisimpan = !infoTim || !infoTim.lengkap;
 
-    // Level 2 - gate aktif (TU Prodi, atau Pembimbing/Penguji yang menjadi Ketua
-    // Pembimbing) hanya boleh mengunci setelah SELURUH Pembimbing & Penguji
-    // selesai mengisi, bukan hanya penilai yang sedang dipilih.
-    var timLengkap = true;
-    if (isLockGateActive && btn.hasAttribute('data-lock-gate')) {
-        timLengkap = !!(KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.lengkap);
-    }
-
-    var enabled = hasVisible && allFilled && !belumDisimpan && timLengkap;
+    var enabled = hasVisible && allFilled && !belumDisimpan;
     btn.disabled = !enabled;
     if (statusEl) statusEl.disabled = !enabled;
 
@@ -3477,8 +3473,6 @@ function toggleLockButton(tbodyId, btnId) {
     if (!enabled) {
         if (belumDisimpan) {
             pesan = PESAN_BELUM_DISIMPAN;
-        } else if (!timLengkap) {
-            pesan = PESAN_KELENGKAPAN;
         } else {
             pesan = 'Lengkapi dulu nilai pada baris yang terlihat sebelum mengunci.';
         }
