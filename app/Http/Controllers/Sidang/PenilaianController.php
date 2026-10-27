@@ -119,13 +119,23 @@ class PenilaianController extends Controller
             ], 403);
         }
 
+        // Nilai yang sudah dikunci hanya boleh diubah oleh TU Prodi/Admin/FS.
+        // Setelah Ketua Sidang mengunci, Pembimbing/Penguji tidak bisa menyimpan lagi.
+        if (! in_array($user['role'] ?? '', ['TU Prodi', 'Admin', 'FS'], true)
+            && \App\Services\PenilaianSelesai::terkunci($ajuan)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Nilai sudah dikunci. Hubungi Ketua Sidang atau TU Prodi untuk membukanya kembali.',
+            ], 403);
+        }
+
         // Get tim sidang data
         $timSidang = TTimSidang::find($idTimSidang);
         if (!$timSidang) {
             return response()->json(['error' => 'Data tim sidang tidak ditemukan'], 404);
         }
 
-        // Ketua Sidang tidak menginput nilai (hanya melihat, status lulus, kunci nilai).
+        // Ketua Sidang tidak menginput nilai (hanya status lulus + kunci nilai).
         if (strtolower(trim((string) $timSidang->STATUS_TIM_SIDANG)) === 'ketua sidang') {
             return response()->json([
                 'success' => false,
@@ -286,6 +296,16 @@ class PenilaianController extends Controller
                 'TGL_UPDATE' => now(),
             ]);
 
+        // Status kelulusan adalah keputusan bersama seluruh tim, jadi seluruh
+        // baris nilai penilai pada judul + tahapan ini ikut diisi.
+        DB::table('t_penilaian')
+            ->where('ID_JUDUL', $id)
+            ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+            ->update([
+                'STATUS_LULUS' => $request->input('status_lulus'),
+                'TGL_UPDATE' => now(),
+            ]);
+
         return response()->json(['success' => true, 'message' => 'Status kelulusan berhasil diperbarui']);
     }
 
@@ -297,8 +317,10 @@ class PenilaianController extends Controller
             $request->validate([
                 'nilai_terkunci' => 'required|in:y,t',
                 'tahapan_sidang' => 'required|string',
-                'id_tim_sidang' => 'required|string',
+                'id_tim_sidang' => 'nullable|integer',
             ]);
+
+            $idTimSidang = $request->filled('id_tim_sidang') ? $request->id_tim_sidang : null;
 
             \Log::info('Lock Nilai Request', [
                 'id_judul' => $id,
@@ -321,22 +343,29 @@ class PenilaianController extends Controller
                 ], 403);
             }
 
-            // 0. Guard kelengkapan tim. Berlaku untuk TU Prodi, dan juga untuk
-            //    Pembimbing/Penguji yang merupakan Ketua Pembimbing pada judul +
-            //    tahapan ini (mereka punya wewenang mengunci semua nilai).
-            $isKetuaPembimbingRequest = TTimSidang::where('id', $request->id_tim_sidang)
-                ->where('ID_JUDUL', $id)
-                ->where('STATUS_TIM_SIDANG', 'LIKE', '%Ketua Pembimbing%')
-                ->exists();
-
-            // Ketua Sidang tidak menginput nilai, tapi berhak mengunci seluruh
-            // nilai tim setelah semua penilai selesai (kelengkapan dicek tanpa
-            // baris Ketua Sidang, lihat KelengkapanNilaiSidang).
+            // 0. Hak mengunci. Hanya Ketua Sidang (role 'Ketua Sidang' atau tercatat
+            //    sebagai Ketua Sidang pada tim sidang judul + tahapan ini) dan
+            //    TU Prodi/Admin/FS. Pembimbing/Penguji hanya mengisi nilai.
             $isKetuaSidangRequest = $this->isKetuaSidang($user, $id, $request->tahapan_sidang);
+            $isPengelola = in_array($user['role'] ?? null, ['TU Prodi', 'Admin'], true);
 
-            $perluGate = ($user['role'] ?? null) === 'TU Prodi'
-                || (in_array($user['role'] ?? null, ['Pembimbing', 'Penguji'], true) && $isKetuaPembimbingRequest)
-                || $isKetuaSidangRequest;
+            if (! $isKetuaSidangRequest && ! $isPengelola) {
+                \Log::info('Lock Nilai ditolak: bukan Ketua Sidang/TU Prodi', [
+                    'id_judul' => $id,
+                    'tahapan_sidang' => $request->tahapan_sidang,
+                    'user' => $user,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Hanya Ketua Sidang atau TU Prodi yang dapat mengunci nilai.',
+                ], 403);
+            }
+
+            // 0b. Guard kelengkapan tim: Ketua Sidang baru boleh mengunci setelah
+            //     SELURUH penilai mengisi nilainya (baris Ketua Sidang tidak dihitung,
+            //     lihat KelengkapanNilaiSidang), begitu juga TU Prodi.
+            $perluGate = ($user['role'] ?? null) === 'TU Prodi' || $isKetuaSidangRequest;
 
             if ($perluGate && $request->nilai_terkunci === 'y') {
                 $kodeProdi = DB::table('t_ajuan_sidang')
@@ -366,7 +395,7 @@ class PenilaianController extends Controller
             }
 
             // 1. Tentukan peran penilai yang mengunci.
-            $timSidang = TTimSidang::find($request->id_tim_sidang);
+            $timSidang = $idTimSidang ? TTimSidang::find($idTimSidang) : null;
             $isKetuaPembimbing = $timSidang && (
                 $timSidang->STATUS_TIM_SIDANG === 'Ketua Pembimbing' ||
                 strpos($timSidang->STATUS_TIM_SIDANG, 'Ketua Pembimbing') !== false
@@ -379,13 +408,10 @@ class PenilaianController extends Controller
                 ->exists();
 
             // 2. Update t_penilaian.
-            //    - TU Prodi mengunci (mewakili Ketua Pembimbing terpilih), dan
-            //      Ketua Sidang yang mengunci seluruh tim -> SELURUH penilai pada
-            //      judul+tahapan ini ikut terkunci: NILAI_TERKUNCI=1 dan
-            //      STATUS_LULUS ikut terisi.
-            //    - Role lain, termasuk Pembimbing yang menjadi Ketua Pembimbing
-            //      -> HANYA baris miliknya sendiri. Nilai penilai lain tidak
-            //      boleh diubah dari ROLE 'Pembimbing'.
+            //    - Ketua Sidang mengunci -> SELURUH penilai pada judul+tahapan ini
+            //      ikut terkunci: NILAI_TERKUNCI=1 dan STATUS_LULUS ikut terisi.
+            //    - TU Prodi ikut mengunci seluruh penilai (mewakili Ketua
+            //      Pembimbing); Admin/FS hanya baris penilai yang dipilih.
             $nilaiTerkunciInt = $request->nilai_terkunci === 'y' ? 1 : 0;
             $updatePenilaian = [
                 'NILAI_TERKUNCI' => $nilaiTerkunciInt,
@@ -403,7 +429,14 @@ class PenilaianController extends Controller
                 ->where('TAHAPAN_SIDANG', $request->tahapan_sidang);
 
             if (! $kunciSemuaPenilai) {
-                $queryPenilaian->where('ID_TIM_SIDANG', $request->id_tim_sidang);
+                if (! $idTimSidang) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Penilai belum dipilih.',
+                    ], 422);
+                }
+
+                $queryPenilaian->where('ID_TIM_SIDANG', $idTimSidang);
             }
 
             $jumlahPenilaian = $queryPenilaian->update($updatePenilaian);
@@ -412,7 +445,7 @@ class PenilaianController extends Controller
                 'id_judul' => $id,
                 'role' => $user['role'] ?? null,
                 'tahapan_sidang' => $request->tahapan_sidang,
-                'id_tim_sidang' => $request->id_tim_sidang,
+                'id_tim_sidang' => $idTimSidang,
                 'peran' => $timSidang->STATUS_TIM_SIDANG ?? null,
                 'is_ketua_pembimbing' => $isKetuaPembimbing,
                 'is_ketua_sidang' => $isKetuaSidangRequest,

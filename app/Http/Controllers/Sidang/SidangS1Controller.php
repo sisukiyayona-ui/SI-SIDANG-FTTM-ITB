@@ -27,7 +27,11 @@ class SidangS1Controller extends Controller
                     WHEN MAX({$alias}.status_lulus) IS NOT NULL AND MAX({$alias}.status_lulus) != 'diajukan' THEN MAX({$alias}.status_lulus)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.status_ajukan_mhs), 't') != 'y' THEN 'belum diajukan'
                     WHEN COALESCE(MAX({$alias}.status_ajukan_prodi), 't') != 'y' THEN 'diproses di TU Prodi'
-                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' AND (
+                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' AND EXISTS (
+                        SELECT 1 FROM t_kpps k0
+                        INNER JOIN t_ajuan_sidang x0 ON x0.KODE_PRODI = k0.KODE_PRODI
+                        WHERE x0.id_judul = a.id_judul AND x0.tahapan_sidang = '{$tahapan}' AND k0.STATUS_AKTIF = 'AKTIF'
+                    ) AND (
                         SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app
                         INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
                         WHERE x2.id_judul = a.id_judul AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE IN ('t', 'y')
@@ -87,6 +91,16 @@ class SidangS1Controller extends Controller
             $query->where('a.status_ajukan_prodi', 'y');
         } elseif ($user['role'] === 'KPPS') {
             $query->where('a.status_ajukan_prodi', 'y');
+        } elseif ($user['role'] === 'Ketua Sidang') {
+            // Ketua Sidang hanya melihat judul tempat ia tercatat sebagai
+            // Ketua Sidang pada tim sidang.
+            $query->whereExists(function ($sub) use ($user) {
+                $sub->selectRaw('1')
+                    ->from('t_tim_sidang as tk')
+                    ->whereColumn('tk.ID_JUDUL', 'a.id_judul')
+                    ->where('tk.ID_USER_PENILAI', $user['id'] ?? 0)
+                    ->whereRaw("UPPER(tk.STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%'");
+            });
         }
 
         $tracking = DB::table(DB::raw("({$query->toSql()}) as track"))

@@ -34,7 +34,11 @@ class MahasiswaController extends Controller
                     WHEN MAX({$alias}.STATUS_LULUS) IS NOT NULL AND MAX({$alias}.STATUS_LULUS) != 'diajukan' THEN MAX({$alias}.STATUS_LULUS)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.STATUS_AJUKAN_MHS), 't') != 'y' THEN 'belum diajukan'
                     WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_PRODI), 't') != 'y' THEN 'Diproses di TU Prodi'
-                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') = 'y' AND (
+                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') = 'y' AND EXISTS (
+                        SELECT 1 FROM t_kpps k0
+                        INNER JOIN t_ajuan_sidang x0 ON x0.KODE_PRODI = k0.KODE_PRODI
+                        WHERE x0.id_judul = j.id AND x0.tahapan_sidang = '{$tahapan}' AND k0.STATUS_AKTIF = 'AKTIF'
+                    ) AND (
                         SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app
                         INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
                         WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE IN ('t', 'y')
@@ -235,15 +239,16 @@ class MahasiswaController extends Controller
         }
             
         // Table t_tim_sidang (Pembimbing / Penguji)
-        // Urutan tampil: Ketua Sidang, Ketua Pembimbing, Pembimbing I/II,
-        // Penguji I/II/III — baru role lain, lalu urutan input.
+        // Urutan tampil: Ketua Pembimbing, Pembimbing I/II, Penguji I/II/III,
+        // lalu role lain — Ketua Sidang paling bawah, karena ia tidak menginput
+        // nilai dan hanya update status lulus setelah semua nilai terisi.
         $timSidangQuery = \App\Models\TTimSidang::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)
             ->orderByRaw("CASE
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 0
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 1
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 2
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 3
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 5
                 ELSE 4 END")
             ->orderByRaw("CASE
                 WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
@@ -1101,15 +1106,28 @@ class MahasiswaController extends Controller
             $mahasiswa = \App\Models\TUser::find($judul->id_user_mhs);
             $prodi = \App\Models\TProdi::where('KODE_PRODI', $mahasiswa->KODE_PRODI ?? $user['kode_prodi'])->first();
 
+            // Kolom PK t_user fisiknya "id" (huruf kecil), jadi akses ->ID akan
+            // selalu null dan ajuan tercatat atas nama operator, bukan mahasiswa.
+            $strata = $mahasiswa->STRATA
+                ?: TAjuanSidang::where('ID_JUDUL', $idJudul)->whereNotNull('STRATA')->value('STRATA')
+                ?: ($user['strata'] ?? null);
+
+            if (!$strata) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Strata mahasiswa ' . ($mahasiswa->NAMA_LENGKAP ?? $judul->NIM) . ' belum diisi. Lengkapi Strata di Data Master User dulu, lalu simpan jadwal lagi.',
+                ], 422);
+            }
+
             $ajuan = new TAjuanSidang();
-            $ajuan->ID_USER = $mahasiswa->ID ?? $user['id'];
+            $ajuan->ID_USER = $mahasiswa->id ?? $user['id'];
             $ajuan->NIM = $mahasiswa->NIP_NIM ?? $user['nip_nim'];
             $ajuan->NAMA_MHS = $mahasiswa->NAMA_LENGKAP ?? $user['nama_lengkap'];
             $ajuan->ANGKATAN = $mahasiswa->THN_ANGKATAN ?? date('Y');
             $ajuan->ID_JUDUL = $idJudul;
             $ajuan->JUDUL = $judul->Judul;
             $ajuan->TAHAPAN_SIDANG = $tahapan;
-            $ajuan->STRATA = $mahasiswa->STRATA ?? $user['strata'];
+            $ajuan->STRATA = $strata;
             $ajuan->STATUS_AJUKAN_MHS = 't';
             $ajuan->TGL_CREATE = now();
             $ajuan->ID_USER_CREATE = $user['id'];

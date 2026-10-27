@@ -139,17 +139,12 @@
             $abstrakText = $abstrakRow ?? '';
         }
         // Compute isNilaiTerkunci at top level for both Tahap I and Tahap II
-        // TU Prodi/Admin: tombol Kunci Nilai SELALU tampil (bisa kunci berulang), tidak pernah badge.
-        // Pembimbing/Penguji: tombol saat belum terkunci; badge "Nilai Terkunci" setelah terkunci.
-        $isCanLockNilai = in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']);
-
-        // Item 10: Ketua Sidang (role 'Ketua Sidang', atau anggota t_tim_sidang
-        // ber-status "Ketua Sidang" pada judul + tahapan ini) melihat nilai
-        // SELURUH penilai hanya untuk dibaca, mengubah status lulus, dan
-        // mengunci nilai setelah semua penilai mengisi.
+        // Yang boleh mengunci nilai: Ketua Sidang (role, atau tercatat sebagai
+        // Ketua Sidang pada tim sidang judul + tahapan ini) dan TU Prodi/Admin.
+        // Pembimbing/Penguji hanya mengisi nilai, tanpa tombol Kunci Nilai.
+        $isTuProdiAtauAdmin = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
         $isKetuaSidangTim = ($isKetuaSidangTim ?? false) || session('auth_user.role') === 'Ketua Sidang';
-        $isCanLockNilai = $isCanLockNilai || $isKetuaSidangTim;
-        $canManageKelulusan = ($isKetuaPembimbing ?? false) || $isKetuaSidangTim;
+        $canManageKelulusan = $isKetuaSidangTim;
         $kelengkapanNilai = $kelengkapanNilai ?? ['lengkap' => false, 'ada_tim' => false, 'belum' => [], 'belum_parameter' => []];
         $pesanKelengkapanNilai = \App\Services\KelengkapanNilaiSidang::pesan($kelengkapanNilai);
         $isDataTerkunci = isset($penilaian) && $penilaian->count() > 0
@@ -158,35 +153,25 @@
         // Kalau hanya cek baris t_penilaian, ajuan terkunci tanpa baris nilai
         // bikin tombol Simpan & input tetap aktif padahal nilai sudah dikunci.
         $isNilaiTerkunci = \App\Services\PenilaianSelesai::terkunci($ajuan ?? null, $penilaian ?? null);
+        // TU Prodi/Admin tetap bisa menyimpan & mengunci berulang, jadi flag
+        // "terkunci" hanya dipakai untuk membatasi role penilai lain.
+        $isNilaiTerkunciUi = $isNilaiTerkunci && ! $isTuProdiAtauAdmin;
 
-        // Penilaian dianggap SELESAI bila nilai sudah dikunci (berlaku untuk semua
-        // role, termasuk TU Prodi/Admin yang $isNilaiTerkunci-nya selalu false)
+        // Penilaian dianggap SELESAI bila nilai sudah dikunci (flag pembatasan UI
+        // $isNilaiTerkunciUi selalu false untuk TU Prodi/Admin)
         // atau status lulus sudah ditentukan. Saat selesai, baris referensi
         // (parameter master yang belum punya data di t_penilaian — mis. parameter
         // baru ditambahkan setelah mahasiswa lulus) tidak ditampilkan & tidak
         // diisi; yang tampil hanya baris dari t_penilaian.
+        // Eksepsi: kalau ajuan sudah TERKUNCI, baris referensi tetap tampil
+        // supaya parameter & nilainya masih terbaca (read-only untuk Pembimbing/
+        // Penguji, masih bisa diperbaiki TU Prodi/Admin), bukan tabel kosong.
         $penilaianSelesai = \App\Services\PenilaianSelesai::cek(
             $ajuan ?? null,
             isset($penilaian) ? $penilaian : null
         );
 
-        // Sebuah role "Pembimbing"/"Penguji" ikut diperlakukan seperti TU Prodi
-        // bila user tersebut adalah Ketua Pembimbing pada judul + tahapan ini:
-        // tombol Kunci Nilai ikut ter-gate (disabled + tooltip sampai tim lengkap).
-        $isKetuaPembimbingUser = false;
-        if ($isCanLockNilai && isset($timSidang) && $timSidang->count() > 0) {
-            $authUserId = (int) session('auth_user.id');
-            $isKetuaPembimbingUser = $timSidang->contains(function ($t) use ($authUserId) {
-                if ((int) $t->id_user_penilai !== $authUserId) {
-                    return false;
-                }
-                $peran = strtolower(trim((string) ($t->keterangan ?? $t->status_tim_sidang ?? '')));
-
-                return str_contains($peran, 'ketua pembimbing');
-            });
-        }
-
-        $isGateLockNilai = session('auth_user.role') === 'TU Prodi' || $isKetuaPembimbingUser || $isKetuaSidangTim;
+        $isGateLockNilai = session('auth_user.role') === 'TU Prodi';
 
         // Gate approve KPPS prodi: input nilai & Kunci Nilai Pembimbing/Penguji
         // dibuka hanya setelah semua anggota KPPS AKTIF prodi approve ajuan.
@@ -573,7 +558,7 @@
                                         <option value="">-- Pilih Penilai --</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
-                                                @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                @if(! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
                                                 <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ($tim->nip ? ' ('.$tim->nip.')' : '') . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                             @endforeach
                                         @endif
@@ -619,7 +604,7 @@
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
-                                            @unless($penilaianSelesai)
+                                            @unless($penilaianSelesai && ! $isNilaiTerkunci)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -655,7 +640,7 @@
                         <div class="d-flex align-items-center">
                             <span class="mr-4 font-weight-bold">Status Lulus</span>
                             @if(!in_array(session('auth_user.role'), ['FS']))
-                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;" {{ $isNilaiTerkunci ?? false ? 'disabled' : '' }}>
+                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
                                 <option value="" {{ (!isset($ajuan) || !$ajuan->status_lulus) ? 'selected' : '' }}>Pilih status</option>
                                 <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                 <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
@@ -674,12 +659,11 @@
                              FS: tidak ada tombol. --}}
                         @if(!in_array(session('auth_user.role'), ['FS']))
                         <div class="d-flex align-items-center">
-                            @if($isCanLockNilai && $isNilaiTerkunci)
+                            @if($isNilaiTerkunci)
                             <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
-                            @else
-                            <span class="lock-nilai-wrap" id="lockNilaiBtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                             @endif
-                            <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunci ? 'disabled' : '' }}>Simpan</button>
+                            <span class="lock-nilai-wrap" id="lockNilaiBtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                            <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunciUi ? 'disabled' : '' }}>Simpan</button>
                         </div>
                         @endif
                     </div>
@@ -1257,12 +1241,13 @@
                             <input type="hidden" name="no_form" id="selectedNoFormTahap2">
                             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
                                 <div class="d-flex align-items-center">
+                                    @unless($isKetuaSidangTim)
                                     <label class="text-danger mb-0 text-nowrap mr-2" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Penilai</label>
                                     <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'disabled' : '' }}>
                                         <option value="">Pilih Penilai</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
-                                                @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                @if(! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
                                                 <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                             @endforeach
                                         @endif
@@ -1276,6 +1261,7 @@
                                             @endforeach
                                         @endif
                                     </select>
+                                    @endunless
                                 </div>
                                 <div>
                                     <button type="button" class="btn btn-black px-2 py-0" style="font-size: 12px; border-radius: 0;" onclick="cetakForm()">Cetak Penilaian</button>
@@ -1308,15 +1294,16 @@
                                 </thead>
                                 <tbody id="penilaianTahap2Body">
                                     <tr id="penilaianTahap2EmptyRow" style="background-color: #dbe5f1;">
-                                        <td colspan="5" class="text-center text-muted">Pilih Form untuk melihat parameter penilaian</td>
+                                        <td colspan="5" class="text-center text-muted">{{ $isKetuaSidangTim ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Form untuk melihat parameter penilaian' }}</td>
                                     </tr>
+                                    @unless($isKetuaSidangTim)
                                     @if(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
                                         @php $rowNum = 0; @endphp
                                         @foreach($allPointPenilaian as $point)
                                             @php
                                                 $existingRecords = (isset($penilaian) && $penilaian->count() > 0) ? $penilaian->where('id_penilaian', $point->id) : collect();
                                             @endphp
-                                            @unless($penilaianSelesai)
+                                            @unless($penilaianSelesai && ! $isNilaiTerkunci)
                                             @php $rowNum++; @endphp
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
@@ -1348,6 +1335,7 @@
                                             @endforeach
                                         @endforeach
                                     @endif
+                                    @endunless
                                 </tbody>
                             </table>
                             {{-- STATUS KELULUSAN --}}
@@ -1373,19 +1361,26 @@
                             <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                                     @endif
                                 </div>
-                                {{-- TU Prodi: tombol Kunci Nilai disembunyikan, baru muncul saat penilai terpilih
-                                     ber-keterangan "Ketua Pembimbing" (data-lock-gate + syncLockNilaiGate).
-                                     Admin: tombol SELALU tampil (bisa kunci berulang).
-                                     Pembimbing/Penguji: tombol saat belum terkunci, badge setelah terkunci.
+                                {{-- Kunci Nilai hanya untuk Ketua Sidang dan TU Prodi/Admin.
+                                     TU Prodi: tombol disembunyikan sampai penilai terpilih
+                                     ber-keterangan "Ketua Pembimbing" (data-lock-gate +
+                                     syncLockNilaiGate). Ketua Sidang: tombol selalu tampil.
+                                     Pembimbing/Penguji: tanpa tombol, hanya badge saat terkunci.
                                      FS: tidak ada tombol. --}}
                                 @if(!in_array(session('auth_user.role'), ['FS']))
                                 <div class="d-flex align-items-center">
-                                    @if($isCanLockNilai && $isNilaiTerkunci)
+                                    @if($isNilaiTerkunciUi && ! $isTuProdiAtauAdmin)
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
-                                    @else
-                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
                                     @endif
-                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" @if($isNilaiTerkunci || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif>Simpan</button>
+                                    @if($isKetuaSidangTim)
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                                    <button type="button" class="btn btn-outline-secondary" style="font-size: 14px;" onclick="saveStatusLulusTahap2()">Simpan Status</button>
+                                    @elseif($isTuProdiAtauAdmin)
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()">Simpan</button>
+                                    @else
+                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" @if($isNilaiTerkunciUi || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif>Simpan</button>
+                                    @endif
                                 </div>
                                 @endif
                             </div>
@@ -1675,7 +1670,7 @@
                                 @if($isPenilaiPanel)
                                 @if($isViewOnlyPenilai)
                                 <div class="alert alert-secondary py-2 px-2 mb-2" style="font-size: 12px;">
-                                    <i class="fas fa-eye mr-1"></i> Anda Ketua Sidang. Nilai seluruh penilai ditampilkan hanya untuk dilihat; gunakan Status Kelulusan dan Kunci Nilai.
+                                    <i class="fas fa-eye mr-1"></i> Anda Ketua Sidang. Nilai tidak diinput di sini — gunakan Status Kelulusan dan Kunci Nilai setelah seluruh penilai mengisi nilainya.
                                 </div>
                                 @endif
                                 @if($isKppsGateBlocking)
@@ -1690,13 +1685,14 @@
                                     <input type="hidden" name="id_tim_sidang" id="selectedTimSidang">
                                     <input type="hidden" name="no_form" id="selectedNoForm">
                                     <div class="form-group row align-items-center mb-2">
+                                        @unless($isViewOnlyPenilai)
                                         <label class="col-sm-2 text-danger mb-0 px-1 text-right" style="font-size: 13px; text-decoration: underline;">Penilai</label>
                                         <div class="col-sm-4 px-1">
                                             <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiSelect" onchange="document.getElementById('formSelect').value='';loadPenilaianForm();">
                                                 <option value="">Pilih Penilai</option>
                                                 @if(isset($timSidang) && $timSidang->count() > 0)
                                                     @foreach($timSidang as $tim)
-                                                        @if(!$isViewOnlyPenilai && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                        @if(!$isViewOnlyPenilai && ! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
                                                         <option value="{{ $tim->id }}" {{ $isViewOnlyPenilai ? ($penilaiAwal == $tim->id ? 'selected' : '') : ($tim->id_user_penilai == $user['id'] ? 'selected' : '') }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                                     @endforeach
                                                 @endif
@@ -1713,13 +1709,13 @@
                                                 @endif
                                             </select>
                                         </div>
+                                        @endunless
                                         <div class="col-sm-2 pl-0 d-flex align-items-center">
                                             @if($isViewOnlyPenilai)
-                                            {{-- Ketua Sidang tidak menginput nilai: tanpa tombol Simpan --}}
-                                            @elseif($isNilaiTerkunci && !$canManageKelulusan)
-                                            <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
-                                            @elseif($isNilaiTerkunci)
-                                            <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled>Simpan</button>
+                                            {{-- Ketua Sidang tidak menginput nilai: simpan keputusan kelulusan saja --}}
+                                            <button type="button" class="btn btn-outline-secondary" style="font-size: 12px; border-radius: 0;" onclick="saveStatusLulusPembimbing()">Simpan Status</button>
+                                            @elseif($isNilaiTerkunciUi)
+                                            <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled title="Nilai sudah dikunci oleh Ketua Sidang">Simpan</button>
                                             @elseif($isKppsGateBlocking)
                                             <button type="button" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled title="{{ $pesanKppsGate }}">Simpan</button>
                                             @else
@@ -1728,11 +1724,7 @@
                                         </div>
                                         @if($canManageKelulusan)
                                         <div class="col-sm-2 pl-0 d-flex align-items-center ml-2">
-                                            @if($isNilaiTerkunci)
-                                            <span class="badge bg-success px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
-                                            @else
                                             <span class="lock-nilai-wrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button></span>
-                                            @endif
                                         </div>
                                         @endif
                                     </div>
@@ -1740,7 +1732,7 @@
                                     @if($canManageKelulusan)
                                     <div class="d-flex align-items-center mb-2 mt-3">
                                         <span class="mr-2 font-weight-bold" style="font-size: 13px;">Status Kelulusan</span>
-                                        <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;" {{ $isNilaiTerkunci ? 'disabled' : '' }}>
+                                        <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;">
                                             <option value="">Pilih Status</option>
                                             <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
@@ -1759,9 +1751,9 @@
                                         </thead>
                                         <tbody id="penilaianTableBody">
                                             <tr id="penilaianFormEmptyRow" style="background-color: #dbe5f1;">
-                                                <td colspan="4" class="text-center text-muted">Pilih Penilai dan Form untuk melihat parameter penilaian</td>
+                                                <td colspan="4" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
                                             </tr>
-                                            @if(isset($penilaian) && $penilaian->count() > 0)
+                                            @if(!$isViewOnlyPenilai && isset($penilaian) && $penilaian->count() > 0)
                                                 @foreach($penilaian as $idx => $nilai)
                                                  <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-tim="{{ $nilai->id_tim_sidang }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}">
                                                     <td>{{ $idx + 1 }}</td>
@@ -1775,7 +1767,7 @@
                                                     </td>
                                                 </tr>
                                             @endforeach
-                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && !$penilaianSelesai && !$isViewOnlyPenilai)
+                                        @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && (!$penilaianSelesai || $isNilaiTerkunci) && !$isViewOnlyPenilai)
                                                 @foreach($allPointPenilaian as $idx => $point)
                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $idx + 1 }}</td>
@@ -2041,13 +2033,12 @@
 var persyaratanFiles = {};
 
 var isNilaiTerkunci = {{ ($isNilaiTerkunci ?? false) ? 'true' : 'false' }};
+var isNilaiTerkunciUi = {{ ($isNilaiTerkunciUi ?? false) ? 'true' : 'false' }};
 var isDataTerkunci = {{ ($isDataTerkunci ?? false) ? 'true' : 'false' }};
-var isCanLockNilai = {{ ($isCanLockNilai ?? false) ? 'true' : 'false' }};
 var isTUPandi = {{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin']) ? 'true' : 'false' }};
-// Gate Kunci Nilai aktif untuk TU Prodi, atau untuk Pembimbing/Penguji yang
-// kebetulan menjadi Ketua Pembimbing pada judul + tahapan ini.
+// Gate Kunci Nilai aktif untuk TU Prodi: tombol baru muncul saat penilai
+// terpilih ber-keterangan "Ketua Pembimbing".
 var isLockGateActive = {{ ($isGateLockNilai ?? false) ? 'true' : 'false' }};
-var isKetuaPembimbingUser = {{ ($isKetuaPembimbingUser ?? false) ? 'true' : 'false' }};
 var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
 var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
 var isKppsGateBlocking = {{ ($isKppsGateBlocking ?? false) ? 'true' : 'false' }};
@@ -2055,6 +2046,17 @@ var isKppsGateBlocking = {{ ($isKppsGateBlocking ?? false) ? 'true' : 'false' }}
 var isViewOnlyPenilai = {{ ($isKetuaSidangTim ?? false) ? 'true' : 'false' }};
 var PESAN_KPPS_GATE = {!! json_encode($pesanKppsGate ?? '') !!};
 var PESAN_BELUM_DISIMPAN = 'Nilai Anda belum disimpan. Simpan terlebih dahulu sebelum mengunci nilai.';
+var PESAN_KETUA_SIDANG = 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.';
+
+// TU Prodi/Admin bisa memilih Ketua Sidang di dropdown Penilai, tapi Ketua
+// Sidang tidak punya baris nilai, jadi tabelnya harus langsung dikosongkan.
+function isPenilaiKetuaSidang(sel) {
+    if (!sel || !sel.options || sel.selectedIndex < 0) return false;
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) return false;
+    var ket = String(opt.getAttribute('data-keterangan') || opt.textContent || '').toLowerCase();
+    return ket.indexOf('ketua sidang') !== -1;
+}
 
 function initLockNilaiTooltips() {
     if (typeof $ === 'undefined' || !$.fn || !$.fn.tooltip) return;
@@ -2083,14 +2085,14 @@ function setLockNilaiTooltip(btnId, message) {
     wrap.classList.toggle('is-blocked', !!btn.disabled);
 }
 document.addEventListener('DOMContentLoaded', function() {
-    if (isNilaiTerkunci) {
+    if (isNilaiTerkunciUi) {
         disablePenilaianInputs('penilaianReportBody');
         disablePenilaianInputs('penilaianTahap2Body');
         disablePenilaianInputs('penilaianTableBody');
         var sel2 = document.getElementById('statusLulusTahap2');
-        if (sel2) sel2.disabled = true;
+        if (sel2 && !isViewOnlyPenilai) sel2.disabled = true;
         var selP = document.getElementById('statusLulusPembimbing');
-        if (selP) selP.disabled = true;
+        if (selP && !isViewOnlyPenilai) selP.disabled = true;
     }
     if (isKppsGateBlocking) {
         disablePenilaianInputs('penilaianTahap2Body');
@@ -2391,12 +2393,24 @@ function clearReferenceRows(tbodyId) {
 }
 
 function filterPenilaianTahap2() {
-    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking;
-    var penilaiId = document.getElementById('penilaiTahap2').value;
-    var noForm = document.getElementById('formTahap2').value;
+    var selPenilai = document.getElementById('penilaiTahap2');
+    var selForm = document.getElementById('formTahap2');
+    var tbody = document.getElementById('penilaianTahap2Body');
+    if (!tbody) return;
+
+    // Ketua Sidang: Penilai/Form tidak ditampilkan dan tabelnya dikosongkan,
+    // jadi tidak ada yang perlu difilter — cukup sinkronkan tombol Kunci Nilai.
+    if (!selPenilai || !selForm) {
+        toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
+        return;
+    }
+
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking;
+    var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilai);
+    var penilaiId = selPenilai.value;
+    var noForm = selForm.value;
     document.getElementById('selectedTimSidangTahap2').value = penilaiId;
     document.getElementById('selectedNoFormTahap2').value = noForm;
-    var tbody = document.getElementById('penilaianTahap2Body');
     var dataRows = tbody.querySelectorAll('tr.penilaian-tahap2-row');
     var emptyRow = document.getElementById('penilaianTahap2EmptyRow');
     var hasVisible = false;
@@ -2407,7 +2421,7 @@ function filterPenilaianTahap2() {
         var rowNoForm = row.getAttribute('data-no-form');
         var isReference = !rowPenilai;
 
-        if (!noForm) {
+        if (isKetuaSidangDipilih || !noForm) {
             show = false;
         } else if (rowNoForm !== noForm) {
             show = false;
@@ -2445,16 +2459,16 @@ function filterPenilaianTahap2() {
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
-        if (!hasVisible) {
-            var emptyCell = emptyRow.querySelector('td');
-            if (emptyCell) {
-                if (!noForm) {
-                    emptyCell.textContent = 'Pilih Form untuk melihat parameter penilaian';
-                } else if (isNilaiTerkunci) {
-                    emptyCell.textContent = 'Nilai sudah dikunci untuk penilaian ini.';
-                } else {
-                    emptyCell.textContent = 'Tidak ada data penilaian untuk penilai/form yang dipilih.';
-                }
+        var emptyCell = emptyRow.querySelector('td');
+        if (emptyCell) {
+            if (isKetuaSidangDipilih) {
+                emptyCell.textContent = PESAN_KETUA_SIDANG;
+            } else if (!noForm) {
+                emptyCell.textContent = 'Pilih Form untuk melihat parameter penilaian';
+            } else if (isNilaiTerkunciUi) {
+                emptyCell.textContent = 'Nilai sudah dikunci untuk penilaian ini.';
+            } else {
+                emptyCell.textContent = 'Tidak ada data penilaian untuk penilai/form yang dipilih.';
             }
         }
     }
@@ -2492,8 +2506,10 @@ function applyStatusCatatan(row) {
 }
 
 function filterPenilaian() {
-    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking;
-    var penilaiId = document.getElementById('penilaianSelect').value;
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking;
+    var selPenilaiLaporan = document.getElementById('penilaianSelect');
+    var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilaiLaporan);
+    var penilaiId = selPenilaiLaporan.value;
     var noForm = document.getElementById('formFilterSelect').value;
     var tbody = document.getElementById('penilaianReportBody');
     var dataRows = tbody.querySelectorAll('tr.penilaian-data-row');
@@ -2506,7 +2522,7 @@ function filterPenilaian() {
         var rowNoForm = row.getAttribute('data-no-form');
         var isReference = !rowPenilai;
 
-        if (!noForm) {
+        if (isKetuaSidangDipilih || !noForm) {
             show = false;
         } else if (rowNoForm !== noForm) {
             show = false;
@@ -2544,16 +2560,16 @@ function filterPenilaian() {
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
-        if (!hasVisible) {
-            var emptyCell = emptyRow.querySelector('td');
-            if (emptyCell) {
-                if (!noForm) {
-                    emptyCell.textContent = 'Pilih No Form untuk melihat parameter penilaian';
-                } else if (isNilaiTerkunci) {
-                    emptyCell.textContent = 'Nilai sudah dikunci untuk penilaian ini.';
-                } else {
-                    emptyCell.textContent = 'Tidak ada data penilaian untuk penilai/form yang dipilih.';
-                }
+        var emptyCell = emptyRow.querySelector('td');
+        if (emptyCell) {
+            if (isKetuaSidangDipilih) {
+                emptyCell.textContent = PESAN_KETUA_SIDANG;
+            } else if (!noForm) {
+                emptyCell.textContent = 'Pilih No Form untuk melihat parameter penilaian';
+            } else if (isNilaiTerkunciUi) {
+                emptyCell.textContent = 'Nilai sudah dikunci untuk penilaian ini.';
+            } else {
+                emptyCell.textContent = 'Tidak ada data penilaian untuk penilai/form yang dipilih.';
             }
         }
     }
@@ -2563,21 +2579,32 @@ function filterPenilaian() {
 }
 
 function loadPenilaianForm() {
-    const timSidangId = document.getElementById('penilaiSelect').value;
-    const noForm = document.getElementById('formSelect').value;
-    var isLocked = !!isNilaiTerkunci || isKppsGateBlocking || isViewOnlyPenilai;
+    const selPenilai = document.getElementById('penilaiSelect');
+    const selForm = document.getElementById('formSelect');
+    const tableBody = document.getElementById('penilaianTableBody');
+    if (!tableBody) return;
+
+    // Ketua Sidang: Penilai/Form disembunyikan dan tabelnya dikosongkan.
+    if (!selPenilai || !selForm) {
+        toggleLockButton('penilaianTableBody', 'lockNilaiPembimbingBtn');
+        return;
+    }
+
+    const timSidangId = selPenilai.value;
+    const noForm = selForm.value;
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isViewOnlyPenilai;
+    var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilai);
     
     document.getElementById('selectedTimSidang').value = timSidangId;
     document.getElementById('selectedNoForm').value = noForm;
     
-    const tableBody = document.getElementById('penilaianTableBody');
     const dataRows = tableBody.querySelectorAll('tr:not(#penilaianFormEmptyRow)');
     var emptyRow = document.getElementById('penilaianFormEmptyRow');
     var hasVisible = false;
     
     dataRows.forEach(row => {
         var show = true;
-        if (!timSidangId || !noForm) {
+        if (isKetuaSidangDipilih || !timSidangId || !noForm) {
             show = false;
         } else {
             var rowNoForm = row.getAttribute('data-no-form');
@@ -2608,6 +2635,13 @@ function loadPenilaianForm() {
     });
     
     if (emptyRow) {
+        var emptyCellPemb = emptyRow.querySelector('td');
+        if (emptyCellPemb) {
+            if (emptyCellPemb.dataset.teksAwal === undefined) {
+                emptyCellPemb.dataset.teksAwal = emptyCellPemb.textContent.trim();
+            }
+            emptyCellPemb.textContent = isKetuaSidangDipilih ? PESAN_KETUA_SIDANG : emptyCellPemb.dataset.teksAwal;
+        }
         emptyRow.style.display = hasVisible ? 'none' : '';
     }
     renumberColumn('penilaianTableBody');
@@ -3093,11 +3127,29 @@ function syncPenilaiDropdowns(tim) {
     var container = document.querySelector('.tahap-container');
     if (!container) return;
 
+    // Dropdown Penilai hanya menampilkan Ketua Sidang untuk TU Prodi/Admin
+    // (memantau & update status lulus). Role lain: opsinya tidak boleh masuk,
+    // sama seperti filter penolakan opsi di Blade.
+    var isKetuaSidang = !isTUPandi && String(tim.status_tim_sidang || tim.keterangan || '')
+        .trim().toLowerCase() === 'ketua sidang';
+
     ['penilaianSelect', 'penilaiSelect', 'penilaiTahap2'].forEach(function (sid) {
         var sel = container.querySelector('select#' + sid);
         if (!sel) return;
 
         var opt = sel.querySelector('option[value="' + tim.id + '"]');
+        if (isKetuaSidang) {
+            if (!opt) return;
+            var wasSelected = String(sel.value) === String(tim.id);
+            opt.remove();
+            if (wasSelected) {
+                sel.value = '';
+                if (window.jQuery && jQuery.fn.select2 && jQuery(sel).data('select2')) {
+                    jQuery(sel).val('').trigger('change');
+                }
+            }
+            return;
+        }
         if (!opt) {
             opt = document.createElement('option');
             opt.value = tim.id;
@@ -3359,6 +3411,18 @@ function toggleLockButton(tbodyId, btnId) {
     var tbody = document.getElementById(tbodyId);
     if (!tbody) { btn.disabled = true; setLockNilaiTooltip(btnId, PESAN_KELENGKAPAN); return; }
 
+    // Ketua Sidang tidak menginput nilai (tabelnya memang dikosongkan), jadi
+    // tombol kunci hanya bergantung pada kelengkapan nilai SELURUH penilai
+    // yang dihitung server (KELENGKAPAN_NILAI), bukan baris yang terlihat.
+    if (isViewOnlyPenilai) {
+        var lengkapKetua = !!(KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.lengkap);
+        btn.disabled = !lengkapKetua;
+        setLockNilaiTooltip(btnId, lengkapKetua
+            ? 'Kunci nilai. Setelah dikunci, nilai tidak dapat diubah.'
+            : PESAN_KELENGKAPAN);
+        return;
+    }
+
     var statusLulusId = '';
     if (tbodyId === 'penilaianReportBody') statusLulusId = 'statusLulusDisplay';
     else if (tbodyId === 'penilaianTahap2Body') statusLulusId = 'statusLulusTahap2';
@@ -3489,25 +3553,19 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(data) {
         if (data.success) {
             showToast(data.message || 'Nilai berhasil dikunci', 'success');
-            // Hanya Pembimbing/Penguji: ganti tombol → badge "Nilai Terkunci" + disable input.
-            // TU Prodi/Admin: tombol Kunci Nilai TETAP (bisa kunci berulang), tidak berubah.
-            if (isCanLockNilai) {
-                isNilaiTerkunci = true;
-                var btn = document.getElementById(btnId);
-                if (btn && btn.parentNode) {
-                    var badge = document.createElement('span');
-                    badge.className = 'badge bg-success px-2 py-1' + (btn.className.indexOf('mr-2') !== -1 ? ' mr-2' : '');
-                    badge.style.fontSize = '12px';
-                    badge.innerHTML = '<i class="fas fa-lock mr-1"></i> Nilai Terkunci';
-                    btn.parentNode.replaceChild(badge, btn);
-                }
+            isNilaiTerkunci = true;
+            // Ketua Sidang dan TU Prodi/Admin tetap boleh mengunci ulang (mis.
+            // memperbaiki status lulus). Penilai lain: input & Simpan dimatikan,
+            // badge "Nilai Terkunci" sudah dirender server saat halaman dimuat.
+            if (!isTUPandi) {
+                isNilaiTerkunciUi = true;
                 disablePenilaianInputs(tbodyId);
-                var statusEl = document.getElementById(statusLulusId);
-                if (statusEl) statusEl.disabled = true;
                 var simpanBtn = document.getElementById('savePenilaianBtn');
                 if (simpanBtn) simpanBtn.disabled = true;
                 var formSimpan = document.querySelector('#penilaianForm button[type="submit"]');
                 if (formSimpan) formSimpan.disabled = true;
+                var statusEl = document.getElementById(statusLulusId);
+                if (statusEl && !isViewOnlyPenilai) statusEl.disabled = true;
             }
         } else {
             showToast('Error: ' + (data.error || data.message || 'Gagal mengunci nilai'), 'error');
@@ -3615,8 +3673,9 @@ async function savePenilaianTahap2() {
     }
 }
 
-function saveStatusLulusTahap2() {
-    const statusLulus = document.getElementById('statusLulusTahap2').value;
+function saveStatusLulusFrom(selectId) {
+    const select = document.getElementById(selectId);
+    const statusLulus = select ? select.value : '';
     if (!statusLulus) {
         showToast('Pilih status kelulusan terlebih dahulu', 'error');
         return;
@@ -3647,6 +3706,14 @@ function saveStatusLulusTahap2() {
     .catch(error => {
         showToast('Error: ' + error, 'error');
     });
+}
+
+function saveStatusLulusTahap2() {
+    saveStatusLulusFrom('statusLulusTahap2');
+}
+
+function saveStatusLulusPembimbing() {
+    saveStatusLulusFrom('statusLulusPembimbing');
 }
 
 function openAkademikForm() {
