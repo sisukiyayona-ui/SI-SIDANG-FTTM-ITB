@@ -8,15 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('t_user_prodi', function (Blueprint $table) {
-            $table->integer('ID', true);
-            $table->integer('ID_USER');
-            $table->integer('ID_PRODI');
-            $table->date('TGL_BUAT')->nullable();
-            $table->date('TGL_UPDATE')->nullable();
+        if (! Schema::hasTable('t_user_prodi')) {
+            Schema::create('t_user_prodi', function (Blueprint $table) {
+                $table->integer('ID', true);
+                $table->integer('ID_USER');
+                $table->integer('ID_PRODI');
+                $table->date('TGL_BUAT')->nullable();
+                $table->date('TGL_UPDATE')->nullable();
 
-            $table->unique(['ID_USER', 'ID_PRODI']);
-        });
+                $table->unique(['ID_USER', 'ID_PRODI']);
+            });
+        }
     }
 
     public function down(): void

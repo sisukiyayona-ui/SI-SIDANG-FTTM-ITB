@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('t_notif_approve_log', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('ID_AJUAN_SIDANG');
-            $table->unsignedBigInteger('ID_USER_KPPS');
-            $table->string('EMAIL', 255)->nullable();
-            $table->timestamp('TGL_KIRIM');
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('t_notif_approve_log')) {
+            Schema::create('t_notif_approve_log', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('ID_AJUAN_SIDANG');
+                $table->unsignedBigInteger('ID_USER_KPPS');
+                $table->string('EMAIL', 255)->nullable();
+                $table->timestamp('TGL_KIRIM');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

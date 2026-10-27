@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('t_app_ajuan_sidang', function (Blueprint $table) {
-            $table->string('USULAN_PERBAIKAN', 1000)->nullable()->after('STATUS_APPROVE');
-        });
+        if (! Schema::hasColumn('t_app_ajuan_sidang', 'USULAN_PERBAIKAN')) {
+            Schema::table('t_app_ajuan_sidang', function (Blueprint $table) {
+                $table->string('USULAN_PERBAIKAN', 1000)->nullable()->after('STATUS_APPROVE');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('t_app_ajuan_sidang', function (Blueprint $table) {
-            $table->dropColumn('USULAN_PERBAIKAN');
-        });
+        if (Schema::hasColumn('t_app_ajuan_sidang', 'USULAN_PERBAIKAN')) {
+            Schema::table('t_app_ajuan_sidang', function (Blueprint $table) {
+                $table->dropColumn('USULAN_PERBAIKAN');
+            });
+        }
     }
 };

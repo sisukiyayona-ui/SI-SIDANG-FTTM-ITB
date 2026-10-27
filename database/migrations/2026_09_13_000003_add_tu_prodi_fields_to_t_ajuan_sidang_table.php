@@ -8,13 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('t_ajuan_sidang', function (Blueprint $table) {
-            $table->decimal('IP', 4, 0)->nullable();
-            $table->integer('JML_JURNAL_Q1')->nullable();
-            $table->integer('JML_JURNAL_BEREPUTASI1')->nullable();
-            $table->integer('JML_JURNAL_BEREPUTASI2')->nullable();
-            $table->string('REKOMENDASI_YUDISIUM', 250)->nullable();
-        });
+        if (! Schema::hasColumn('t_ajuan_sidang', 'IP')) {
+            Schema::table('t_ajuan_sidang', function (Blueprint $table) {
+                $table->decimal('IP', 4, 0)->nullable();
+                $table->integer('JML_JURNAL_Q1')->nullable();
+                $table->integer('JML_JURNAL_BEREPUTASI1')->nullable();
+                $table->integer('JML_JURNAL_BEREPUTASI2')->nullable();
+                $table->string('REKOMENDASI_YUDISIUM', 250)->nullable();
+            });
+        }
     }
 
     public function down(): void

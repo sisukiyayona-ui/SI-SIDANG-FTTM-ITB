@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('t_judul_temp', function (Blueprint $table) {
-            $table->string('ABSTRAK', 1000)->nullable()->after('JUDUL_BARU');
-        });
+        if (! Schema::hasColumn('t_judul_temp', 'ABSTRAK')) {
+            Schema::table('t_judul_temp', function (Blueprint $table) {
+                $table->string('ABSTRAK', 1000)->nullable()->after('JUDUL_BARU');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('t_judul_temp', function (Blueprint $table) {
-            $table->dropColumn('ABSTRAK');
-        });
+        if (Schema::hasColumn('t_judul_temp', 'ABSTRAK')) {
+            Schema::table('t_judul_temp', function (Blueprint $table) {
+                $table->dropColumn('ABSTRAK');
+            });
+        }
     }
 };
