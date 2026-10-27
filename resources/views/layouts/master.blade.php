@@ -2238,8 +2238,8 @@
 
                     @if(session('auth_user.role') === 'Admin')
                     <!-- ADMIN NAVIGATION -->
-                    <li class="nav-item has-treeview {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*', 'master.fakultas*') ? 'menu-open' : '' }}">
-                        <a href="#" class="nav-link {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*', 'master.fakultas*') ? 'active' : '' }}">
+                    <li class="nav-item has-treeview {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*', 'master.fakultas*', 'master.mk-prodi*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('master.persyaratan*', 'master.penilaian*', 'master.prodi*', 'master.fakultas*', 'master.mk-prodi*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-database"></i>
                             <p>Data Master <i class="right fas fa-angle-left"></i></p>
                         </a>
@@ -2266,6 +2266,12 @@
                                 <a href="{{ route('master.prodi.index') }}" class="nav-link {{ request()->routeIs('master.prodi*') ? 'active' : '' }}">
                                     <i class="nav-icon fas fa-university"></i>
                                     <p>Prodi</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('master.mk-prodi.index') }}" class="nav-link {{ request()->routeIs('master.mk-prodi*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-book"></i>
+                                    <p>Mata Kuliah Prodi</p>
                                 </a>
                             </li>
                         </ul>

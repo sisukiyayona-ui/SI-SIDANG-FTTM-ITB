@@ -7,6 +7,7 @@ use App\Http\Controllers\Master\PersyaratanController;
 use App\Http\Controllers\Master\PenilaianController;
 use App\Http\Controllers\Master\UserController;
 use App\Http\Controllers\Master\KppsController;
+use App\Http\Controllers\Master\MkProdiController;
 
 Route::prefix('master')->name('master.')->middleware(['auth.dummy'])->group(function () {
     // Admin only - Prodi Management (1.3)
@@ -24,6 +25,8 @@ Route::prefix('master')->name('master.')->middleware(['auth.dummy'])->group(func
         Route::post('prodi/sync-spsi', [ProdiController::class, 'syncSpsi'])->name('prodi.sync-spsi');
         Route::resource('prodi', ProdiController::class)->except(['show']);
         Route::get('prodi/{id}/detail', [ProdiController::class, 'show'])->name('prodi.detail');
+
+        Route::resource('mk-prodi', MkProdiController::class)->except(['show']);
     });
 
     // Admin & TU Prodi - Persyaratan & Penilaian (1.1, 1.2, 2.1a, 2.1b)

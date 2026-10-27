@@ -9,6 +9,7 @@ use App\Models\TTimSidang;
 use App\Models\TPenilaian;
 use App\Models\TUser;
 use App\Models\TPointPenilaian;
+use App\Models\TMkProdi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -186,6 +187,17 @@ class CetakController extends Controller
         $skRomawi      = $isSk ? strtoupper($skMatch[1]) : '';
         $isSidangDoktor = preg_match('/^tahap\s+iv$/', $tNormal) === 1;
 
+        // Kode MK dari Data Master Mata Kuliah Prodi (t_mk_prodi):
+        // dicocokkan dengan prodi mahasiswa + tahapan yang dicetak (SK I / SK II / SK III)
+        $kodeMk = '';
+        if ($isSk && $kodeProdi) {
+            $mkRecord = TMkProdi::query()
+                ->whereRaw('TRIM(KODE_PRODI) = ?', [trim((string) $kodeProdi)])
+                ->whereRaw('UPPER(TRIM(TAHAPAN_SIDANG)) = ?', [strtoupper(trim($tahapan))])
+                ->first();
+            $kodeMk = trim((string) ($mkRecord->KODE_MK ?? ''));
+        }
+
         // Tanggal cetak (fallback ke tanggal sidang jika penilaian belum diisi)
         $tglCreate = $tanggal;
         if ($tglCreate === '' && $ajuan->tgl_sidang) {
@@ -312,7 +324,7 @@ class CetakController extends Controller
             // Template SK: isi nomor form, heading romawi, dan expand baris detail penilaian.
             // Template form penilaian SK hanya punya SATU ${signature} (milik penilai terpilih),
             // jadi jangan diisi per-peran di sini — biar embedSignature di bawah yang mengisinya.
-            $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $penilaianRows->values()->toArray(), $rataNilai, $jumlahDetail);
+            $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $kodeMk, $penilaianRows->values()->toArray(), $rataNilai, $jumlahDetail);
         } elseif ($isSidangDoktor) {
             // Template form penilaian sidang doktor: isi baris detail penilaian (5 baris) + rata-rata
             $this->postProcessSidangForm($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
@@ -958,7 +970,7 @@ class CetakController extends Controller
      * Post-process template SK: isi nomor form, ganti heading romawi (I/II/III),
      * dan isi/expand baris detail penilaian sesuai jumlah record di database.
      */
-    private function postProcessSkForm(string $docxPath, string $noForm, string $skRomawi, array $rows, string $rataNilai, int $jumlahDetail = 5): void
+    private function postProcessSkForm(string $docxPath, string $noForm, string $skRomawi, string $kodeMk, array $rows, string $rataNilai, int $jumlahDetail = 5): void
     {
         $zip = new \ZipArchive();
         if ($zip->open($docxPath) !== true) {
@@ -993,6 +1005,29 @@ class CetakController extends Controller
                 $xml,
                 'PENILAIAN SEMINAR KEMAJUAN I',
                 'PENILAIAN SEMINAR KEMAJUAN ' . $skRomawi
+            );
+        }
+
+        // Baris "(kode mk) SEMINAR KEMAJUAN I" -> "<kode mk> SEMINAR KEMAJUAN I/II/III"
+        // Kode MK diambil dari Data Master Mata Kuliah Prodi (t_mk_prodi) sesuai prodi + tahapan.
+        // Dilakukan SEBELUM mengganti sisa "(kode mk)" agar baris ini masih punya pola unik.
+        $xml = $this->fuzzyReplaceOnce(
+            $xml,
+            '(kode mk) SEMINAR KEMAJUAN I',
+            $kodeMk . ' SEMINAR KEMAJUAN ' . ($skRomawi !== '' ? $skRomawi : 'I')
+        );
+
+        // Sisa literal "(kode mk)" (jika barisnya tidak persis seperti pola di atas)
+        if ($kodeMk !== '') {
+            $xml = $this->fuzzyReplaceOnce($xml, '(kode mk)', $kodeMk);
+        }
+
+        // Footer "(Penilai Seminar Kemajuan I)" -> II / III sesuai tahapan
+        if ($skRomawi !== '' && $skRomawi !== 'I') {
+            $xml = $this->fuzzyReplaceOnce(
+                $xml,
+                'Penilai Seminar Kemajuan I',
+                'Penilai Seminar Kemajuan ' . $skRomawi
             );
         }
 

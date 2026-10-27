@@ -6,11 +6,12 @@ use Illuminate\Console\Command;
 
 class PrepareTemplate extends Command
 {
-    protected $signature = 'template:prepare';
+    protected $signature = 'template:prepare {template? : Hanya proses template yang path-nya mengandung teks ini}';
     protected $description = 'Create placeholder template for cetak form';
 
     public function handle()
     {
+        $filter = $this->argument('template');
         $templates = [
             [
                 'src' => base_path('template/pROPOSAL/Form. 302.3 Penilaian Proposal Penelitian Disertasi rev Aditya.docx'),
@@ -284,6 +285,12 @@ class PrepareTemplate extends Command
             $dst = $template['dst'];
             $replacements = $template['replacements'];
 
+            // Filter opsional: hanya proses template tertentu
+            if ($filter !== null && $filter !== ''
+                && stripos($src . ' ' . $dst, $filter) === false) {
+                continue;
+            }
+
             if (!file_exists($src)) {
                 $this->error('Source template not found: ' . $src);
                 continue;
@@ -363,7 +370,9 @@ class PrepareTemplate extends Command
         // Handle undangan seminar kemajuan secara khusus
         // karena perlu mengganti blok daftar tim sidang (ListParagraph numId=2)
         // dengan placeholder {kepada}
-        $this->prepareUndanganKemajuan();
+        if ($filter === null || $filter === '') {
+            $this->prepareUndanganKemajuan();
+        }
 
         return 0;
     }
