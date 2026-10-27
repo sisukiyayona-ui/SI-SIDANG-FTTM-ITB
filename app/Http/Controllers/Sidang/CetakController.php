@@ -2162,10 +2162,10 @@ class CetakController extends Controller
         foreach ($catatanAll->groupBy('ID_TIM_SIDANG') as $rows) {
             $nama = trim((string) ($rows->first()->NAMA ?? ''));
             $cat  = $rows->pluck('CATATAN')
-                ->map(fn($v) => trim((string) $v))
+                ->map(fn($v) => str_replace(["\r\n", "\r"], "\n", trim((string) $v)))
                 ->filter(fn($v) => $v !== '')
                 ->unique()
-                ->implode('; ');
+                ->implode("\n");
             if ($cat !== '') {
                 $resumeCatatan[] = '- ' . ($nama !== '' ? $nama . ': ' : '') . $cat;
             }
@@ -2182,7 +2182,13 @@ class CetakController extends Controller
 
             // Placeholder utuh (satu run)
             $tp->setValue('judul',             $ajuan->JUDUL ?? $judul->JUDUL ?? '');
-            $tp->setValue('nama_mhs',          $ajuan->NAMA_MHS ?? '-');
+            $namaMhs = $ajuan->NAMA_MHS ?? '-';
+            // Nama mahasiswa ditampilkan dengan huruf kapital semua (GEDE)
+            // sesuai permintaan format dokumen BA.
+            if (is_string($namaMhs) && $namaMhs !== '-' && $namaMhs !== '') {
+                $namaMhs = mb_strtoupper($namaMhs, 'UTF-8');
+            }
+            $tp->setValue('nama_mhs',          $namaMhs);
             $tp->setValue('nim',               $ajuan->NIM ?? '-');
             $tp->setValue('tgl_sidang',        $tglFooter);
             $tp->setValue('waktu',             $waktuSidang);
@@ -2376,16 +2382,21 @@ class CetakController extends Controller
         $rPr = '<w:rPr><w:b/><w:color w:val="000000" w:themeColor="text1"/>'
              . '<w:sz w:val="22"/><w:lang w:val="fi-FI"/></w:rPr>';
         $pPr = '<w:pPr><w:pStyle w:val="BodyText"/>'
-             . '<w:spacing w:before="11" w:line="360" w:lineRule="auto"/>'
+             . '<w:spacing w:before="40" w:after="40" w:line="400" w:lineRule="atLeast"/>'
              . '<w:ind w:left="0"/>' . $rPr . '</w:pPr>';
 
         $out = '';
         foreach ($lines as $line) {
-            $esc = htmlspecialchars((string) $line, ENT_XML1, 'UTF-8');
-            $out .= '<w:p>'
-                  . $pPr
-                  . '<w:r>' . $rPr . '<w:t xml:space="preserve">' . $esc . '</w:t></w:r>'
-                  . '</w:p>';
+            $line = str_replace(["\r\n", "\r"], "\n", (string) $line);
+            foreach (preg_split('/\n+/', $line) as $sub) {
+                $sub = trim($sub);
+                if ($sub === '') continue;
+                $esc = htmlspecialchars($sub, ENT_XML1, 'UTF-8');
+                $out .= '<w:p>'
+                      . $pPr
+                      . '<w:r>' . $rPr . '<w:t xml:space="preserve">' . $esc . '</w:t></w:r>'
+                      . '</w:p>';
+            }
         }
 
         return $out;
