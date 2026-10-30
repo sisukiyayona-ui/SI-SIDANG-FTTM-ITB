@@ -180,7 +180,7 @@
         // TU Prodi/Admin/FS tidak terpengaruh (flag selalu false untuk mereka).
         $kppsGate = $kppsGate ?? \App\Services\KppsApproveGate::cek($idJudul, $tahapan);
         $isKppsGateBlocking = ! empty($kppsGate['blocked'])
-            && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang'], true);
+            && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji'], true);
         $pesanKppsGate = \App\Services\KppsApproveGate::pesan($kppsGate);
     @endphp
 

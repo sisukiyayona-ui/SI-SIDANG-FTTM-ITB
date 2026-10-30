@@ -245,11 +245,11 @@ class MahasiswaController extends Controller
         $timSidangQuery = \App\Models\TTimSidang::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)
             ->orderByRaw("CASE
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 1
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 2
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 3
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 5
-                ELSE 4 END")
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 1
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 2
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 3
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 4
+                ELSE 5 END")
             ->orderByRaw("CASE
                 WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
                 WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'II$' THEN 2
