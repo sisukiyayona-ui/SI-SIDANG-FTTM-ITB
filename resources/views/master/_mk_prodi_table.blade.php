@@ -23,7 +23,7 @@
         @forelse($items as $i => $item)
             <tr>
                 <td>{{ $items->firstItem() + $i }}</td>
-                <td><span class="badge bg-info">{{ $item['kode_prodi'] }}</span></td>
+                <td style="color: #000;">{{ $item['kode_prodi'] }}</td>
                 <td>{{ $item['nama_prodi'] }}</td>
                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['kode_mk'] }}</a></td>
                 <td>{{ $item['tahapan_display'] ?? $item['tahapan_sidang'] }}</td>

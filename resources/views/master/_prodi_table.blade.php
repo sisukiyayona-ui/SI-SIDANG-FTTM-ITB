@@ -25,7 +25,7 @@
         @foreach($prodi as $i => $item)
             <tr>
                 <td>{{ $prodi->firstItem() + $i }}</td>
-                <td><span class="badge bg-info">{{ $item['kode'] }}</span></td>
+                <td style="color: #000;">{{ $item['kode'] }}</td>
                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
                 <td>{{ $item['strata'] ?? '-' }}</td>
                 <td>

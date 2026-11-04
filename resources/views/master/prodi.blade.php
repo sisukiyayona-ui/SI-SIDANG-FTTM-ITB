@@ -563,7 +563,7 @@
     function openDetail(id) {
         const item = prodiData.find(p => p.id === id);
         if (!item) return;
-        document.getElementById('detailKode').innerHTML = '<span class="badge bg-info">' + item.kode + '</span>';
+        document.getElementById('detailKode').textContent = item.kode;
         document.getElementById('detailNama').textContent = item.nama;
         document.getElementById('detailStatus').innerHTML = '<span class="badge bg-' + (item.status === 'AKTIF' ? 'success' : 'danger') + '">' + item.status + '</span>';
         new bootstrap.Modal(document.getElementById('modalDetail')).show();

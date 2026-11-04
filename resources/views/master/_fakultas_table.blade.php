@@ -15,7 +15,7 @@
         @foreach($fakultas as $i => $item)
             <tr>
                 <td>{{ $fakultas->firstItem() + $i }}</td>
-                <td><span class="badge bg-info">{{ $item['kode'] }}</span></td>
+                <td style="color: #000;">{{ $item['kode'] }}</td>
                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
             </tr>
         @endforeach
