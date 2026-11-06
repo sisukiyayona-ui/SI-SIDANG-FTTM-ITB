@@ -783,7 +783,8 @@
     document.getElementById('mainForm').addEventListener('submit', function(e) {
         e.preventDefault();
         var submitBtn = this.querySelector('button[type="submit"]');
-        if (submitBtn) { submitBtn.disabled = true; }
+        var origLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
         fetch(this.action, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value, 'Accept': 'application/json' },
@@ -795,7 +796,7 @@
                 return { ok: r.ok, data: null };
             });
         }).then(function(res) {
-            if (submitBtn) { submitBtn.disabled = false; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             if (res.ok && res.data && res.data.success) {
                 closeForm();
                 showToast('success', 'Data persyaratan berhasil disimpan.');
@@ -816,7 +817,8 @@
     document.getElementById('deleteForm').addEventListener('submit', function(e) {
         e.preventDefault();
         var submitBtn = this.querySelector('button[type="submit"]');
-        if (submitBtn) { submitBtn.disabled = true; }
+        var origLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus...'; }
         fetch(this.action, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value, 'Accept': 'application/json' },
@@ -828,7 +830,7 @@
                 return { ok: r.ok, data: null };
             });
         }).then(function(res) {
-            if (submitBtn) { submitBtn.disabled = false; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             if (res.ok && res.data && res.data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('modalDelete')).hide();
                 showToast('success', 'Data persyaratan berhasil dihapus.');
@@ -838,7 +840,7 @@
                 showToast('error', msg);
             }
         }).catch(function(err) {
-            if (submitBtn) { submitBtn.disabled = false; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });

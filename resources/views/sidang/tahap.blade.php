@@ -173,7 +173,8 @@
 
         // TU Prodi: tombol Kunci Nilai hanya muncul saat penilai terpilih =
         // Ketua Sidang (pemegang hak kunci nilai, dulu Ketua Pembimbing).
-        $isGateLockNilai = session('auth_user.role') === 'TU Prodi';
+        // Tahap I (Ujian Kualifikasi) tidak punya Ketua Sidang — gate dimatikan.
+        $isGateLockNilai = session('auth_user.role') === 'TU Prodi' && !$isTahap1;
 
         // Gate approve KPPS prodi: input nilai & Kunci Nilai Pembimbing/Penguji
         // dibuka hanya setelah semua anggota KPPS AKTIF prodi approve ajuan.
@@ -1181,7 +1182,12 @@
                                         @endphp
                                         <td><span class="badge bg-{{ getStatusColor($displayStatus) }}">{{ $displayStatus }}</span></td>
                                         <td>
-                                            <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
+                                            <div class="d-flex flex-wrap align-items-center justify-content-center" style="gap: 6px;">
+                                                <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent; max-width: 100%;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
+                                                @if(strtolower($tahapan) === 'tahap iv')
+                                                <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #000; border: 2px solid #000; background: transparent; max-width: 100%;" onmouseover="this.style.background='#000'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#000';" onclick="cetakPedomanKetuaSidang({{ $idJudul }}, '{{ $tahapan }}')">PED Ketua Sidang</button>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td>
                                             @if(session('auth_user.role') === 'TU Prodi')
@@ -2959,6 +2965,7 @@ function submitTimSidang(event) {
     event.preventDefault();
     event.stopPropagation();
     const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
     const penelaahFile = form.querySelector('[name="file_penelaah"]');
     if (penelaahFile && penelaahFile.files.length && penelaahFile.files[0].size > 2 * 1024 * 1024) {
         showToast('Maksimal ukuran file 2MB', 'error');
@@ -2984,6 +2991,10 @@ function submitTimSidang(event) {
         formData.append('_method', 'PUT');
     }
 
+    // Loading state
+    var originalLabel = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
+
     fetch('/sidang/tim-sidang' + (timId ? '/' + timId : ''), {
         method: 'POST',
         headers: {
@@ -2994,6 +3005,7 @@ function submitTimSidang(event) {
     })
     .then(response => response.json())
     .then(data => {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
         if (data.success) {
             showToast('Tim Pembimbing berhasil disimpan', 'success');
             // Update baris tabel secara lokal — tanpa reload konten modal
@@ -3018,6 +3030,7 @@ function submitTimSidang(event) {
         }
     })
     .catch(error => {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
         showToast('Terjadi kesalahan: ' + error, 'error');
     });
 }
@@ -3528,6 +3541,10 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
         }
     }
 
+    // Loading state pada tombol Kunci Nilai
+    var lockLabel = btnEl ? btnEl.innerHTML : '';
+    if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Mengunci...'; }
+
     fetch('/sidang/lock-nilai/' + idJudul, {
         method: 'POST',
         headers: {
@@ -3546,7 +3563,6 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(response) { return response.json(); })
     .then(function(data) {
         if (data.success) {
-            showToast(data.message || 'Nilai berhasil dikunci', 'success');
             isNilaiTerkunci = true;
             // Ketua Sidang dan TU Prodi/Admin tetap boleh mengunci ulang (mis.
             // memperbaiki status lulus). Penilai lain: input & Simpan dimatikan,
@@ -3563,9 +3579,11 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
             }
         } else {
             showToast('Error: ' + (data.error || data.message || 'Gagal mengunci nilai'), 'error');
+            if (btnEl) { btnEl.innerHTML = lockLabel; toggleLockButton(tbodyId, btnId); }
         }
     })
     .catch(function(error) {
+        if (btnEl) { btnEl.innerHTML = lockLabel; toggleLockButton(tbodyId, btnId); }
         showToast('Error: ' + error, 'error');
     });
 }
@@ -4261,6 +4279,12 @@ function cetakUndangan() {
     if (!idJudul) { alert('Data jadwal belum tersedia.'); return; }
     var url = '{{ route("sidang.cetak-undangan", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
     url = url.replace(':idJudul', encodeURIComponent(idJudul)).replace(':tahapan', encodeURIComponent(tahapan));
+    window.open(url, '_blank');
+}
+
+function cetakPedomanKetuaSidang(idJudul, tahapan) {
+    var url = '{{ route("sidang.cetak-ped-ketua-sidang", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+    url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
     window.open(url, '_blank');
 }
 

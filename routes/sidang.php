@@ -52,6 +52,7 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::get('surat-kesediaan/{idJudul}/{tahapan}', [CetakController::class, 'suratKesediaanPenelaah'])->name('surat-kesediaan');
         Route::get('cetak-undangan/{idJudul}/{tahapan}', [CetakController::class, 'cetakUndangan'])->name('cetak-undangan');
         Route::get('cetak-berita-acara/{idJudul}/{tahapan}', [CetakController::class, 'cetakBeritaAcara'])->name('cetak-berita-acara');
+        Route::get('cetak-ped-ketua-sidang/{idJudul}/{tahapan}', [CetakController::class, 'cetakPedomanKetuaSidang'])->name('cetak-ped-ketua-sidang');
 
         Route::get('s3', [SidangS3Controller::class, 'index'])->name('s3');
         Route::get('s3/{id}', [SidangS3Controller::class, 'show'])->name('s3.show');

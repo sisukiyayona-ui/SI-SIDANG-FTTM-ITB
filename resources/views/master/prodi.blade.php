@@ -578,7 +578,8 @@
         e.preventDefault();
         const form = this;
         const btn = form.querySelector('button[type="submit"]');
-        if (btn) btn.disabled = true;
+        const origLabel = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
         fetch(form.action, {
             method: 'POST',
             headers: {
@@ -599,21 +600,28 @@
         }).catch(() => {
             showToast('error', 'Terjadi kesalahan, coba lagi.');
         }).finally(() => {
-            if (btn) btn.disabled = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
         });
     });
 
     document.getElementById('formDelete').addEventListener('submit', function(e) {
         e.preventDefault();
         const form = this;
+        const btn = form.querySelector('button[type="submit"]');
+        const origLabel = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus...'; }
         fetch(form.action, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
             body: new FormData(form)
         }).then(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
             bootstrap.Modal.getInstance(document.getElementById('modalDelete')).hide();
             showToast('success', 'Data prodi berhasil dihapus.');
             setTimeout(() => location.reload(), 1200);
+        }).catch(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
+            showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
 

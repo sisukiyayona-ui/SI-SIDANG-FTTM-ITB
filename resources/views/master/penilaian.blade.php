@@ -838,6 +838,9 @@
     document.getElementById('mainForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const form = this;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const origLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
         const formData = new FormData(form);
         const method = document.getElementById('methodField').value;
         
@@ -863,6 +866,7 @@
         }).then(response => {
             return response.json().then(data => ({ ok: response.ok, data: data })).catch(() => ({ ok: response.ok, data: null }));
         }).then(res => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             if (res.ok && res.data && res.data.success) {
                 closeForm();
                 showToast('success', 'Data komponen berhasil disimpan.');
@@ -875,12 +879,16 @@
             }
             showToast('error', msg);
         }).catch(() => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             showToast('error', 'Gagal terhubung ke server.');
         });
     });
 
     document.getElementById('deleteForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const origLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus...'; }
         fetch(this.action, {
             method: 'POST',
             headers: {
@@ -890,6 +898,7 @@
             },
             body: new FormData(this)
         }).then(response => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             if (!response.ok) {
                 showToast('error', 'Gagal menghapus data.');
                 return;
@@ -898,6 +907,7 @@
             showToast('success', 'Data komponen berhasil dihapus.');
             setTimeout(() => location.reload(), 1200);
         }).catch(() => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             showToast('error', 'Gagal terhubung ke server.');
         });
     });

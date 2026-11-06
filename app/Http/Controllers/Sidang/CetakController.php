@@ -2282,6 +2282,156 @@ class CetakController extends Controller
     }
 
     /**
+     * Cetak Pedoman Memimpin Sidang (PED Ketua Sidang) untuk Sidang Terbuka/Tertutup.
+     * Menggunakan template: PED KETUA SIDANG TEMPLATE.docx
+     */
+    public function cetakPedomanKetuaSidang(Request $request, $idJudul, $tahapan)
+    {
+        $tahapan = str_replace('_', ' ', $tahapan);
+
+        $judul = TJudul::find($idJudul);
+        if (!$judul) {
+            abort(404, 'Judul tidak ditemukan.');
+        }
+
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
+        if (!$ajuan) {
+            abort(404, 'Data judul/ajuan tidak ditemukan.');
+        }
+
+        $timSidang = TTimSidang::with('userPenilai')
+            ->where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->get();
+
+        // Normalize: strip \r\n, trim whitespace
+        $normalizeStatus = fn($s) => preg_replace('/[\r\n]+/', '', strtolower(trim($s ?? '')));
+
+        // Helper: resolve nama dari userPenilai jika NAMA kosong/generic/NIP
+        $resolveNama = function ($t) {
+            if (!$t) return '-';
+            $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $nama = trim($t->NAMA ?? '');
+            }
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
+                $userId = $t->id_user_penilai ?? null;
+                if ($userId) {
+                    $nama = trim(optional(TUser::find($userId))->NAMA_LENGKAP ?? '');
+                }
+            }
+            return $nama ?: '-';
+        };
+
+        // Helper: resolve instansi dari userPenilai (bukan literal "NON ITB")
+        $resolveInstansi = function ($t) {
+            if (!$t) return '-';
+            $user   = $t->userPenilai;
+            $asal   = trim($user->ASAL_INSTANSI ?? '');
+            $namaIn = trim($user->INSTANSI ?? '');
+            if ($asal === 'NON ITB') {
+                return $namaIn ?: '-';
+            }
+            return $asal !== '' ? $asal : ($namaIn ?: '-');
+        };
+
+        // Ketua Pembimbing (mendukung "Ketua Pembimbing" / "Pembimbing (Ketua)")
+        $ketuaPembimbing = $timSidang->first(fn($t) =>
+            in_array($normalizeStatus($t->status_tim_sidang), ['ketua pembimbing', 'pembimbing (ketua)'], true)
+        );
+
+        $urutanPembimbing = ['pembimbing i', 'pembimbing ii', 'pembimbing iii', 'pembimbing iv', 'pembimbing v'];
+        $pembimbingBerurut = $timSidang
+            ->filter(fn($t) => in_array($normalizeStatus($t->status_tim_sidang), $urutanPembimbing, true))
+            ->sortBy(fn($t) => array_search($normalizeStatus($t->status_tim_sidang), $urutanPembimbing, true))
+            ->values();
+
+        // Bila tidak ada Ketua Pembimbing, Pembimbing I berperan sebagai ketua.
+        if (!$ketuaPembimbing) {
+            $ketuaPembimbing = $pembimbingBerurut->shift();
+        }
+        $pembimbingI  = $pembimbingBerurut->shift();
+        $pembimbingII = $pembimbingBerurut->shift();
+
+        $urutanPenguji = ['penguji i', 'penguji ii', 'penguji iii', 'penguji iv', 'penguji v'];
+        $penguji = $timSidang
+            ->filter(fn($t) => in_array($normalizeStatus($t->status_tim_sidang), $urutanPenguji, true))
+            ->sortBy(fn($t) => array_search($normalizeStatus($t->status_tim_sidang), $urutanPenguji, true))
+            ->values();
+
+        // Nilai Akhir = rata-rata nilai penilai (bila sudah ada penilaian).
+        $nilaiRata = [];
+        if (!empty($ajuan->id)) {
+            $timNilai = [$ketuaPembimbing, $pembimbingI, $pembimbingII, $penguji->get(0), $penguji->get(1), $penguji->get(2)];
+            foreach ($timNilai as $t) {
+                if (!$t) continue;
+                $nilai = DB::table('v_ba_nilai_penilai')
+                    ->where('ID_AJUAN', $ajuan->id)
+                    ->where('ID_TIM_SIDANG', $t->id)
+                    ->value('NILAI_RATA2');
+                if ($nilai !== null) {
+                    $nilaiRata[] = (float) $nilai;
+                }
+            }
+        }
+        $rata = count($nilaiRata) > 0
+            ? number_format(array_sum($nilaiRata) / count($nilaiRata), 2)
+            : null;
+
+        $templatePath = base_path('template/SIDANG/PED KETUA SIDANG TEMPLATE.docx');
+        if (!file_exists($templatePath)) {
+            abort(500, 'Template PED Ketua Sidang tidak ditemukan.');
+        }
+
+        $tanggalSidang = $ajuan->tgl_sidang
+            ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y')
+            : '-';
+
+        try {
+            $tp = new TemplateProcessor($templatePath);
+
+            $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
+
+            $tp->setValue('nama_mhs',                    $esc($ajuan->NAMA_MHS ?? '-'));
+            $tp->setValue('nim',                         $esc($ajuan->NIM ?? '-'));
+            $tp->setValue('judul',                       $esc($ajuan->JUDUL ?? $judul->JUDUL ?? '-'));
+            $tp->setValue('tanggal_sidang',              $esc($tanggalSidang));
+
+            $tp->setValue('nama_ketua_pembimbing',       $esc($resolveNama($ketuaPembimbing)));
+            $tp->setValue('instansi_ketua_pembimbing',   $esc($resolveInstansi($ketuaPembimbing)));
+            $tp->setValue('nama_pembimbing_i',           $esc($resolveNama($pembimbingI)));
+            $tp->setValue('instansi_pembimbing_i',       $esc($resolveInstansi($pembimbingI)));
+            $tp->setValue('nama_pembimbing_ii',          $esc($resolveNama($pembimbingII)));
+            $tp->setValue('instansi_pembimbing_ii',      $esc($resolveInstansi($pembimbingII)));
+
+            $tp->setValue('nama_penguji_i',              $esc($resolveNama($penguji->get(0))));
+            $tp->setValue('instansi_penguji_i',          $esc($resolveInstansi($penguji->get(0))));
+            $tp->setValue('nama_penguji_ii',             $esc($resolveNama($penguji->get(1))));
+            $tp->setValue('instansi_penguji_ii',         $esc($resolveInstansi($penguji->get(1))));
+            $tp->setValue('nama_penguji_iii',            $esc($resolveNama($penguji->get(2))));
+            $tp->setValue('instansi_penguji_iii',        $esc($resolveInstansi($penguji->get(2))));
+
+            $tp->setValue('nilai_akhir',                 $esc($rata ?? '……………'));
+            $tp->setValue('predikat',                    $esc($rata !== null ? $this->calculateIndeksSidang((float) $rata) : '________'));
+        } catch (\Exception $e) {
+            abort(500, 'Gagal memproses template PED Ketua Sidang: ' . $e->getMessage());
+        }
+
+        $filename = 'PED_Ketua_Sidang_'
+            . preg_replace('/[^A-Za-z0-9]+/', '_', (string) ($ajuan->NIM ?? 'MHS'))
+            . '_' . time() . '.docx';
+        $docxPath = storage_path('app/uploads/' . $filename);
+
+        if (!is_dir(dirname($docxPath))) {
+            \Illuminate\Support\Facades\File::makeDirectory(dirname($docxPath), 0775, true);
+        }
+
+        $tp->saveAs($docxPath);
+
+        return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
+    }
+
+    /**
      * Isi placeholder BA Sidang Doktor di word/document.xml.
      */
     private function fillSidangAkhirXml(string $docxPath, array $data): void

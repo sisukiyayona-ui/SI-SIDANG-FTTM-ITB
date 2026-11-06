@@ -1336,6 +1336,9 @@
             return;
         }
         const fd = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const origLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
         fetch(this.action, {
             method: 'POST',
             headers: {
@@ -1346,12 +1349,14 @@
         }).then(async r => {
             const data = await r.json().catch(() => ({}));
             if (r.ok && data.success) {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
                 closeForm();
                 showToast('success', 'Data user berhasil disimpan.');
                 setTimeout(() => location.reload(), 1200);
                 return;
             }
             console.error('User store response', { status: r.status, ok: r.ok, data });
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             if (data?.errors) {
                 const friendly = {
                     kode_fs: 'Fakultas',
@@ -1373,6 +1378,7 @@
             }
             showToast('error', 'Gagal menyimpan user. Periksa data form dan response server.');
         }).catch(() => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
@@ -1381,16 +1387,23 @@
 
     document.getElementById('formDelete').addEventListener('submit', function(e) {
         e.preventDefault();
+        const deleteBtn = this.querySelector('button[type="submit"]');
+        const origDeleteLabel = deleteBtn ? deleteBtn.innerHTML : '';
+        if (deleteBtn) { deleteBtn.disabled = true; deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus...'; }
         fetch(this.action, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
             body: new FormData(this)
         }).then(r => r.json()).then(data => {
+            if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.innerHTML = origDeleteLabel; }
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('modalDelete')).hide();
                 showToast('success', 'Data user berhasil dihapus.');
                 setTimeout(() => location.reload(), 1200);
             }
+        }).catch(() => {
+            if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.innerHTML = origDeleteLabel; }
+            showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
 

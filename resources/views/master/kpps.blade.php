@@ -506,6 +506,9 @@
 
     document.getElementById('formKpps').addEventListener('submit', function(e) {
         e.preventDefault();
+        var submitBtn = this.querySelector('button[type="submit"]');
+        var origLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
         var fd = new FormData(this);
         // Select/input disabled tidak ikut FormData — pastikan NIP & Nama tetap terkirim
         var nipEl = document.getElementById('f_nip');
@@ -525,6 +528,7 @@
             body: fd
         }).then(async r => {
             const data = await r.json().catch(() => ({}));
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             if (r.ok && data.success) {
                 closeForm();
                 showToast('success', 'Data KPPS berhasil disimpan.');
@@ -538,22 +542,30 @@
             }
             showToast('error', data.error || data.message || 'Gagal menyimpan data KPPS. Periksa data form.');
         }).catch(() => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origLabel; }
             showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
 
     document.getElementById('formDeleteKpps').addEventListener('submit', function(e) {
         e.preventDefault();
+        var deleteBtn = this.querySelector('button[type="submit"]');
+        var origDeleteLabel = deleteBtn ? deleteBtn.innerHTML : '';
+        if (deleteBtn) { deleteBtn.disabled = true; deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus...'; }
         fetch(this.action, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
             body: new FormData(this)
         }).then(r => r.json()).then(data => {
+            if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.innerHTML = origDeleteLabel; }
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('modalDeleteKpps')).hide();
                 showToast('success', 'Data KPPS berhasil dihapus.');
                 setTimeout(() => location.reload(), 1200);
             }
+        }).catch(() => {
+            if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.innerHTML = origDeleteLabel; }
+            showToast('error', 'Terjadi kesalahan, coba lagi.');
         });
     });
 

@@ -157,6 +157,32 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
+                // PEDOMAN MEMIMPIN SIDANG (PED Ketua Sidang) — Sidang Terbuka/Tertutup.
+                // Source .docx adalah konversi 1:1 dari "PED KETUA SIDANG.doc" memakai
+                // Save As Word (bukan rebuild), jadi layout/font/tabel asli tidak berubah.
+                // Yang diganti hanya token data "(...)" milik template aslinya.
+                'src' => base_path('template/SIDANG/PED KETUA SIDANG.docx'),
+                'dst' => base_path('template/SIDANG/PED KETUA SIDANG TEMPLATE.docx'),
+                'replacements' => [
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(judul)' => '${judul}',
+                    '(nim)' => '${nim}',
+                    '(tanggal sidang)' => '${tanggal_sidang}',
+                    '(nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama penguji I)' => '${nama_penguji_i}',
+                    '(nama penguji II)' => '${nama_penguji_ii}',
+                    '(nama penguji III)' => '${nama_penguji_iii}',
+                    // Di dokumen asli tidak ada token "(nilai akhir)"/"(predikat)",
+                    // melainkan titik-titik & garis bawah pada kalimat keputusan sidang.
+                    // Ganti hanya karakter titik/garis bawahnya agar tab & spasi asli tetap.
+                    'Nilai Akhir ……………' => 'Nilai Akhir ${nilai_akhir}',
+                    '________' => '${predikat}',
+                ],
+                'asalInstansiSlots' => true,
+            ],
+            [
                 'src' => base_path('template/SK-1/BA Penilaian SK I sd SK III.docx'),
                 'dst' => base_path('template/SK-1/BA Penilaian SK I sd SK III TEMPLATE.docx'),
                 'replacements' => [
@@ -307,6 +333,12 @@ class PrepareTemplate extends Command
             $xml = $zip->getFromName('word/document.xml');
 
             $xml = $this->fuzzyReplaceAll($xml, $replacements);
+
+            // Khusus PED Ketua Sidang: 6 slot "(asal instansi)" berurutan
+            // (3 pembimbing lalu 3 penguji) menjadi placeholder per peran.
+            if (!empty($template['asalInstansiSlots'])) {
+                $xml = $this->replaceAsalInstansiSlots($xml);
+            }
 
             // Jika ada flag replaceSignatureDots, ganti pola titik-titik
             // yang menjadi placeholder tanda tangan di tabel
@@ -793,6 +825,29 @@ class PrepareTemplate extends Command
     private function fixSk4PengujiRows(string $xml): string
     {
         return $xml;
+    }
+
+    /**
+     * Khusus PED Ketua Sidang: isi slot "(asal instansi)" secara berurutan
+     * sesuai urutan di dokumen (3 pembimbing, lalu 3 penguji).
+     */
+    private function replaceAsalInstansiSlots(string $xml): string
+    {
+        $slots = [
+            '${instansi_ketua_pembimbing}',
+            '${instansi_pembimbing_i}',
+            '${instansi_pembimbing_ii}',
+            '${instansi_penguji_i}',
+            '${instansi_penguji_ii}',
+            '${instansi_penguji_iii}',
+        ];
+
+        foreach ($slots as $slot) {
+            $xml = $this->fuzzyReplaceOnce($xml, '(asal instansi)', $slot);
+        }
+
+        // Sisa (mis. template ditambah baris) diberi placeholder generik.
+        return $this->fuzzyReplaceAll($xml, ['(asal instansi)' => '${instansi}']);
     }
 
     /**

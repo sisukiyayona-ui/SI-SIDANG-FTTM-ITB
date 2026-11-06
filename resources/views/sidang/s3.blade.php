@@ -473,6 +473,9 @@
         var formData = new FormData(form);
         var idJudul = formData.get('id_judul');
         var tahapan = formData.get('tahapan_sidang');
+        var submitBtn = form.querySelector('button[type="submit"]');
+        var originalLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
 
         fetch('/sidang/sk', {
             method: 'POST',
@@ -484,6 +487,7 @@
         })
         .then(response => response.json())
         .then(data => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
             if (data.success) {
                 $('#skModal').modal('hide');
                 var skInput = form.querySelector('input[name="no_sk"]');
@@ -506,6 +510,7 @@
             }
         })
         .catch(error => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
             showCustomToast('Error: ' + error, 'error');
         });
     }

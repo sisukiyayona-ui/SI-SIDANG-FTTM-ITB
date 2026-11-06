@@ -241,6 +241,9 @@
         var formData = new FormData(form);
         var idJudul = formData.get('id_judul');
         var tahapan = formData.get('tahapan_sidang');
+        var submitBtn = form.querySelector('button[type="submit"]');
+        var originalLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
 
         fetch('/sidang/sk', {
             method: 'POST',
@@ -252,6 +255,7 @@
         })
         .then(response => response.json())
         .then(data => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
             if (data.success) {
                 $('#skModal').modal('hide');
                 form.reset();
@@ -266,6 +270,7 @@
             }
         })
         .catch(error => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
             showCustomToast('Error: ' + error, 'error');
         });
     }
@@ -275,6 +280,9 @@
         event.stopPropagation();
         const form = event.target;
         const formData = new FormData(form);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalLabel = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
 
         fetch('/sidang/tim-sidang', {
             method: 'POST',
@@ -286,6 +294,7 @@
         })
         .then(response => response.json())
         .then(data => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
             if (data.success) {
                 showCustomToast('Tim Pembimbing berhasil disimpan', 'success');
                 form.reset();
@@ -303,11 +312,14 @@
             }
         })
         .catch(error => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalLabel; }
             showCustomToast('Terjadi kesalahan: ' + error, 'error');
         });
     }
 
     function saveStatusLulus() {
+        const statusLulus = document.getElementById('statusLulusDisplay') ? document.getElementById('statusLulusDisplay').value : null;
+    function saveStatusLulus(triggerBtn) {
         const statusLulus = document.getElementById('statusLulusDisplay') ? document.getElementById('statusLulusDisplay').value : null;
         const statusLulus2 = document.getElementById('statusLulusDisplay2') ? document.getElementById('statusLulusDisplay2').value : null;
         const finalStatus = statusLulus || statusLulus2;
@@ -325,6 +337,10 @@
             return;
         }
 
+        var btn = triggerBtn || document.querySelector('button[onclick*="saveStatusLulus"]');
+        var originalLabel = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
+
         fetch('/sidang/status-lulus/' + idJudul, {
             method: 'PUT',
             headers: {
@@ -339,6 +355,7 @@
         })
         .then(response => response.json())
         .then(data => {
+            if (btn) { btn.disabled = false; btn.innerHTML = originalLabel; }
             if (data.success) {
                 showCustomToast('Status Lulus berhasil disimpan', 'success');
             } else {
@@ -346,6 +363,7 @@
             }
         })
         .catch(error => {
+            if (btn) { btn.disabled = false; btn.innerHTML = originalLabel; }
             showCustomToast('Error: ' + error, 'error');
         });
     }
