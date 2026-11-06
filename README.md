@@ -1,67 +1,236 @@
-<<<<<<< HEAD
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SI SIDANG FTTM ITB
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> Sistem Informasi Manajemen Sidang Akademik  
+> Fakultas Teknik Pertambangan dan Perminyakan — Institut Teknologi Bandung
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Latar Belakang
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Proses pengelolaan sidang akademik di FTTM ITB sebelumnya dilakukan secara manual — mulai dari pencatatan pengajuan, koordinasi jadwal, distribusi dokumen, hingga rekapitulasi nilai. Proses ini rentan terhadap keterlambatan informasi, miskomunikasi antar pihak, dan kesulitan dalam pemantauan status per mahasiswa.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**SI SIDANG FTTM ITB** hadir sebagai solusi digital terpadu yang mengotomasi seluruh alur tersebut — dari pengajuan oleh mahasiswa hingga keluarnya hasil kelulusan — dalam satu platform berbasis web yang dapat diakses oleh semua pihak yang terlibat.
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Tentang Aplikasi
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+SI SIDANG FTTM ITB adalah aplikasi web full-stack berbasis **Laravel 12** yang dirancang untuk mengelola siklus sidang akademik mahasiswa **S1, S2, dan S3** secara menyeluruh. Sistem ini mengimplementasikan alur persetujuan multi-level, manajemen dokumen, penjadwalan, penilaian terstruktur, serta integrasi notifikasi email — semuanya dalam satu antarmuka yang responsif dan mendukung dark mode.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Fitur Aplikasi
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 🎓 Manajemen Tahapan Sidang
+Setiap strata memiliki tahapan sidang yang berbeda dan dikelola secara terpisah:
 
-### Premium Partners
+| Strata | Tahapan |
+|--------|---------|
+| **S1** | Sidang Proposal → Seminar Kemajuan I, II, III, IV → Sidang Akhir |
+| **S2** | Seminar Kemajuan I, II, III, IV → Sidang Terbuka / Tertutup |
+| **S3** | Ujian Kualifikasi (SK I–IV) → Ujian Proposal → Sidang Terbuka / Tertutup |
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Setiap tahapan memiliki persyaratan, tim sidang, jadwal, dan form penilaian masing-masing.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 👥 Sistem Multi-Role
+Aplikasi mendukung beberapa peran pengguna dengan hak akses berbeda:
 
-## Code of Conduct
+| Role | Fungsi Utama |
+|------|-------------|
+| **Mahasiswa** | Melihat status sidang, upload dokumen persyaratan, ajukan ke TU Prodi |
+| **TU Prodi** | Verifikasi persyaratan, input jadwal & tim sidang, ajukan ke Fakultas |
+| **Fakultas (FS)** | Review dan setujui pengajuan, teruskan ke KPPS |
+| **KPPS** | Voting approve/reject ajuan, lihat penilaian |
+| **Pembimbing / Penguji** | Input nilai per form penilaian |
+| **Ketua Sidang** | Monitor nilai seluruh penilai, tentukan status kelulusan |
+| **Admin** | Akses penuh ke seluruh fitur termasuk data master |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+### 📋 Alur Pengajuan Bertingkat
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```
+Mahasiswa  ──ajukan──►  TU Prodi  ──ajukan──►  Fakultas  ──ajukan──►  KPPS
+                            │                      │                     │
+                        Input jadwal          Review & ACC            Voting
+                        Tim sidang            Kirim ke KPPS           Penilaian
+```
 
-## License
+Setiap langkah memiliki status yang bisa dipantau secara real-time oleh pihak terkait.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+### 📅 Penjadwalan Sidang
+- Input tanggal, waktu mulai dan selesai, ruangan
+- Nomor dan tanggal surat undangan
+- Nomor dan tanggal surat penelaah
+- Email pengiriman surat
+- Cetak undangan dan surat kesediaan penelaah langsung dari sistem
+
+---
+
+### ✏️ Penilaian Terstruktur
+- Form penilaian dikonfigurasi per tahapan melalui data master
+- Setiap penilai mengisi nilai dan catatan secara independen
+- **Kunci Nilai** — nilai terkunci setelah penilai menyelesaikan input, mencegah perubahan
+- Status kelulusan ditentukan oleh Ketua Sidang atau TU Prodi
+- Cetak Berita Acara Sidang dan rekap penilaian per penilai
+
+---
+
+### 📄 Cetak Dokumen
+Dokumen yang dapat dicetak langsung dari sistem:
+- Berita Acara Sidang
+- Surat Undangan Sidang
+- Surat Kesediaan Penelaah
+- Form Penilaian per Penilai
+
+---
+
+### 🔔 Notifikasi Email
+- Pengingat jadwal sidang otomatis (via Laravel Scheduler)
+- Notifikasi approve ke anggota KPPS yang belum melakukan voting
+- Dukungan SMTP standar maupun Microsoft Graph API (Office 365)
+
+---
+
+### 📊 Dashboard & Monitoring
+- Ringkasan status sidang setiap mahasiswa
+- Timeline progress per tahapan
+- Filter berdasarkan prodi, strata, dan status
+
+---
+
+### 📥 Import Excel
+- Import massal data persyaratan sidang per tahapan dan prodi
+- Import massal komponen penilaian
+- Preview dan validasi data sebelum disimpan, termasuk deteksi duplikat
+
+---
+
+### ⚙️ Data Master
+Konfigurasi yang dapat dikelola melalui menu admin:
+- **Persyaratan** — daftar persyaratan per tahapan dan prodi
+- **Komponen Penilaian** — parameter dan form penilaian
+- **Program Studi** — data prodi per strata dan fakultas
+- **Fakultas** — daftar fakultas
+- **KPPS** — anggota tim KPPS aktif per prodi
+- **User & Role** — manajemen akun dan hak akses
+- **Mata Kuliah Prodi** — referensi mata kuliah per prodi
+
+---
+
+### 🔐 Autentikasi & Keamanan
+- Login berbasis session dengan proteksi CSRF
+- Integrasi **SSO ITB** (opsional) — login terintegrasi dengan akun Institut
+- Middleware role dan ownership untuk pembatasan akses per halaman dan data
+- Security headers middleware
+
+---
+
+### 🌙 Tampilan
+- Antarmuka berbasis **AdminLTE 3** dengan Bootstrap 4
+- Dukungan **dark mode** dan light mode
+- Responsif untuk desktop dan tablet
+- Dropdown searchable dengan Select2
+
+---
+
+## Tech Stack
+
+| Layer | Teknologi |
+|-------|-----------|
+| Framework | Laravel 12 (PHP 8.2+) |
+| Database | MySQL / MariaDB |
+| Frontend | AdminLTE 3, Bootstrap 4, jQuery, Select2 |
+| PDF | DomPDF |
+| Excel | PhpSpreadsheet, PhpWord |
+| Email | Laravel Mail — SMTP / Microsoft Graph |
+| Auth | Session-based + SSO ITB (opsional) |
+
+---
+
+## Prasyarat
+
+- PHP >= 8.2
+- Composer
+- MySQL / MariaDB
+- Web server (Apache / Nginx) atau `php artisan serve` untuk lokal
+
+---
+
+## Instalasi
+
+```bash
+# 1. Clone repositori
+git clone <repo-url> SI-SIDANG-FTTM-ITB
+cd SI-SIDANG-FTTM-ITB
+
+# 2. Install dependensi
+composer install
+
+# 3. Salin file environment
+cp .env.example .env
+
+# 4. Generate application key
+php artisan key:generate
+
+# 5. Konfigurasi database di .env
+# DB_CONNECTION=mysql
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=si_sidang_fttm
+# DB_USERNAME=root
+# DB_PASSWORD=
+
+# 6. Jalankan migrasi
+php artisan migrate
+
+# 7. Buat symlink storage (untuk akses file upload)
+php artisan storage:link
+
+# 8. Jalankan server
+php artisan serve
+```
+
+---
+
+## Konfigurasi Environment
+
+```env
+APP_NAME="SI SIDANG FTTM ITB"
+APP_URL=http://localhost:8000
+APP_TIMEZONE=Asia/Jakarta
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=si_sidang_fttm
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Email
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your@email.com
+MAIL_PASSWORD=yourpassword
+MAIL_FROM_ADDRESS="sisidang@fttm.itb.ac.id"
+MAIL_FROM_NAME="SI SIDANG FTTM ITB"
+
+# SSO ITB — kosongkan untuk nonaktifkan
+SSO_ENABLED=false
+SSO_URL=
+SSO_CLIENT_ID=
+SSO_CLIENT_SECRET=
+SSO_CALLBACK_TOKEN=
+```
+
+---
+
+## Lisensi
+
+Proyek ini dikembangkan untuk kebutuhan internal **Fakultas Teknik Pertambangan dan Perminyakan — Institut Teknologi Bandung**.  
+Seluruh hak cipta milik FTTM ITB.
