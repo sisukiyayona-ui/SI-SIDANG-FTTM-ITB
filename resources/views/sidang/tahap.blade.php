@@ -133,6 +133,9 @@
         $nama = $ajuan->nama_mhs ?? $userHeader?->NAMA_LENGKAP ?? session('auth_user.nama_lengkap');
         $nim = $ajuan->Nim ?? $userHeader?->NIP_NIM ?? session('auth_user.nip_nim');
         $judulText = $ajuan->Judul ?? $judulHeader?->Judul ?? '';
+        // Strata untuk kontrol tampilan tab (KPPS voting tidak ada di S2)
+        $strataView = strtoupper($ajuan->STRATA ?? $userHeader?->STRATA ?? session('auth_user.strata') ?? 'S3');
+        $showKppsTab = ($strataView !== 'S2');
         $abstrakText = '';
         if ($idJudul) {
             $abstrakRow = \Illuminate\Support\Facades\DB::table('t_judul')->where('id', $idJudul)->value('ABSTRAK');
@@ -758,10 +761,12 @@
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="tim-tab" data-toggle="tab" href="#tim" role="tab" style="text-decoration: underline;">Tim Pembimbing dan Penguji</a>
                 </li>
+                @if($showKppsTab)
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="kpps-tab" data-toggle="tab" href="#kpps-voting" role="tab" style="text-decoration: underline;">Hasil Voting Tim KPPS</a>
                 </li>
+                @endif
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="jadwal-tab" data-toggle="tab" href="#jadwal" role="tab" style="text-decoration: underline;">Jadwal Sidang & Penilaian</a>
@@ -1354,7 +1359,7 @@
                                     @if(!in_array(session('auth_user.role'), ['FS']))
                                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;">
                                         <option value="">Pilih Status</option>
-                                        @if(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv']))
+                                        @if(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2']))
                                             <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
                                         @else
@@ -1547,6 +1552,7 @@
                                             <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
+                                    @if(!in_array(strtolower($tahapan), ['ts1', 'ts2']))
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
@@ -1571,6 +1577,13 @@
                                             <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
+                                    @else
+                                    {{-- S2 Tesis I / II tidak menggunakan penelaah --}}
+                                    <input type="hidden" name="no_surat_penelaah" value="">
+                                    <input type="hidden" name="tgl_surat_penelaah" value="">
+                                    <input type="hidden" name="tgl_hasil_penelahan" value="">
+                                    <input type="hidden" name="email_surat" value="">
+                                    @endif
                                     <!-- <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No SK Kelulusan</label>
                                         <div class="col-sm-6 px-2">
@@ -3988,7 +4001,7 @@ function reloadTahapForm(tahapan, idJudul) {
             oldScript.parentNode.replaceChild(newScript, oldScript);
         });
         if (title) {
-            var labels = { 'tahap I': 'Ujian Kualifikasi', 'tahap II': 'Ujian Proposal', 'tahap IV': 'Sidang Terbuka / Tertutup' };
+            var labels = { 'tahap I': 'Ujian Kualifikasi', 'tahap II': 'Ujian Proposal', 'tahap IV': 'Sidang Terbuka / Tertutup', 'TS1': 'Tesis I', 'TS2': 'Tesis II' };
             title.textContent = labels[tahapan] || tahapan;
         }
         if (activeTab) {
