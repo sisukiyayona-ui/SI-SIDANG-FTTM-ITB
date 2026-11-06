@@ -60,12 +60,12 @@ class SidangS2Controller extends Controller
                 'a.Nim',
                 'a.nama_mhs',
                 'a.NAMA_PRODI as nama_prodi',
-                DB::raw($caseSql('a1', 'TS1') . ' as tesis1'),
-                DB::raw($caseSql('a2', 'TS2') . ' as tesis2'),
+                DB::raw($caseSql('a1', 'Tesis I') . ' as tesis1'),
+                DB::raw($caseSql('a2', 'Tesis II') . ' as tesis2'),
                 DB::raw($caseSql('a7', 'tahap IV') . ' as tahap4')
             )
-            ->leftJoin(DB::raw($tahapSub('TS1') . ' as a1'), 'a.id_judul', '=', 'a1.id_judul')
-            ->leftJoin(DB::raw($tahapSub('TS2') . ' as a2'), 'a.id_judul', '=', 'a2.id_judul')
+            ->leftJoin(DB::raw($tahapSub('Tesis I') . ' as a1'), 'a.id_judul', '=', 'a1.id_judul')
+            ->leftJoin(DB::raw($tahapSub('Tesis II') . ' as a2'), 'a.id_judul', '=', 'a2.id_judul')
             ->leftJoin(DB::raw($tahapSub('tahap IV') . ' as a7'), 'a.id_judul', '=', 'a7.id_judul')
             ->where('a.Strata', $strata)
             ->groupBy('a.id_judul', 'a.Judul', 'a.Nim', 'a.nama_mhs', 'a.NAMA_PRODI');
@@ -85,6 +85,14 @@ class SidangS2Controller extends Controller
             $query->where('a.status_ajukan_prodi', 'y');
         } elseif ($user['role'] === 'KPPS') {
             $query->where('a.status_ajukan_prodi', 'y');
+        } elseif (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
+            // Pembimbing/Penguji hanya melihat judul tempat ia tercatat di tim sidang
+            $query->whereExists(function ($sub) use ($user) {
+                $sub->selectRaw('1')
+                    ->from('t_tim_sidang as tk')
+                    ->whereColumn('tk.ID_JUDUL', 'a.id_judul')
+                    ->where('tk.ID_USER_PENILAI', $user['id'] ?? 0);
+            });
         } elseif ($user['role'] === 'Ketua Sidang') {
             // Ketua Sidang hanya melihat judul tempat ia tercatat sebagai
             // Ketua Sidang pada tim sidang.
@@ -215,7 +223,7 @@ class SidangS2Controller extends Controller
             $judulId = $existingJudul->id ?? $existingJudul->ID;
             $hasAjuanTS1 = DB::table('t_ajuan_sidang')
                 ->where('ID_JUDUL', $judulId)
-                ->where('TAHAPAN_SIDANG', 'TS1')
+                ->where('TAHAPAN_SIDANG', 'Tesis I')
                 ->exists();
 
             if ($hasAjuanTS1) {
@@ -261,10 +269,10 @@ class SidangS2Controller extends Controller
             'ANGKATAN'          => $mhs->THN_ANGKATAN ?? date('Y'),
             'ID_JUDUL'          => $judulId,
             'JUDUL'             => $judul,
-            'TAHAPAN_SIDANG'    => 'TS1',
+            'TAHAPAN_SIDANG'    => 'Tesis I',
             'STRATA'            => 'S2',
             'STATUS_AJUKAN_MHS' => 'y',
-            'STATUS_LULUS'      => 'diajukan',
+            'STATUS_LULUS'      => null,
             'ID_PRODI'          => $prodi->id ?? null,
             'KODE_PRODI'        => $mhs->KODE_PRODI,
             'NAMA_PRODI'        => $prodi->NAMA_PRODI ?? null,

@@ -133,9 +133,9 @@
         $nama = $ajuan->nama_mhs ?? $userHeader?->NAMA_LENGKAP ?? session('auth_user.nama_lengkap');
         $nim = $ajuan->Nim ?? $userHeader?->NIP_NIM ?? session('auth_user.nip_nim');
         $judulText = $ajuan->Judul ?? $judulHeader?->Judul ?? '';
-        // Strata untuk kontrol tampilan tab (KPPS voting tidak ada di S2)
+        // Strata untuk kontrol tampilan tab (KPPS voting hanya ada di S3)
         $strataView = strtoupper($ajuan->STRATA ?? $userHeader?->STRATA ?? session('auth_user.strata') ?? 'S3');
-        $showKppsTab = ($strataView !== 'S2');
+        $showKppsTab = ($strataView === 'S3');
         $abstrakText = '';
         if ($idJudul) {
             $abstrakRow = \Illuminate\Support\Facades\DB::table('t_judul')->where('id', $idJudul)->value('ABSTRAK');
@@ -1359,7 +1359,7 @@
                                     @if(!in_array(session('auth_user.role'), ['FS']))
                                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;">
                                         <option value="">Pilih Status</option>
-                                        @if(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2']))
+                                        @if(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
                                             <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
                                         @else
@@ -1552,7 +1552,7 @@
                                             <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
-                                    @if(!in_array(strtolower($tahapan), ['ts1', 'ts2']))
+                                    @if(!in_array(strtolower($tahapan), ['ts1', 'ts2', 'tesis i', 'tesis ii']))
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
@@ -4001,7 +4001,7 @@ function reloadTahapForm(tahapan, idJudul) {
             oldScript.parentNode.replaceChild(newScript, oldScript);
         });
         if (title) {
-            var labels = { 'tahap I': 'Ujian Kualifikasi', 'tahap II': 'Ujian Proposal', 'tahap IV': 'Sidang Terbuka / Tertutup', 'TS1': 'Tesis I', 'TS2': 'Tesis II' };
+            var labels = { 'tahap I': 'Ujian Kualifikasi', 'tahap II': 'Ujian Proposal', 'tahap IV': 'Sidang Terbuka / Tertutup', 'Tesis I': 'Tesis I', 'Tesis II': 'Tesis II' };
             title.textContent = labels[tahapan] || tahapan;
         }
         if (activeTab) {

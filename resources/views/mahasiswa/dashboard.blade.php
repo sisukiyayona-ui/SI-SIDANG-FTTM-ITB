@@ -21,7 +21,7 @@
                     <strong>NIM:</strong> {{ session('auth_user.nip_nim') }}
                 </div>
                 <div class="col-md-4">
-                    <strong>Strata:</strong> {{ $strata }}
+                    <strong>Strata:</strong> {{ $strata }} ({{ $strataMeta['label'] }})
                 </div>
             </div>
         </div>
@@ -31,7 +31,10 @@
     <div id="trackingCard" class="card mb-4">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Tracking Progress Sidang</h5>
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks mr-2"></i>Tracking Progress Sidang
+                    <span class="badge ml-1" style="background-color: {{ $strataMeta['color'] }}; font-size: 12px; vertical-align: middle;">{{ $strata }} &middot; {{ $strataMeta['label'] }}</span>
+                </h5>
                 <div class="d-flex align-items-center">
                     <button type="button" class="btn btn-sm btn-primary mr-2" data-toggle="modal" data-target="#tambahJudulModal" {{ $juduls && $juduls->count() > 0 ? 'disabled' : '' }}>
                         <i class="fas fa-plus"></i> Tambah
@@ -59,40 +62,44 @@
                 }
             </style>
             <div class="table-responsive">
-                <!-- Table untuk semua strata (S1, S2, S3) -->
+                <!-- Kolom mengikuti strata mahasiswa yang login (S1/S2/S3) -->
                 <table id="trackingTable" class="table table-bordered table-hover text-center" style="table-layout: fixed;">
                     <colgroup>
                         <col style="width: 300px;">
                         <col style="width: 160px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
-                        <col style="width: 125px;">
+                        @foreach($stages as $stage)
+                        <col style="width: {{ $strata === 'S2' ? '160px' : '125px' }};">
+                        @endforeach
                     </colgroup>
                     <thead style="background-color: #6998d3; color: white;">
                         <tr>
-                            <th rowspan="2" class="align-middle">Judul</th>
-                            <th rowspan="2" class="align-middle">Prodi</th>
-                            <th rowspan="2" class="align-middle">Ujian Kualifikasi</th>
-                            <th rowspan="2" class="align-middle">Ujian Proposal</th>
-                            <th colspan="4" class="align-middle">Tahap III</th>
-                            <th rowspan="2" class="align-middle">Sidang Terbuka / Tertutup</th>
+                            <th rowspan="{{ $hasSubHeader ? 2 : 1 }}" class="align-middle">Judul</th>
+                            <th rowspan="{{ $hasSubHeader ? 2 : 1 }}" class="align-middle">Prodi</th>
+                            @foreach($headerGroups as $group)
+                                @if(count($group['stages']) > 1)
+                                    <th colspan="{{ count($group['stages']) }}" class="align-middle">{{ $group['label'] }}</th>
+                                @else
+                                    <th rowspan="{{ $hasSubHeader ? 2 : 1 }}" class="align-middle">{{ $group['label'] }}</th>
+                                @endif
+                            @endforeach
                         </tr>
+                        @if($hasSubHeader)
                         <tr>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK I</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK II</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK III</th>
-                            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK IV</th>
+                            @foreach($headerGroups as $group)
+                                @if(count($group['stages']) > 1)
+                                    @foreach($group['stages'] as $stage)
+                                        <th class="align-middle" style="background-color: #9fbce4; color: white;">{{ $stage['label'] }}</th>
+                                    @endforeach
+                                @endif
+                            @endforeach
                         </tr>
+                        @endif
                         <tr class="tracking-filter-row" style="background-color: #f8f9fa;">
                             <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari..." data-col="0" style="color: #495057;"></th>
                             <th><input type="text" class="form-control form-control-sm column-search" placeholder="Cari Prodi..." data-col="1" style="color: #495057;"></th>
-                            @for($i = 2; $i <= 8; $i++)
+                            @foreach($stages as $stage)
                             <th>
-                                <select class="form-control form-control-sm column-search" data-col="{{ $i }}" style="color: #495057;">
+                                <select class="form-control form-control-sm column-search" data-col="{{ $loop->index + 2 }}" style="color: #495057;">
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di tu prodi">Diproses di TU Prodi</option>
@@ -103,7 +110,7 @@
                                     <option value="tidak lulus">Tidak lulus</option>
                                 </select>
                             </th>
-                            @endfor
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody>
@@ -113,41 +120,14 @@
                                     <a href="{{ route('mahasiswa.ubah-judul', $item->id_judul) }}" class="text-decoration-none text-primary" title="Lihat riwayat perubahan judul">{{ $item->Judul }}</a>
                                 </td>
                                 <td class="align-middle">{{ $item->nama_prodi ?? '—' }}</td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', '{{ $item->id_judul }}')">
-                                        {{ ucfirst($item->tahap1) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap2) }}" role="button" onclick="showTahapForm('tahap II', '{{ $item->id_judul }}')">
-                                        {{ ucfirst($item->tahap2) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk1) }}" role="button" onclick="showTahapForm('SK I', '{{ $item->id_judul }}')">
-                                        {{ ucfirst($item->sk1) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk2) }}" role="button" onclick="showTahapForm('SK II', '{{ $item->id_judul }}')">
-                                        {{ ucfirst($item->sk2) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk3) }}" role="button" onclick="showTahapForm('SK III', '{{ $item->id_judul }}')">
-                                        {{ ucfirst($item->sk3) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->sk4) }}" role="button" onclick="showTahapForm('SK IV', '{{ $item->id_judul }}')">
-                                        {{ ucfirst($item->sk4) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-{{ getStatusColor($item->tahap4) }}" role="button" onclick="showTahapForm('tahap IV', '{{ $item->id_judul }}')">
-                                        {{ ucfirst($item->tahap4) }}
-                                    </span>
-                                </td>
+                                @foreach($stages as $stage)
+                                    @php $statusValue = $item->{$stage['key']} ?? 'belum diajukan'; @endphp
+                                    <td class="align-middle">
+                                        <span class="badge bg-{{ getStatusColor($statusValue) }}" role="button" onclick="showTahapForm(@js($stage['tahapan']), @js($item->id_judul))">
+                                            {{ ucfirst($statusValue) }}
+                                        </span>
+                                    </td>
+                                @endforeach
                             </tr>
                         @endforeach
                     </tbody>
@@ -264,13 +244,10 @@
 
 @push('scripts')
 <script>
+    const stageLabels = @json($stageLabels);
+
     function getTahapLabelJS(tahapan) {
-        var labels = {
-            'tahap I': 'Ujian Kualifikasi',
-            'tahap II': 'Ujian Proposal',
-            'tahap IV': 'Sidang Terbuka / Tertutup'
-        };
-        return labels[tahapan] || tahapan;
+        return stageLabels[tahapan] || tahapan;
     }
 
     function showTahapForm(tahapan, idJudul, activeTab) {
@@ -282,7 +259,7 @@
         
         $('#tahapModal').modal('show');
         
-        var url = `/mahasiswa/tahap/${tahapan}?_=${new Date().getTime()}`;
+        var url = `/mahasiswa/tahap/${encodeURIComponent(tahapan)}?_=${new Date().getTime()}`;
         if (idJudul) {
             url += `&id_judul=${idJudul}`;
         }
@@ -394,14 +371,5 @@ function getStatusColor($status) {
         default:
             return 'info';
     }
-}
-
-function getTahapLabel($tahapan) {
-    $labels = [
-        'tahap I'  => 'Ujian Kualifikasi',
-        'tahap II' => 'Ujian Proposal',
-        'tahap IV' => 'Sidang Terbuka / Tertutup',
-    ];
-    return $labels[strtolower($tahapan)] ?? str_replace('tahap', 'Tahap', $tahapan);
 }
 @endphp

@@ -1090,12 +1090,33 @@ if (window.jQuery && jQuery.fn.select2) {
 
   @php
   function getTahapLabel($tahapan) {
-      $labels = [
-          'tahap I'  => 'Ujian Kualifikasi',
-          'tahap II' => 'Ujian Proposal',
-          'tahap IV' => 'Sidang Terbuka / Tertutup',
+      $strata = strtoupper((string) session('auth_user.strata', 'S3'));
+
+      $labelsByStrata = [
+          'S1' => [
+              'tahap i'  => 'Sidang Proposal',
+              'tahap ii' => 'Seminar Kemajuan I',
+              'sk i'     => 'Seminar Kemajuan II',
+              'sk ii'    => 'Seminar Kemajuan III',
+              'sk iii'   => 'Seminar Kemajuan IV',
+              'tahap iv' => 'Sidang Akhir',
+          ],
+          'S2' => [
+              'tesis i'  => 'Tesis I',
+              'tesis ii' => 'Tesis II',
+              'tahap iv' => 'Sidang Terbuka / Tertutup',
+          ],
+          'S3' => [
+              'tahap i'  => 'Ujian Kualifikasi',
+              'tahap ii' => 'Ujian Proposal',
+              'tahap iv' => 'Sidang Terbuka / Tertutup',
+          ],
       ];
-      return $labels[strtolower($tahapan)] ?? str_replace('tahap', 'Tahap', $tahapan);
+
+      $labels = $labelsByStrata[$strata] ?? $labelsByStrata['S3'];
+      $key = strtolower(trim((string) $tahapan));
+
+      return $labels[$key] ?? str_replace('tahap', 'Tahap', $tahapan);
   }
 
   function getStatusColor($status) {

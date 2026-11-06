@@ -49,10 +49,9 @@ function getStatusColor($status) {
             <th rowspan="2" class="align-middle">Nama</th>
             <th rowspan="2" class="align-middle">Judul</th>
             <th rowspan="2" class="align-middle">Prodi</th>
-            <th rowspan="2" class="align-middle">Ujian Kualifikasi</th>
-            <th rowspan="2" class="align-middle">Ujian Proposal</th>
-            <th colspan="4" class="align-middle">Tahap III</th>
-            <th rowspan="2" class="align-middle">Sidang Terbuka / Tertutup</th>
+            <th rowspan="2" class="align-middle">Sidang Proposal</th>
+            <th colspan="4" class="align-middle">Seminar Kemajuan</th>
+            <th rowspan="2" class="align-middle">Sidang Akhir</th>
         </tr>
         <tr>
             <th class="align-middle" style="background-color: #9fbce4; color: white;">SK I</th>
@@ -163,38 +162,38 @@ function getStatusColor($status) {
                 </td>
                 <td class="align-middle">{{ $item->nama_prodi ?? '—' }}</td>
                 <td class="align-middle">
-                    <span class="badge bg-{{ getStatusColor($item->tahap1) }}" role="button" onclick="showTahapForm('tahap I', {{ $item->id_judul }})">
-                        {{ ucfirst($item->tahap1) }}
+                    <span class="badge bg-{{ getStatusColor($item->tahap1 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('tahap I', {{ $item->id_judul }})">
+                        {{ ucfirst($item->tahap1 ?? 'belum diajukan') }}
                     </span>
                 </td>
                 <td class="align-middle">
-                    <span class="badge bg-{{ getStatusColor($item->tahap2) }}" role="button" onclick="showTahapForm('tahap II', {{ $item->id_judul }})">
-                        {{ ucfirst($item->tahap2) }}
+                    <span class="badge bg-{{ getStatusColor($item->tahap2 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('tahap II', {{ $item->id_judul }})">
+                        {{ ucfirst($item->tahap2 ?? 'belum diajukan') }}
                     </span>
                 </td>
                 <td class="align-middle">
-                    <span class="badge bg-{{ getStatusColor($item->sk1) }}" role="button" onclick="showTahapForm('SK I', {{ $item->id_judul }})">
-                        {{ ucfirst($item->sk1) }}
+                    <span class="badge bg-{{ getStatusColor($item->sk1 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('SK I', {{ $item->id_judul }})">
+                        {{ ucfirst($item->sk1 ?? 'belum diajukan') }}
                     </span>
                 </td>
                 <td class="align-middle">
-                    <span class="badge bg-{{ getStatusColor($item->sk2) }}" role="button" onclick="showTahapForm('SK II', {{ $item->id_judul }})">
-                        {{ ucfirst($item->sk2) }}
+                    <span class="badge bg-{{ getStatusColor($item->sk2 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('SK II', {{ $item->id_judul }})">
+                        {{ ucfirst($item->sk2 ?? 'belum diajukan') }}
                     </span>
                 </td>
                 <td class="align-middle">
-                    <span class="badge bg-{{ getStatusColor($item->sk3) }}" role="button" onclick="showTahapForm('SK III', {{ $item->id_judul }})">
-                        {{ ucfirst($item->sk3) }}
+                    <span class="badge bg-{{ getStatusColor($item->sk3 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('SK III', {{ $item->id_judul }})">
+                        {{ ucfirst($item->sk3 ?? 'belum diajukan') }}
                     </span>
                 </td>
                 <td class="align-middle">
-                    <span class="badge bg-{{ getStatusColor($item->sk4) }}" role="button" onclick="showTahapForm('SK IV', {{ $item->id_judul }})">
-                        {{ ucfirst($item->sk4) }}
+                    <span class="badge bg-{{ getStatusColor($item->sk4 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('SK IV', {{ $item->id_judul }})">
+                        {{ ucfirst($item->sk4 ?? 'belum diajukan') }}
                     </span>
                 </td>
                 <td class="align-middle">
-                    <span class="badge bg-{{ getStatusColor($item->tahap4) }}" role="button" onclick="showTahapForm('tahap IV', {{ $item->id_judul }})">
-                        {{ ucfirst($item->tahap4) }}
+                    <span class="badge bg-{{ getStatusColor($item->tahap4 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('tahap IV', {{ $item->id_judul }})">
+                        {{ ucfirst($item->tahap4 ?? 'belum diajukan') }}
                     </span>
                 </td>
             </tr>

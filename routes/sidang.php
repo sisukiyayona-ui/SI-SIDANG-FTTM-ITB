@@ -43,6 +43,7 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::get('s1', [SidangS1Controller::class, 'index'])->name('s1');
         Route::get('s1/{id}', [SidangS1Controller::class, 'show'])->name('s1.show');
         Route::put('s1/{id}', [SidangS1Controller::class, 'update'])->name('s1.update');
+        Route::post('s1/judul', [SidangS1Controller::class, 'storeJudul'])->name('s1.store-judul');
         
         Route::get('s2', [SidangS2Controller::class, 'index'])->name('s2');
         Route::get('s2/{id}', [SidangS2Controller::class, 'show'])->name('s2.show');

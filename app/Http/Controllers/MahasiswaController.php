@@ -15,8 +15,69 @@ class MahasiswaController extends Controller
     public function dashboard()
     {
         $user = session('auth_user');
-        $strata = $user['strata'] ?? 'S3'; // Default ke S3 jika tidak ada
-        
+        $strata = strtoupper((string) ($user['strata'] ?? $user['STRATA'] ?? 'S3'));
+        if (!in_array($strata, ['S1', 'S2', 'S3'], true)) {
+            $strata = 'S3';
+        }
+
+        // Kolom progress per strata. Hanya tahapan milik strata ini yang
+        // dihitung, jadi query S1/S2 tidak ikut menghitung tahapan S3.
+        $stagesByStrata = [
+            'S1' => [
+                ['key' => 'tahap1', 'tahapan' => 'tahap I',  'label' => 'Sidang Proposal'],
+                ['key' => 'tahap2', 'tahapan' => 'tahap II', 'label' => 'Seminar Kemajuan I'],
+                ['key' => 'sk1',    'tahapan' => 'SK I',     'label' => 'Seminar Kemajuan II'],
+                ['key' => 'sk2',    'tahapan' => 'SK II',    'label' => 'Seminar Kemajuan III'],
+                ['key' => 'sk3',    'tahapan' => 'SK III',   'label' => 'Seminar Kemajuan IV'],
+                ['key' => 'tahap4', 'tahapan' => 'tahap IV', 'label' => 'Sidang Akhir'],
+            ],
+            'S2' => [
+                ['key' => 'tesis1', 'tahapan' => 'Tesis I',  'label' => 'Tesis I'],
+                ['key' => 'tesis2', 'tahapan' => 'Tesis II', 'label' => 'Tesis II'],
+                ['key' => 'tahap4', 'tahapan' => 'tahap IV', 'label' => 'Sidang Terbuka / Tertutup'],
+            ],
+            'S3' => [
+                ['key' => 'tahap1', 'tahapan' => 'tahap I',  'label' => 'Ujian Kualifikasi'],
+                ['key' => 'tahap2', 'tahapan' => 'tahap II', 'label' => 'Ujian Proposal'],
+                ['key' => 'sk1',    'tahapan' => 'SK I',     'label' => 'SK I',   'group' => 'Tahap III'],
+                ['key' => 'sk2',    'tahapan' => 'SK II',    'label' => 'SK II',  'group' => 'Tahap III'],
+                ['key' => 'sk3',    'tahapan' => 'SK III',   'label' => 'SK III', 'group' => 'Tahap III'],
+                ['key' => 'sk4',    'tahapan' => 'SK IV',    'label' => 'SK IV',  'group' => 'Tahap III'],
+                ['key' => 'tahap4', 'tahapan' => 'tahap IV', 'label' => 'Sidang Terbuka / Tertutup'],
+            ],
+        ];
+        $stages = $stagesByStrata[$strata];
+
+        // Header tabel dikelompokkan (mis. "Tahap III" untuk SK I–IV di S3).
+        $headerGroups = [];
+        $hasSubHeader = false;
+        foreach ($stages as $stage) {
+            $group = $stage['group'] ?? null;
+            if ($group === null) {
+                $headerGroups[] = ['label' => $stage['label'], 'stages' => [$stage]];
+                continue;
+            }
+            $last = count($headerGroups) - 1;
+            if ($last >= 0 && $headerGroups[$last]['label'] === $group) {
+                $headerGroups[$last]['stages'][] = $stage;
+            } else {
+                $headerGroups[] = ['label' => $group, 'stages' => [$stage]];
+            }
+        }
+        foreach ($headerGroups as $group) {
+            if (count($group['stages']) > 1) {
+                $hasSubHeader = true;
+                break;
+            }
+        }
+
+        // Identitas strata untuk badge & penanda tampilan dashboard.
+        $strataMeta = [
+            'S1' => ['label' => 'Sarjana', 'color' => '#2e7d32'],
+            'S2' => ['label' => 'Magister', 'color' => '#1565c0'],
+            'S3' => ['label' => 'Doktor', 'color' => '#6a1b9a'],
+        ][$strata];
+
         // Ambil semua judul milik mahasiswa
         $juduls = TJudul::where('id_user_mhs', $user['id'])->get();
         
@@ -58,88 +119,46 @@ class MahasiswaController extends Controller
                 END";
         };
 
+        $selectCols = [
+            'j.id as id_judul',
+            'j.JUDUL as Judul',
+            'u.NAMA_PRODI as nama_prodi',
+        ];
+        $stageJoinSql = '';
+        foreach ($stages as $index => $stage) {
+            $alias = 'a' . ($index + 1);
+            $selectCols[] = $statusCase($alias, $stage['tahapan']) . " as {$stage['key']}";
+            $stageJoinSql .= "
+            LEFT JOIN (
+                SELECT x.* FROM t_ajuan_sidang x
+                INNER JOIN (
+                    SELECT id_judul, MAX(id) as max_id
+                    FROM t_ajuan_sidang
+                    WHERE tahapan_sidang = '{$stage['tahapan']}'
+                    GROUP BY id_judul
+                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
+            ) {$alias} ON j.id = {$alias}.ID_JUDUL";
+        }
+
         $tracking = DB::select("
             SELECT DISTINCT
-                j.id as id_judul,
-                j.JUDUL as Judul,
-                u.NAMA_PRODI as nama_prodi,
-                {$statusCase('a1', 'tahap I')} as tahap1,
-                {$statusCase('a2', 'tahap II')} as tahap2,
-                {$statusCase('a3', 'SK I')} as sk1,
-                {$statusCase('a4', 'SK II')} as sk2,
-                {$statusCase('a5', 'SK III')} as sk3,
-                {$statusCase('a6', 'SK IV')} as sk4,
-                {$statusCase('a7', 'tahap IV')} as tahap4
+                " . implode(",\n                ", $selectCols) . "
             FROM t_judul j
             LEFT JOIN t_user u ON j.ID_USER_MHS = u.id
-            LEFT JOIN (
-                SELECT x.* FROM t_ajuan_sidang x
-                INNER JOIN (
-                    SELECT id_judul, MAX(id) as max_id
-                    FROM t_ajuan_sidang
-                    WHERE tahapan_sidang = 'tahap I'
-                    GROUP BY id_judul
-                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
-            ) a1 ON j.id = a1.ID_JUDUL
-            LEFT JOIN (
-                SELECT x.* FROM t_ajuan_sidang x
-                INNER JOIN (
-                    SELECT id_judul, MAX(id) as max_id
-                    FROM t_ajuan_sidang
-                    WHERE tahapan_sidang = 'tahap II'
-                    GROUP BY id_judul
-                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
-            ) a2 ON j.id = a2.ID_JUDUL
-            LEFT JOIN (
-                SELECT x.* FROM t_ajuan_sidang x
-                INNER JOIN (
-                    SELECT id_judul, MAX(id) as max_id
-                    FROM t_ajuan_sidang
-                    WHERE tahapan_sidang = 'SK I'
-                    GROUP BY id_judul
-                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
-            ) a3 ON j.id = a3.ID_JUDUL
-            LEFT JOIN (
-                SELECT x.* FROM t_ajuan_sidang x
-                INNER JOIN (
-                    SELECT id_judul, MAX(id) as max_id
-                    FROM t_ajuan_sidang
-                    WHERE tahapan_sidang = 'SK II'
-                    GROUP BY id_judul
-                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
-            ) a4 ON j.id = a4.ID_JUDUL
-            LEFT JOIN (
-                SELECT x.* FROM t_ajuan_sidang x
-                INNER JOIN (
-                    SELECT id_judul, MAX(id) as max_id
-                    FROM t_ajuan_sidang
-                    WHERE tahapan_sidang = 'SK III'
-                    GROUP BY id_judul
-                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
-            ) a5 ON j.id = a5.ID_JUDUL
-            LEFT JOIN (
-                SELECT x.* FROM t_ajuan_sidang x
-                INNER JOIN (
-                    SELECT id_judul, MAX(id) as max_id
-                    FROM t_ajuan_sidang
-                    WHERE tahapan_sidang = 'SK IV'
-                    GROUP BY id_judul
-                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
-            ) a6 ON j.id = a6.ID_JUDUL
-            LEFT JOIN (
-                SELECT x.* FROM t_ajuan_sidang x
-                INNER JOIN (
-                    SELECT id_judul, MAX(id) as max_id
-                    FROM t_ajuan_sidang
-                    WHERE tahapan_sidang = 'tahap IV'
-                    GROUP BY id_judul
-                ) y ON x.id = y.max_id AND x.id_judul = y.id_judul
-            ) a7 ON j.id = a7.ID_JUDUL
-            WHERE j.ID_USER_MHS = ? AND u.STRATA = ?
+            {$stageJoinSql}
+            WHERE j.ID_USER_MHS = ?
             GROUP BY j.id, j.JUDUL, u.NAMA_PRODI
-        ", [$user['id'], $strata]);
-        
-        return view('mahasiswa.dashboard', compact('tracking', 'juduls', 'activeJudulId', 'strata'));
+        ", [$user['id']]);
+
+        $stageLabels = [];
+        foreach ($stages as $stage) {
+            $stageLabels[$stage['tahapan']] = $stage['label'];
+        }
+
+        return view('mahasiswa.dashboard', compact(
+            'tracking', 'juduls', 'activeJudulId', 'strata', 'strataMeta',
+            'stages', 'headerGroups', 'hasSubHeader', 'stageLabels'
+        ));
     }
     
     public function setActiveJudul($idJudul)
