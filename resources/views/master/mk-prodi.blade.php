@@ -2,6 +2,7 @@
 
 @section('title', 'Data Mata Kuliah Prodi - SI SIDANG FTTM ITB')
 @section('page_title', 'Data Master Mata Kuliah Prodi')
+@section('body_class', 'master-ui')
 
 @section('breadcrumb')
 <ol class="breadcrumb float-sm-right">
@@ -14,10 +15,15 @@
 <div id="listContainer">
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">Data Mata Kuliah Prodi</h3>
-        <button class="btn btn-sm btn-primary" onclick="openCreate()">
-            <i class="fas fa-plus mr-1"></i> Tambah
-        </button>
+        <div class="card-heading">
+            <h5 class="mb-0"><i class="fas fa-book mr-2"></i>Daftar Mata Kuliah Prodi</h5>
+            <p class="card-heading-sub">Pemetaan mata kuliah ke program studi dan tahapan sidang.</p>
+        </div>
+        <div class="card-actions">
+            <button class="btn btn-sm btn-primary" onclick="openCreate()">
+                <i class="fas fa-plus mr-1"></i> Tambah
+            </button>
+        </div>
     </div>
     <div class="card-body">
         <div class="table-responsive" id="mkProdiTableContainer">
@@ -29,8 +35,11 @@
 
 {{-- In-page form --}}
 <div id="formContainer" class="card" style="display: none;">
-    <div class="card-header" style="background: #ffffff; color: #1e293b; border-bottom: 1px solid #e2e8f0;">
-        <h5 class="mb-0" id="formTitle"><i class="fas fa-plus mr-2"></i>Tambah Mata Kuliah Prodi</h5>
+    <div class="card-header">
+        <div class="card-heading">
+            <h5 class="mb-0" id="formTitle"><i class="fas fa-plus mr-2"></i>Tambah Mata Kuliah Prodi</h5>
+            <p class="card-heading-sub">Lengkapi data mata kuliah prodi di bawah ini.</p>
+        </div>
     </div>
     <div class="card-body">
         <form id="mainForm" method="POST" action="{{ route('master.mk-prodi.store') }}">

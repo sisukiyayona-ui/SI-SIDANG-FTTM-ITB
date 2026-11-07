@@ -6,14 +6,7 @@
     <title>@yield('title', 'Login - SI SIDANG FTTM ITB')</title>
     <meta name="description" content="Masuk ke Sistem Informasi Penjadwalan Sidang FTTM ITB">
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/itb-logo.svg') }}">
-    <script nonce="{{ request()->attributes->get('csp_nonce') ?? '' }}">
-        (function() {
-            var saved = localStorage.getItem('darkMode');
-            if (saved === 'true') {
-                document.documentElement.classList.add('dark-mode');
-            }
-        })();
-    </script>
+    @include('layouts.partials.theme-head')
     <link rel="stylesheet" href="{{ asset('vendor/inter/300.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/inter/400.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/inter/500.css') }}">
@@ -479,7 +472,7 @@
                 </div>
             </a>
             <div class="nav-actions">
-                <button class="btn-nav btn-nav-ghost" id="darkModeToggle" title="Toggle Dark Mode" style="border:none; font-size:1rem;">
+                <button class="btn-nav btn-nav-ghost" id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="border:none; font-size:1rem;">
                     <i class="fas fa-moon" id="darkModeIcon"></i>
                 </button>
                 <a href="{{ url('/') }}" class="btn-nav btn-nav-ghost">
@@ -530,15 +523,6 @@
     @stack('scripts')
 
     <script nonce="{{ request()->attributes->get('csp_nonce') }}">
-        // Dark mode toggle
-        document.getElementById('darkModeToggle').addEventListener('click', function() {
-            var html = document.documentElement;
-            var icon = document.getElementById('darkModeIcon');
-            var isDark = html.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
-            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-        });
-
         // Toast dismiss buttons
         document.querySelectorAll('.toast-close').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -558,26 +542,8 @@
                 }, 3000);
             });
         });
-
-        function toggleDarkMode() {
-            var html = document.documentElement;
-            var icon = document.getElementById('darkModeIcon');
-            var isDark = html.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
-            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-        }
-
-        (function initDarkMode() {
-            var html = document.documentElement;
-            var icon = document.getElementById('darkModeIcon');
-            var saved = localStorage.getItem('darkMode');
-            if (saved === 'true') {
-                html.classList.add('dark-mode');
-                if (icon) icon.className = 'fas fa-sun';
-            } else {
-                if (icon) icon.className = 'fas fa-moon';
-            }
-        })();
     </script>
+
+    @include('layouts.partials.theme-script')
 </body>
 </html>

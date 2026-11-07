@@ -1,29 +1,35 @@
 @extends('layouts.master')
 
-@section('title', 'Progress Sidang - SI SIDANG FTTM ITB')
+@section('title', 'Progress Sidang S2 - SI SIDANG FTTM ITB')
 @section('page_title', 'Progress Sidang')
+@section('body_class', 'master-ui')
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
-        <li class="breadcrumb-item active">Progress Sidang</li>
+        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Sidang</li>
+        <li class="breadcrumb-item active">Progress Sidang S2</li>
     </ol>
 @endsection
 
 @section('content')
+<div class="master-data-container">
     <!-- Tracking Progress Sidang -->
-    <div id="trackingCard" class="card mb-4">
-        <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
+    <div id="trackingCard" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-heading">
                 <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Tracking Progress Sidang S2</h5>
-                <div class="d-flex align-items-center">
+                <p class="card-heading-sub">Pemantauan progres dan tahapan sidang tesis mahasiswa program Magister (S2).</p>
+            </div>
+            <div class="card-actions">
                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'FS']))
-                    <button type="button" class="btn btn-sm btn-primary mr-2" data-toggle="modal" data-target="#tambahJudulModal">
-                        <i class="fas fa-plus"></i> Tambah
+                    <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#tambahJudulModal">
+                        <i class="fas fa-plus mr-1"></i> Tambah
                     </button>
                 @endif
                 @if($juduls && $juduls->count() > 1)
                     <div class="form-group mb-0">
-                        <select class="form-control" onchange="window.location.href='{{ route('mahasiswa.set-judul', '__ID__') }}'.replace('__ID__', this.value)">
+                        <select class="form-control form-control-sm select2-judul" onchange="window.location.href='{{ route('mahasiswa.set-judul', '__ID__') }}'.replace('__ID__', this.value)">
                             @foreach($juduls as $judul)
                                 <option value="{{ $judul->id }}" {{ $activeJudulId == $judul->id ? 'selected' : '' }}>
                                     {{ $judul->Judul }}
@@ -32,24 +38,15 @@
                         </select>
                     </div>
                 @endif
-                </div>
             </div>
         </div>
         <div class="card-body">
-            <style>
-                #trackingCard .badge { white-space: normal; }
-                #trackingCard td { word-break: break-word; }
-                #tahapModal .modal-body {
-                    max-height: calc(100vh - 140px);
-                    overflow-y: auto;
-                }
-                #tahapModal .select2-dropdown { z-index: 1056; }
-            </style>
             <div class="table-responsive" id="trackingTableContainer">
                 @include('sidang._s2_table')
             </div>
         </div>
     </div>
+</div>
 
     <!-- Modal Tahapan -->
     <div class="modal fade" id="tahapModal" tabindex="-1" role="dialog" aria-labelledby="tahapModalLabel" aria-hidden="true">

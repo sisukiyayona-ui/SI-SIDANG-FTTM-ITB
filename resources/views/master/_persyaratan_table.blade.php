@@ -2,7 +2,7 @@
     // Label tahapan dibaca langsung dari master t_tahapan.
     $tahapanLabels = \App\Services\MasterExcelService::tahapanLabelMap();
 @endphp
-<table class="table table-striped table-hover">
+<table class="table table-hover">
     <thead>
         <tr>
             <th style="width: 50px;">No</th>

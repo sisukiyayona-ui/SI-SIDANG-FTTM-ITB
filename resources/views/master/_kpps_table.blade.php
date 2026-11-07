@@ -1,4 +1,4 @@
-<table class="table table-striped table-hover" id="kppsTable">
+<table class="table table-hover" id="kppsTable">
     <thead>
         <tr>
             <th style="width:50px;">No</th>

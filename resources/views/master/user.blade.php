@@ -2,6 +2,7 @@
 
 @section('title', 'Data User - SI SIDANG FTTM ITB')
 @section('page_title', 'Data User')
+@section('body_class', 'master-ui')
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
@@ -9,268 +10,17 @@
     </ol>
 @endsection
 
-@push('styles')
-<style>
-    /* Master Data Table Styles - Professional Dark/Light Mode */
-    .master-data-container {
-        --table-header-bg-light: #f8f9fa;
-        --table-header-text-light: #2d3748;
-        --table-header-border-light: #dee2e6;
-        --table-row-hover-light: #f8f9fa;
-        --table-border-light: #dee2e6;
-        
-        --table-header-bg-dark: #334155;
-        --table-header-text-dark: #f1f5f9;
-        --table-header-border-dark: #475569;
-        --table-row-hover-dark: #2d3748;
-        --table-border-dark: #475569;
-    }
-
-    .master-data-container .table thead th {
-        background-color: var(--table-header-bg-light) !important;
-        color: var(--table-header-text-light) !important;
-        border-color: var(--table-header-border-light) !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        padding: 14px 12px !important;
-        vertical-align: middle !important;
-    }
-
-    html.dark-mode .master-data-container .table thead th {
-        background-color: var(--table-header-bg-dark) !important;
-        color: var(--table-header-text-dark) !important;
-        border-color: var(--table-header-border-dark) !important;
-    }
-
-    .master-data-container .table tbody tr:hover {
-        background-color: var(--table-row-hover-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table tbody tr:hover {
-        background-color: var(--table-row-hover-dark) !important;
-    }
-
-    .master-data-container .table {
-        border-color: var(--table-border-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table {
-        border-color: var(--table-border-dark) !important;
-    }
-
-    .master-data-container .table td,
-    .master-data-container .table th {
-        border-color: var(--table-border-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table td,
-    html.dark-mode .master-data-container .table th {
-        border-color: var(--table-border-dark) !important;
-    }
-
-    /* Card Header Styling */
-    .master-data-container .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white !important;
-        border: none;
-        padding: 16px 20px;
-    }
-
-    .master-data-container .card-header h5 {
-        color: white !important;
-        font-weight: 600;
-        margin: 0;
-    }
-
-    /* Dark mode: card header adapt */
-    html.dark-mode .master-data-container .card-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-        color: #f1f5f9 !important;
-        border-bottom: 1px solid #334155 !important;
-    }
-    html.dark-mode .master-data-container .card-header h5 {
-        color: #f1f5f9 !important;
-    }
-
-    html.dark-mode .master-data-container .card {
-        background-color: #1e293b !important;
-        border-color: #334155 !important;
-    }
-
-    html.dark-mode .master-data-container .card-body {
-        background-color: #1e293b !important;
-    }
-
-    /* Dark mode: form container */
-    html.dark-mode #formContainer .card-body {
-        background-color: #1e293b !important;
-    }
-    html.dark-mode #formContainer .form-label {
-        color: #e2e8f0 !important;
-    }
-    html.dark-mode #formContainer .form-control {
-        background-color: #334155 !important;
-        border-color: #475569 !important;
-        color: #f1f5f9 !important;
-    }
-    html.dark-mode #formContainer select.form-control option {
-        background-color: #334155 !important;
-        color: #f1f5f9 !important;
-    }
-    html.dark-mode #formContainer .form-check-label {
-        color: #e2e8f0 !important;
-    }
-    html.dark-mode #formContainer small.text-muted {
-        color: #94a3b8 !important;
-    }
-    /* Dark mode: role list box */
-    html.dark-mode #roleList {
-        background-color: #1e293b !important;
-        border-color: #475569 !important;
-    }
-    html.dark-mode #roleList .form-check-label {
-        color: #e2e8f0 !important;
-    }
-    /* Dark mode: prodi list box */
-    html.dark-mode #prodiList {
-        background-color: #1e293b !important;
-        border-color: #475569 !important;
-    }
-    html.dark-mode #prodiList .form-check-label {
-        color: #e2e8f0 !important;
-    }
-    /* Dark mode: footer/main-footer */
-    html.dark-mode .main-footer {
-        background-color: #0f172a !important;
-        color: #94a3b8 !important;
-        border-top: 1px solid #1e293b !important;
-    }
-    html.dark-mode .main-footer a {
-        color: #60a5fa !important;
-    }
-    /* Dark mode: signature canvas */
-    html.dark-mode #signatureCanvas {
-        background-color: #1e293b !important;
-        border-color: #475569 !important;
-    }
-    html.dark-mode #signaturePreview {
-        border-color: #475569 !important;
-    }
-    .itb-lookup-wrap { position: relative; }
-    .itb-lookup-list {
-        position: absolute;
-        z-index: 1080;
-        left: 0;
-        right: 0;
-        top: calc(100% + 4px);
-        background: #fff;
-        border: 1px solid #ced4da;
-        border-radius: 8px;
-        box-shadow: 0 10px 28px rgba(15,23,42,.16), 0 2px 6px rgba(15,23,42,.08);
-        max-height: 280px;
-        overflow-y: auto;
-        padding: 4px;
-        margin: 0;
-        list-style: none;
-    }
-    .itb-lookup-list::before {
-        content: '';
-        display: block;
-        height: 4px;
-    }
-    html.dark-mode .itb-lookup-list {
-        background: #1e293b;
-        border-color: #475569;
-        color: #f1f5f9;
-        box-shadow: 0 12px 32px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
-    }
-    .itb-lookup-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        cursor: pointer;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        line-height: 1.35;
-        border: 1px solid transparent;
-        transition: background .12s ease, border-color .12s ease;
-    }
-    .itb-lookup-item + .itb-lookup-item { margin-top: 2px; }
-    .itb-lookup-item:hover,
-    .itb-lookup-item.active {
-        background: #eef2ff;
-        border-color: #c7d2fe;
-    }
-    html.dark-mode .itb-lookup-item:hover,
-    html.dark-mode .itb-lookup-item.active {
-        background: #334155;
-        border-color: #64748b;
-    }
-    .itb-lookup-item .avatar {
-        flex: 0 0 32px;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: .02em;
-    }
-    .itb-lookup-item .body { min-width: 0; flex: 1; }
-    .itb-lookup-item .title {
-        font-weight: 600;
-        color: #0f172a;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    html.dark-mode .itb-lookup-item .title { color: #f1f5f9; }
-    .itb-lookup-item .meta {
-        color: #64748b;
-        font-size: 0.78rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    html.dark-mode .itb-lookup-item .meta { color: #94a3b8; }
-    .itb-lookup-item .badge-status {
-        flex: 0 0 auto;
-        font-size: 0.7rem;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: 999px;
-        background: #ecfdf5;
-        color: #047857;
-        border: 1px solid #a7f3d0;
-    }
-    html.dark-mode .itb-lookup-item .badge-status {
-        background: #064e3b;
-        color: #6ee7b7;
-        border-color: #065f46;
-    }
-    .itb-lookup-empty {
-        padding: 12px;
-        text-align: center;
-        color: #64748b;
-        font-size: 0.85rem;
-    }
-    html.dark-mode .itb-lookup-empty { color: #94a3b8; }
-</style>
-@endpush
-
 @section('content')
 <div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-users mr-2"></i>Daftar User</h5>
-            <div class="d-flex align-items-center ml-auto" style="gap: 8px;">
+            <div class="card-heading">
+                <h5 class="mb-0"><i class="fas fa-users mr-2"></i>Daftar User</h5>
+                <p class="card-heading-sub">Kelola akun, role, dan program studi pengguna.</p>
+            </div>
+            <div class="card-actions">
                 @if(session('auth_user.role') === 'Admin')
-                <button class="btn btn-sm btn-success" id="btnSyncItb" onclick="syncItbData()" title="Perbarui nama dosen/tendik (t_user & t_kpps) dari data pusat ITB">
+                <button class="btn btn-sm btn-outline-primary" id="btnSyncItb" onclick="syncItbData()" title="Perbarui nama dosen/tendik (t_user & t_kpps) dari data pusat ITB">
                     <i class="fas fa-sync-alt mr-1"></i> Update Data ITB
                 </button>
                 @endif
@@ -291,7 +41,10 @@
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
         <div class="card-header">
-            <h5 class="mb-0" id="modalUserTitle"><i class="fas fa-plus mr-2"></i>Tambah User</h5>
+            <div class="card-heading">
+                <h5 class="mb-0" id="modalUserTitle"><i class="fas fa-plus mr-2"></i>Tambah User</h5>
+                <p class="card-heading-sub">Lengkapi data akun dan atur role pengguna.</p>
+            </div>
         </div>
         <div class="card-body">
             <form id="formUser" method="POST">

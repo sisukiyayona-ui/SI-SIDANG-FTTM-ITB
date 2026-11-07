@@ -2,6 +2,7 @@
 
 @section('title', 'Penilaian - SI SIDANG FTTM ITB')
 @section('page_title', 'Data Master Penilaian')
+@section('body_class', 'master-ui')
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
@@ -9,123 +10,6 @@
         <li class="breadcrumb-item active">Penilaian</li>
     </ol>
 @endsection
-
-@push('styles')
-<style>
-    /* Master Data Table Styles - Professional Dark/Light Mode */
-    .master-data-container {
-        --table-header-bg-light: #f8f9fa;
-        --table-header-text-light: #2d3748;
-        --table-header-border-light: #dee2e6;
-        --table-row-hover-light: #f8f9fa;
-        --table-border-light: #dee2e6;
-        
-        --table-header-bg-dark: #334155;
-        --table-header-text-dark: #f1f5f9;
-        --table-header-border-dark: #475569;
-        --table-row-hover-dark: #2d3748;
-        --table-border-dark: #475569;
-    }
-
-    .master-data-container .table thead th {
-        background-color: var(--table-header-bg-light) !important;
-        color: var(--table-header-text-light) !important;
-        border-color: var(--table-header-border-light) !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        padding: 14px 12px !important;
-        vertical-align: middle !important;
-    }
-
-    html.dark-mode .master-data-container .table thead th {
-        background-color: var(--table-header-bg-dark) !important;
-        color: var(--table-header-text-dark) !important;
-        border-color: var(--table-header-border-dark) !important;
-    }
-
-    .master-data-container .table tbody tr:hover {
-        background-color: var(--table-row-hover-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table tbody tr:hover {
-        background-color: var(--table-row-hover-dark) !important;
-    }
-
-    .master-data-container .table {
-        border-color: var(--table-border-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table {
-        border-color: var(--table-border-dark) !important;
-    }
-
-    .master-data-container .table td,
-    .master-data-container .table th {
-        border-color: var(--table-border-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table td,
-    html.dark-mode .master-data-container .table th {
-        border-color: var(--table-border-dark) !important;
-    }
-
-    /* Card Header Styling */
-    .master-data-container .card-header {
-        background: #ffffff;
-        color: #1e293b !important;
-        border: none;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 16px 20px;
-    }
-
-    .master-data-container .card-header h5 {
-        color: #1e293b !important;
-        font-weight: 600;
-        margin: 0;
-    }
-
-    html.dark-mode .master-data-container .card {
-        background-color: #1e293b !important;
-        border-color: #334155 !important;
-    }
-
-    html.dark-mode .master-data-container .card-body {
-        background-color: #1e293b !important;
-    }
-
-    /* Dark mode: card header adapt */
-    html.dark-mode .master-data-container .card-header {
-        background: #ffffff !important;
-        color: #1e293b !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-    }
-    html.dark-mode .master-data-container .card-header h5 {
-        color: #1e293b !important;
-    }
-    /* Dark mode: form container */
-    html.dark-mode #formContainer .card-body {
-        background-color: #1e293b !important;
-    }
-    html.dark-mode #formContainer .form-label {
-        color: #e2e8f0 !important;
-    }
-    html.dark-mode #formContainer .form-control {
-        background-color: #334155 !important;
-        border-color: #475569 !important;
-        color: #f1f5f9 !important;
-    }
-    html.dark-mode #formContainer select.form-control option {
-        background-color: #334155 !important;
-        color: #f1f5f9 !important;
-    }
-    html.dark-mode #formContainer .form-check-label {
-        color: #e2e8f0 !important;
-    }
-    html.dark-mode #formContainer small.text-muted {
-        color: #94a3b8 !important;
-    }
-</style>
-@endpush
 
 @section('content')
 @php
@@ -135,12 +19,15 @@
 <div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Daftar Komponen Penilaian</h5>
-            <div class="d-flex align-items-center ml-auto" style="gap: 8px;">
+            <div class="card-heading">
+                <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Daftar Komponen Penilaian</h5>
+                <p class="card-heading-sub">Kelola komponen penilaian untuk setiap tahapan sidang.</p>
+            </div>
+            <div class="card-actions">
                 <a class="btn btn-sm btn-outline-secondary" href="{{ route('master.penilaian.template') }}">
                     <i class="fas fa-download mr-1"></i> Template
                 </a>
-                <button type="button" class="btn btn-sm btn-warning" onclick="document.getElementById('importFile').click()">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('importFile').click()">
                     <i class="fas fa-upload mr-1"></i> Upload
                 </button>
                 <input type="file" id="importFile" accept=".xlsx,.xls" hidden onchange="uploadImport(this)">
@@ -159,8 +46,11 @@
 
     {{-- Form Container (In-Page CRUD Form) --}}
     <div id="formContainer" class="card" style="display: none;">
-        <div class="card-header" style="background: #ffffff; color: #1e293b; border-bottom: 1px solid #e2e8f0;">
-            <h5 class="mb-0" id="formTitle"><i class="fas fa-plus mr-2"></i>Tambah Komponen</h5>
+        <div class="card-header">
+            <div class="card-heading">
+                <h5 class="mb-0" id="formTitle"><i class="fas fa-plus mr-2"></i>Tambah Komponen</h5>
+                <p class="card-heading-sub">Lengkapi data komponen penilaian di bawah ini.</p>
+            </div>
         </div>
         <div class="card-body">
             <form id="mainForm" method="POST">

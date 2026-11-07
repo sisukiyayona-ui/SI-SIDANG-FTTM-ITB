@@ -2,6 +2,7 @@
 
 @section('title', 'Report Sidang S3 - SI SIDANG FTTM ITB')
 @section('page_title', 'Report Sidang S3')
+@section('body_class', 'master-ui')
 
 @php
 if (!function_exists('getStatusColor')) {
@@ -62,14 +63,33 @@ if (!function_exists('formatTahapan')) {
 @section('content')
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Report Sidang S3</h5>
-            <a href="{{ route('report.export') }}" class="btn btn-success">
-                <i class="fas fa-file-excel mr-1"></i> Export Excel
-            </a>
+            <div class="card-heading">
+                <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Report Sidang S3</h5>
+                <p class="card-heading-sub">Rekap data sidang, tim penguji, dan status kelulusan mahasiswa.</p>
+            </div>
+            <div class="card-actions">
+                <a href="{{ route('report.export') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-excel mr-1"></i> Export Excel
+                </a>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-hover table-sm" id="reportTable">
+                    <colgroup>
+                        <col style="width: 36px;">
+                        <col style="width: 48px;">
+                        <col style="width: 88px;">
+                        <col style="width: 96px;">
+                        <col style="width: 210px;">
+                        <col style="width: 108px;">
+                        <col style="width: 92px;">
+                        <col style="width: 82px;">
+                        <col style="width: 78px;">
+                        <col style="width: 72px;">
+                        <col style="width: 78px;">
+                        <col style="width: 42px;">
+                    </colgroup>
                     <thead class="bg-light text-dark">
                         <tr>
                             <th>No</th>

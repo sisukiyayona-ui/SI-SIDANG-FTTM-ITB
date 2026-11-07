@@ -2,126 +2,13 @@
 
 @section('title', 'Master Data KPPS - SI SIDANG FTTM ITB')
 @section('page_title', 'Master Data KPPS')
+@section('body_class', 'master-ui')
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
         <li class="breadcrumb-item active">Master Data KPPS</li>
     </ol>
 @endsection
-
-@push('styles')
-<style>
-    .master-data-container {
-        --table-header-bg-light: #f8f9fa;
-        --table-header-text-light: #2d3748;
-        --table-header-border-light: #dee2e6;
-        --table-row-hover-light: #f8f9fa;
-        --table-border-light: #dee2e6;
-
-        --table-header-bg-dark: #334155;
-        --table-header-text-dark: #f1f5f9;
-        --table-header-border-dark: #475569;
-        --table-row-hover-dark: #2d3748;
-        --table-border-dark: #475569;
-    }
-
-    .master-data-container .table thead th {
-        background-color: var(--table-header-bg-light) !important;
-        color: var(--table-header-text-light) !important;
-        border-color: var(--table-header-border-light) !important;
-        font-weight: 600 !important;
-        font-size: 0.85rem !important;
-        padding: 12px 10px !important;
-        vertical-align: middle !important;
-    }
-
-    html.dark-mode .master-data-container .table thead th {
-        background-color: var(--table-header-bg-dark) !important;
-        color: var(--table-header-text-dark) !important;
-        border-color: var(--table-header-border-dark) !important;
-    }
-
-    .master-data-container .table tbody tr:hover {
-        background-color: var(--table-row-hover-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table tbody tr:hover {
-        background-color: var(--table-row-hover-dark) !important;
-    }
-
-    .master-data-container .table {
-        border-color: var(--table-border-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table {
-        border-color: var(--table-border-dark) !important;
-    }
-
-    .master-data-container .table td,
-    .master-data-container .table th {
-        border-color: var(--table-border-light) !important;
-    }
-
-    html.dark-mode .master-data-container .table td,
-    html.dark-mode .master-data-container .table th {
-        border-color: var(--table-border-dark) !important;
-    }
-
-    .master-data-container .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white !important;
-        border: none;
-        padding: 16px 20px;
-    }
-
-    .master-data-container .card-header h5 {
-        color: white !important;
-        font-weight: 600;
-        margin: 0;
-    }
-
-    html.dark-mode .master-data-container .card {
-        background-color: #1e293b !important;
-        border-color: #334155 !important;
-    }
-
-    html.dark-mode .master-data-container .card-body {
-        background-color: #1e293b !important;
-    }
-
-    /* Dark mode: card header adapt */
-    html.dark-mode .master-data-container .card-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-        color: #f1f5f9 !important;
-        border-bottom: 1px solid #334155 !important;
-    }
-    html.dark-mode .master-data-container .card-header h5 {
-        color: #f1f5f9 !important;
-    }
-    /* Dark mode: form container */
-    html.dark-mode #formContainer .card-body {
-        background-color: #1e293b !important;
-    }
-    html.dark-mode #formContainer .form-label {
-        color: #e2e8f0 !important;
-    }
-    html.dark-mode #formContainer .form-control {
-        background-color: #334155 !important;
-        border-color: #475569 !important;
-        color: #f1f5f9 !important;
-    }
-    html.dark-mode #formContainer select.form-control option {
-        background-color: #334155 !important;
-        color: #f1f5f9 !important;
-    }
-    html.dark-mode #formContainer .form-check-label {
-        color: #e2e8f0 !important;
-    }
-    html.dark-mode #formContainer small.text-muted {
-        color: #94a3b8 !important;
-    }
-</style>
-@endpush
 
 @section('content')
 @php
@@ -131,10 +18,15 @@
 <div class="master-data-container">
     <div id="listContainer" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Daftar KPPS</h5>
-            <button class="btn btn-sm btn-primary" onclick="openCreate()">
-                <i class="fas fa-plus mr-1"></i> Tambah
-            </button>
+            <div class="card-heading">
+                <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Daftar KPPS</h5>
+                <p class="card-heading-sub">Anggota tim KPPS beserta peran dan program studinya.</p>
+            </div>
+            <div class="card-actions">
+                <button class="btn btn-sm btn-primary" onclick="openCreate()">
+                    <i class="fas fa-plus mr-1"></i> Tambah
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive" id="kppsTableContainer">
@@ -147,7 +39,10 @@
 {{-- Form Container (In-Page CRUD Form) --}}
 <div id="formContainer" class="card" style="display: none;">
     <div class="card-header">
-        <h5 class="mb-0" id="modalKppsTitle"><i class="fas fa-plus mr-2"></i>Tambah KPPS</h5>
+        <div class="card-heading">
+            <h5 class="mb-0" id="modalKppsTitle"><i class="fas fa-plus mr-2"></i>Tambah KPPS</h5>
+            <p class="card-heading-sub">Lengkapi data anggota KPPS di bawah ini.</p>
+        </div>
     </div>
     <div class="card-body">
         <form id="formKpps" method="POST">

@@ -2,6 +2,7 @@
 
 @section('title', 'Dashboard - SI SIDANG FTTM ITB')
 @section('page_title', 'Dashboard')
+@section('body_class', 'master-ui')
 
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
@@ -10,78 +11,66 @@
 @endsection
 
 @section('content')
-    {{-- Stat Cards --}}
-    {{--<div class="row">
-        <div class="col-lg-3 col-6">
+    <div class="row stat-grid">
+        <div class="col-xl-3 col-md-6">
             <div class="card stat-card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Total Mahasiswa</p>
-                            <h3 class="mb-0 fw-bold">{{ $totalMahasiswa }}</h3>
-                        </div>
-                        <div class="icon-bg" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
-                            <i class="fas fa-users"></i>
-                        </div>
+                    <div>
+                        <p class="stat-label">Total Mahasiswa</p>
+                        <p class="stat-value">{{ $totalMahasiswa }}</p>
                     </div>
+                    <div class="icon-bg"><i class="fas fa-users"></i></div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-6">
+        <div class="col-xl-3 col-md-6">
             <div class="card stat-card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Total Sidang</p>
-                            <h3 class="mb-0 fw-bold">{{ $totalSidang }}</h3>
-                        </div>
-                        <div class="icon-bg" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
+                    <div>
+                        <p class="stat-label">Total Sidang</p>
+                        <p class="stat-value">{{ $totalSidang }}</p>
                     </div>
+                    <div class="icon-bg"><i class="fas fa-graduation-cap"></i></div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-6">
+        <div class="col-xl-3 col-md-6">
             <div class="card stat-card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Total Seminar</p>
-                            <h3 class="mb-0 fw-bold">{{ $totalSeminar }}</h3>
-                        </div>
-                        <div class="icon-bg" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
+                    <div>
+                        <p class="stat-label">Total Seminar</p>
+                        <p class="stat-value">{{ $totalSeminar }}</p>
                     </div>
+                    <div class="icon-bg"><i class="fas fa-chart-line"></i></div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-6">
+        <div class="col-xl-3 col-md-6">
             <div class="card stat-card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Total Penguji</p>
-                            <h3 class="mb-0 fw-bold">{{ $totalPenguji }}</h3>
-                        </div>
-                        <div class="icon-bg" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-                            <i class="fas fa-user-tie"></i>
-                        </div>
+                    <div>
+                        <p class="stat-label">Total Penguji</p>
+                        <p class="stat-value">{{ $totalPenguji }}</p>
                     </div>
+                    <div class="icon-bg"><i class="fas fa-user-tie"></i></div>
                 </div>
             </div>
         </div>
-    </div>--}}
+    </div>
 
     <div class="row">
         <div class="col-lg-12">
-            <div class="card">
+            <div class="card chart-card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Grafik Sidang (Lulus) per Tahap</h5>
+                    <div class="card-heading">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Grafik Sidang (Lulus) per Tahap</h5>
+                        <p class="card-heading-sub">Jumlah sidang lulus per tahap dalam tiga tahun terakhir.</p>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="chartSidang" height="120"></canvas>
+                    <div class="chart-canvas">
+                        <canvas id="chartSidang"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -171,7 +160,7 @@
 @push('scripts')
 <script>
     $(function () {
-        var colors = ['#1e3a8a', '#3b82f6', '#f59e0b', '#ef4444'];
+        var colors = ['#1462ad', '#1f7ad4', '#3b82f6', '#8ec5f0'];
         var datasets = [];
         @foreach($chartTahapData as $tahap => $data)
         datasets.push({
@@ -179,7 +168,9 @@
             data: @json($data),
             backgroundColor: colors[datasets.length],
             borderColor: colors[datasets.length],
-            borderWidth: 1,
+            borderWidth: 0,
+            borderRadius: 6,
+            maxBarThickness: 54,
         });
         @endforeach
 
@@ -192,12 +183,29 @@
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'top' },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 8,
+                            color: '#94a3b8',
+                            font: { size: 11, family: "'Segoe UI', system-ui, sans-serif" },
+                        },
+                    },
                 },
                 scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#94a3b8', font: { size: 11 } },
+                        grid: { color: 'rgba(148, 163, 184, .18)', drawBorder: false },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8', font: { size: 11 } },
+                        grid: { display: false },
+                    },
                 },
             },
         });

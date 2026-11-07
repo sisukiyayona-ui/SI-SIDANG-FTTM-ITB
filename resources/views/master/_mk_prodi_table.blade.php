@@ -1,4 +1,4 @@
-<table class="table table-striped table-hover" id="mkProdiTable">
+<table class="table table-hover" id="mkProdiTable">
     <thead>
         <tr>
             <th style="width: 50px;">No</th>

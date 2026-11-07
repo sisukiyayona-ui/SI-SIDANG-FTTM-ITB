@@ -1,29 +1,31 @@
 @php
-function getStatusColor($status) {
-    $s = strtolower($status ?? '');
-    switch($s) {
-        case 'belum diajukan':
-            return 'secondary';
-        case 'diproses di tu prodi':
-            return 'warning';
-        case 'diproses di fakultas':
-            return 'orange';
-        case 'menunggu pelaksanaan sidang':
-        case 'menunggu approve kpps':
-            return 'purple';
-        case 'terjadwal':
-            return 'primary';
-        case 'dalam proses':
-            return 'warning';
-        case 'lulus':
-            return 'success';
-        case 'tidak lulus':
-            return 'danger';
-        case 'rejected':
-        case 'ditolak':
-            return 'danger';
-        default:
-            return 'info';
+if (!function_exists('getStatusColor')) {
+    function getStatusColor($status) {
+        $s = strtolower($status ?? '');
+        switch($s) {
+            case 'belum diajukan':
+                return 'secondary';
+            case 'diproses di tu prodi':
+                return 'warning';
+            case 'diproses di fakultas':
+                return 'orange';
+            case 'menunggu pelaksanaan sidang':
+            case 'menunggu approve kpps':
+                return 'purple';
+            case 'terjadwal':
+                return 'primary';
+            case 'dalam proses':
+                return 'warning';
+            case 'lulus':
+                return 'success';
+            case 'tidak lulus':
+                return 'danger';
+            case 'rejected':
+            case 'ditolak':
+                return 'danger';
+            default:
+                return 'info';
+        }
     }
 }
 @endphp
@@ -42,7 +44,7 @@ function getStatusColor($status) {
         <col style="width: 125px;">
         <col style="width: 165px;">
     </colgroup>
-    <thead style="background-color: #6998d3; color: white;">
+    <thead>
         <tr>
             <th rowspan="2" class="align-middle" style="width: 50px;">No</th>
             <th rowspan="2" class="align-middle">NIM</th>
@@ -55,19 +57,19 @@ function getStatusColor($status) {
             <th rowspan="2" class="align-middle">Sidang Terbuka / Tertutup</th>
         </tr>
         <tr>
-            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK I</th>
-            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK II</th>
-            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK III</th>
-            <th class="align-middle" style="background-color: #9fbce4; color: white;">SK IV</th>
+            <th class="align-middle">SK I</th>
+            <th class="align-middle">SK II</th>
+            <th class="align-middle">SK III</th>
+            <th class="align-middle">SK IV</th>
         </tr>
-        <tr class="tracking-filter-row" style="background-color: #f8f9fa;">
+        <tr class="tracking-filter-row">
             <th></th>
-            <th><input type="text" class="form-control form-control-sm column-search" name="nim" placeholder="Cari..." value="{{ request('nim') }}" style="color: #495057;"></th>
-            <th><input type="text" class="form-control form-control-sm column-search" name="nama" placeholder="Cari..." value="{{ request('nama') }}" style="color: #495057;"></th>
-            <th><input type="text" class="form-control form-control-sm column-search" name="judul" placeholder="Cari..." value="{{ request('judul') }}" style="color: #495057;"></th>
-            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari Prodi..." value="{{ request('nama_prodi') }}" style="color: #495057;"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="nim" placeholder="Cari..." value="{{ request('nim') }}"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="nama" placeholder="Cari..." value="{{ request('nama') }}"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="judul" placeholder="Cari..." value="{{ request('judul') }}"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari Prodi..." value="{{ request('nama_prodi') }}"></th>
             <th>
-                <select class="form-control form-control-sm column-search" name="tahap1" style="color: #495057;">
+                <select class="form-control form-control-sm column-search" name="tahap1">
                     <option value="">Semua</option>
                     <option value="belum diajukan" {{ request('tahap1') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('tahap1') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
@@ -79,7 +81,7 @@ function getStatusColor($status) {
                 </select>
             </th>
             <th>
-                <select class="form-control form-control-sm column-search" name="tahap2" style="color: #495057;">
+                <select class="form-control form-control-sm column-search" name="tahap2">
                     <option value="">Semua</option>
                     <option value="belum diajukan" {{ request('tahap2') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('tahap2') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
@@ -91,7 +93,7 @@ function getStatusColor($status) {
                 </select>
             </th>
             <th>
-                <select class="form-control form-control-sm column-search" name="sk1" style="color: #495057;">
+                <select class="form-control form-control-sm column-search" name="sk1">
                     <option value="">Semua</option>
                     <option value="belum diajukan" {{ request('sk1') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk1') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
@@ -103,7 +105,7 @@ function getStatusColor($status) {
                 </select>
             </th>
             <th>
-                <select class="form-control form-control-sm column-search" name="sk2" style="color: #495057;">
+                <select class="form-control form-control-sm column-search" name="sk2">
                     <option value="">Semua</option>
                     <option value="belum diajukan" {{ request('sk2') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk2') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
@@ -115,7 +117,7 @@ function getStatusColor($status) {
                 </select>
             </th>
             <th>
-                <select class="form-control form-control-sm column-search" name="sk3" style="color: #495057;">
+                <select class="form-control form-control-sm column-search" name="sk3">
                     <option value="">Semua</option>
                     <option value="belum diajukan" {{ request('sk3') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk3') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
@@ -127,7 +129,7 @@ function getStatusColor($status) {
                 </select>
             </th>
             <th>
-                <select class="form-control form-control-sm column-search" name="sk4" style="color: #495057;">
+                <select class="form-control form-control-sm column-search" name="sk4">
                     <option value="">Semua</option>
                     <option value="belum diajukan" {{ request('sk4') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('sk4') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
@@ -139,7 +141,7 @@ function getStatusColor($status) {
                 </select>
             </th>
             <th>
-                <select class="form-control form-control-sm column-search" name="tahap4" style="color: #495057;">
+                <select class="form-control form-control-sm column-search" name="tahap4">
                     <option value="">Semua</option>
                     <option value="belum diajukan" {{ request('tahap4') == 'belum diajukan' ? 'selected' : '' }}>Belum diajukan</option>
                     <option value="diproses di TU Prodi" {{ request('tahap4') == 'diproses di TU Prodi' ? 'selected' : '' }}>Diproses di TU Prodi</option>
@@ -153,14 +155,14 @@ function getStatusColor($status) {
         </tr>
     </thead>
     <tbody>
-        @foreach($tracking as $item)
+        @forelse($tracking as $item)
             <tr>
-                <td class="align-middle">{{ $loop->iteration }}</td>
+                <td class="align-middle">{{ ($tracking->firstItem() ?? 1) + $loop->index }}</td>
                 <td class="align-middle">{{ $item->Nim }}</td>
                 <td class="align-middle">{{ $item->nama_mhs }}</td>
                 <td class="text-left text-muted">
                     @if(session('auth_user.role') === 'TU Prodi')
-                        <a href="{{ route('sidang.s3.ubah-judul', $item->id_judul) }}" class="text-decoration-none text-primary">{{ $item->Judul }}</a>
+                        <a href="{{ route('sidang.s3.ubah-judul', $item->id_judul) }}" class="text-decoration-none">{{ $item->Judul }}</a>
                     @else
                         <a href="#" class="text-decoration-none">{{ $item->Judul }}</a>
                     @endif
@@ -202,13 +204,17 @@ function getStatusColor($status) {
                     </span>
                 </td>
             </tr>
-        @endforeach
+        @empty
+            <tr>
+                <td colspan="12" class="text-center text-muted py-4">Tidak ada data progress sidang S3</td>
+            </tr>
+        @endforelse
     </tbody>
 </table>
-<div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+<div class="mt-3 d-flex justify-content-between align-items-center flex-wrap">
     <div class="d-flex align-items-center mb-2 mb-md-0">
         <label class="mb-0 mr-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">Tampilkan</label>
-        <select class="form-control form-control-sm column-search" name="per_page" style="width: auto; min-width: 70px; color: #495057;">
+        <select class="form-control form-control-sm column-search" name="per_page" style="width: auto; min-width: 70px;">
             @foreach([10, 25, 50, 100] as $n)
                 <option value="{{ $n }}" {{ (int) $tracking->perPage() === $n ? 'selected' : '' }}>{{ $n }}</option>
             @endforeach
@@ -216,6 +222,6 @@ function getStatusColor($status) {
         <span class="ml-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">data per halaman</span>
     </div>
     <div>
-        {{ $tracking->links('pagination::bootstrap-4') }}
+        {{ $tracking->links() }}
     </div>
 </div>

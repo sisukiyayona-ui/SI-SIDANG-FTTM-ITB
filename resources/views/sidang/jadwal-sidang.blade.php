@@ -2,6 +2,7 @@
 
 @section('title', 'Jadwal Sidang - SI SIDANG FTTM ITB')
 @section('page_title', 'Jadwal Sidang')
+@section('body_class', 'master-ui')
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
         <li class="breadcrumb-item"><a href="{{ route(session('auth_user.role') === 'Mahasiswa' ? 'mahasiswa.dashboard' : 'dashboard') }}">Home</a></li>
@@ -18,15 +19,6 @@
     $namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     $namaBulanPendek = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     $hariNama = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-    $dayColors = [
-        '#e3f2fd', // Sen (Biru muda)
-        '#fce4ec', // Sel (Pink muda)
-        '#e8f5e9', // Rab (Hijau muda)
-        '#fff8e1', // Kam (Kuning/Amber muda)
-        '#f3e5f5', // Jum (Ungu muda)
-        '#fff3e0', // Sab (Orange muda)
-        '#fbe9e7'  // Min (Merah muda)
-    ];
 
     $prevMonth = $bulan == 1 ? 12 : $bulan - 1;
     $prevYear = $bulan == 1 ? $tahun - 1 : $tahun;
@@ -39,22 +31,6 @@
         if ($tgl) {
             $jadwalByDate[$tgl][] = $item;
         }
-    }
-
-    function statusBadge($status) {
-        $s = strtolower($status ?? '');
-        if (!$status) return '<span class="badge badge-warning">Dalam Proses</span>';
-        if ($s === 'belum diajukan') return '<span class="badge badge-secondary">Belum Diajukan</span>';
-        if ($s === 'diproses di tu prodi') return '<span class="badge badge-warning">Diproses di TU Prodi</span>';
-        if ($s === 'diproses di fakultas') return '<span class="badge badge-orange" style="background-color: orange;">Diproses di Fakultas</span>';
-        if ($s === 'menunggu pelaksanaan sidang') return '<span class="badge badge-purple" style="background-color: #6f42c1;">Menunggu Pelaksanaan Sidang</span>';
-        if ($s === 'menunggu approve kpps') return '<span class="badge badge-purple" style="background-color: #6f42c1;">Menunggu Approve KPPS</span>';
-        if ($s === 'terjadwal') return '<span class="badge badge-primary">Terjadwal</span>';
-        if ($s === 'lulus') return '<span class="badge badge-success">Lulus</span>';
-        if ($s === 'tidak lulus') return '<span class="badge badge-danger">Tidak Lulus</span>';
-        if ($s === 'rejected' || $s === 'ditolak') return '<span class="badge badge-danger">Rejected</span>';
-        if ($s === 'dalam proses') return '<span class="badge badge-warning">Dalam Proses</span>';
-        return '<span class="badge badge-warning">' . ucfirst($status) . '</span>';
     }
 
     function getAjuanDisplayStatus($ev) {
@@ -110,22 +86,47 @@
         ];
         return $labels[$tahapanLower] ?? $tahapan;
     }
+
+    function strataColor($strata) {
+        $s = strtolower(trim($strata ?? ''));
+        $map = [
+            's1' => ['border' => '#3b82f6', 'bg' => '#eff6ff', 'text' => '#1d4ed8', 'label' => 'S1'],
+            's2' => ['border' => '#10b981', 'bg' => '#ecfdf5', 'text' => '#047857', 'label' => 'S2'],
+            's3' => ['border' => '#8b5cf6', 'bg' => '#f5f3ff', 'text' => '#6d28d9', 'label' => 'S3'],
+        ];
+        return $map[$s] ?? ['border' => '#6b7280', 'bg' => '#f9fafb', 'text' => '#374151', 'label' => $strata ?? '-'];
+    }
+
+    function strataColorDark($strata) {
+        $s = strtolower(trim($strata ?? ''));
+        $map = [
+            's1' => ['border' => '#60a5fa', 'bg' => 'rgba(96,165,250,.12)', 'text' => '#93c5fd'],
+            's2' => ['border' => '#34d399', 'bg' => 'rgba(52,211,153,.12)', 'text' => '#6ee7b7'],
+            's3' => ['border' => '#a78bfa', 'bg' => 'rgba(167,139,250,.12)', 'text' => '#c4b5fd'],
+        ];
+        return $map[$s] ?? ['border' => '#9ca3af', 'bg' => 'rgba(156,163,175,.12)', 'text' => '#d1d5db'];
+    }
+@endphp
+
+@php
+    $activeTab = request()->has('page') || request()->has('per_page') ? 'card' : 'calendar';
 @endphp
 
 @section('content')
+<div class="master-data-container">
     <div id="jadwalCard" class="card mb-4">
         <div class="card-body">
             <ul class="nav nav-tabs mb-4 justify-content-end" id="jadwalTabs" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" id="calendar-tab" data-toggle="tab" href="#calendar" role="tab"><i class="fas fa-calendar-alt mr-1"></i> Kalender</a>
+                    <a class="nav-link {{ $activeTab === 'calendar' ? 'active' : '' }}" id="calendar-tab" data-toggle="tab" href="#calendar" role="tab"><i class="fas fa-calendar-alt mr-1"></i> Kalender</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="card-tab" data-toggle="tab" href="#card" role="tab"><i class="fas fa-th-large mr-1"></i> Card</a>
+                    <a class="nav-link {{ $activeTab === 'card' ? 'active' : '' }}" id="card-tab" data-toggle="tab" href="#card" role="tab"><i class="fas fa-th-large mr-1"></i> Card</a>
                 </li>
             </ul>
 
             <div class="tab-content" id="jadwalTabsContent">
-                <div class="tab-pane fade show active" id="calendar" role="tabpanel">
+                <div class="tab-pane fade {{ $activeTab === 'calendar' ? 'show active' : '' }}" id="calendar" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <a href="?bulan={{ $prevMonth }}&tahun={{ $prevYear }}" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-chevron-left mr-1"></i> {{ $namaBulan[$prevMonth - 1] }} {{ $prevYear }}
@@ -137,11 +138,11 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-bordered text-center" style="table-layout: fixed;">
+                        <table class="table table-bordered text-center jadwal-calendar">
                             <thead>
                                 <tr>
                                     @foreach($hariNama as $idx => $h)
-                                        <th class="py-2 text-dark" style="width: 14.28%; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; background-color: {{ $dayColors[$idx] }};">{{ $h }}</th>
+                                        <th style="width: 14.28%;">{{ $h }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
@@ -161,9 +162,9 @@
                                             @endphp
 
                                             @if(!$isCurrentDay)
-                                                <td class="p-1" style="height: 140px; vertical-align: top; background-color: {{ $dayColors[$col] }}; opacity: 0.5;"></td>
+                                                <td class="p-1 is-empty"></td>
                                             @elseif($dayCount > $totalDays)
-                                                <td class="p-1" style="height: 140px; vertical-align: top; background-color: {{ $dayColors[$col] }}; opacity: 0.5;"></td>
+                                                <td class="p-1 is-empty"></td>
                                             @else
                                                 @php
                                                     $dateStr = sprintf('%s-%02s-%02s', $tahun, $bulan, $displayDay);
@@ -171,18 +172,20 @@
                                                     $isToday = ($dateStr === $todayStr);
                                                     $dayEvents = $jadwalByDate[$dateStr] ?? [];
                                                 @endphp
-                                                <td class="p-1" style="height: 140px; vertical-align: top; background-color: {{ $dayColors[$col] }}; {{ $isToday ? 'border: 3px solid #1e3a8a !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);' : '' }}">
+                                                <td class="p-1 {{ $isToday ? 'is-today' : '' }}">
                                                     <div class="d-flex justify-content-between align-items-start mb-1">
-                                                        <span class="font-weight-bold {{ $isToday ? 'text-primary' : 'text-dark' }}" style="font-size: 1.2rem;">
+                                                        <span class="jadwal-cell-day">
                                                             {{ $displayDay }} {!! $isToday ? '<small>(Hari Ini)</small>' : '' !!}
                                                         </span>
                                                         @if(count($dayEvents) > 0)
-                                                            <span class="badge badge-primary" style="font-size: 0.9rem;">{{ count($dayEvents) }}</span>
+                                                            <span class="badge bg-primary">{{ count($dayEvents) }}</span>
                                                         @endif
                                                     </div>
                                                     <div style="max-height: 100px; overflow-y: auto;">
                                                         @foreach(array_slice($dayEvents, 0, 3) as $ev)
-                                                            <div class="text-left mb-1 p-1 rounded shadow-sm text-dark" style="font-size: 0.9rem; line-height: 1.3; background: #ffffff; border-left: 3px solid #1e3a8a; cursor: pointer;"
+                                                            @php $sc = strataColor($ev->Strata ?? ''); @endphp
+                                                            <div class="jadwal-event" data-strata="{{ strtolower($ev->Strata ?? '') }}"
+                                                                 style="border-left-color: {{ $sc['border'] }};"
                                                                  onclick="showDetail({{ json_encode([
                                                                      'tanggal' => \Carbon\Carbon::parse($ev->tgl_sidang)->translatedFormat('l, d F Y'),
                                                                      'nama' => $ev->nama_mhs,
@@ -193,8 +196,10 @@
                                                                      'tahapan' => tahapLabel($ev->tahapan_sidang),
                                                                       'status' => getAjuanDisplayStatus($ev),
                                                                      'strata' => $ev->Strata ?? '-',
+                                                                     'prodi' => $ev->NAMA_PRODI ?? '-',
                                                                  ]) }})">
-                                                                <strong>{{ $ev->nama_mhs }}</strong><br>
+                                                                <span class="jadwal-event-strata" style="background: {{ $sc['bg'] }}; color: {{ $sc['text'] }}; border: 1px solid {{ $sc['border'] }};">{{ $sc['label'] }}</span>
+                                                                <strong>{{ $ev->nama_mhs }}</strong>
                                                                 <span class="text-muted"><i class="far fa-clock"></i> {{ $ev->waktu_sidang ?? '-' }}</span>
                                                             </div>
                                                         @endforeach
@@ -218,38 +223,59 @@
                     </div>
                 </div>
 
-                <div class="tab-pane fade" id="card" role="tabpanel">
-                    @if($jadwalSidang && $jadwalSidang->count() > 0)
+                <div class="tab-pane fade {{ $activeTab === 'card' ? 'show active' : '' }}" id="card" role="tabpanel">
+                    @php
+                        $cardsData = $jadwalCards ?? $jadwalSidang;
+                        $itemsCollection = method_exists($cardsData, 'getCollection') ? $cardsData->getCollection() : $cardsData;
+                    @endphp
+                    @if($itemsCollection && $itemsCollection->count() > 0)
                         @php
-                            $groupedJadwal = $jadwalSidang->groupBy(function($item) {
+                            $groupedJadwal = $itemsCollection->groupBy(function($item) {
                                 return \Carbon\Carbon::parse($item->tgl_sidang)->format('Y-m-d');
                             });
-                            // Warna background yang selang-seling seperti di gambar (biru, orange, hijau)
-                            $rowColors = ['#c0d4ec', '#fac9a7', '#c2dfc1', '#f5c6cb', '#ffeeba']; 
                         @endphp
-                        
+
                         @foreach($groupedJadwal as $tanggal => $items)
-                            @php 
-                                // Dapatkan indeks hari (0 = Senin, 6 = Minggu)
-                                $dayOfWeekIdx = (\Carbon\Carbon::parse($tanggal)->dayOfWeek + 6) % 7; 
-                                $headerColor = $dayColors[$dayOfWeekIdx];
+                            @php
+                                $dayStratas = $items->pluck('Strata')->map(fn($s) => strtolower(trim($s ?? '')))->filter()->unique()->values();
+                                $headClass = 'jadwal-day-head-default';
+                                $strataLabel = '';
+                                if ($dayStratas->count() === 1) {
+                                    $onlyStrata = $dayStratas->first();
+                                    if (in_array($onlyStrata, ['s1', 's2', 's3'])) {
+                                        $headClass = 'jadwal-day-head-' . $onlyStrata;
+                                        $strataLabel = strtoupper($onlyStrata);
+                                    }
+                                }
                             @endphp
-                            <div class="mb-4" style="border: 1px solid #dcdcdc; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                                <div style="background-color: {{ $headerColor }}; padding: 12px 25px; font-weight: bold; color: #333; font-size: 1.25rem; border-bottom: 2px solid rgba(0,0,0,0.1);">
-                                    <i class="fas fa-calendar-day mr-2 text-primary"></i>
-                                    {{ \Carbon\Carbon::parse($tanggal)->translatedFormat('l, d F Y') }}
+                            <div class="jadwal-day-card">
+                                <div class="jadwal-day-head {{ $headClass }} d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-calendar-day mr-2"></i>
+                                        <span>{{ \Carbon\Carbon::parse($tanggal)->translatedFormat('l, d F Y') }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center" style="gap: 6px;">
+                                        @if($strataLabel)
+                                            <span class="badge" style="background: rgba(255,255,255,0.22); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); font-size: 0.72rem; padding: 4px 10px; border-radius: 999px;">
+                                                Program {{ $strataLabel }}
+                                            </span>
+                                        @endif
+                                        <span class="badge" style="background: rgba(255,255,255,0.22); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); font-size: 0.72rem; padding: 4px 10px; border-radius: 999px;">
+                                            {{ $items->count() }} Jadwal
+                                        </span>
+                                    </div>
                                 </div>
-                                
-                                @php $c_idx = 0; @endphp
+
                                 @foreach($items as $item)
-                                    <div class="d-flex p-3 text-dark position-relative" style="background-color: {{ $rowColors[$c_idx % count($rowColors)] }}; {{ !$loop->last ? 'border-bottom: 1px solid #999;' : '' }}">
-                                        <div style="width: 180px; flex-shrink: 0; padding-left: 10px;">
-                                            <div style="margin-bottom: 3px; font-weight: bold; font-size: 1.15rem;">{{ $item->waktu_sidang ? substr($item->waktu_sidang, 0, 5) : '-' }}</div>
-                                            <div style="font-size: 1.1rem; margin-bottom: 2px;">{{ $item->ruang_sidang ?? '-' }}</div>
-                                            <div style="font-size: 1.1rem;">FTTM</div>
+                                    @php $sc = strataColor($item->Strata ?? ''); @endphp
+                                    <div class="d-flex jadwal-row position-relative" data-strata="{{ strtolower($item->Strata ?? '') }}" style="border-left: 4px solid {{ $sc['border'] }};">
+                                        <div class="jadwal-row-time">
+                                            <div class="time">{{ $item->waktu_sidang ? substr($item->waktu_sidang, 0, 5) : '-' }}</div>
+                                            <div class="room">{{ $item->ruang_sidang ?? '-' }}</div>
+                                            <div class="unit">FTTM</div>
                                         </div>
                                         <div style="flex-grow: 1;">
-                                            <table style="width: 100%; border: none; font-size: 1.1rem; line-height: 1.5;">
+                                            <table>
                                                 <tr>
                                                     <td style="width: 90px; vertical-align: top;">Nama</td>
                                                     <td style="width: 15px; vertical-align: top;">:</td>
@@ -272,19 +298,38 @@
                                                 </tr>
                                             </table>
                                         </div>
-                                        <div style="position: absolute; top: 10px; right: 10px;">
-                                            <a href="{{ session('auth_user.role') === 'Mahasiswa' ? '/mahasiswa/dashboard' : '/sidang/' . strtolower($item->Strata ?? 's1') }}" 
-                                               class="btn btn-sm btn-primary" 
-                                               style="font-size: 0.85rem; padding: 6px 12px; white-space: nowrap;"
+                                        <div style="position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                                            @php $strataKey = strtolower(trim($item->Strata ?? '')); @endphp
+                                            <span class="jadwal-strata-badge jadwal-strata-badge-{{ in_array($strataKey, ['s1','s2','s3']) ? $strataKey : 'default' }}">
+                                                {{ $sc['label'] }}{{ ($item->NAMA_PRODI ?? '') ? ' · ' . $item->NAMA_PRODI : '' }}
+                                            </span>
+                                            <a href="{{ session('auth_user.role') === 'Mahasiswa' ? '/mahasiswa/dashboard' : '/sidang/' . strtolower($item->Strata ?? 's1') }}"
+                                               class="btn btn-sm btn-outline-primary"
                                                title="Lihat Tabel Jadwal Sidang {{ tahapLabel($item->tahapan_sidang) }}">
                                                 <i class="fas fa-table mr-1"></i>Tabel
                                             </a>
                                         </div>
                                     </div>
-                                    @php $c_idx++; @endphp
                                 @endforeach
                             </div>
                         @endforeach
+
+                        @if(method_exists($cardsData, 'links'))
+                        <div class="mt-4 d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="d-flex align-items-center mb-2 mb-md-0">
+                                <label class="mb-0 mr-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">Tampilkan</label>
+                                <select class="form-control form-control-sm column-search" style="width: auto; min-width: 70px;" onchange="changePerPage(this.value)">
+                                    @foreach([10, 25, 50, 100] as $n)
+                                        <option value="{{ $n }}" {{ (int) $cardsData->perPage() === $n ? 'selected' : '' }}>{{ $n }}</option>
+                                    @endforeach
+                                </select>
+                                <span class="ml-2 text-muted" style="font-size: 0.875rem; white-space: nowrap;">jadwal per halaman (Menampilkan {{ $cardsData->firstItem() }} - {{ $cardsData->lastItem() }} dari {{ $cardsData->total() }} jadwal)</span>
+                            </div>
+                            <div>
+                                {{ $cardsData->fragment('card')->links() }}
+                            </div>
+                        </div>
+                        @endif
                     @else
                         <div class="text-center py-4 text-muted">
                             <i class="fas fa-calendar-times fa-3x mb-3"></i>
@@ -295,6 +340,7 @@
             </div>
         </div>
     </div>
+</div>
 
     <!-- Detail Modal -->
     <div class="modal fade" id="detailModal" tabindex="-1" role="dialog">
@@ -321,6 +367,13 @@
         } else if (data.status.toLowerCase() === 'tidak lulus') {
             statusClass = 'badge-danger';
         }
+
+        var strataColors = {
+            's1': { border: '#3b82f6', bg: '#eff6ff', text: '#1d4ed8' },
+            's2': { border: '#10b981', bg: '#ecfdf5', text: '#047857' },
+            's3': { border: '#8b5cf6', bg: '#f5f3ff', text: '#6d28d9' }
+        };
+        var sc = strataColors[(data.strata || '').toLowerCase()] || { border: '#6b7280', bg: '#f9fafb', text: '#374151' };
 
         var html = '' +
             '<div class="jadwal-detail-container">' +
@@ -356,7 +409,8 @@
                     '<div class="mhs-name">' + data.nama + '</div>' +
                     '<div class="mhs-info-row">' +
                         '<span class="mhs-badge">NIM: ' + data.nim + '</span>' +
-                        '<span class="mhs-badge">Strata: ' + data.strata + '</span>' +
+                        '<span class="mhs-badge" style="background:' + sc.bg + '; color:' + sc.text + '; border-color:' + sc.border + ';">Strata: ' + data.strata + '</span>' +
+                        (data.prodi && data.prodi !== '-' ? '<span class="mhs-badge">' + data.prodi + '</span>' : '') +
                     '</div>' +
                 '</div>' +
                 
@@ -391,6 +445,38 @@
         document.getElementById('detailModalBody').innerHTML = html;
         $('#detailModal').modal('show');
     }
+
+    // Tab activation from URL hash
+    function activateTabFromHash() {
+        var hash = window.location.hash;
+        if (hash === '#card') {
+            $('#jadwalTabs a[href="#card"]').tab('show');
+        } else if (hash === '#calendar') {
+            $('#jadwalTabs a[href="#calendar"]').tab('show');
+        }
+    }
+
+    $(document).ready(function() {
+        activateTabFromHash();
+        $('#jadwalTabs a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+            var targetHash = $(e.target).attr('href');
+            if (history.replaceState) {
+                history.replaceState(null, null, targetHash);
+            } else {
+                window.location.hash = targetHash;
+            }
+        });
+    });
+
+    window.addEventListener('hashchange', activateTabFromHash);
+
+    function changePerPage(val) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('per_page', val);
+        url.searchParams.set('page', '1');
+        url.hash = 'card';
+        window.location.href = url.toString();
+    }
 </script>
 
 <style>
@@ -418,14 +504,10 @@
     .detail-datetime-header {
         display: flex;
         align-items: stretch;
-        background: #1e3a8a; /* ITB Blue */
+        background: var(--mui-primary);
         color: white;
         padding: 0;
         margin: -16px -16px 0 -16px;
-    }
-    
-    body.dark-mode .detail-datetime-header {
-        background: #1e40af;
     }
     
     .datetime-item {
@@ -472,26 +554,17 @@
     /* Mahasiswa Section */
     .detail-mahasiswa-section {
         padding: 28px 28px 24px;
-        border-bottom: 2px solid #e5e7eb;
-        background: #ffffff;
+        border-bottom: 2px solid var(--mui-line);
+        background: var(--mui-surface);
     }
-    
-    body.dark-mode .detail-mahasiswa-section {
-        border-bottom-color: #334155;
-        background: #1e293b;
-    }
-    
+
     .mhs-name {
         font-size: 1.85rem;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--mui-text);
         margin-bottom: 14px;
         letter-spacing: -0.5px;
         line-height: 1.2;
-    }
-    
-    body.dark-mode .mhs-name {
-        color: #f1f5f9;
     }
     
     .mhs-info-row {
@@ -503,121 +576,79 @@
     .mhs-badge {
         display: inline-block;
         padding: 10px 18px;
-        background: #f1f5f9;
-        color: #1e293b;
+        background: var(--mui-surface-soft);
+        color: var(--mui-text);
         font-size: 1rem;
         font-weight: 600;
         border-radius: 8px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--mui-line);
     }
-    
-    body.dark-mode .mhs-badge {
-        background: #334155;
-        color: #cbd5e1;
-        border-color: #475569;
-    }
-    
+
     /* Judul Section */
     .detail-judul-section {
         padding: 28px 28px;
-        background: #ffffff;
-        border-bottom: 2px solid #e5e7eb;
+        background: var(--mui-surface);
+        border-bottom: 2px solid var(--mui-line);
     }
-    
-    body.dark-mode .detail-judul-section {
-        background: #1e293b;
-        border-bottom-color: #334155;
-    }
-    
+
     .section-label {
         font-weight: 700;
         font-size: 0.85rem;
-        color: #1e3a8a; /* ITB Blue */
+        color: var(--mui-primary);
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 14px;
     }
     
-    body.dark-mode .section-label {
-        color: #60a5fa;
-    }
-    
     .judul-content {
         font-size: 1.1rem;
         line-height: 1.7;
-        color: #1e293b;
+        color: var(--mui-text);
         padding: 20px;
-        background: #f8fafc;
+        background: var(--mui-surface-soft);
         border-radius: 10px;
-        border-left: 4px solid #1e3a8a; /* ITB Blue */
+        border-left: 4px solid var(--mui-primary);
     }
-    
-    body.dark-mode .judul-content {
-        background: #0f172a;
-        color: #e2e8f0;
-        border-left-color: #3b82f6;
-    }
-    
+
     /* Info Grid */
     .detail-info-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 18px;
         padding: 28px 28px 32px;
-        background: #ffffff;
+        background: var(--mui-surface);
     }
-    
-    body.dark-mode .detail-info-grid {
-        background: #1e293b;
-    }
-    
+
     .info-box {
         padding: 22px 20px;
-        background: #f8fafc;
+        background: var(--mui-surface-soft);
         border-radius: 10px;
-        border: 2px solid #e2e8f0;
+        border: 2px solid var(--mui-line);
         transition: all 0.3s ease;
     }
-    
-    body.dark-mode .info-box {
-        background: #0f172a;
-        border-color: #334155;
-    }
-    
+
     .info-box:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(30, 58, 138, 0.12);
-        border-color: #3b82f6;
+        box-shadow: 0 8px 20px rgba(20, 98, 173, 0.12);
+        border-color: var(--mui-primary);
     }
-    
-    body.dark-mode .info-box:hover {
-        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
-    }
-    
+
     .info-label {
         font-size: 0.8rem;
-        color: #64748b;
+        color: var(--mui-muted);
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.8px;
         margin-bottom: 10px;
     }
-    
-    body.dark-mode .info-label {
-        color: #94a3b8;
-    }
-    
+
     .info-value {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--mui-text);
         line-height: 1.3;
     }
-    
-    body.dark-mode .info-value {
-        color: #f1f5f9;
-    }
-    
+
     .info-value .badge {
         font-size: 1.05rem;
         padding: 8px 18px;
@@ -627,27 +658,18 @@
     
     /* Modal Header */
     #detailModal .modal-header {
-        border-bottom: 2px solid #e2e8f0;
+        border-bottom: 2px solid var(--mui-line);
         padding: 20px 28px;
-        background: #ffffff;
+        background: var(--mui-surface);
     }
-    
-    body.dark-mode #detailModal .modal-header {
-        border-bottom-color: #334155;
-        background: #1e293b;
-    }
-    
+
     #detailModal .modal-title {
         font-weight: 700;
         font-size: 1.35rem;
-        color: #0f172a;
+        color: var(--mui-text);
         letter-spacing: -0.3px;
     }
-    
-    body.dark-mode #detailModal .modal-title {
-        color: #f1f5f9;
-    }
-    
+
     #detailModal .close {
         font-size: 2rem;
         font-weight: 300;
@@ -660,62 +682,26 @@
         opacity: 1;
     }
     
-    body.dark-mode #detailModal .close {
-        color: #f1f5f9;
-    }
-    
-    /* Badge colors */
-    .badge-success {
-        background-color: #10b981 !important;
-        color: #ffffff !important;
-    }
-    
-    .badge-danger {
-        background-color: #ef4444 !important;
-        color: #ffffff !important;
-    }
-    
-    .badge-warning {
-        background-color: #f59e0b !important;
-        color: #ffffff !important;
-    }
-    
     /* Action Section - Task #17 */
     .detail-action-section {
         padding: 20px 28px 28px;
-        background: #ffffff;
-        border-top: 2px solid #e5e7eb;
+        background: var(--mui-surface);
+        border-top: 2px solid var(--mui-line);
     }
-    
-    body.dark-mode .detail-action-section {
-        background: #1e293b;
-        border-top-color: #334155;
-    }
-    
+
     .detail-action-section .btn-primary {
-        background: #1e3a8a;
+        background: var(--mui-primary);
         border: none;
         font-weight: 700;
-        font-size: 1.1rem;
-        padding: 14px 24px;
-        border-radius: 10px;
         transition: all 0.3s ease;
     }
-    
+
     .detail-action-section .btn-primary:hover {
-        background: #1e40af;
+        background: var(--mui-primary-strong);
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(30, 58, 138, 0.3);
+        box-shadow: 0 8px 20px rgba(20, 98, 173, 0.3);
     }
-    
-    body.dark-mode .detail-action-section .btn-primary {
-        background: #3b82f6;
-    }
-    
-    body.dark-mode .detail-action-section .btn-primary:hover {
-        background: #60a5fa;
-    }
-    
+
     /* Responsive */
     @media (max-width: 768px) {
         .detail-datetime-header {

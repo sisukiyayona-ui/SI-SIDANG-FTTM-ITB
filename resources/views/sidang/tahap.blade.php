@@ -1149,15 +1149,15 @@
                             <div class="text-muted font-weight-bold">
                                 Jadwal Sidang {{ getTahapLabel($tahapan) }}
                             </div>
-                            <button type="button" class="btn btn-primary btn-sm" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) ? 'disabled' : '' }} onclick="openJadwalForm(null)"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                            <button type="button" class="btn btn-primary btn-sm px-3" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) ? 'disabled' : '' }} onclick="openJadwalForm(null)"><i class="fas fa-plus mr-1"></i> Tambah</button>
                         </div>
                         <table class="table table-bordered table-sm text-center">
-                            <thead style="background-color: #6998d3; color: white;">
+                            <thead>
                                 <tr>
-                                    <th style="width: 10%;">No</th>
-                                    <th style="width: 35%;">Jadwal</th>
-                                    <th style="width: 15%;">Status Lulus</th>
-                                    <th style="width: 25%;">Penilaian Seminar/Sidang</th>
+                                    <th style="width: 6%;">No</th>
+                                    <th style="width: 28%;">Jadwal</th>
+                                    <th style="width: 14%;">Status Lulus</th>
+                                    <th style="width: 37%;">Penilaian Seminar/Sidang</th>
                                     <th style="width: 15%;">Aksi</th>
                                 </tr>
                             </thead>
@@ -1165,7 +1165,7 @@
                                 @php $visibleAjuan = isset($allAjuan) ? $allAjuan->filter(function($a) { return $a->tgl_sidang && (session('auth_user.role') !== 'FS' || ($a->STATUS_AJUKAN_PRODI ?? 't') === 'y'); }) : collect(); @endphp
                                 @if($visibleAjuan->isNotEmpty())
                                     @foreach($visibleAjuan as $idx => $a)
-                                    <tr style="background-color: #dbe5f1;">
+                                    <tr>
                                         <td>{{ $idx + 1 }}</td>
                                         @php
                                             $role = session('auth_user.role');
@@ -1190,10 +1190,10 @@
                                         @endphp
                                         <td><span class="badge bg-{{ getStatusColor($displayStatus) }}">{{ $displayStatus }}</span></td>
                                         <td>
-                                            <div class="d-flex flex-wrap align-items-center justify-content-center" style="gap: 6px;">
-                                                <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent; max-width: 100%;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}>Penilaian</button>
+                                            <div class="d-flex flex-nowrap align-items-center justify-content-center" style="gap: 6px;">
+                                                <button type="button" class="btn btn-sm btn-outline-primary px-3" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}><i class="fas fa-clipboard-check mr-1"></i> Penilaian</button>
                                                 @if(strtolower($tahapan) === 'tahap iv')
-                                                <button type="button" class="btn btn-sm px-3 py-1" style="font-size: 12px; border-radius: 4px; color: #000; border: 2px solid #000; background: transparent; max-width: 100%;" onmouseover="this.style.background='#000'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#000';" onclick="cetakPedomanKetuaSidang({{ $idJudul }}, '{{ $tahapan }}')">PED Ketua Sidang</button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="cetakPedomanKetuaSidang({{ $idJudul }}, '{{ $tahapan }}')"><i class="fas fa-book mr-1"></i> PED Ketua Sidang</button>
                                                 @endif
                                             </div>
                                         </td>
@@ -1202,7 +1202,7 @@
                                             @php $canDelete = strtolower(trim((string) $displayStatus)) === 'diproses di tu prodi'; @endphp
                                             <button type="button"
                                                 class="btn btn-sm btn-outline-danger px-2 py-1"
-                                                style="font-size: 12px; border-radius: 4px;{{ $canDelete ? '' : ' opacity:0.45; cursor:not-allowed;' }}"
+                                                style="{{ $canDelete ? '' : ' opacity:0.45; cursor:not-allowed;' }}"
                                                 @if($canDelete) onclick="hapusJadwal({{ $a->id }}, '{{ $tahapan }}', {{ $idJudul }})" @else disabled title="Hanya bisa dihapus saat Diproses di TU Prodi" @endif>
                                                 <i class="fas fa-trash mr-1"></i> Hapus
                                             </button>
@@ -1213,8 +1213,8 @@
                                     </tr>
                                     @endforeach
                                 @else
-                                    <tr style="background-color: #dbe5f1;">
-                                        <td colspan="5" class="text-center text-muted">Belum ada jadwal</td>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-3">Belum ada jadwal</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -1280,10 +1280,10 @@
                                     @endunless
                                 </div>
                                 <div>
-                                    <button type="button" class="btn btn-black px-2 py-0" style="font-size: 12px; border-radius: 0;" onclick="cetakForm()">Cetak Penilaian</button>
-                                    <button type="button" class="btn btn-outline-dark px-2 py-0 bg-white text-danger ml-1" style="font-size: 12px; border-radius: 0;" onclick="cetakBeritaAcara()">BA Sidang</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="cetakForm()"><i class="fas fa-print mr-1"></i> Cetak Penilaian</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="cetakBeritaAcara()"><i class="fas fa-file-signature mr-1"></i> BA Sidang</button>
                                     @if(strtolower($tahapan) === 'tahap iv')
-                                    <button type="button" id="akademikBtn" class="btn btn-sm px-3 py-1 ml-1" style="font-size: 12px; border-radius: 4px; color: #003366; border-color: #003366; background: transparent;" onmouseover="this.style.background='#003366'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#003366';" onclick="openAkademikForm()" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }} title="{{ session('auth_user.role') !== 'TU Prodi' ? 'Hanya TU Prodi yang dapat mengisi' : '' }}"><i class="fas fa-graduation-cap mr-1"></i> Capaian Akademik</button>
+                                    <button type="button" id="akademikBtn" class="btn btn-sm btn-outline-primary ml-1" onclick="openAkademikForm()" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }} title="{{ session('auth_user.role') !== 'TU Prodi' ? 'Hanya TU Prodi yang dapat mengisi' : '' }}"><i class="fas fa-graduation-cap mr-1"></i> Capaian Akademik</button>
                                     @endif
                                 </div>
                             </div>
@@ -1357,7 +1357,7 @@
                             {{-- STATUS KELULUSAN --}}
                             <div class="mt-4 d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0 mr-3" style="font-size: 12px; border-radius: 0;" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';">&larr; Kembali</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 mr-3" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
                                     <span class="mr-4 font-weight-bold">Status Kelulusan</span>
                                     @if(!in_array(session('auth_user.role'), ['FS']))
                                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;">
@@ -1388,13 +1388,13 @@
                                     <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                                     @endif
                                     @if($isKetuaSidangTim)
-                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock"></i> Kunci Nilai</button></span>
-                                    <button type="button" class="btn btn-outline-secondary" style="font-size: 14px;" onclick="saveStatusLulusTahap2()">Simpan Status</button>
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusTahap2()"><i class="fas fa-save mr-1"></i> Simpan Status</button>
                                     @elseif($isTuProdiAtauAdmin)
-                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
-                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()">Simpan</button>
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
+                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()"><i class="fas fa-save mr-1"></i> Simpan</button>
                                     @else
-                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap2()" @if($isNilaiTerkunciUi || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif>Simpan</button>
+                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()" @if($isNilaiTerkunciUi || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif><i class="fas fa-save mr-1"></i> Simpan</button>
                                     @endif
                                 </div>
                                 @endif
@@ -1493,9 +1493,9 @@
                             <div class="text-muted" style="font-size: 13px;">
                                 Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Tambah</span>/ Edit <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Jadwal Sidang {{ getTahapLabel($tahapan) }}</span>
                             </div>
-<div>
-                                <button type="button" class="btn btn-black px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="cetakSuratKesediaan()">Surat Kesediaan Penelaah</button>
-                                <button type="button" class="btn btn-black px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="cetakUndangan()">Cetak Undangan</button>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mr-2" onclick="cetakSuratKesediaan()"><i class="fas fa-file-alt mr-1"></i> Surat Kesediaan Penelaah</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="cetakUndangan()"><i class="fas fa-print mr-1"></i> Cetak Undangan</button>
                             </div>
                         </div>
                         <form id="jadwalFormTahap2Form" onsubmit="event.preventDefault(); submitJadwalTahap2(event)">
@@ -1597,23 +1597,23 @@
                             </div>
                              <div class="d-flex justify-content-between align-items-center mt-4">
                                  <div>
-                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-0" style="font-size: 12px; border-radius: 0;" onclick="kembaliKeJadwalListTahap2()">&larr; Kembali</button>
+                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="kembaliKeJadwalListTahap2()"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
                                  </div>
                                  <div>
 <input type="hidden" name="is_ajukan_fs" value="">
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) && (!isset($ajuan) || $ajuan->STATUS_AJUKAN_PRODI !== 'y'))
-                                       <button type="button" class="btn btn-success px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);">Ajukan ke FS</button>
+                                       <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);"><i class="fas fa-paper-plane mr-1"></i> Ajukan ke FS</button>
                                       @endif
                                       @if($strataView === 'S3' && session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
                                        <input type="hidden" name="is_ajukan_kpps" value="">
-                                       <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan ke KPPS</button>
+                                       <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);"><i class="fas fa-paper-plane mr-1"></i> Ajukan ke KPPS</button>
                                       @endif
                                       @if($strataView === 'S3' && session('auth_user.role') === 'FS' && isset($ajuan) && ($ajuan->STATUS_LULUS ?? '') === 'tidak lulus')
                                        <input type="hidden" name="is_ajukan_kpps" value="">
-                                       <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan Ulang ke KPPS (Reject)</button>
+                                       <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);"><i class="fas fa-redo mr-1"></i> Ajukan Ulang ke KPPS (Reject)</button>
                                       @endif
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']))
-                                       <button type="submit" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="submitJadwalTahap2(event)">Simpan</button>
+                                       <button type="submit" class="btn btn-sm btn-primary px-3" onclick="submitJadwalTahap2(event)"><i class="fas fa-save mr-1"></i> Simpan</button>
                                       @endif
                                  </div>
                              </div>
@@ -1667,9 +1667,9 @@
                                     @endif
                                 <div class="text-right mt-4">
                                     @if($canManageKelulusan)
-                                    <button type="button" class="btn btn-primary mr-2" style="font-size: 13px; border-radius: 0;" onclick="updateStatusLulus({{ $ajuan->id ?? 0 }})">Simpan Status</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mr-2" onclick="updateStatusLulus({{ $ajuan->id ?? 0 }})"><i class="fas fa-save mr-1"></i> Simpan Status</button>
                                     @endif
-                                    <button type="button" class="btn btn-primary" style="font-size: 13px; border-radius: 0;">Simpan</button>
+                                    <button type="button" class="btn btn-sm btn-primary"><i class="fas fa-save mr-1"></i> Simpan</button>
                                 </div>
                             </div>
                             
@@ -1736,18 +1736,18 @@
                                         <div class="col-sm-2 pl-0 d-flex align-items-center">
                                             @if($isViewOnlyPenilai)
                                             {{-- Ketua Sidang tidak menginput nilai: simpan keputusan kelulusan saja --}}
-                                            <button type="button" class="btn btn-outline-secondary" style="font-size: 12px; border-radius: 0;" onclick="saveStatusLulusPembimbing()">Simpan Status</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusPembimbing()"><i class="fas fa-save mr-1"></i> Simpan Status</button>
                                             @elseif($isNilaiTerkunciUi)
-                                            <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled title="Nilai sudah dikunci oleh Ketua Sidang">Simpan</button>
+                                            <button type="submit" class="btn btn-sm btn-primary px-3" disabled title="Nilai sudah dikunci oleh Ketua Sidang"><i class="fas fa-save mr-1"></i> Simpan</button>
                                             @elseif($isKppsGateBlocking)
-                                            <button type="button" class="btn btn-primary" style="font-size: 12px; border-radius: 0;" disabled title="{{ $pesanKppsGate }}">Simpan</button>
+                                            <button type="button" class="btn btn-sm btn-primary px-3" disabled title="{{ $pesanKppsGate }}"><i class="fas fa-save mr-1"></i> Simpan</button>
                                             @else
-                                            <button type="submit" class="btn btn-primary" style="font-size: 12px; border-radius: 0;">Simpan</button>
+                                            <button type="submit" class="btn btn-sm btn-primary px-3"><i class="fas fa-save mr-1"></i> Simpan</button>
                                             @endif
                                         </div>
                                         @if($canManageKelulusan)
                                         <div class="col-sm-2 pl-0 d-flex align-items-center ml-2">
-                                            <span class="lock-nilai-wrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" style="font-size: 12px;"><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                                            <span class="lock-nilai-wrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
                                         </div>
                                         @endif
                                     </div>
@@ -1824,9 +1824,9 @@
                                     <div class="col-sm-2 px-1">
                                         <input type="text" class="form-control form-control-sm border-dark rounded-0">
                                     </div>
-                                    <div class="col-sm-2 pl-0 d-flex align-items-center">
-                                        <button type="button" class="btn btn-outline-dark py-0 px-1 bg-white" style="font-size: 12px; border-radius: 0;">Cari</button>
-                                        <a href="#" onclick="cetakBeritaAcara()" class="text-dark ml-2" style="font-size: 11px; text-decoration: underline;">BA Sidang</a>
+                                    <div class="col-sm-3 pl-0 d-flex align-items-center">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 mr-2"><i class="fas fa-search mr-1"></i> Cari</button>
+                                        <button type="button" onclick="cetakBeritaAcara()" class="btn btn-sm btn-outline-primary px-2"><i class="fas fa-file-signature mr-1"></i> BA Sidang</button>
                                     </div>
                                 </div>
                                 

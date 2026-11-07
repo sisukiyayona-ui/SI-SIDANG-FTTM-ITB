@@ -7,15 +7,7 @@
 
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/itb-logo.svg') }}">
 
-    <script nonce="{{ request()->attributes->get('csp_nonce') ?? '' }}">
-        (function() {
-            var saved = localStorage.getItem('darkMode');
-            var isDark = saved === 'true' || (saved === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            if (isDark) {
-                document.documentElement.classList.add('dark-mode');
-            }
-        })();
-    </script>
+    @include('layouts.partials.theme-head')
 
     <link rel="stylesheet" href="{{ asset('vendor/inter/300.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/inter/400.css') }}">
@@ -111,6 +103,37 @@
             --toast-bg: #ffffff;
             --navbar-bg: #ffffff;
             --content-bg: #ffffff;
+            --nav-sidebar-from: #1462ad;
+            --nav-sidebar-to: #1462ad;
+            --nav-border: rgba(255, 255, 255, 0.14);
+            --nav-text: rgba(255, 255, 255, 0.82);
+            --nav-text-strong: #ffffff;
+            --nav-hover: rgba(255, 255, 255, 0.12);
+            --nav-active-bg: rgba(255, 255, 255, 0.18);
+            --nav-accent: #ffffff;
+            --nav-icon: rgba(224, 242, 254, 0.72);
+            --nav-icon-active: #ffffff;
+            --topbar-bg: #1462ad;
+            --topbar-border: rgba(255, 255, 255, 0.22);
+            --topbar-edge: rgba(4, 28, 55, 0.40);
+            --topbar-text: rgba(255, 255, 255, 0.78);
+            --topbar-text-strong: #ffffff;
+            --topbar-hover: rgba(255, 255, 255, 0.14);
+            --topbar-field-bg: rgba(255, 255, 255, 0.14);
+            --topbar-field-border: rgba(255, 255, 255, 0.26);
+            --topbar-accent: #ffffff;
+            --topbar-ring: rgba(255, 255, 255, 0.22);
+            --topbar-avatar-bg: #ffffff;
+            --topbar-avatar-text: #1462ad;
+            --topbar-avatar-border: rgba(255, 255, 255, 0.55);
+            --frame-bg: #1462ad;
+            --panel-bg: #ffffff;
+            --panel-border: #e5eaf1;
+            --dd-bg: #ffffff;
+            --dd-border: #e5eaf1;
+            --dd-text: #1e293b;
+            --dd-muted: #64748b;
+            --dd-hover: #f1f5f9;
         }
 
         html.dark-mode {
@@ -131,13 +154,44 @@
             --toast-bg: #1e293b;
             --navbar-bg: #1e293b;
             --content-bg: #0f172a;
+            --nav-sidebar-from: #13243e;
+            --nav-sidebar-to: #0b1424;
+            --nav-border: rgba(148, 163, 184, 0.12);
+            --nav-text: rgba(203, 213, 225, 0.72);
+            --nav-text-strong: #f8fafc;
+            --nav-hover: rgba(148, 163, 184, 0.10);
+            --nav-active-bg: rgba(96, 165, 250, 0.16);
+            --nav-accent: #60a5fa;
+            --nav-icon: rgba(191, 219, 254, 0.55);
+            --nav-icon-active: #60a5fa;
+            --topbar-bg: #0f172a;
+            --topbar-border: rgba(148, 163, 184, 0.14);
+            --topbar-edge: rgba(2, 6, 23, 0.55);
+            --topbar-text: #94a3b8;
+            --topbar-text-strong: #f8fafc;
+            --topbar-hover: rgba(148, 163, 184, 0.10);
+            --topbar-field-bg: rgba(148, 163, 184, 0.10);
+            --topbar-field-border: rgba(148, 163, 184, 0.16);
+            --topbar-accent: #60a5fa;
+            --topbar-ring: rgba(96, 165, 250, 0.18);
+            --topbar-avatar-bg: linear-gradient(135deg, #1d4ed8, #3b82f6);
+            --topbar-avatar-text: #ffffff;
+            --topbar-avatar-border: rgba(148, 163, 184, 0.24);
+            --frame-bg: #0a1220;
+            --panel-bg: #0f172a;
+            --panel-border: rgba(148, 163, 184, 0.14);
+            --dd-bg: #111c30;
+            --dd-border: rgba(148, 163, 184, 0.16);
+            --dd-text: #e2e8f0;
+            --dd-muted: #94a3b8;
+            --dd-hover: rgba(148, 163, 184, 0.10);
         }
 
         html.dark-mode body {
-            background: var(--body-bg) !important;
+            background: var(--frame-bg) !important;
         }
         html.dark-mode .wrapper {
-            background: var(--body-bg) !important;
+            background: var(--frame-bg) !important;
         }
         
         /* OVERRIDE AdminLTE .dark-mode hardcoded background */
@@ -149,9 +203,6 @@
         html.dark-mode,
         html.dark-mode body {
             background: var(--body-bg) !important;
-        }
-        html.dark-mode .main-header {
-            background: var(--navbar-bg) !important;
         }
         html.dark-mode .content-wrapper {
             background: var(--content-bg) !important;
@@ -293,103 +344,6 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
         }
         
-        /* ================================================================
-           SIDEBAR DARK MODE - CLEAN VERSION (matching light mode)
-           ================================================================ */
-
-        /* NUCLEAR OVERRIDE: Remove ALL AdminLTE sidebar-dark-primary backgrounds in dark mode */
-        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link {
-            background-color: transparent !important;
-        }
-        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active {
-            background-color: transparent !important;
-        }
-        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link:hover {
-            background-color: rgba(96, 165, 250, 0.1) !important;
-        }
-        html.dark-mode .sidebar-dark-primary .nav-treeview > .nav-item > .nav-link {
-            background-color: transparent !important;
-        }
-
-        /* Parent Menu expanded (Sidang, Data Master) - transparent bg, blue text */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link,
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link,
-        html.dark-mode .sidebar-dark-primary .nav-sidebar > .nav-item.menu-open > .nav-link,
-        html.dark-mode [class*="sidebar-dark"] .nav-sidebar > .nav-item.menu-open > .nav-link {
-            background-color: transparent !important;
-            color: #60a5fa !important;
-        }
-
-        /* Parent menu icons & arrows when expanded */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link .nav-icon,
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link i,
-        html.dark-mode .sidebar .nav-sidebar > .nav-item.menu-open > .nav-link .right {
-            color: #60a5fa !important;
-        }
-
-        /* Parent menu hover when expanded */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open > .nav-link:hover,
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-is-opening > .nav-link:hover {
-            background-color: rgba(96, 165, 250, 0.1) !important;
-            color: #60a5fa !important;
-        }
-
-        /* Parent with active submenu - CUTOUT EFFECT (like light mode) */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active {
-            background: #2d3a4f !important;
-            color: #ffffff !important;
-            font-weight: 600;
-            position: relative;
-            z-index: 0;
-        }
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::before {
-            box-shadow: 15px 15px 0 15px #0f172a !important;
-        }
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::after {
-            display: none !important;
-        }
-
-        /* Submenu items (S1, S2, S3) */
-        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link,
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link,
-        html.dark-mode .sidebar .nav-treeview > .nav-item > .nav-link {
-            color: rgba(255, 255, 255, 0.65) !important;
-            background: rgba(255, 255, 255, 0.05) !important;
-        }
-
-        /* Submenu hover */
-        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link:hover,
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link:hover,
-        html.dark-mode .sidebar .nav-treeview > .nav-item > .nav-link:hover {
-            background-color: rgba(96, 165, 250, 0.15) !important;
-            color: #60a5fa !important;
-        }
-
-        /* Active submenu (S3 selected) - CLEAR INDICATOR */
-        html.dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active,
-        html.dark-mode [class*="sidebar-dark"] .nav-treeview > .nav-item > .nav-link.active {
-            background-color: #2d3a4f !important;
-            color: #ffffff !important;
-            font-weight: 600;
-        }
-
-        /* Single active menu (Dashboard, no submenu) - CUTOUT EFFECT */
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
-            background: #2d3a4f !important;
-            color: #ffffff !important;
-            font-weight: 600;
-            position: relative;
-            z-index: 1;
-        }
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::before {
-            box-shadow: 15px 15px 0 15px #0f172a !important;
-            background: transparent !important;
-        }
-        html.dark-mode .main-sidebar .nav-sidebar .nav-item > .nav-link.active::after {
-            box-shadow: 15px -15px 0 15px #0f172a !important;
-            background: transparent !important;
-        }
-
         .dark-mode-toggle {
             background: none;
             border: none;
@@ -417,12 +371,12 @@
         }
 
         body {
-            background-color: var(--primary-blue) !important;
+            background-color: var(--frame-bg) !important;
             min-height: 100vh;
         }
 
         .wrapper {
-            background-color: var(--primary-blue) !important;
+            background-color: var(--frame-bg) !important;
             min-height: 100vh;
             animation: fadeInPage 0.25s ease-in-out;
         }
@@ -452,212 +406,365 @@
             color: var(--text-dark) !important;
         }
 
-        /* Sidebar Styling */
+        /* ==========================================================
+           SIDEBAR — professional navy rail (light & dark theme)
+           ========================================================== */
         .main-sidebar {
-            background: var(--primary-blue) !important;
+            background: linear-gradient(180deg, var(--nav-sidebar-from) 0%, var(--nav-sidebar-to) 100%) !important;
             box-shadow: none !important;
-            border-right: none !important;
+            border-right: 1px solid var(--nav-border) !important;
         }
 
-        .brand-link {
+        .main-sidebar .brand-link {
             background: transparent !important;
-            border-bottom: none !important;
-            padding: 24px 20px !important;
+            border-bottom: 1px solid var(--nav-border) !important;
+            padding: 18px 18px !important;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: opacity .15s ease;
         }
 
-        .brand-text {
-            color: #ffffff !important;
+        .main-sidebar .brand-link:hover {
+            opacity: .92;
+        }
+
+        .main-sidebar .brand-logo {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: #ffffff;
+            padding: 5px;
+            box-shadow: 0 4px 12px rgba(2, 6, 23, .35);
+        }
+
+        .main-sidebar .brand-text {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            float: none;
+            margin: 0;
+            line-height: 1.15;
+            font-size: 1rem !important;
             font-weight: 700 !important;
-            font-size: 1.2rem !important;
-            letter-spacing: 0.5px;
+            letter-spacing: 0;
+            color: #ffffff !important;
         }
 
-        .sidebar {
-            padding-left: 12px !important;
-            padding-right: 0px !important;
+        .main-sidebar .brand-title {
+            font-size: .95rem;
+            font-weight: 700;
+            letter-spacing: .07em;
+            color: #ffffff;
+            white-space: nowrap;
         }
 
-        .sidebar .nav-sidebar {
+        .main-sidebar .brand-sub {
+            margin-top: 3px;
+            font-size: .66rem;
+            font-weight: 600;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, .72);
+            white-space: nowrap;
+        }
+
+        .main-sidebar .brand-role {
+            margin-top: 7px;
+            align-self: flex-start;
+            max-width: 100%;
+            padding: 2px 8px;
+            font-size: .62rem;
+            font-weight: 600;
+            letter-spacing: .03em;
+            color: #ffffff;
+            background: rgba(255, 255, 255, .16);
+            border: 1px solid rgba(255, 255, 255, .32);
+            border-radius: 999px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .main-sidebar .sidebar {
+            padding: 0 12px !important;
+        }
+
+        .main-sidebar .sidebar > nav {
+            margin-top: 10px !important;
+        }
+
+        .main-sidebar .sidebar .nav-sidebar {
             width: 100% !important;
         }
 
-        .sidebar .nav-sidebar .nav-item {
+        .main-sidebar .sidebar .nav-sidebar .nav-item {
             width: 100% !important;
-            margin: 4px 0 !important;
+            margin: 2px 0 !important;
             position: relative;
         }
 
-        .sidebar .nav-sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.75) !important;
-            padding: 12px 20px !important;
-            border-radius: 30px 0 0 30px !important;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            margin-right: 0 !important;
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link {
+            display: flex;
+            align-items: center;
+            margin: 0 !important;
+            padding: 10px 14px !important;
+            border-radius: 10px !important;
+            color: var(--nav-text) !important;
+            font-size: .82rem !important;
+            font-weight: 500 !important;
+            letter-spacing: .01em;
+            transition: background .15s ease, color .15s ease;
         }
 
-        .sidebar .nav-sidebar .nav-link i {
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link > p {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin: 0;
+            font-size: inherit !important;
+        }
+
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link:hover {
+            background: var(--nav-hover) !important;
+            color: var(--nav-text-strong) !important;
+        }
+
+        .main-sidebar .sidebar .nav-sidebar .nav-link .nav-icon,
+        .main-sidebar .sidebar .nav-sidebar .nav-link > i {
+            width: 20px;
             margin-right: 12px !important;
-            font-size: 1.1rem;
-            width: 24px;
+            font-size: .92rem !important;
             text-align: center;
-            transition: transform 0.2s ease;
+            color: var(--nav-icon);
+            transition: color .15s ease;
         }
 
-        .sidebar .nav-sidebar .nav-link:hover i {
-            transform: scale(1.15);
+        .main-sidebar .sidebar .nav-sidebar .nav-link:hover .nav-icon,
+        .main-sidebar .sidebar .nav-sidebar .nav-link:hover > i {
+            color: var(--nav-text-strong);
+            transform: none;
         }
 
-        /* Hover State */
-        .main-sidebar .nav-sidebar .nav-item > .nav-link:hover {
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link.active {
+            background: var(--nav-active-bg) !important;
             color: #ffffff !important;
-            background: rgba(255, 255, 255, 0.08) !important;
+            font-weight: 600 !important;
         }
 
-        /* Midone Curved Cutout Active State */
-        .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
-            background: var(--bg-light) !important;
-            color: var(--primary-blue) !important;
-            font-weight: 600;
-            position: relative;
-            z-index: 1;
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link.active .nav-icon,
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link.active > i,
+        .main-sidebar .sidebar .nav-sidebar .nav-item.menu-open > .nav-link .nav-icon {
+            color: var(--nav-icon-active) !important;
         }
 
-        .main-sidebar .nav-sidebar .nav-item > .nav-link.active::before {
-            content: "";
+        /* Retire the old curved-cutout effect */
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link.active::before,
+        .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link.active::after {
+            content: none !important;
+            display: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Accent rail on the active top-level item */
+        .main-sidebar .sidebar .nav-sidebar > .nav-item > .nav-link.active::before {
+            content: "" !important;
+            display: block !important;
             position: absolute;
-            top: -30px;
-            right: 0;
-            width: 30px;
-            height: 30px;
-            background: transparent;
-            border-bottom-right-radius: 20px;
-            box-shadow: 15px 15px 0 15px var(--bg-light);
+            left: -6px;
+            top: 50%;
+            width: 3px;
+            height: 20px;
+            transform: translateY(-50%);
+            background: var(--nav-accent);
+            border-radius: 0 3px 3px 0;
+            box-shadow: none !important;
             pointer-events: none;
         }
 
-        .main-sidebar .nav-sidebar .nav-item > .nav-link.active::after {
-            content: "";
-            position: absolute;
-            bottom: -30px;
-            right: 0;
-            width: 30px;
-            height: 30px;
-            background: transparent;
-            border-top-right-radius: 20px;
-            box-shadow: 15px -15px 0 15px var(--bg-light);
-            pointer-events: none;
+        .main-sidebar .sidebar .nav-sidebar .nav-link .right {
+            font-size: .68rem;
+            opacity: .45;
+            transition: transform .2s ease, opacity .15s ease;
         }
 
-        /* When submenu has active item, keep curved cutout effect on parent */
-        .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active {
-            background: var(--bg-light) !important;
-            color: var(--primary-blue) !important;
-            font-weight: 600;
-            position: relative;
-            z-index: 0;
+        .main-sidebar .sidebar .nav-sidebar .menu-open > .nav-link .right {
+            opacity: .85;
         }
 
-        /* Keep top curve */
-        .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::before {
-            content: "";
-            position: absolute;
-            top: -30px;
-            right: 0;
-            width: 30px;
-            height: 30px;
-            background: transparent;
-            border-bottom-right-radius: 20px;
-            box-shadow: 15px 15px 0 15px var(--bg-light);
-            pointer-events: none;
-        }
-
-        /* Hide bottom curve when submenu is open */
-        .main-sidebar .nav-sidebar .nav-item.menu-open:has(.nav-treeview .nav-link.active) > .nav-link.active::after {
-            display: none;
-        }
-
-        /* Ensure active state works for submenu items */
-        .nav-treeview .nav-link.active {
-            background: rgba(255, 255, 255, 0.3) !important;
-            color: #ffffff !important;
-            font-weight: 600;
-            border-left: 3px solid #ffffff !important;
-        }
-
-        /* Submenu Styling */
-        .nav-sidebar .nav-treeview {
+        /* Submenu */
+        .main-sidebar .sidebar .nav-sidebar .nav-treeview {
             background: transparent !important;
-            padding-left: 15px;
-            position: relative;
-            z-index: 100;
-            margin-top: 0 !important;
+            padding: 2px 0 4px 0 !important;
+            margin: 0 !important;
         }
 
-        .nav-flat.nav-sidebar>.nav-item .nav-treeview .nav-item>.nav-link,
-        .nav-flat.nav-sidebar>.nav-item>.nav-treeview .nav-item>.nav-link {
+        .main-sidebar .sidebar .nav-sidebar .nav-treeview .nav-item {
+            margin: 1px 0 !important;
+        }
+
+        .main-sidebar .sidebar .nav-sidebar .nav-treeview .nav-link {
+            padding: 8px 12px 8px 20px !important;
+            margin: 0 0 0 8px !important;
+            border-radius: 8px !important;
+            border-left: none !important;
+            background: transparent !important;
+            color: var(--nav-text) !important;
+            font-size: .78rem !important;
+            font-weight: 500 !important;
+        }
+
+        .main-sidebar .sidebar .nav-sidebar .nav-treeview .nav-link:hover {
+            background: var(--nav-hover) !important;
+            color: var(--nav-text-strong) !important;
+        }
+
+        .main-sidebar .sidebar .nav-sidebar .nav-treeview .nav-link.active {
+            background: var(--nav-active-bg) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
             border-left: none !important;
         }
 
-        .nav-sidebar .nav-treeview .nav-link {
-            border-radius: 30px !important;
-            margin-right: 15px !important;
-            position: relative;
-            z-index: 101;
-            background: rgba(255, 255, 255, 0.08) !important;
+        .main-sidebar .sidebar .nav-sidebar .nav-treeview .nav-link .nav-icon {
+            width: 16px;
+            margin-right: 10px !important;
+            font-size: .78rem !important;
+            color: var(--nav-icon);
+            opacity: .9;
         }
 
-        .nav-sidebar .nav-treeview .nav-link:hover {
-            background: rgba(255, 255, 255, 0.15) !important;
+        .main-sidebar .sidebar .nav-sidebar .nav-treeview .nav-link.active .nav-icon {
+            color: var(--nav-icon-active) !important;
+            opacity: 1;
         }
 
-        /* Unified Floating Content Area */
+        /* Collapsed (icon only) sidebar */
+        .sidebar-mini.sidebar-collapse .main-sidebar .brand-link {
+            justify-content: center;
+            min-height: 80px;
+            padding: 16px 8px !important;
+            gap: 0;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .brand-text {
+            display: none !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .brand-logo {
+            width: 36px;
+            height: 36px;
+            padding: 4px;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar {
+            padding: 0 10px !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar .nav-sidebar {
+            margin: 0 !important;
+            width: 100% !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link {
+            width: 100% !important;
+            justify-content: center;
+            padding: 11px 0 !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link > p,
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar .nav-sidebar .nav-link .right {
+            display: none !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar .nav-sidebar .nav-link .nav-icon {
+            margin: 0 !important;
+            opacity: .85 !important;
+            color: var(--nav-text-strong) !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar .nav-sidebar .nav-item > .nav-link.active .nav-icon {
+            opacity: 1 !important;
+            color: #ffffff !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar .sidebar .nav-sidebar > .nav-item > .nav-link.active::before {
+            display: none !important;
+        }
+
+        /* The rail stays fixed-width: the floating header would cover an expanded rail */
+        .sidebar-mini.sidebar-collapse .main-sidebar:hover {
+            width: 4.6rem !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .main-sidebar:hover .brand-link {
+            width: 4.6rem !important;
+        }
+
+        /* Unified floating content area */
         @media (min-width: 992px) {
             .main-header {
-                margin-top: 15px !important;
+                margin-top: 16px !important;
                 margin-left: 270px !important;
                 margin-right: 20px !important;
-                border-radius: 20px 20px 0 0 !important;
-                border-bottom: 1px solid var(--border-color) !important;
+                border: 1px solid var(--topbar-edge) !important;
+                border-radius: 14px 14px 0 0 !important;
+                box-shadow: 0 12px 28px -22px rgba(2, 6, 23, .55) !important;
             }
-            
+
             .content-wrapper {
                 margin-left: 270px !important;
                 margin-right: 20px !important;
                 margin-bottom: 20px !important;
-                border-radius: 0 0 20px 20px !important;
+                border-radius: 0 0 14px 14px !important;
                 margin-top: 0px !important;
             }
 
             .sidebar-collapse .main-header,
-            .sidebar-collapse .content-wrapper {
+            .sidebar-collapse .content-wrapper,
+            .sidebar-collapse .main-footer {
                 margin-left: 93px !important;
             }
         }
 
         @media (max-width: 991.98px) {
             .main-header {
-                margin: 10px 10px 0 10px !important;
-                border-radius: 15px 15px 0 0 !important;
+                position: sticky !important;
+                top: 0 !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
             }
-            
+
             .content-wrapper {
-                margin: 0 10px 10px 10px !important;
-                border-radius: 0 0 15px 15px !important;
-                margin-top: 0px !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                border-left: none !important;
+                border-right: none !important;
+            }
+
+            /* Drawer sits below the topbar so the brand block stays visible */
+            .main-sidebar {
+                top: 64px !important;
+                height: calc(100vh - 64px) !important;
+                min-height: 0 !important;
+                z-index: 1039 !important;
             }
         }
 
         .content-wrapper {
-            background: var(--bg-light) !important;
+            background: var(--panel-bg) !important;
+            border: 1px solid var(--panel-border) !important;
+            border-top: none !important;
             padding: 24px !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05) !important;
+            box-shadow: 0 20px 40px -30px rgba(15, 23, 42, .35) !important;
             transition: margin-left .3s ease-in-out;
-            min-height: calc(100vh - 100px);
+            min-height: calc(100vh - 96px);
         }
 
         .user-panel {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-bottom: 1px solid var(--nav-border) !important;
             padding-bottom: 16px !important;
             margin-bottom: 16px !important;
         }
@@ -669,19 +776,19 @@
 
         /* Card Customization */
         .card {
-            border: none !important;
-            border-radius: 16px !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01) !important;
-            background: #ffffff;
+            border: 1px solid var(--panel-border) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+            background: var(--panel-bg) !important;
             margin-bottom: 24px;
         }
 
         .card-header {
-            background: #ffffff !important;
-            border-bottom: 1px solid var(--border-color) !important;
+            background: var(--panel-bg) !important;
+            border-bottom: 1px solid var(--panel-border) !important;
             color: var(--text-dark) !important;
-            border-top-left-radius: 16px !important;
-            border-top-right-radius: 16px !important;
+            border-top-left-radius: 14px !important;
+            border-top-right-radius: 14px !important;
             padding: 16px 20px !important;
         }
 
@@ -924,25 +1031,22 @@
             border-top: none !important;
             margin-left: 270px !important;
             margin-right: 20px !important;
-            margin-bottom: 15px !important;
-            padding: 15px 20px !important;
-            color: rgba(255, 255, 255, 0.75) !important;
+            margin-bottom: 14px !important;
+            padding: 6px 2px !important;
+            color: rgba(255, 255, 255, .78) !important;
             transition: margin-left .3s ease-in-out;
-            font-size: 0.875rem;
+            font-size: 0.8rem !important;
         }
 
         @media (max-width: 991.98px) {
             .main-footer {
-                margin-left: 10px !important;
-                margin-right: 10px !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                padding: 10px 14px !important;
             }
         }
 
-        .main-footer a {
-            color: #ffffff !important;
-            font-weight: 500;
-        }
-
+        .main-footer a,
         .main-footer strong {
             color: #ffffff !important;
         }
@@ -1226,10 +1330,7 @@
 
         /* Notification empty message styling */
         .notif-empty-message {
-            color: #6b7280 !important;
-        }
-        body.dark-mode .notif-empty-message {
-            color: #cbd5e1 !important;
+            color: var(--dd-muted) !important;
         }
 
         /* Teams-like Profile Dropdown */
@@ -1318,30 +1419,40 @@
         }
 
         /* ============================================
-           NAVBAR - Dark Theme (matching dashboard)
+           TOPBAR — light & dark aware
         ============================================ */
         .main-header.navbar {
-            background: #1a1f2e !important;
-            border-bottom: 1px solid rgba(255,255,255,0.07) !important;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
-            height: 60px !important;
-            padding: 0 16px !important;
+            background: var(--topbar-bg) !important;
+            border-bottom: 1px solid var(--topbar-edge) !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+            height: 64px !important;
+            padding: 0 20px !important;
             z-index: 1040 !important;
         }
 
-        /* Hamburger & Breadcrumb */
+        /* Hamburger & breadcrumb */
         .main-header .navbar-nav .nav-link {
-            color: rgba(255,255,255,0.75) !important;
-            border-radius: 8px;
+            color: var(--topbar-text) !important;
+            border-radius: 9px;
             padding: 8px 10px !important;
-            transition: all 0.2s ease;
+            font-size: .82rem !important;
+            transition: background .15s ease, color .15s ease;
             display: flex;
             align-items: center;
             gap: 6px;
         }
+
         .main-header .navbar-nav .nav-link:hover {
-            color: #ffffff !important;
-            background: rgba(255,255,255,0.08) !important;
+            color: var(--topbar-text-strong) !important;
+            background: var(--topbar-hover) !important;
+        }
+
+        .main-header .navbar-nav > .nav-item > .nav-link[data-widget="pushmenu"] {
+            width: 38px;
+            height: 38px;
+            justify-content: center;
+            padding: 0 !important;
+            font-size: .9rem !important;
         }
 
         /* Breadcrumb text in navbar */
@@ -1349,61 +1460,73 @@
             background: transparent !important;
             padding: 0 !important;
             margin: 0 !important;
-            font-size: 0.875rem;
+            font-size: .84rem;
         }
+
         .breadcrumb-item + .breadcrumb-item::before {
-            color: rgba(255,255,255,0.4) !important;
+            color: var(--topbar-text) !important;
+            opacity: .6;
             content: "/" !important;
         }
+
         .breadcrumb-item a {
-            color: rgba(255,255,255,0.6) !important;
+            color: var(--topbar-text) !important;
             font-weight: 400;
             transition: color 0.15s ease;
             text-decoration: none;
         }
+
         .breadcrumb-item a:hover {
-            color: #ffffff !important;
-        }
-        .breadcrumb-item.active {
-            color: rgba(255,255,255,0.9) !important;
-            font-weight: 500;
+            color: var(--topbar-text-strong) !important;
         }
 
-        /* ---- Search Bar ---- */
+        .breadcrumb-item.active {
+            color: var(--topbar-text-strong) !important;
+            font-weight: 600;
+        }
+
+        /* ---- Search field ---- */
         .navbar-search-wrap {
-            width: 260px;
+            width: 250px;
             position: relative;
         }
+
         .navbar-search-wrap input {
             width: 100%;
-            background: rgba(255,255,255,0.07) !important;
-            border: 1px solid rgba(255,255,255,0.12) !important;
-            border-radius: 20px !important;
-            color: rgba(255,255,255,0.85) !important;
-            font-size: 0.85rem;
-            padding: 7px 16px 7px 38px !important;
-            transition: all 0.2s ease;
+            height: 38px;
+            background: var(--topbar-field-bg) !important;
+            border: 1px solid var(--topbar-field-border) !important;
+            border-radius: 10px !important;
+            color: var(--topbar-text-strong) !important;
+            font-size: .82rem;
+            padding: 8px 14px 8px 36px !important;
+            transition: border-color .15s ease, background .15s ease;
             outline: none;
-        }
-        .navbar-search-wrap input::placeholder {
-            color: rgba(255,255,255,0.4);
-        }
-        .navbar-search-wrap input:focus {
-            background: rgba(255,255,255,0.11) !important;
-            border-color: rgba(255,255,255,0.25) !important;
             box-shadow: none !important;
         }
+
+        .navbar-search-wrap input::placeholder {
+            color: var(--topbar-text);
+            opacity: .8;
+        }
+
+        .navbar-search-wrap input:focus {
+            background: var(--topbar-hover) !important;
+            border-color: var(--topbar-accent) !important;
+            box-shadow: 0 0 0 3px var(--topbar-ring) !important;
+        }
+
         .navbar-search-wrap .search-icon {
             position: absolute;
             left: 13px;
             top: 50%;
             transform: translateY(-50%);
-            color: rgba(255,255,255,0.4);
-            font-size: 0.8rem;
+            color: var(--topbar-text);
+            font-size: .78rem;
             pointer-events: none;
         }
 
-        /* ---- Bell Notification Button ---- */
+        /* ---- Icon buttons ---- */
         .navbar-icon-btn {
             position: relative;
             width: 38px;
@@ -1411,74 +1534,96 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            color: rgba(255,255,255,0.75);
+            border-radius: 10px;
+            color: var(--topbar-text) !important;
             font-size: 1rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background .15s ease, color .15s ease;
             text-decoration: none !important;
+            padding: 0 !important;
         }
+
         .navbar-icon-btn:hover {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
+            background: var(--topbar-hover) !important;
+            color: var(--topbar-text-strong) !important;
         }
+
         .navbar-icon-btn .notif-badge {
             position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 16px;
-            height: 16px;
+            top: 3px;
+            right: 3px;
+            min-width: 17px;
+            height: 17px;
+            padding: 0 4px;
             background: #ef4444;
             color: #fff;
-            border-radius: 50%;
+            border-radius: 999px;
             font-size: 9px;
             font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid #1a1f2e;
+            border: 2px solid var(--topbar-bg);
             line-height: 1;
         }
 
-        /* ---- Avatar Profile Button ---- */
-        .navbar-avatar-btn {
-            width: 36px;
-            height: 36px;
+        .dark-mode-toggle {
+            width: 38px;
+            height: 38px;
+            justify-content: center;
+            padding: 0 !important;
+            border-radius: 10px;
+            color: var(--topbar-text);
+            background: transparent;
+        }
+
+        .dark-mode-toggle:hover {
+            background: var(--topbar-hover);
+            color: var(--topbar-text-strong);
+        }
+
+        /* ---- Avatar button ---- */
+        .navbar-avatar-btn,
+        .navbar-avatar-fallback {
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
-            overflow: hidden;
-            border: 2px solid rgba(255,255,255,0.2);
-            cursor: pointer;
-            display: block;
-            transition: border-color 0.2s ease;
+            border: 2px solid var(--topbar-border);
+            transition: border-color .15s ease, box-shadow .15s ease;
             flex-shrink: 0;
         }
-        .navbar-avatar-btn:hover {
-            border-color: rgba(255,255,255,0.5);
+
+        .navbar-avatar-btn {
+            overflow: hidden;
+            cursor: pointer;
+            display: block;
         }
+
+        .navbar-avatar-btn:hover,
+        .navbar-avatar-fallback:hover {
+            border-color: var(--topbar-accent);
+            box-shadow: 0 0 0 3px var(--topbar-ring);
+        }
+
         .navbar-avatar-btn img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
+
         .navbar-avatar-fallback {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #5b5fc7, #7479ed);
+            background: var(--topbar-avatar-bg);
+            border-color: var(--topbar-avatar-border);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #fff;
+            color: var(--topbar-avatar-text);
             font-weight: 700;
-            font-size: 14px;
-            border: 2px solid rgba(255,255,255,0.2);
+            font-size: 13px;
             cursor: pointer;
-            transition: border-color 0.2s ease;
         }
-        .navbar-avatar-fallback:hover {
-            border-color: rgba(255,255,255,0.5);
-        }
+
         /* Right nav item spacing */
         .navbar-right-items {
             display: flex;
@@ -1486,103 +1631,107 @@
             gap: 6px;
         }
 
-        /* ---- Teams Notification Dropdown ---- */
+        /* ---- Notification dropdown ---- */
         .dropdown-menu-teams {
-            background-color: #1e2235 !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            border-radius: 12px !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
-            color: #fff !important;
+            background-color: var(--dd-bg) !important;
+            border: 1px solid var(--dd-border) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 20px 45px -18px rgba(15, 23, 42, .45) !important;
+            color: var(--dd-text) !important;
             padding: 0 !important;
-            width: 440px !important;
-            max-height: 80vh;
+            width: 420px !important;
+            max-height: min(80vh, 560px);
             overflow-y: auto;
-            margin-top: 8px !important;
+            margin-top: 10px !important;
         }
         .dropdown-menu-teams::-webkit-scrollbar { width: 6px; }
         .dropdown-menu-teams::-webkit-scrollbar-track { background: transparent; }
         .dropdown-menu-teams::-webkit-scrollbar-thumb {
-            background-color: rgba(255,255,255,0.15);
+            background-color: var(--dd-border);
             border-radius: 4px;
         }
         .teams-dropdown-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 16px 8px;
+            padding: 16px 16px 12px;
             position: sticky;
             top: 0;
-            background-color: #1e2235;
+            background-color: var(--dd-bg);
+            border-bottom: 1px solid var(--dd-border);
             z-index: 10;
-            border-radius: 12px 12px 0 0;
+            border-radius: 14px 14px 0 0;
         }
         .teams-dropdown-header h5 {
             margin: 0;
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 600;
-            color: #fff;
+            color: var(--dd-text);
         }
         .teams-header-actions {
             display: flex;
-            gap: 4px;
+            gap: 2px;
         }
         .teams-header-actions button {
             background: transparent;
             border: none;
-            color: rgba(255,255,255,0.5);
+            color: var(--dd-muted);
             width: 30px;
             height: 30px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.15s;
+            transition: background .15s ease, color .15s ease;
         }
         .teams-header-actions button:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
+            background: var(--dd-hover);
+            color: var(--dd-text);
         }
         .teams-time-group {
             display: flex;
             align-items: center;
-            padding: 12px 16px 4px;
-            color: rgba(255,255,255,0.5);
-            font-size: 11px;
-            font-weight: 600;
+            padding: 14px 16px 6px;
+            color: var(--dd-muted);
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: .08em;
         }
         .teams-time-group::before, .teams-time-group::after {
             content: "";
             flex: 1;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid var(--dd-border);
         }
         .teams-time-group span { padding: 0 10px; }
         .teams-notif-item {
             display: flex;
             padding: 12px 16px;
             text-decoration: none !important;
-            color: #fff !important;
+            color: var(--dd-text) !important;
             gap: 14px;
-            transition: background 0.15s;
+            border-left: 3px solid transparent;
+            transition: background .15s ease, border-color .15s ease;
         }
-        .teams-notif-item:hover { background-color: rgba(255,255,255,0.05); }
+        .teams-notif-item:hover {
+            background-color: var(--dd-hover);
+        }
         .teams-avatar-wrapper {
             position: relative;
             flex-shrink: 0;
         }
         .teams-avatar {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background-color: #9370DB;
+            background-color: #1d4ed8;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 15px;
             color: #fff;
             text-transform: uppercase;
         }
@@ -1596,9 +1745,9 @@
             position: absolute;
             bottom: -2px;
             right: -2px;
-            width: 20px;
-            height: 20px;
-            background-color: #1e2235;
+            width: 18px;
+            height: 18px;
+            background-color: var(--dd-bg);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -1606,7 +1755,7 @@
             padding: 2px;
         }
         .teams-app-icon .icon-bg {
-            background-color: #5b5fc7;
+            background-color: #3b82f6;
             width: 100%;
             height: 100%;
             border-radius: 50%;
@@ -1614,16 +1763,16 @@
             align-items: center;
             justify-content: center;
         }
-        .teams-app-icon i { font-size: 9px; color: #fff; }
+        .teams-app-icon i { font-size: 8px; color: #fff; }
         .teams-notif-content { flex: 1; min-width: 0; }
         .teams-notif-title {
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 600;
             margin-bottom: 3px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: #fff;
+            color: var(--dd-text);
         }
         .teams-notif-title span.title-text {
             white-space: nowrap;
@@ -1631,16 +1780,16 @@
             text-overflow: ellipsis;
         }
         .teams-notif-time {
-            font-size: 11px;
-            color: rgba(255,255,255,0.45);
+            font-size: 10.5px;
+            color: var(--dd-muted);
             font-weight: 400;
             white-space: nowrap;
             margin-left: 10px;
             flex-shrink: 0;
         }
         .teams-notif-desc {
-            font-size: 12px;
-            color: rgba(255,255,255,0.55);
+            font-size: 11.5px;
+            color: var(--dd-muted);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1648,37 +1797,31 @@
 
         .teams-notif-item.unread {
             position: relative;
+            border-left-color: #3b82f6;
+            background: rgba(96, 165, 250, .05);
         }
         .teams-notif-item.unread .teams-notif-title .title-text {
-            color: #fff;
+            color: var(--dd-text);
             font-weight: 700;
         }
         .teams-notif-item.unread .teams-notif-desc {
-            color: rgba(255,255,255,0.75);
+            color: var(--dd-muted);
         }
         .teams-notif-item.unread::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            background: #3b82f6;
-            border-radius: 50%;
-            position: absolute;
-            left: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            flex-shrink: 0;
+            display: none;
         }
         .teams-notif-item.read .teams-notif-title .title-text {
-            color: rgba(255,255,255,0.6);
-            font-weight: 400;
+            color: var(--dd-muted);
+            font-weight: 500;
         }
         .teams-notif-item.read .teams-notif-desc {
-            color: rgba(255,255,255,0.4);
+            color: var(--dd-muted);
+            opacity: .8;
         }
         .notif-read-btn {
             background: transparent;
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 50%;
+            border: 1px solid var(--dd-border);
+            border-radius: 8px;
             width: 26px;
             height: 26px;
             flex-shrink: 0;
@@ -1686,12 +1829,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255,255,255,0.6);
-            font-size: 11px;
+            color: var(--dd-muted);
+            font-size: 10px;
             cursor: pointer;
             padding: 0;
             margin-left: auto;
-            transition: all 0.15s;
+            transition: all .15s ease;
         }
         .notif-read-btn:hover {
             background-color: #3b82f6;
@@ -1699,36 +1842,38 @@
             color: #fff;
         }
 
-        /* ---- Teams Profile Dropdown ---- */
+        /* ---- Profile dropdown ---- */
         .profile-dropdown-teams {
-            background-color: #1e2235 !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            border-radius: 12px !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
-            color: #fff !important;
+            background-color: var(--dd-bg) !important;
+            border: 1px solid var(--dd-border) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 20px 45px -18px rgba(15, 23, 42, .45) !important;
+            color: var(--dd-text) !important;
             padding: 0 !important;
             width: 300px !important;
-            margin-top: 8px !important;
+            margin-top: 10px !important;
         }
         .profile-top {
             display: flex;
             justify-content: space-between;
-            padding: 14px 16px;
+            align-items: center;
+            padding: 12px 16px;
             font-size: 12px;
-            color: rgba(255,255,255,0.5);
-            border-bottom: 1px solid rgba(255,255,255,0.07);
+            color: var(--dd-muted);
+            border-bottom: 1px solid var(--dd-border);
         }
         .profile-top button {
-            color: rgba(255,255,255,0.6);
+            color: var(--dd-muted);
             text-decoration: none;
             background: none;
             border: none;
             padding: 0;
             font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
-            transition: color 0.15s;
+            transition: color .15s ease;
         }
-        .profile-top button:hover { color: #fff; text-decoration: underline; }
+        .profile-top button:hover { color: var(--dd-text); text-decoration: underline; }
         .profile-middle {
             display: flex;
             padding: 18px 16px;
@@ -1736,39 +1881,39 @@
             align-items: flex-start;
         }
         .profile-pic-large {
-            width: 68px;
-            height: 68px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.15);
+            border: 2px solid var(--dd-border);
             flex-shrink: 0;
         }
         .profile-pic-fallback {
-            width: 68px;
-            height: 68px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #5b5fc7, #7479ed);
+            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
             font-weight: 700;
-            font-size: 22px;
+            font-size: 20px;
             flex-shrink: 0;
         }
         .profile-info { flex: 1; min-width: 0; }
         .profile-name {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             margin-bottom: 2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            color: #fff;
+            color: var(--dd-text);
         }
         .profile-email {
             font-size: 11px;
-            color: rgba(255,255,255,0.5);
+            color: var(--dd-muted);
             margin-bottom: 10px;
             white-space: nowrap;
             overflow: hidden;
@@ -1776,35 +1921,35 @@
         }
         .profile-link {
             display: block;
-            color: #7479ed !important;
+            color: #3b82f6 !important;
             text-decoration: none;
             font-size: 12px;
+            font-weight: 500;
             margin-bottom: 4px;
-            transition: color 0.15s;
+            transition: color .15s ease;
         }
-        .profile-link:hover { color: #9a9ef5 !important; text-decoration: underline; }
+        .profile-link:hover { color: #2563eb !important; text-decoration: underline; }
         .profile-bottom {
-            padding: 12px 16px;
-            border-top: 1px solid rgba(255,255,255,0.07);
+            padding: 10px 12px;
+            border-top: 1px solid var(--dd-border);
         }
         .profile-bottom a {
             display: flex;
             align-items: center;
-            color: rgba(255,255,255,0.7) !important;
+            color: var(--dd-text) !important;
             text-decoration: none;
             font-size: 13px;
             padding: 8px 10px;
             border-radius: 8px;
-            transition: all 0.15s;
+            transition: background .15s ease;
         }
         .profile-bottom a:hover {
-            background: rgba(255,255,255,0.07);
-            color: #fff !important;
+            background: var(--dd-hover);
         }
         .profile-bottom a i {
             font-size: 16px;
             margin-right: 10px;
-            color: rgba(255,255,255,0.5);
+            color: var(--dd-muted);
         }
 
         /* Modern badge overrides */
@@ -1833,98 +1978,6 @@
             background-color: rgba(59, 130, 246, 0.15) !important;
             color: #3b82f6 !important;
             border: 1px solid rgba(59, 130, 246, 0.3) !important;
-        }
-
-        /* FORCE OVERRIDE - Notifications Dropdown Theme dengan specificity maksimal */
-        html:not(.dark-mode) body .dropdown-menu.dropdown-menu-teams,
-        html body:not(.dark-mode) .dropdown-menu.dropdown-menu-teams,
-        body:not(.dark-mode) .dropdown-menu.dropdown-menu-teams {
-            background-color: #ffffff !important;
-            border-color: #e5e7eb !important;
-            color: #1f2937 !important;
-        }
-        
-        html:not(.dark-mode) body .teams-dropdown-header,
-        body:not(.dark-mode) .teams-dropdown-header {
-            background-color: #ffffff !important;
-            border-bottom: 2px solid #3b82f6 !important;
-        }
-        
-        html:not(.dark-mode) body .teams-dropdown-header h5,
-        body:not(.dark-mode) .teams-dropdown-header h5 {
-            color: #111827 !important;
-        }
-        
-        html:not(.dark-mode) body .teams-header-actions button,
-        body:not(.dark-mode) .teams-header-actions button {
-            color: #6b7280 !important;
-        }
-        
-        html:not(.dark-mode) body .teams-notif-item,
-        body:not(.dark-mode) .teams-notif-item {
-            color: #1f2937 !important;
-        }
-        
-        html:not(.dark-mode) body .notif-read-btn,
-        body:not(.dark-mode) .notif-read-btn {
-            color: #6b7280 !important;
-            border-color: #d1d5db !important;
-        }
-        
-        html:not(.dark-mode) body .notif-read-btn:hover,
-        body:not(.dark-mode) .notif-read-btn:hover {
-            color: #fff !important;
-            background-color: #3b82f6 !important;
-            border-color: #3b82f6 !important;
-        }
-        
-        html:not(.dark-mode) body .notif-empty-message,
-        body:not(.dark-mode) .notif-empty-message {
-            color: #6b7280 !important;
-        }
-        
-        html:not(.dark-mode) body .teams-time-group,
-        body:not(.dark-mode) .teams-time-group {
-            color: #6b7280 !important;
-        }
-
-        /* FORCE OVERRIDE - Dark Mode */
-        html.dark-mode body .dropdown-menu.dropdown-menu-teams,
-        body.dark-mode .dropdown-menu.dropdown-menu-teams {
-            background-color: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f1f5f9 !important;
-        }
-        
-        html.dark-mode body .teams-dropdown-header,
-        body.dark-mode .teams-dropdown-header {
-            background-color: #1e293b !important;
-            border-bottom: 2px solid #3b82f6 !important;
-        }
-        
-        html.dark-mode body .teams-dropdown-header h5,
-        body.dark-mode .teams-dropdown-header h5 {
-            color: #f1f5f9 !important;
-        }
-        
-        html.dark-mode body .teams-header-actions button,
-        body.dark-mode .teams-header-actions button {
-            color: #cbd5e1 !important;
-        }
-        
-        html.dark-mode body .teams-notif-item,
-        body.dark-mode .teams-notif-item {
-            color: #f1f5f9 !important;
-        }
-        
-        html.dark-mode body .notif-empty-message,
-        body.dark-mode .notif-empty-message {
-            color: #cbd5e1 !important;
-        }
-        
-        html.dark-mode body .teams-time-group,
-        body.dark-mode .teams-time-group {
-            color: #cbd5e1 !important;
         }
 
         /* Jadwal Sidang - Calendar & Card Dark Mode Styling */
@@ -2121,8 +2174,9 @@
         }
     </style>
     @stack('styles')
+    @include('master._ui_theme')
 </head>
-<body class="hold-transition sidebar-mini layout-fixed">
+<body class="hold-transition sidebar-mini layout-fixed @yield('body_class')">
 <div class="wrapper">
 
     <nav class="main-header navbar navbar-expand navbar-dark">
@@ -2217,10 +2271,13 @@
     </nav>
 
     <aside class="main-sidebar sidebar-dark-primary">
-        <a href="{{ route('dashboard') }}" class="brand-link d-flex align-items-center" style="gap: 10px; padding: 1.5rem 1.25rem !important;">
-            <img src="{{ asset('images/itb-logo.svg') }}"
-                 alt="ITB Logo" style="width: 38px; height: 38px; background: #fff; border-radius: 50%; padding: 6px; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-            <span class="brand-text" style="font-size: 1.15rem; line-height: 1.2; font-weight: 700; color: #fff; letter-spacing: 0.5px;">SI SIDANG<br><span style="font-size: 0.75rem; font-weight: 500; opacity: 0.8;">FTTM ITB</span><br><span style="font-size: 0.65rem; font-weight: 400; opacity: 0.6; text-transform: capitalize;">Role : {{ \App\Models\TUserRole::label(session('auth_user.role')) }}</span></span>
+        <a href="{{ route('dashboard') }}" class="brand-link">
+            <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB Logo" class="brand-logo">
+            <span class="brand-text">
+                <span class="brand-title">SI SIDANG</span>
+                <span class="brand-sub">FTTM ITB</span>
+                <span class="brand-role">{{ \App\Models\TUserRole::label(session('auth_user.role')) }}</span>
+            </span>
         </a>
 
         <div class="sidebar">
@@ -2602,74 +2659,9 @@
         $(id).fadeOut(300);
     }
 
-    function toggleDarkMode() {
-        var body = document.body;
-        var html = document.documentElement;
-        var icon = document.getElementById('darkModeIcon');
-        var isDark = html.classList.toggle('dark-mode');
-        body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', isDark ? 'true' : 'false');
-        icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-        
-        // Force update notifications dropdown styling
-        updateNotificationDropdownTheme(isDark);
-    }
-
-    (function initDarkMode() {
-        var body = document.body;
-        var html = document.documentElement;
-        var icon = document.getElementById('darkModeIcon');
-        var saved = localStorage.getItem('darkMode');
-        var isDark;
-        
-        // Jika belum pernah di-set manual, deteksi dari system theme
-        if (saved === null) {
-            // Deteksi system theme dari browser/OS
-            isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            console.log('Auto-detect system theme:', isDark ? 'dark' : 'light');
-        } else {
-            // Gunakan preference yang sudah disimpan
-            isDark = saved === 'true';
-        }
-        
-        if (isDark) {
-            html.classList.add('dark-mode');
-            body.classList.add('dark-mode');
-            if (icon) icon.className = 'fas fa-sun';
-        } else {
-            html.classList.remove('dark-mode');
-            body.classList.remove('dark-mode');
-            if (icon) icon.className = 'fas fa-moon';
-        }
-        
-        // Force update notifications dropdown styling on load
-        setTimeout(function() {
-            updateNotificationDropdownTheme(isDark);
-        }, 100);
-        
-        // Listen untuk perubahan system theme (real-time)
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-                // Hanya apply auto jika user belum set manual preference
-                if (localStorage.getItem('darkMode') === null) {
-                    var newIsDark = e.matches;
-                    console.log('System theme changed:', newIsDark ? 'dark' : 'light');
-                    
-                    if (newIsDark) {
-                        html.classList.add('dark-mode');
-                        body.classList.add('dark-mode');
-                        if (icon) icon.className = 'fas fa-sun';
-                    } else {
-                        html.classList.remove('dark-mode');
-                        body.classList.remove('dark-mode');
-                        if (icon) icon.className = 'fas fa-moon';
-                    }
-                    
-                    updateNotificationDropdownTheme(newIsDark);
-                }
-            });
-        }
-    })();
+    document.addEventListener('themechange', function (e) {
+        updateNotificationDropdownTheme(e.detail.dark);
+    });
 
     function updateNotificationDropdownTheme(isDark) {
         var dropdown = document.getElementById('notifDropdown');
@@ -2677,19 +2669,19 @@
         
         if (dropdown) {
             if (isDark) {
-                dropdown.style.backgroundColor = '#1e293b';
-                dropdown.style.borderColor = '#334155';
-                dropdown.style.color = '#f1f5f9';
+                dropdown.style.backgroundColor = '#111c30';
+                dropdown.style.borderColor = 'rgba(148, 163, 184, .16)';
+                dropdown.style.color = '#e2e8f0';
             } else {
                 dropdown.style.backgroundColor = '#ffffff';
-                dropdown.style.borderColor = '#e5e7eb';
-                dropdown.style.color = '#1f2937';
+                dropdown.style.borderColor = '#e5eaf1';
+                dropdown.style.color = '#1e293b';
             }
         }
         
         if (header) {
             if (isDark) {
-                header.style.backgroundColor = '#1e293b';
+                header.style.backgroundColor = '#111c30';
                 header.style.borderBottomColor = '#3b82f6';
             } else {
                 header.style.backgroundColor = '#ffffff';
@@ -2698,12 +2690,12 @@
             
             var h5 = header.querySelector('h5');
             if (h5) {
-                h5.style.color = isDark ? '#f1f5f9' : '#111827';
+                h5.style.color = isDark ? '#e2e8f0' : '#0f172a';
             }
             
             var buttons = header.querySelectorAll('button');
             buttons.forEach(function(btn) {
-                btn.style.color = isDark ? '#cbd5e1' : '#6b7280';
+                btn.style.color = isDark ? '#94a3b8' : '#64748b';
             });
         }
     }
@@ -3044,6 +3036,7 @@ function showConfirmDialog(opts) {
 })();
 </script>
 
+@include('layouts.partials.theme-script')
 @stack('scripts')
 </body>
 </html>

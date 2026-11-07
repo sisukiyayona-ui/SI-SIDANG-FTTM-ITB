@@ -23,7 +23,9 @@ class JadwalSidangController extends Controller
                 'a.waktu_sidang',
                 'a.ruang_sidang',
                 'a.status_lulus',
-                'a.Strata'
+                'a.Strata',
+                'a.NAMA_PRODI',
+                'a.KODE_PRODI'
             )
             ->whereNotNull('a.tgl_sidang');
 
@@ -68,8 +70,15 @@ class JadwalSidangController extends Controller
             });
         }
 
-        $jadwalSidang = $query->orderBy('a.tgl_sidang', 'desc')->get();
+        $jadwalSidang = (clone $query)->orderBy('a.tgl_sidang', 'desc')->get();
 
-        return view('sidang.jadwal-sidang', compact('jadwalSidang'));
+        $perPage = (int) request('per_page', 10);
+        if (!in_array($perPage, [10, 25, 50, 100])) {
+            $perPage = 10;
+        }
+
+        $jadwalCards = (clone $query)->orderBy('a.tgl_sidang', 'desc')->paginate($perPage, ['*'], 'page')->withQueryString();
+
+        return view('sidang.jadwal-sidang', compact('jadwalSidang', 'jadwalCards'));
     }
 }

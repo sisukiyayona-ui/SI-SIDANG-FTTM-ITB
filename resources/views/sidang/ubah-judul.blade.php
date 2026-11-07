@@ -2,6 +2,7 @@
 
 @section('title', 'Ubah Judul - SI SIDANG FTTM ITB')
 @section('page_title', 'Ubah Judul')
+@section('body_class', 'master-ui')
 
 @php
     $indexRoute = $indexRoute ?? route('sidang.s3');
@@ -19,7 +20,10 @@
 @section('content')
     <div class="card mb-4" id="formCard" style="display: none;">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-edit mr-2"></i>Form Ubah Judul</h5>
+            <div class="card-heading">
+                <h5 class="mb-0"><i class="fas fa-edit mr-2"></i>Form Ubah Judul</h5>
+                <p class="card-heading-sub">Perbarui judul dan abstrak, lalu catat alasan perubahannya.</p>
+            </div>
         </div>
         <div class="card-body">
             <form method="POST" action="{{ $storeRoute }}">
@@ -75,13 +79,18 @@
 
     <div class="card" id="historyCard">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-history mr-2"></i>Riwayat Perubahan Judul</h5>
-            <button class="btn btn-sm btn-primary" onclick="showForm()"><i class="fas fa-plus mr-1"></i> Tambah</button>
+            <div class="card-heading">
+                <h5 class="mb-0"><i class="fas fa-history mr-2"></i>Riwayat Perubahan Judul</h5>
+                <p class="card-heading-sub">Daftar perubahan judul yang pernah diajukan mahasiswa.</p>
+            </div>
+            <div class="card-actions">
+                <button class="btn btn-sm btn-primary" onclick="showForm()"><i class="fas fa-plus mr-1"></i> Tambah</button>
+            </div>
         </div>
         <div class="card-body">
             @if($history && $history->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover">
+                    <table class="table table-hover">
                         <thead>
                             <tr>
                                 <th style="width: 50px;">No</th>

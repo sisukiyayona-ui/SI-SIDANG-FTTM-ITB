@@ -6,14 +6,7 @@
     <title>Sistem Informasi Penjadwalan Sidang - FTTM ITB</title>
     <meta name="description" content="Jadwal Sidang Mahasiswa - FTTM ITB">
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/itb-logo.svg') }}">
-    <script nonce="{{ request()->attributes->get('csp_nonce') ?? '' }}">
-        (function() {
-            var saved = localStorage.getItem('darkMode');
-            if (saved === 'true') {
-                document.documentElement.classList.add('dark-mode');
-            }
-        })();
-    </script>
+    @include('layouts.partials.theme-head')
     <link rel="stylesheet" href="{{ asset('vendor/inter/300.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/inter/400.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/inter/500.css') }}">
@@ -641,27 +634,9 @@
         &copy; {{ date('Y') }} Sistem Informasi Penjadwalan Sidang · FTTM Institut Teknologi Bandung · Halaman publik, login diperlukan untuk pengajuan sidang.
     </div>
 
+    @include('layouts.partials.theme-script')
+
     <script>
-        function toggleDarkMode() {
-            var html = document.documentElement;
-            var icon = document.getElementById('darkModeIcon');
-            var isDark = html.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
-            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-        }
-
-        (function initDarkMode() {
-            var html = document.documentElement;
-            var icon = document.getElementById('darkModeIcon');
-            var saved = localStorage.getItem('darkMode');
-            if (saved === 'true') {
-                html.classList.add('dark-mode');
-                if (icon) icon.className = 'fas fa-sun';
-            } else {
-                if (icon) icon.className = 'fas fa-moon';
-            }
-        })();
-
         // Column indices (0-based): #=0, Mahasiswa=1, NIM=2, Prodi=3, Judul/Bab=4, Tanggal=5, Ruang=6, Status=7, Jenis=8
         function getCellText(row, colIndex) {
             const cells = row.querySelectorAll('td');
