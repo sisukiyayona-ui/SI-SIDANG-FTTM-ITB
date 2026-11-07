@@ -44,11 +44,15 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::get('s1/{id}', [SidangS1Controller::class, 'show'])->name('s1.show');
         Route::put('s1/{id}', [SidangS1Controller::class, 'update'])->name('s1.update');
         Route::post('s1/judul', [SidangS1Controller::class, 'storeJudul'])->name('s1.store-judul');
+        Route::get('s1/{idJudul}/ubah-judul', [SidangS1Controller::class, 'ubahJudul'])->name('s1.ubah-judul');
+        Route::post('s1/{idJudul}/ubah-judul', [SidangS1Controller::class, 'storeUbahJudul'])->name('s1.store-ubah-judul');
         
         Route::get('s2', [SidangS2Controller::class, 'index'])->name('s2');
         Route::get('s2/{id}', [SidangS2Controller::class, 'show'])->name('s2.show');
         Route::put('s2/{id}', [SidangS2Controller::class, 'update'])->name('s2.update');
         Route::post('s2/judul', [SidangS2Controller::class, 'storeJudul'])->name('s2.store-judul');
+        Route::get('s2/{idJudul}/ubah-judul', [SidangS2Controller::class, 'ubahJudul'])->name('s2.ubah-judul');
+        Route::post('s2/{idJudul}/ubah-judul', [SidangS2Controller::class, 'storeUbahJudul'])->name('s2.store-ubah-judul');
         
         Route::get('cetak-form/{idJudul}/{tahapan}', [CetakController::class, 'cetakForm'])->name('cetak-form');
         Route::get('surat-kesediaan/{idJudul}/{tahapan}', [CetakController::class, 'suratKesediaanPenelaah'])->name('surat-kesediaan');

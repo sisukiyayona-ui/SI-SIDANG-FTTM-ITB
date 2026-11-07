@@ -86,7 +86,11 @@ function s2StatusOptions($name) {
                 <td class="align-middle">{{ $item->Nim }}</td>
                 <td class="align-middle">{{ $item->nama_mhs }}</td>
                 <td class="text-left text-muted">
-                    <a href="#" class="text-decoration-none">{{ $item->Judul }}</a>
+                    @if(session('auth_user.role') === 'TU Prodi')
+                        <a href="{{ route('sidang.s2.ubah-judul', $item->id_judul) }}" class="text-decoration-none text-primary">{{ $item->Judul }}</a>
+                    @else
+                        <a href="#" class="text-decoration-none">{{ $item->Judul }}</a>
+                    @endif
                 </td>
                 <td class="align-middle">{{ $item->nama_prodi ?? '—' }}</td>
                 <td class="align-middle">

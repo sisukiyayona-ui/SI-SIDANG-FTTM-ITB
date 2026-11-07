@@ -3,9 +3,15 @@
 @section('title', 'Ubah Judul - SI SIDANG FTTM ITB')
 @section('page_title', 'Ubah Judul')
 
+@php
+    $indexRoute = $indexRoute ?? route('sidang.s3');
+    $storeRoute = $storeRoute ?? route('sidang.s3.store-ubah-judul', $idJudul);
+    $indexLabel = $indexLabel ?? 'Sidang S3';
+@endphp
+
 @section('breadcrumb')
     <ol class="breadcrumb float-sm-right">
-        <li class="breadcrumb-item"><a href="{{ route('sidang.s3') }}">Sidang S3</a></li>
+        <li class="breadcrumb-item"><a href="{{ $indexRoute }}">{{ $indexLabel }}</a></li>
         <li class="breadcrumb-item active">Ubah Judul</li>
     </ol>
 @endsection
@@ -16,7 +22,7 @@
             <h5 class="mb-0"><i class="fas fa-edit mr-2"></i>Form Ubah Judul</h5>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ route('sidang.s3.store-ubah-judul', $idJudul) }}">
+            <form method="POST" action="{{ $storeRoute }}">
                 @csrf
                 <div class="row">
                     <div class="col-md-12 mb-3">
@@ -67,7 +73,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="historyCard">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-history mr-2"></i>Riwayat Perubahan Judul</h5>
             <button class="btn btn-sm btn-primary" onclick="showForm()"><i class="fas fa-plus mr-1"></i> Tambah</button>
@@ -110,8 +116,8 @@
             @endif
         </div>
     </div>
-    <div class="mt-3">
-        <a href="{{ route('sidang.s3') }}" class="btn btn-secondary"><i class="fas fa-arrow-left mr-1"></i>Kembali</a>
+    <div class="mt-3" id="backWrap">
+        <a href="{{ $indexRoute }}" class="btn btn-secondary"><i class="fas fa-arrow-left mr-1"></i>Kembali</a>
     </div>
 @endsection
 
@@ -119,10 +125,14 @@
 <script>
     function showForm() {
         document.getElementById('formCard').style.display = 'block';
+        document.getElementById('historyCard').style.display = 'none';
+        document.getElementById('backWrap').style.display = 'none';
     }
 
     function hideForm() {
         document.getElementById('formCard').style.display = 'none';
+        document.getElementById('historyCard').style.display = 'block';
+        document.getElementById('backWrap').style.display = 'block';
     }
 </script>
 @endpush

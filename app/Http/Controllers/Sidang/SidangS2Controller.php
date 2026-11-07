@@ -207,6 +207,74 @@ class SidangS2Controller extends Controller
         return redirect()->back()->with('success', 'Data sidang berhasil diperbarui');
     }
 
+    public function ubahJudul($idJudul)
+    {
+        $judul = DB::table('t_judul')
+            ->select('t_judul.ID as id_judul', 't_judul.JUDUL as Judul', 't_judul.ABSTRAK as ABSTRAK', 't_user.NAMA_LENGKAP as nama_mhs', 't_user.NIP_NIM as Nim')
+            ->join('t_user', 't_judul.NIM', '=', 't_user.NIP_NIM')
+            ->where('t_judul.ID', $idJudul)
+            ->first();
+
+        if (!$judul) {
+            abort(404);
+        }
+
+        $history = DB::table('t_judul_temp')
+            ->select('ID_JUDUL', 'JUDUL as judul_lama', 'JUDUL_BARU as judul_baru', 'TAHAP_PERUBAHAN as tahap', 'ALASAN_PERUBAHAN as alasan', 'TGL_CREATE as tgl_create')
+            ->where('ID_JUDUL', $idJudul)
+            ->orderBy('ID', 'desc')
+            ->get();
+
+        return view('sidang.ubah-judul', [
+            'judul' => $judul,
+            'history' => $history,
+            'tahapOptions' => ['Tesis I', 'Tesis II'],
+            'idJudul' => $idJudul,
+            'indexRoute' => route('sidang.s2'),
+            'storeRoute' => route('sidang.s2.store-ubah-judul', $idJudul),
+            'indexLabel' => 'Sidang S2',
+        ]);
+    }
+
+    public function storeUbahJudul(Request $request, $idJudul)
+    {
+        $request->validate([
+            'judul_baru' => 'required|string',
+            'abstrak' => 'required|string|max:1000',
+            'tahap' => 'required|in:Tesis I,Tesis II',
+            'alasan' => 'required|string',
+        ]);
+
+        $user = session('auth_user');
+        $nim = DB::table('t_judul')->where('id', $idJudul)->value('NIM');
+
+        DB::table('t_judul_temp')->insert([
+            'ID_JUDUL' => $idJudul,
+            'JUDUL' => $request->judul_lama,
+            'JUDUL_BARU' => $request->judul_baru,
+            'ABSTRAK' => $request->abstrak,
+            'TAHAP_PERUBAHAN' => $request->tahap,
+            'ALASAN_PERUBAHAN' => $request->alasan,
+            'ID_USER_MHS' => $user['id'],
+            'NIM' => $nim,
+            'TGL_CREATE' => now(),
+        ]);
+
+        DB::table('t_judul')
+            ->where('id', $idJudul)
+            ->update(['Judul' => $request->judul_baru, 'ABSTRAK' => $request->abstrak, 'tgl_update' => now()]);
+
+        DB::table('t_ajuan_sidang')
+            ->where('id_judul', $idJudul)
+            ->update(['Judul' => $request->judul_baru, 'tgl_update' => now()]);
+
+        DB::table('t_penilaian')
+            ->where('id_judul', $idJudul)
+            ->update(['judul' => $request->judul_baru, 'tgl_update' => now()]);
+
+        return redirect()->route('sidang.s2.ubah-judul', $idJudul)->with('success', 'Judul berhasil diubah');
+    }
+
     public function storeJudul(Request $request)
     {
         $user = session('auth_user');
