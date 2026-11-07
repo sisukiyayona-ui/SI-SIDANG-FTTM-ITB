@@ -11,8 +11,9 @@ class ApproveAjuanSidangController extends Controller
     public function index($strata)
     {
         $strata = strtoupper($strata);
-        if (!in_array($strata, ['S1', 'S2', 'S3'])) {
-            abort(404);
+        // KPPS hanya menangani S3; S1/S2 tidak memakai KPPS.
+        if ($strata !== 'S3') {
+            abort(404, 'Approve ajuan sidang KPPS hanya untuk S3.');
         }
 
         $authUser = session('auth_user');
@@ -94,8 +95,8 @@ class ApproveAjuanSidangController extends Controller
     public function show($strata, $id)
     {
         $strata = strtoupper($strata);
-        if (!in_array($strata, ['S1', 'S2', 'S3'])) {
-            abort(404);
+        if ($strata !== 'S3') {
+            abort(404, 'Approve ajuan sidang KPPS hanya untuk S3.');
         }
 
         $ajuan = \App\Models\TAjuanSidang::find($id);
@@ -244,6 +245,11 @@ class ApproveAjuanSidangController extends Controller
         $inserted = 0;
 
         foreach ($request->ids as $ajuanId) {
+            $ajuanRow = DB::table('t_ajuan_sidang')->where('id', $ajuanId)->first();
+            if (!$ajuanRow || strtoupper((string) ($ajuanRow->STRATA ?? '')) !== 'S3') {
+                continue;
+            }
+
             $exists = DB::table('t_app_ajuan_sidang')
                 ->where('ID_AJUAN_SIDANG', $ajuanId)
                 ->where('ID_USER', $userId)
@@ -295,6 +301,11 @@ class ApproveAjuanSidangController extends Controller
         $rejected = 0;
 
         foreach ($request->ids as $ajuanId) {
+            $ajuanRow = DB::table('t_ajuan_sidang')->where('id', $ajuanId)->first();
+            if (!$ajuanRow || strtoupper((string) ($ajuanRow->STRATA ?? '')) !== 'S3') {
+                continue;
+            }
+
             $updated = DB::table('t_ajuan_sidang')
                 ->where('id', $ajuanId)
                 ->update([

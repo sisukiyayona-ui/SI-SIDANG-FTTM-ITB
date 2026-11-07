@@ -2479,32 +2479,12 @@
                     @endif
 
                     @if(session('auth_user.role') === 'KPPS')
-                    <!-- KPPS NAVIGATION - Approval Ajuan Sidang -->
-                    <li class="nav-item has-treeview {{ request()->routeIs('sidang.approve-ajuan*') ? 'menu-open' : '' }}">
-                        <a href="#" class="nav-link {{ request()->routeIs('sidang.approve-ajuan*') ? 'active' : '' }}">
+                    <!-- KPPS NAVIGATION - Approval Ajuan Sidang (khusus S3) -->
+                    <li class="nav-item">
+                        <a href="{{ route('sidang.approve-ajuan.index', 'S3') }}" class="nav-link {{ request()->routeIs('sidang.approve-ajuan*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-clipboard-check"></i>
-                            <p>Approve Ajuan Sidang <i class="right fas fa-angle-left"></i></p>
+                            <p>Approve Ajuan Sidang (S3)</p>
                         </a>
-                        <ul class="nav nav-treeview">
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.approve-ajuan.index', 'S1') }}" class="nav-link {{ request()->routeIs('sidang.approve-ajuan.index') && request()->route('strata') == 'S1' ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-graduation-cap"></i>
-                                    <p>S1</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.approve-ajuan.index', 'S2') }}" class="nav-link {{ request()->routeIs('sidang.approve-ajuan.index') && request()->route('strata') == 'S2' ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-graduation-cap"></i>
-                                    <p>S2</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ route('sidang.approve-ajuan.index', 'S3') }}" class="nav-link {{ request()->routeIs('sidang.approve-ajuan.index') && request()->route('strata') == 'S3' ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-graduation-cap"></i>
-                                    <p>S3</p>
-                                </a>
-                            </li>
-                        </ul>
                     </li>
 
                     <li class="nav-item">

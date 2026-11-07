@@ -183,7 +183,8 @@
         // dibuka hanya setelah semua anggota KPPS AKTIF prodi approve ajuan.
         // TU Prodi/Admin/FS tidak terpengaruh (flag selalu false untuk mereka).
         $kppsGate = $kppsGate ?? \App\Services\KppsApproveGate::cek($idJudul, $tahapan);
-        $isKppsGateBlocking = ! empty($kppsGate['blocked'])
+        $isKppsGateBlocking = $strataView === 'S3'
+            && ! empty($kppsGate['blocked'])
             && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji'], true);
         $pesanKppsGate = \App\Services\KppsApproveGate::pesan($kppsGate);
     @endphp
@@ -996,6 +997,7 @@
                     </div>
                 </div>
 
+                @if($showKppsTab)
                 <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
                     @php
                         $appAjuan = \App\Models\TAjuanSidang::where('id_judul', $idJudul)
@@ -1139,6 +1141,7 @@
                         </table>
                     </div>
                 </div>
+                @endif
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
                     {{-- JADWAL & PENILAIAN --}}
                     <div id="jadwalListTahap2">
@@ -1601,11 +1604,11 @@
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) && (!isset($ajuan) || $ajuan->STATUS_AJUKAN_PRODI !== 'y'))
                                        <button type="button" class="btn btn-success px-3 py-0" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);">Ajukan ke FS</button>
                                       @endif
-                                      @if(session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
+                                      @if($strataView === 'S3' && session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
                                        <input type="hidden" name="is_ajukan_kpps" value="">
                                        <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan ke KPPS</button>
                                       @endif
-                                      @if(session('auth_user.role') === 'FS' && isset($ajuan) && ($ajuan->STATUS_LULUS ?? '') === 'tidak lulus')
+                                      @if($strataView === 'S3' && session('auth_user.role') === 'FS' && isset($ajuan) && ($ajuan->STATUS_LULUS ?? '') === 'tidak lulus')
                                        <input type="hidden" name="is_ajukan_kpps" value="">
                                        <button type="button" class="btn btn-success px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);">Ajukan Ulang ke KPPS (Reject)</button>
                                       @endif
@@ -4407,11 +4410,15 @@ function doKirimNotifikasiApprove() {
 @php
 function getTahapLabel($tahapan) {
     $labels = [
-        'tahap I'  => 'Ujian Kualifikasi',
-        'tahap II' => 'Ujian Proposal',
-        'tahap IV' => 'Sidang Terbuka / Tertutup',
+        'tahap i'  => 'Ujian Kualifikasi',
+        'tahap ii' => 'Ujian Proposal',
+        'tahap iv' => 'Sidang Terbuka / Tertutup',
+        'ta i'     => 'TA I',
+        'ta ii'    => 'TA II',
+        'tesis i'  => 'Tesis I',
+        'tesis ii' => 'Tesis II',
     ];
-    return $labels[strtolower($tahapan)] ?? str_replace('tahap', 'Tahap', $tahapan);
+    return $labels[strtolower(trim($tahapan))] ?? str_replace('tahap', 'Tahap', $tahapan);
 }
 
 function getStatusColor($status) {
@@ -4452,9 +4459,26 @@ function getAjuanDisplayStatus($ajuan) {
     if (empty($mhs) || $mhs === 't') return 'Belum diajukan';
     $prodi = $ajuan->status_ajukan_prodi ?? $ajuan->STATUS_AJUKAN_PRODI ?? 't';
     if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
+
+    $ajuanId = $ajuan->id ?? null;
+    $strata = strtoupper($ajuan->STRATA ?? $ajuan->strata ?? 'S3');
+
+    // S1/S2 tidak memakai KPPS: setelah TU Prodi approve, ajuan diproses di
+    // fakultas dan menjadi terjadwal begitu tanggal sidang diisi.
+    if ($strata !== 'S3') {
+        if ($ajuanId) {
+            $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+                ->where('ID_AJUAN_SIDANG', $ajuanId)
+                ->where('STATUS_APPROVE', 'f')
+                ->exists();
+            if ($rejected) return 'Rejected';
+        }
+        if ($ajuan->tgl_sidang ?? $ajuan->TGL_SIDANG ?? null) return 'Terjadwal';
+        return 'Diproses di Fakultas';
+    }
+
     $kpps = $ajuan->status_ajukan_kpps ?? $ajuan->STATUS_AJUKAN_KPPS ?? 't';
     if (($kpps ?? null) === 'y') {
-        $ajuanId = $ajuan->id ?? null;
         $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
             ->where('app.ID_AJUAN_SIDANG', $ajuanId)
             ->whereIn('app.STATUS_APPROVE', ['t', 'y'])
@@ -4472,7 +4496,6 @@ function getAjuanDisplayStatus($ajuan) {
         if ($totalKpps > 0 && $approved >= $totalKpps) return 'Terjadwal';
         return 'Menunggu Approve KPPS';
     }
-    $ajuanId = $ajuan->id ?? null;
     if ($ajuanId) {
         $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
             ->where('ID_AJUAN_SIDANG', $ajuanId)

@@ -16,7 +16,14 @@
             <th></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="nama_persyaratan" placeholder="Cari..." value="{{ request('nama_persyaratan') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="tahapan_sidang" placeholder="Cari..." value="{{ request('tahapan_sidang') }}"></th>
-            <th><input type="text" class="form-control form-control-sm column-search" name="strata" placeholder="Cari..." value="{{ request('strata') }}"></th>
+            <th>
+                <select class="form-control form-control-sm column-search" name="strata">
+                    <option value="">Semua</option>
+                    @foreach(['S1', 'S2', 'S3'] as $s)
+                        <option value="{{ $s }}" {{ request('strata') == $s ? 'selected' : '' }}>{{ $s }}</option>
+                    @endforeach
+                </select>
+            </th>
             <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." value="{{ request('nama_prodi') }}"></th>
             <th>
                 <select class="form-control form-control-sm column-search" name="status_aktif">

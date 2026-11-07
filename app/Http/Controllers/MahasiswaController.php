@@ -24,17 +24,12 @@ class MahasiswaController extends Controller
         // dihitung, jadi query S1/S2 tidak ikut menghitung tahapan S3.
         $stagesByStrata = [
             'S1' => [
-                ['key' => 'tahap1', 'tahapan' => 'tahap I',  'label' => 'Sidang Proposal'],
-                ['key' => 'tahap2', 'tahapan' => 'tahap II', 'label' => 'Seminar Kemajuan I'],
-                ['key' => 'sk1',    'tahapan' => 'SK I',     'label' => 'Seminar Kemajuan II'],
-                ['key' => 'sk2',    'tahapan' => 'SK II',    'label' => 'Seminar Kemajuan III'],
-                ['key' => 'sk3',    'tahapan' => 'SK III',   'label' => 'Seminar Kemajuan IV'],
-                ['key' => 'tahap4', 'tahapan' => 'tahap IV', 'label' => 'Sidang Akhir'],
+                ['key' => 'tahap1', 'tahapan' => 'TA I',  'label' => 'TA I'],
+                ['key' => 'tahap2', 'tahapan' => 'TA II', 'label' => 'TA II'],
             ],
             'S2' => [
                 ['key' => 'tesis1', 'tahapan' => 'Tesis I',  'label' => 'Tesis I'],
                 ['key' => 'tesis2', 'tahapan' => 'Tesis II', 'label' => 'Tesis II'],
-                ['key' => 'tahap4', 'tahapan' => 'tahap IV', 'label' => 'Sidang Terbuka / Tertutup'],
             ],
             'S3' => [
                 ['key' => 'tahap1', 'tahapan' => 'tahap I',  'label' => 'Ujian Kualifikasi'],
@@ -90,7 +85,25 @@ class MahasiswaController extends Controller
         
         // Query tracking progress sidang — base table t_judul agar mahasiswa baru (belum punya ajuan) tetap muncul
         // Status CASE expression: consistent with SidangS1/S2/S3 controllers
-        $statusCase = function ($alias, $tahapan) {
+        $statusCase = function ($alias, $tahapan) use ($strata) {
+            $rejectSql = "EXISTS (
+                        SELECT 1 FROM t_app_ajuan_sidang app
+                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
+                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
+                    )";
+
+            if ($strata !== 'S3') {
+                // S1/S2 tanpa KPPS: Prodi -> Fakultas -> Terjadwal.
+                return "CASE
+                    WHEN MAX({$alias}.STATUS_LULUS) IS NOT NULL AND MAX({$alias}.STATUS_LULUS) != 'diajukan' THEN MAX({$alias}.STATUS_LULUS)
+                    WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.STATUS_AJUKAN_MHS), 't') != 'y' THEN 'belum diajukan'
+                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_PRODI), 't') != 'y' THEN 'Diproses di TU Prodi'
+                    WHEN {$rejectSql} THEN 'Rejected'
+                    WHEN MAX({$alias}.TGL_SIDANG) IS NOT NULL THEN 'Terjadwal'
+                    ELSE 'Diproses di Fakultas'
+                END";
+            }
+
             return "CASE
                     WHEN MAX({$alias}.STATUS_LULUS) IS NOT NULL AND MAX({$alias}.STATUS_LULUS) != 'diajukan' THEN MAX({$alias}.STATUS_LULUS)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.STATUS_AJUKAN_MHS), 't') != 'y' THEN 'belum diajukan'
@@ -110,11 +123,7 @@ class MahasiswaController extends Controller
                         WHERE x3.id_judul = j.id AND x3.tahapan_sidang = '{$tahapan}' AND k.STATUS_AKTIF = 'AKTIF'
                     ) THEN 'Terjadwal'
                     WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_KPPS), 't') = 'y' THEN 'Menunggu Approve KPPS'
-                    WHEN EXISTS (
-                        SELECT 1 FROM t_app_ajuan_sidang app
-                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
-                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
-                    ) THEN 'Rejected'
+                    WHEN {$rejectSql} THEN 'Rejected'
                     ELSE 'Diproses di Fakultas'
                 END";
         };
@@ -239,12 +248,10 @@ class MahasiswaController extends Controller
         })->values();
 
         // Get mahasiswa's prodi from judul->user relationship (source of truth)
+        $judul = \App\Models\TJudul::find($idJudul);
         $mahasiswaProdi = null;
-        if ($idJudul) {
-            $judul = \App\Models\TJudul::find($idJudul);
-            if ($judul && $judul->user) {
-                $mahasiswaProdi = $judul->user->KODE_PRODI;
-            }
+        if ($judul && $judul->user) {
+            $mahasiswaProdi = $judul->user->KODE_PRODI;
         }
 
         // Get kode_prodi for persyaratan filtering (prioritas: ajuan, lalu prodi mahasiswa dari judul, terakhir session)
@@ -256,6 +263,17 @@ class MahasiswaController extends Controller
             $prodi = TProdi::where('kode_prodi', $kodeProdi)->first();
             $prodiId = $prodi?->id;
         }
+
+        // Strata pemilik judul — sumber utama untuk filter persyaratan & tab.
+        // Nilai ajuan diutamakan, lalu data mahasiswa dari t_user, terakhir session.
+        $strataView = strtoupper((string) ($ajuan->STRATA ?? $ajuan->strata ?? ''));
+        if (!in_array($strataView, ['S1', 'S2', 'S3'], true)) {
+            $strataView = strtoupper((string) ($judul?->user?->STRATA ?? session('auth_user.strata') ?? ''));
+        }
+        if (!in_array($strataView, ['S1', 'S2', 'S3'], true)) {
+            $strataView = 'S3';
+        }
+        $showKppsTab = ($strataView === 'S3');
             
         // Table t_tim_sidang (Pembimbing / Penguji)
         // Urutan tampil: Ketua Pembimbing, Pembimbing I/II, Penguji I/II/III,
@@ -279,8 +297,9 @@ class MahasiswaController extends Controller
         // For Pembimbing/Penguji, show all team members
         $timSidang = $timSidangQuery->get();
             
-        // Get syarat IDs belonging to this prodi (to filter cek_persyaratan)
-        $syaratIdsForProdi = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan);
+        // Get syarat IDs belonging to this prodi + strata (to filter cek_persyaratan)
+        $syaratIdsForProdi = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
+            ->where('STRATA', $strataView);
         if ($prodiId) {
             $syaratIdsForProdi->where('ID_PRODI', $prodiId);
         }
@@ -293,8 +312,9 @@ class MahasiswaController extends Controller
             ->get();
 
         // Data kelengkapan dari t_syarat_sidang (master daftar persyaratan aktif prodi)
-        $syaratSidangList = function () use ($prodiId, $tahapan) {
+        $syaratSidangList = function () use ($prodiId, $tahapan, $strataView) {
             $persyaratan = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
+                ->where('STRATA', $strataView)
                 ->where('STATUS_AKTIF', 'AKTIF');
 
             // Filter by prodi ID (integer) — berlaku untuk semua role
@@ -378,7 +398,7 @@ class MahasiswaController extends Controller
         $users = collect();
         $skList = collect();
         
-        if (in_array($tahapan, ['tahap I', 'tahap II', 'SK I', 'SK II', 'SK III', 'SK IV', 'tahap IV']) && in_array($user['role'], ['TU Prodi', 'Admin', 'FS'])) {
+        if (in_array($user['role'], ['TU Prodi', 'Admin', 'FS'])) {
             // Dropdown Tim: hanya user dengan role Pembimbing atau Penguji
             $pembimbingPengujiIds = \App\Models\TUserRole::whereIn('ROLE', ['Pembimbing', 'Penguji'])
                 ->pluck('ID_USER')
@@ -410,13 +430,15 @@ class MahasiswaController extends Controller
         // Kelengkapan nilai seluruh tim Pembimbing & Penguji (gate tombol Kunci Nilai)
         $kelengkapanNilai = \App\Services\KelengkapanNilaiSidang::cek($idJudul, $tahapan, $kodeProdi);
 
-        // Gate approve KPPS prodi (input nilai & Kunci Nilai Pembimbing/Penguji)
-        $kppsGate = \App\Services\KppsApproveGate::cek($idJudul, $tahapan, $mahasiswaProdi);
+        // Gate approve KPPS prodi (khusus S3). S1/S2 tidak memakai KPPS.
+        $kppsGate = $strataView === 'S3'
+            ? \App\Services\KppsApproveGate::cek($idJudul, $tahapan, $mahasiswaProdi)
+            : ['blocked' => false, 'total' => 0, 'approved' => 0, 'semua' => true];
 
         // Return HTML fragment for AJAX request
         $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji', 'Ketua Sidang'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
 
-        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'isKetuaSidangTim', 'users', 'skList', 'kelengkapanNilai', 'kppsGate');
+        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'isKetuaSidangTim', 'users', 'skList', 'kelengkapanNilai', 'kppsGate', 'strataView', 'showKppsTab');
 
         if (request()->ajax()) {
             return view($viewName, $viewData)->render();
@@ -495,27 +517,69 @@ class MahasiswaController extends Controller
                 // Ambil info nama persyaratan dari TSyaratSidang
                 $syarat = \App\Models\TSyaratSidang::find($idSyarat);
 
+                // Hanya buat baris untuk syarat milik strata & prodi mahasiswa,
+                // supaya persyaratan S3 tidak ikut muncul di S1/S2 (dan sebaliknya).
+                $judulUpload = TJudul::find($idJudul);
+                $strataUpload = strtoupper((string) ($judulUpload?->user?->STRATA ?? session('auth_user.strata') ?? ''));
+                $prodiIdUpload = null;
+                if ($judulUpload?->user?->KODE_PRODI) {
+                    $prodiIdUpload = TProdi::where('kode_prodi', $judulUpload->user->KODE_PRODI)->value('id');
+                }
+
                 // Jika data kosong, insert semua persyaratan untuk tahapan ini terlebih dahulu agar berurutan
-                $allSyarat = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
-                    ->where('STATUS_AKTIF', 'AKTIF')
-                    ->get();
-                    
+                $allSyaratQuery = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapan)
+                    ->where('STATUS_AKTIF', 'AKTIF');
+                if ($strataUpload !== '') {
+                    $allSyaratQuery->where('STRATA', $strataUpload);
+                }
+                if ($prodiIdUpload) {
+                    $allSyaratQuery->where('ID_PRODI', $prodiIdUpload);
+                }
+                $allSyarat = $allSyaratQuery->get();
+
+                $saved = false;
                 foreach($allSyarat as $s) {
-                    $newCek = new \App\Models\TCekPersyaratan();
-                    $newCek->ID_JUDUL = $idJudul;
-                    $newCek->TAHAPAN_SIDANG = $tahapan;
-                    $newCek->ID_SYARAT_SIDANG = $s->id;
-                    $newCek->PERSYARATAN = $s->NAMA_PERSYARATAN;
+                    $newCek = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+                        ->where('TAHAPAN_SIDANG', $tahapan)
+                        ->where('ID_SYARAT_SIDANG', $s->id)
+                        ->first();
+                    if (!$newCek) {
+                        $newCek = new \App\Models\TCekPersyaratan();
+                        $newCek->ID_JUDUL = $idJudul;
+                        $newCek->TAHAPAN_SIDANG = $tahapan;
+                        $newCek->ID_SYARAT_SIDANG = $s->id;
+                        $newCek->PERSYARATAN = $s->NAMA_PERSYARATAN;
+                        $newCek->STATUS_LENGKAP = 't';
+                        $newCek->TGL_BUAT = date('Y-m-d');
+                    }
 
                     if ($s->id == $idSyarat) {
                         $newCek->LINK_FILE = $linkFile;
                         $newCek->STATUS_LENGKAP = 'y';
-                    } else {
-                        $newCek->STATUS_LENGKAP = 't';
+                        $newCek->TGL_UPDATE = date('Y-m-d');
+                        $saved = true;
                     }
 
-                    $newCek->TGL_BUAT = date('Y-m-d');
                     $newCek->save();
+                }
+
+                // Syarat yang diupload bisa saja tidak lolos filter strata/prodi di
+                // atas (mis. syarat lama tanpa ID_PRODI). Tetap simpan filenya
+                // supaya upload tidak hilang tanpa pesan.
+                if (!$saved) {
+                    $target = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+                        ->where('TAHAPAN_SIDANG', $tahapan)
+                        ->where('ID_SYARAT_SIDANG', $idSyarat)
+                        ->first() ?: new \App\Models\TCekPersyaratan();
+                    $target->ID_JUDUL = $idJudul;
+                    $target->TAHAPAN_SIDANG = $tahapan;
+                    $target->ID_SYARAT_SIDANG = $idSyarat;
+                    $target->PERSYARATAN = $syarat->NAMA_PERSYARATAN ?? ('Persyaratan #' . $idSyarat);
+                    $target->LINK_FILE = $linkFile;
+                    $target->STATUS_LENGKAP = 'y';
+                    $target->TGL_BUAT = $target->TGL_BUAT ?: date('Y-m-d');
+                    $target->TGL_UPDATE = date('Y-m-d');
+                    $target->save();
                 }
             }
 
@@ -648,7 +712,10 @@ class MahasiswaController extends Controller
                     $ajuan->ID_JUDUL = $idJudul;
                     $ajuan->JUDUL = $judul->JUDUL ?: '-';
                     $ajuan->TAHAPAN_SIDANG = $tahapan;
-                    $ajuan->STRATA = ($mahasiswa && $mahasiswa->STRATA) ? $mahasiswa->STRATA : 'S3';
+                    $strataFallback = strtoupper((string) ($user['strata'] ?? ''));
+                    $ajuan->STRATA = ($mahasiswa && $mahasiswa->STRATA)
+                        ? $mahasiswa->STRATA
+                        : (in_array($strataFallback, ['S1', 'S2', 'S3'], true) ? $strataFallback : 'S3');
                     $ajuan->STATUS_LULUS = null; // 'dalam proses'
                     $ajuan->STATUS_AJUKAN_MHS = 't';
                     $ajuan->STATUS_AJUKAN_PRODI = 't';
@@ -751,32 +818,47 @@ class MahasiswaController extends Controller
                 } else {
                     // Get prodi ID from judul's user for filtering syarat
                     $prodiIdForSave = null;
+                    $strataForSave = '';
                     $judulForSave = \App\Models\TJudul::find($idJudul);
                     if ($judulForSave && $judulForSave->user) {
                         $prodiForSave = \App\Models\TProdi::where('kode_prodi', $judulForSave->user->KODE_PRODI)->first();
                         $prodiIdForSave = $prodiForSave?->id;
+                        $strataForSave = strtoupper((string) ($judulForSave->user->STRATA ?? ''));
+                    }
+                    if ($strataForSave === '') {
+                        $strataForSave = strtoupper((string) (session('auth_user.strata') ?? ''));
                     }
 
-                    $allSyarat = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapSyarat)
+                    $allSyaratQuery = \App\Models\TSyaratSidang::where('TAHAPAN_SIDANG', $tahapSyarat)
                         ->where('STATUS_AKTIF', 'AKTIF');
                     if ($prodiIdForSave) {
-                        $allSyarat->where('ID_PRODI', $prodiIdForSave);
+                        $allSyaratQuery->where('ID_PRODI', $prodiIdForSave);
                     }
-                    $allSyarat = $allSyarat->get();
+                    if ($strataForSave !== '') {
+                        $allSyaratQuery->where('STRATA', $strataForSave);
+                    }
+                    $allSyarat = $allSyaratQuery->get();
 
                     foreach ($allSyarat as $s) {
-                        $newCek = new \App\Models\TCekPersyaratan();
-                        $newCek->ID_JUDUL = $idJudul;
-                        $newCek->TAHAPAN_SIDANG = $tahapSyarat;
-                        $newCek->ID_SYARAT_SIDANG = $s->id;
-                        $newCek->PERSYARATAN = $s->NAMA_PERSYARATAN;
-                        // JANGAN set STATUS_LENGKAP otomatis jadi 'y' hanya karena upload file
-                        // Status lengkap hanya diset sesuai checkbox user atau default 't'
-                        $newCek->STATUS_LENGKAP = 't';
+                        $newCek = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
+                            ->where('TAHAPAN_SIDANG', $tahapSyarat)
+                            ->where('ID_SYARAT_SIDANG', $s->id)
+                            ->first();
+                        if (!$newCek) {
+                            $newCek = new \App\Models\TCekPersyaratan();
+                            $newCek->ID_JUDUL = $idJudul;
+                            $newCek->TAHAPAN_SIDANG = $tahapSyarat;
+                            $newCek->ID_SYARAT_SIDANG = $s->id;
+                            $newCek->PERSYARATAN = $s->NAMA_PERSYARATAN;
+                            // JANGAN set STATUS_LENGKAP otomatis jadi 'y' hanya karena upload file
+                            // Status lengkap hanya diset sesuai checkbox user atau default 't'
+                            $newCek->STATUS_LENGKAP = 't';
+                            $newCek->TGL_BUAT = date('Y-m-d');
+                        }
                         if ($s->id == $idSyarat) {
                             $newCek->LINK_FILE = $linkFile;
+                            $newCek->TGL_UPDATE = date('Y-m-d');
                         }
-                        $newCek->TGL_BUAT = date('Y-m-d');
                         $newCek->save();
                     }
                 }
@@ -1317,9 +1399,16 @@ class MahasiswaController extends Controller
             return redirect()->back()->with('error', 'Anda sudah memiliki judul.');
         }
 
+        // Tahapan awal mengikuti strata mahasiswa (master t_tahapan).
+        $strataMhs = strtoupper((string) ($user['strata'] ?? ''));
+        if (!in_array($strataMhs, ['S1', 'S2', 'S3'], true)) {
+            $strataMhs = 'S3';
+        }
+        $tahapanAwal = ['S1' => 'TA I', 'S2' => 'Tesis I'][$strataMhs] ?? 'tahap I';
+
         try {
             $judulId = null;
-            DB::transaction(function () use ($request, $user, $prodi, &$judulId) {
+            DB::transaction(function () use ($request, $user, $prodi, $strataMhs, $tahapanAwal, &$judulId) {
                 $judul = TJudul::create([
                     'JUDUL' => $request->judul,
                     'ABSTRAK' => $request->abstrak,
@@ -1340,8 +1429,8 @@ class MahasiswaController extends Controller
                     'ANGKATAN' => $user['thn_angkatan'] ?? date('Y'),
                     'ID_JUDUL' => $judul->id,
                     'JUDUL' => $request->judul,
-                    'TAHAPAN_SIDANG' => 'tahap I',
-                    'STRATA' => $user['strata'] ?: 'S3',
+                    'TAHAPAN_SIDANG' => $tahapanAwal,
+                    'STRATA' => $strataMhs,
                     'STATUS_AJUKAN_MHS' => 't',
                     'STATUS_AJUKAN_PRODI' => 't',
                     'TGL_CREATE' => now(),

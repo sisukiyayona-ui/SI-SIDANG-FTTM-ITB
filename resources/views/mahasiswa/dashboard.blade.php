@@ -104,7 +104,9 @@
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di tu prodi">Diproses di TU Prodi</option>
                                     <option value="diproses di fakultas">Diproses di Fakultas</option>
+                                    @if($strata === 'S3')
                                     <option value="menunggu approve kpps">Menunggu Approve KPPS</option>
+                                    @endif
                                     <option value="terjadwal">Terjadwal</option>
                                     <option value="lulus">Lulus</option>
                                     <option value="tidak lulus">Tidak lulus</option>

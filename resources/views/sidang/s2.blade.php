@@ -153,8 +153,7 @@
     function getTahapLabelJS(tahapan) {
         var labels = {
             'Tesis I': 'Tesis I',
-            'Tesis II': 'Tesis II',
-            'tahap IV': 'Sidang Terbuka / Tertutup'
+            'Tesis II': 'Tesis II'
         };
         return labels[tahapan] || tahapan;
     }

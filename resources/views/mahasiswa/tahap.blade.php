@@ -98,7 +98,6 @@
     </div>
 
     @php
-        $isTahap1 = strtolower($tahapan) === 'tahap i';
         $judulHeader = $idJudul ? \App\Models\TJudul::find($idJudul) : null;
         $userHeader = $judulHeader?->user;
         $nama = $ajuan->nama_mhs ?? $userHeader?->NAMA_LENGKAP ?? session('auth_user.nama_lengkap');
@@ -127,78 +126,6 @@
 
     {{-- Container bergaris lengkung --}}
     <div style="padding: 30px;">
-        @if($isTahap1)
-            {{-- VIEW TAHAP I --}}
-            <div class="font-weight-bold mb-2 p-0 text-muted" style="margin-left: 10px;">Pembimbing</div>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm text-center mb-4">
-                    <thead style="background-color: #6998d3; color: white;">
-                        <tr>
-                            <th style="width: 5%;">No</th>
-                            <th style="width: 25%;">NIP</th>
-                            <th style="width: 45%;">Nama</th>
-                            <th style="width: 25%;"><span class="text-danger text-decoration-underline">Keterangan</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php $pembimbingList = $timSidang ? $timSidang->filter(fn($t) => str_contains($t->status_tim_sidang ?? '', 'Pembimbing')) : collect(); @endphp
-                        @if($pembimbingList->count() > 0)
-                            @foreach($pembimbingList as $idx => $pembimbing)
-                                <tr>
-                                    <td>{{ $idx + 1 }}</td>
-                                    <td>{{ $pembimbing->nip }}</td>
-                                    <td><span class="text-danger text-decoration-underline">{{ $pembimbing->Nama }}</span></td>
-                                    <td><span class="text-danger text-decoration-underline">{{ $pembimbing->keterangan ?? 'Ketua Pembimbing' }}</span></td>
-                                </tr>
-                            @endforeach
-                        @else
-                            <tr>
-                                <td colspan="4" class="text-muted">Belum ada data pembimbing</td>
-                            </tr>
-                        @endif
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="font-weight-bold mb-2 p-0 text-muted" style="margin-left: 10px;">Nilai</div>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm text-center mb-4">
-                    <thead style="background-color: #6998d3; color: white;">
-                        <tr>
-                            <th style="width: 5%;">No</th>
-                            <th style="width: 45%;"><span class="text-danger text-decoration-underline">Parameter Penilaian</span></th>
-                            <th style="width: 15%;"><span class="text-danger text-decoration-underline">Nilai</span></th>
-                            <th style="width: 35%;"><span class="text-danger text-decoration-underline">Catatan</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if($penilaian && $penilaian->count() > 0)
-                            @foreach($penilaian as $idx => $nilai)
-                            <tr>
-                                <td>{{ $idx + 1 }}</td>
-                                <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
-                                <td>{{ $nilai->Nilai }}</td>
-                                <td>{{ $nilai->catatan }}</td>
-                            </tr>
-                            @endforeach
-                        @else
-                        <tr>
-                            <td colspan="4" class="text-muted">Belum ada data penilaian</td>
-                        </tr>
-                        @endif
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-4 d-flex align-items-center mb-2" style="margin-left: 10px;">
-                <span class="mr-4">Status Lulus</span>
-                <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan ?? null)) }}" style="width: 150px; height: 30px; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center;">
-                    {{ getAjuanDisplayStatus($ajuan ?? null) }}
-                </span>
-            </div>
-            
-        @else
-            {{-- VIEW TAHAP II & LAINNYA --}}
             <!-- Nav Tabs -->
             <ul class="nav text-center w-100 d-flex justify-content-center border-bottom-0 mb-4" id="myTab" role="tablist">
                 <li class="nav-item">
@@ -208,10 +135,12 @@
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="tim-tab" data-toggle="tab" href="#tim" role="tab" style="text-decoration: underline;">Tim Pembimbing dan Penguji</a>
                 </li>
+                @if($showKppsTab ?? false)
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="kpps-tab" data-toggle="tab" href="#kpps-voting" role="tab" style="text-decoration: underline;">Hasil Voting Tim KPPS</a>
                 </li>
+                @endif
                 <li class="nav-item mx-2 text-primary font-weight-bold p-0">|</li>
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold p-0 text-primary" id="jadwal-tab" data-toggle="tab" href="#jadwal" role="tab" style="text-decoration: underline;">Jadwal dan Penilaian</a>
@@ -270,28 +199,7 @@
                                 @endforeach
                             @else
                                 <tr style="background-color: #dbe5f1;">
-                                    <td>1</td>
-                                    <td class="text-left"><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Lulus ujian persiapan (tahap I)</span></td>
-                                    @if($tahapan !== 'tahap II')
-                                    <td><input type="checkbox" disabled></td>
-                                    @endif
-                                    <td><button type="button" class="btn btn-light bg-white border py-0 px-2 text-dark"><i class="fas fa-upload" style="font-size: 14px;"></i></button></td>
-                                </tr>
-                                <tr style="background-color: #e9eef6;">
-                                    <td>2</td>
-                                    <td class="text-left"><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Menyerahkan draft proposal riset yang sudah ditandatangi pembimbing</span></td>
-                                    @if($tahapan !== 'tahap II')
-                                    <td><input type="checkbox" disabled></td>
-                                    @endif
-                                    <td><button type="button" class="btn btn-light bg-white border py-0 px-2 text-dark"><i class="fas fa-upload" style="font-size: 14px;"></i></button></td>
-                                </tr>
-                                <tr style="background-color: #dbe5f1;">
-                                    <td>3</td>
-                                    <td class="text-left"><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Menyerahkan form bimbingan/kemajuan akademik yang sudah ditandatangi pembimbing</span></td>
-                                    @if($tahapan !== 'tahap II')
-                                    <td><input type="checkbox" disabled></td>
-                                    @endif
-                                    <td><button type="button" class="btn btn-light bg-white border py-0 px-2 text-dark"><i class="fas fa-upload" style="font-size: 14px;"></i></button></td>
+                                    <td colspan="{{ $tahapan !== 'tahap II' ? 4 : 3 }}" class="text-center text-muted">Belum ada data persyaratan untuk tahap ini</td>
                                 </tr>
                             @endif
                         </tbody>
@@ -343,7 +251,8 @@
                     </div>
                 </div>
 
-                {{-- TAB: HASIL VOTING TIM KPPS --}}
+                {{-- TAB: HASIL VOTING TIM KPPS (khusus S3) --}}
+                @if($showKppsTab ?? false)
                 <div class="tab-pane fade" id="kpps-voting" role="tabpanel">
                     <div class="text-muted font-weight-bold mb-3" style="font-size: 14px;">
                         Hasil Voting Tim <span class="text-danger" style="text-decoration: underline;">KPPS</span>
@@ -515,6 +424,7 @@
                         </table>
                     </div>
                 </div>
+                @endif
 
                 {{-- TAB: JADWAL & PENILAIAN --}}
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
@@ -703,7 +613,6 @@
                     </div>
                 </div>
             </div>
-        @endif
     </div>
 
 <script>
@@ -1094,17 +1003,12 @@ if (window.jQuery && jQuery.fn.select2) {
 
       $labelsByStrata = [
           'S1' => [
-              'tahap i'  => 'Sidang Proposal',
-              'tahap ii' => 'Seminar Kemajuan I',
-              'sk i'     => 'Seminar Kemajuan II',
-              'sk ii'    => 'Seminar Kemajuan III',
-              'sk iii'   => 'Seminar Kemajuan IV',
-              'tahap iv' => 'Sidang Akhir',
+              'ta i'  => 'TA I',
+              'ta ii' => 'TA II',
           ],
           'S2' => [
               'tesis i'  => 'Tesis I',
               'tesis ii' => 'Tesis II',
-              'tahap iv' => 'Sidang Terbuka / Tertutup',
           ],
           'S3' => [
               'tahap i'  => 'Ujian Kualifikasi',
@@ -1153,8 +1057,23 @@ if (window.jQuery && jQuery.fn.select2) {
       if (!empty($ajuan->status_lulus) && strtolower($ajuan->status_lulus) !== 'diajukan') return ucfirst($ajuan->status_lulus);
       if (empty($ajuan->status_ajukan_mhs) || $ajuan->status_ajukan_mhs === 't') return 'Belum diajukan';
       if ($ajuan->status_ajukan_mhs === 'y' && (empty($ajuan->status_ajukan_prodi) || $ajuan->status_ajukan_prodi === 't')) return 'Diproses di TU Prodi';
+
+      $ajuanId = $ajuan->id ?? null;
+      $strata = strtoupper((string) ($ajuan->STRATA ?? $ajuan->strata ?? session('auth_user.strata') ?? 'S3'));
+
+      if ($strata !== 'S3') {
+          if ($ajuanId) {
+              $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
+                  ->where('ID_AJUAN_SIDANG', $ajuanId)
+                  ->where('STATUS_APPROVE', 'f')
+                  ->exists();
+              if ($rejected) return 'Rejected';
+          }
+          if (!empty($ajuan->tgl_sidang ?? $ajuan->TGL_SIDANG ?? null)) return 'Terjadwal';
+          return 'Diproses di Fakultas';
+      }
+
       if (($ajuan->status_ajukan_kpps ?? null) === 'y') {
-          $ajuanId = $ajuan->id ?? null;
           $approved = $ajuanId ? \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang as app')
               ->where('app.ID_AJUAN_SIDANG', $ajuanId)
               ->whereIn('app.STATUS_APPROVE', ['t', 'y'])
@@ -1172,7 +1091,6 @@ if (window.jQuery && jQuery.fn.select2) {
           if ($totalKpps > 0 && $approved >= $totalKpps) return 'Terjadwal';
           return 'Menunggu Approve KPPS';
       }
-      $ajuanId = $ajuan->id ?? null;
       if ($ajuanId) {
           $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
               ->where('ID_AJUAN_SIDANG', $ajuanId)

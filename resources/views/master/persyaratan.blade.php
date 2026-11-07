@@ -634,8 +634,8 @@
     const isTuProdi = @json(session('auth_user.role')) === 'TU Prodi';
 
     // Options tahapan diambil dari master t_tahapan, dikelompokkan per strata.
-    // Master saat ini hanya memuat tahapan S3, jadi strata tanpa daftar sendiri
-    // tetap boleh memakai semua master tahapan (server juga memvalidasi begitu).
+    // Strata yang belum punya baris di master tetap memakai semua tahapan
+    // (server juga memvalidasi begitu).
     var tahapanAll = @json(
         $tahapans->map(function ($t) {
             return [

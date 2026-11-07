@@ -152,13 +152,8 @@
 <script>
     function getTahapLabelJS(tahapan) {
         var labels = {
-            'tahap I':  'Sidang Proposal',
-            'tahap II': 'Seminar Kemajuan I',
-            'SK I':     'Seminar Kemajuan II',
-            'SK II':    'Seminar Kemajuan III',
-            'SK III':   'Seminar Kemajuan IV',
-            'SK IV':    'Seminar Kemajuan IV',
-            'tahap IV': 'Sidang Akhir'
+            'TA I':  'TA I',
+            'TA II': 'TA II'
         };
         return labels[tahapan] || tahapan;
     }

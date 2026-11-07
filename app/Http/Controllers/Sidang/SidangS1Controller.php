@@ -23,60 +23,47 @@ class SidangS1Controller extends Controller
             return '(SELECT x.* FROM t_ajuan_sidang x INNER JOIN (SELECT id_judul, MAX(id) as max_id FROM t_ajuan_sidang WHERE tahapan_sidang = "' . $tahapan . '" GROUP BY id_judul) y ON x.id = y.max_id AND x.id_judul = y.id_judul)';
         };
 
+        // S1 tidak memakai KPPS: setelah TU Prodi approve, status lanjut ke
+        // fakultas dan menjadi terjadwal begitu tanggal sidang diisi.
         $caseSql = function ($alias, $tahapan) {
             return "
                 CASE
                     WHEN MAX({$alias}.status_lulus) IS NOT NULL AND MAX({$alias}.status_lulus) != 'diajukan' THEN MAX({$alias}.status_lulus)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.status_ajukan_mhs), 't') != 'y' THEN 'belum diajukan'
                     WHEN COALESCE(MAX({$alias}.status_ajukan_prodi), 't') != 'y' THEN 'diproses di TU Prodi'
-                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' AND EXISTS (
-                        SELECT 1 FROM t_kpps k0
-                        INNER JOIN t_ajuan_sidang x0 ON x0.KODE_PRODI = k0.KODE_PRODI
-                        WHERE x0.id_judul = a.id_judul AND x0.tahapan_sidang = '{$tahapan}' AND k0.STATUS_AKTIF = 'AKTIF'
-                    ) AND (
-                        SELECT COUNT(DISTINCT app.ID_USER) FROM t_app_ajuan_sidang app
-                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
-                        WHERE x2.id_judul = a.id_judul AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE IN ('t', 'y')
-                        AND EXISTS (SELECT 1 FROM t_kpps kk WHERE kk.ID_USER = app.ID_USER AND kk.STATUS_AKTIF = 'AKTIF')
-                    ) >= (
-                        SELECT COUNT(DISTINCT k.ID_USER) FROM t_kpps k
-                        INNER JOIN t_ajuan_sidang x3 ON x3.KODE_PRODI = k.KODE_PRODI
-                        WHERE x3.id_judul = a.id_judul AND x3.tahapan_sidang = '{$tahapan}' AND k.STATUS_AKTIF = 'AKTIF'
-                    ) THEN 'terjadwal'
-                    WHEN COALESCE(MAX({$alias}.status_ajukan_kpps), 't') = 'y' THEN 'menunggu approve kpps'
                     WHEN EXISTS (
                         SELECT 1 FROM t_app_ajuan_sidang app
                         INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
-                        WHERE x2.id_judul = a.id_judul AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
+                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
                     ) THEN 'rejected'
+                    WHEN MAX({$alias}.tgl_sidang) IS NOT NULL THEN 'terjadwal'
                     ELSE 'diproses di fakultas'
                 END";
         };
 
-        $query = DB::table('t_ajuan_sidang as a')
+        $query = DB::table('t_judul as j')
+            ->leftJoin('t_user as u', 'j.ID_USER_MHS', '=', 'u.id')
             ->select(
-                'a.id_judul',
-                'a.Judul',
-                'a.Nim',
-                'a.nama_mhs',
-                'a.NAMA_PRODI as nama_prodi',
-                DB::raw($caseSql('a1', 'tahap I') . ' as tahap1'),
-                DB::raw($caseSql('a2', 'tahap II') . ' as tahap2'),
-                DB::raw($caseSql('a3', 'SK I') . ' as sk1'),
-                DB::raw($caseSql('a4', 'SK II') . ' as sk2'),
-                DB::raw($caseSql('a5', 'SK III') . ' as sk3'),
-                DB::raw($caseSql('a6', 'SK IV') . ' as sk4'),
-                DB::raw($caseSql('a7', 'tahap IV') . ' as tahap4')
+                'j.id as id_judul',
+                'j.JUDUL as Judul',
+                'j.NIM as Nim',
+                'u.NAMA_LENGKAP as nama_mhs',
+                'u.NAMA_PRODI as nama_prodi',
+                DB::raw($caseSql('a1', 'TA I') . ' as tahap1'),
+                DB::raw($caseSql('a2', 'TA II') . ' as tahap2')
             )
-            ->leftJoin(DB::raw($tahapSub('tahap I') . ' as a1'), 'a.id_judul', '=', 'a1.id_judul')
-            ->leftJoin(DB::raw($tahapSub('tahap II') . ' as a2'), 'a.id_judul', '=', 'a2.id_judul')
-            ->leftJoin(DB::raw($tahapSub('SK I') . ' as a3'), 'a.id_judul', '=', 'a3.id_judul')
-            ->leftJoin(DB::raw($tahapSub('SK II') . ' as a4'), 'a.id_judul', '=', 'a4.id_judul')
-            ->leftJoin(DB::raw($tahapSub('SK III') . ' as a5'), 'a.id_judul', '=', 'a5.id_judul')
-            ->leftJoin(DB::raw($tahapSub('SK IV') . ' as a6'), 'a.id_judul', '=', 'a6.id_judul')
-            ->leftJoin(DB::raw($tahapSub('tahap IV') . ' as a7'), 'a.id_judul', '=', 'a7.id_judul')
-            ->where('a.Strata', $strata)
-            ->groupBy('a.id_judul', 'a.Judul', 'a.Nim', 'a.nama_mhs', 'a.NAMA_PRODI');
+            ->leftJoin(DB::raw($tahapSub('TA I') . ' as a1'), 'j.id', '=', 'a1.id_judul')
+            ->leftJoin(DB::raw($tahapSub('TA II') . ' as a2'), 'j.id', '=', 'a2.id_judul')
+            ->where(function ($q) use ($strata) {
+                $q->where('u.STRATA', $strata)
+                  ->orWhereExists(function ($sub) use ($strata) {
+                      $sub->selectRaw('1')
+                          ->from('t_ajuan_sidang as xs')
+                          ->whereColumn('xs.id_judul', 'j.id')
+                          ->where('xs.STRATA', $strata);
+                  });
+            })
+            ->groupBy('j.id', 'j.JUDUL', 'j.NIM', 'u.NAMA_LENGKAP', 'u.NAMA_PRODI');
 
         if ($user['role'] === 'TU Prodi') {
             $prodiIds = DB::table('t_user_prodi')
@@ -85,35 +72,56 @@ class SidangS1Controller extends Controller
                 ->all();
 
             if (!empty($prodiIds)) {
-                $query->whereIn('a.ID_PRODI', $prodiIds);
+                $kodeProdiList = TProdi::whereIn('id', $prodiIds)->pluck('KODE_PRODI')->all();
+                // Muncul jika ajuan punya prodi TU, ATAU mahasiswa prodinya cocok
+                // (judul yang belum punya ajuan tetap terlihat)
+                $query->where(function ($q) use ($prodiIds, $kodeProdiList) {
+                    $q->whereExists(function ($sub) use ($prodiIds) {
+                        $sub->selectRaw('1')
+                            ->from('t_ajuan_sidang as xp')
+                            ->whereColumn('xp.ID_JUDUL', 'j.id')
+                            ->whereIn('xp.ID_PRODI', $prodiIds);
+                    });
+                    if (!empty($kodeProdiList)) {
+                        $q->orWhereIn('u.KODE_PRODI', $kodeProdiList)
+                          ->orWhereExists(function ($sub) use ($kodeProdiList) {
+                              $sub->selectRaw('1')
+                                  ->from('t_ajuan_sidang as xp')
+                                  ->whereColumn('xp.ID_JUDUL', 'j.id')
+                                  ->whereIn('xp.KODE_PRODI', $kodeProdiList);
+                          });
+                    }
+                });
             } else {
-                $query->where('a.kode_prodi', $user['kode_prodi']);
+                $query->where(function ($q) use ($user) {
+                    $q->where('u.KODE_PRODI', $user['kode_prodi'])
+                      ->orWhereExists(function ($sub) use ($user) {
+                          $sub->selectRaw('1')
+                              ->from('t_ajuan_sidang as xp')
+                              ->whereColumn('xp.ID_JUDUL', 'j.id')
+                              ->where('xp.KODE_PRODI', $user['kode_prodi']);
+                      });
+                });
             }
         } elseif ($user['role'] === 'FS') {
-            $query->where('a.status_ajukan_prodi', 'y');
+            // FS melihat semua
         } elseif ($user['role'] === 'KPPS') {
-            $query->where('a.status_ajukan_prodi', 'y');
+            // KPPS hanya menangani S3
+            $query->whereRaw('1 = 0');
         } elseif (in_array($user['role'], ['Pembimbing', 'Penguji'])) {
-            // Pembimbing/Penguji hanya melihat judul tempat ia tercatat di tim sidang
-            $query->whereExists(function ($sub) use ($user) {
-                $sub->selectRaw('1')
-                    ->from('t_tim_sidang as tk')
-                    ->whereColumn('tk.ID_JUDUL', 'a.id_judul')
-                    ->where('tk.ID_USER_PENILAI', $user['id'] ?? 0);
-            });
+            $query->join('t_tim_sidang as ts', 'j.id', '=', 'ts.ID_JUDUL')
+                  ->where('ts.ID_USER_PENILAI', $user['id']);
         } elseif ($user['role'] === 'Ketua Sidang') {
-            // Ketua Sidang hanya melihat judul tempat ia tercatat sebagai
-            // Ketua Sidang pada tim sidang.
             $query->whereExists(function ($sub) use ($user) {
                 $sub->selectRaw('1')
                     ->from('t_tim_sidang as tk')
-                    ->whereColumn('tk.ID_JUDUL', 'a.id_judul')
+                    ->whereColumn('tk.ID_JUDUL', 'j.id')
                     ->where('tk.ID_USER_PENILAI', $user['id'] ?? 0)
                     ->whereRaw("UPPER(tk.STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%'");
             });
         }
 
-        $tracking = DB::table(DB::raw("({$query->toSql()}) as track"))
+        $tracking = DB::table(DB::raw("({$query->orderBy('j.id', 'desc')->toSql()}) as track"))
             ->mergeBindings($query)
             ->where(function($q) use ($request) {
                 if ($nim = $request->get('nim')) {
@@ -128,7 +136,7 @@ class SidangS1Controller extends Controller
                 if ($namaProdi = $request->get('nama_prodi')) {
                     $q->where('nama_prodi', 'like', '%' . $namaProdi . '%');
                 }
-                foreach (['tahap1', 'tahap2', 'sk1', 'sk2', 'sk3', 'sk4', 'tahap4'] as $col) {
+                foreach (['tahap1', 'tahap2'] as $col) {
                     if ($val = $request->get($col)) {
                         $q->where($col, $val);
                     }
@@ -167,13 +175,13 @@ class SidangS1Controller extends Controller
     
     public function show($id)
     {
-        $sidang = TAjuanSidang::with(['judul', 'user', 'timSidang', 'cekPersyaratan'])->find($id);
-        
+        $sidang = TAjuanSidang::find($id);
+
         if (!$sidang) {
             abort(404);
         }
-        
-        return view('sidang.s1-detail', compact('sidang'));
+
+        return redirect()->route('sidang.s1', ['judul' => $sidang->ID_JUDUL]);
     }
     
     public function update(Request $request, $id)
@@ -231,7 +239,7 @@ class SidangS1Controller extends Controller
             $judulId = $existingJudul->id ?? $existingJudul->ID;
             $hasAjuan = DB::table('t_ajuan_sidang')
                 ->where('ID_JUDUL', $judulId)
-                ->where('TAHAPAN_SIDANG', 'tahap I')
+                ->where('TAHAPAN_SIDANG', 'TA I')
                 ->exists();
 
             if ($hasAjuan) {
@@ -239,7 +247,7 @@ class SidangS1Controller extends Controller
             }
 
             $this->insertAjuanTahap1FromTuProdi($judulId, $existingJudul->JUDUL ?? $request->judul, $mhs, $prodi, $user);
-            return redirect()->back()->with('success', 'Judul sudah ada; pengajuan tahap I dilengkapi dan langsung Diproses di TU Prodi.');
+            return redirect()->back()->with('success', 'Judul sudah ada; pengajuan TA I dilengkapi dan langsung Diproses di TU Prodi.');
         }
 
         try {
@@ -265,30 +273,34 @@ class SidangS1Controller extends Controller
     }
 
     /**
-     * Insert ajuan tahap I saat judul S1 dibuat oleh TU Prodi / FS.
+     * Insert ajuan TA I saat judul S1 dibuat oleh TU Prodi / FS.
      * STATUS_AJUKAN_MHS = 'y' agar status langsung "Diproses di TU Prodi".
      */
     private function insertAjuanTahap1FromTuProdi(int $judulId, string $judul, $mhs, $prodi, array $user): void
     {
         DB::table('t_ajuan_sidang')->insert([
-            'ID_USER'           => $mhs->id,
-            'NIM'               => $mhs->NIP_NIM,
-            'NAMA_MHS'          => $mhs->NAMA_LENGKAP,
-            'ANGKATAN'          => $mhs->THN_ANGKATAN ?? date('Y'),
-            'ID_JUDUL'          => $judulId,
-            'JUDUL'             => $judul,
-            'TAHAPAN_SIDANG'    => 'tahap I',
-            'STRATA'            => 'S1',
-            'STATUS_AJUKAN_MHS' => 'y',
-            'STATUS_LULUS'      => null,
-            'ID_PRODI'          => $prodi->id ?? null,
-            'KODE_PRODI'        => $mhs->KODE_PRODI,
-            'NAMA_PRODI'        => $prodi->NAMA_PRODI ?? null,
-            'ID_USER_CREATE'    => $user['id'],
-            'NAMA_USER_CREATE'  => $user['nama_lengkap'],
-            'THN_CREATE'        => date('Y'),
-            'TGL_CREATE'        => now(),
-            'TGL_UPDATE'        => now(),
+            'ID_USER'             => $mhs->id,
+            'NIM'                 => $mhs->NIP_NIM,
+            'NAMA_MHS'            => $mhs->NAMA_LENGKAP,
+            'ANGKATAN'            => $mhs->THN_ANGKATAN ?? date('Y'),
+            'ID_JUDUL'            => $judulId,
+            'JUDUL'               => $judul,
+            'TAHAPAN_SIDANG'      => 'TA I',
+            'STRATA'              => 'S1',
+            'STATUS_AJUKAN_MHS'   => 'y',
+            'STATUS_AJUKAN_PRODI' => 't',
+            'STATUS_LULUS'        => null,
+            'TGL_SIDANG'          => null,
+            'WAKTU_SIDANG'        => null,
+            'RUANG_SIDANG'        => null,
+            'ID_PRODI'            => $prodi->id ?? null,
+            'KODE_PRODI'          => $mhs->KODE_PRODI,
+            'NAMA_PRODI'          => $prodi->NAMA_PRODI ?? null,
+            'ID_USER_CREATE'      => $user['id'],
+            'NAMA_USER_CREATE'    => $user['nama_lengkap'],
+            'THN_CREATE'          => date('Y'),
+            'TGL_CREATE'          => now(),
+            'TGL_UPDATE'          => now(),
         ]);
     }
 }
