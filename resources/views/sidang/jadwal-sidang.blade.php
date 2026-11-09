@@ -368,12 +368,13 @@
             statusClass = 'badge-danger';
         }
 
+        var isDark = document.documentElement.classList.contains('dark-mode') || document.body.classList.contains('dark-mode');
         var strataColors = {
-            's1': { border: '#3b82f6', bg: '#eff6ff', text: '#1d4ed8' },
-            's2': { border: '#10b981', bg: '#ecfdf5', text: '#047857' },
-            's3': { border: '#8b5cf6', bg: '#f5f3ff', text: '#6d28d9' }
+            's1': { border: isDark ? '#60a5fa' : '#3b82f6', bg: isDark ? 'rgba(59,130,246,0.22)' : '#eff6ff', text: isDark ? '#93c5fd' : '#1d4ed8' },
+            's2': { border: isDark ? '#34d399' : '#10b981', bg: isDark ? 'rgba(16,185,129,0.22)' : '#ecfdf5', text: isDark ? '#6ee7b7' : '#047857' },
+            's3': { border: isDark ? '#c084fc' : '#8b5cf6', bg: isDark ? 'rgba(139,92,246,0.25)' : '#f5f3ff', text: isDark ? '#e9d5ff' : '#6d28d9' }
         };
-        var sc = strataColors[(data.strata || '').toLowerCase()] || { border: '#6b7280', bg: '#f9fafb', text: '#374151' };
+        var sc = strataColors[(data.strata || '').toLowerCase()] || { border: isDark ? '#94a3b8' : '#6b7280', bg: isDark ? 'rgba(148,163,184,0.18)' : '#f9fafb', text: isDark ? '#e2e8f0' : '#374151' };
 
         var html = '' +
             '<div class="jadwal-detail-container">' +

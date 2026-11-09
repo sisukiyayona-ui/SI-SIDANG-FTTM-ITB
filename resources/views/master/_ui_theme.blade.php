@@ -1267,12 +1267,37 @@
     body.master-ui .jadwal-strata-badge {
         display: inline-flex;
         align-items: center;
-        padding: 4px 11px;
+        padding: 4px 12px;
         border-radius: 999px;
-        font-size: .7rem;
+        font-size: .72rem;
         font-weight: 700;
         letter-spacing: .02em;
         white-space: nowrap;
+        transition: all .15s ease;
+    }
+
+    body.master-ui .jadwal-strata-badge-s1 {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #3b82f6;
+    }
+
+    body.master-ui .jadwal-strata-badge-s2 {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #10b981;
+    }
+
+    body.master-ui .jadwal-strata-badge-s3 {
+        background: #f5f3ff;
+        color: #6d28d9;
+        border: 1px solid #8b5cf6;
+    }
+
+    body.master-ui .jadwal-strata-badge-default {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #94a3b8;
     }
 
     body.master-ui .jadwal-event-strata {
@@ -1314,28 +1339,97 @@
     body.master-ui .jadwal-event[data-strata="s2"]:hover { background: #d1fae5; }
     body.master-ui .jadwal-event[data-strata="s3"]:hover { background: #ede9fe; }
 
-    /* Dark mode strata overrides */
+    /* Dark mode strata overrides & text contrast */
+    html.dark-mode body.master-ui .jadwal-row,
+    body.dark-mode.master-ui .jadwal-row,
+    body.dark-mode .master-ui .jadwal-row {
+        background: #1e293b !important;
+        border-bottom-color: rgba(148, 163, 184, 0.18) !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-row-time,
+    body.dark-mode.master-ui .jadwal-row-time,
+    body.dark-mode .master-ui .jadwal-row-time {
+        border-right-color: rgba(148, 163, 184, 0.25) !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-row-time .time,
+    body.dark-mode.master-ui .jadwal-row-time .time,
+    body.dark-mode .master-ui .jadwal-row-time .time {
+        color: #f8fafc !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-row-time .room,
+    body.dark-mode.master-ui .jadwal-row-time .room,
+    body.dark-mode .master-ui .jadwal-row-time .room {
+        color: #cbd5e1 !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-row-time .unit,
+    body.dark-mode.master-ui .jadwal-row-time .unit,
+    body.dark-mode .master-ui .jadwal-row-time .unit {
+        color: #94a3b8 !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-row table td,
+    body.dark-mode.master-ui .jadwal-row table td,
+    body.dark-mode .master-ui .jadwal-row table td {
+        color: #f1f5f9 !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-row table td:first-child,
+    body.dark-mode.master-ui .jadwal-row table td:first-child,
+    body.dark-mode .master-ui .jadwal-row table td:first-child {
+        color: #94a3b8 !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-row table td strong,
+    body.dark-mode.master-ui .jadwal-row table td strong,
+    body.dark-mode .master-ui .jadwal-row table td strong {
+        color: #ffffff !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-strata-badge-s1,
+    body.dark-mode.master-ui .jadwal-strata-badge-s1 {
+        background: rgba(59, 130, 246, 0.22) !important;
+        color: #93c5fd !important;
+        border: 1px solid #60a5fa !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-strata-badge-s2,
+    body.dark-mode.master-ui .jadwal-strata-badge-s2 {
+        background: rgba(16, 185, 129, 0.22) !important;
+        color: #6ee7b7 !important;
+        border: 1px solid #34d399 !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-strata-badge-s3,
+    body.dark-mode.master-ui .jadwal-strata-badge-s3 {
+        background: rgba(139, 92, 246, 0.25) !important;
+        color: #e9d5ff !important;
+        border: 1px solid #c084fc !important;
+    }
+
+    html.dark-mode body.master-ui .jadwal-strata-badge-default,
+    body.dark-mode.master-ui .jadwal-strata-badge-default {
+        background: rgba(148, 163, 184, 0.2) !important;
+        color: #cbd5e1 !important;
+        border: 1px solid #94a3b8 !important;
+    }
+
     html.dark-mode body.master-ui .jadwal-event[data-strata="s1"] {
         border-left-color: #60a5fa !important;
-        background: rgba(96,165,250,.12);
+        background: rgba(96,165,250,.14);
     }
     html.dark-mode body.master-ui .jadwal-event[data-strata="s2"] {
         border-left-color: #34d399 !important;
-        background: rgba(52,211,153,.12);
+        background: rgba(52,211,153,.14);
     }
     html.dark-mode body.master-ui .jadwal-event[data-strata="s3"] {
         border-left-color: #a78bfa !important;
-        background: rgba(167,139,250,.12);
+        background: rgba(167,139,250,.14);
     }
-    html.dark-mode body.master-ui .jadwal-event[data-strata="s1"]:hover { background: rgba(96,165,250,.2); }
-    html.dark-mode body.master-ui .jadwal-event[data-strata="s2"]:hover { background: rgba(52,211,153,.2); }
-    html.dark-mode body.master-ui .jadwal-event[data-strata="s3"]:hover { background: rgba(167,139,250,.2); }
-
-    html.dark-mode body.master-ui .jadwal-legend-item {
-        background: transparent;
-    }
-
-    html.dark-mode body.master-ui .jadwal-strata-badge {
-        background: transparent !important;
-    }
+    html.dark-mode body.master-ui .jadwal-event[data-strata="s1"]:hover { background: rgba(96,165,250,.24); }
+    html.dark-mode body.master-ui .jadwal-event[data-strata="s2"]:hover { background: rgba(52,211,153,.24); }
+    html.dark-mode body.master-ui .jadwal-event[data-strata="s3"]:hover { background: rgba(167,139,250,.24); }
 </style>
