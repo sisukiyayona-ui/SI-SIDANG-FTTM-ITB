@@ -664,6 +664,23 @@ function uploadFile(input, idSyarat, tahapan) {
 }
 
 function simpanPersyaratan() {
+    // Cegah HTTP 413: batasi ukuran tiap file dan total request sebelum dikirim.
+    var maxMb = {{ $strataView === 'S2' ? 10 : 2 }};
+    var totalSize = 0;
+    var fileIds = Object.keys(persyaratanFiles);
+    for (var i = 0; i < fileIds.length; i++) {
+        var f = persyaratanFiles[fileIds[i]];
+        if (!f) continue;
+        if (f.size > maxMb * 1024 * 1024) {
+            showToast('error', 'Maksimal ukuran file ' + maxMb + ' MB');
+            return;
+        }
+        totalSize += f.size;
+    }
+    if (totalSize > 35 * 1024 * 1024) {
+        showToast('error', 'Total ukuran file terlalu besar (' + (totalSize / 1024 / 1024).toFixed(1) + ' MB). Simpan file secara bertahap.');
+        return;
+    }
     var formData = new FormData();
     formData.append('_token', '{{ csrf_token() }}');
     formData.append('id_judul', '{{ $idJudul }}');
@@ -683,7 +700,9 @@ function simpanPersyaratan() {
     })
     .then(function(r) {
         return r.json().catch(function() {
-            return { success: false, message: 'Server error (HTTP ' + r.status + ')' };
+            return { success: false, message: r.status === 413
+                ? 'Ukuran file terlalu besar untuk diproses server. Maksimal 10 MB per file — simpan file secara bertahap.'
+                : 'Server error (HTTP ' + r.status + ')' };
         }).then(function(data) {
             data._httpStatus = r.status;
             return data;

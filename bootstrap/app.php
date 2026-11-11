@@ -22,5 +22,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\App\Http\Middleware\SecurityHeadersMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Upload melebihi batas PHP (post_max_size) biasanya menghasilkan halaman
+        // HTML 413 sehingga frontend hanya menampilkan "Server error (HTTP 413)".
+        // Kembalikan JSON agar pesan batas ukuran jelas untuk request AJAX/fetch.
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, $request) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ukuran file terlalu besar untuk diproses server. Maksimal 10 MB per file — simpan file secara bertahap.',
+                ], 413);
+            }
+
+            return null;
+        });
     })->create();

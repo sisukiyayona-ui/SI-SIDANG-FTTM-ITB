@@ -2287,6 +2287,7 @@ document.addEventListener('change', function(e) {
 function savePersyaratanTahap() {
     var tbody = document.getElementById('persyaratanTahapBody');
     if (!tbody) return;
+    if (!validatePersyaratanFiles()) return;
     var formData = new FormData();
     formData.append('_token', '{{ csrf_token() }}');
     formData.append('id_judul', '{{ $idJudul }}');
@@ -2316,7 +2317,9 @@ function savePersyaratanTahap() {
     })
     .then(function(r) {
         return r.json().catch(function() {
-            return { success: false, message: 'Server error (HTTP ' + r.status + ')' };
+            return { success: false, message: r.status === 413
+                ? 'Ukuran file terlalu besar untuk diproses server. Maksimal 10 MB per file — simpan file secara bertahap.'
+                : 'Server error (HTTP ' + r.status + ')' };
         }).then(function(data) {
             data._httpStatus = r.status;
             return data;
@@ -2752,6 +2755,7 @@ function updateKelengkapan(idSyarat, isChecked) {
 }
 
 function savePersyaratan(tahapan) {
+    if (!validatePersyaratanFiles()) return;
     var formData = new FormData();
     formData.append('_token', '{{ csrf_token() }}');
     formData.append('id_judul', '{{ $idJudul }}');
@@ -2781,7 +2785,9 @@ function savePersyaratan(tahapan) {
     })
     .then(function(r) {
         return r.json().catch(function() {
-            return { success: false, message: 'Server error (HTTP ' + r.status + ')' };
+            return { success: false, message: r.status === 413
+                ? 'Ukuran file terlalu besar untuk diproses server. Maksimal 10 MB per file — simpan file secara bertahap.'
+                : 'Server error (HTTP ' + r.status + ')' };
         }).then(function(data) {
             data._httpStatus = r.status;
             return data;
@@ -2808,6 +2814,29 @@ function savePersyaratan(tahapan) {
     .finally(function() {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan'; }
     });
+}
+
+// Validasi ukuran file persyaratan sebelum dikirim (mencegah HTTP 413).
+// Batas per file: 10 MB untuk S2, 2 MB untuk strata lain. Total dibatasi
+// agar request multipart tidak melebihi batas server.
+function validatePersyaratanFiles() {
+    var maxMb = {{ $strataView === 'S2' ? 10 : 2 }};
+    var total = 0;
+    var ids = (typeof persyaratanFiles !== 'undefined') ? Object.keys(persyaratanFiles) : [];
+    for (var i = 0; i < ids.length; i++) {
+        var f = persyaratanFiles[ids[i]];
+        if (!f) continue;
+        if (f.size > maxMb * 1024 * 1024) {
+            showToast('Maksimal ukuran file ' + maxMb + ' MB', 'error');
+            return false;
+        }
+        total += f.size;
+    }
+    if (total > 35 * 1024 * 1024) {
+        showToast('Total ukuran file terlalu besar (' + (total / 1024 / 1024).toFixed(1) + ' MB). Simpan file secara bertahap.', 'error');
+        return false;
+    }
+    return true;
 }
 
 function uploadFile(input, idSyarat, tahapan, idJudul) {

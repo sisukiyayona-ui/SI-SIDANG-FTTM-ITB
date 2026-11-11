@@ -217,6 +217,17 @@
     function uploadFile(input, idSyarat, tahapan, idJudul) {
         if (!input.files || input.files.length === 0) return;
         let file = input.files[0];
+        let ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'pdf') {
+            showCustomToast('Hanya file PDF yang diizinkan', 'error');
+            input.value = '';
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showCustomToast('Maksimal ukuran file 10 MB', 'error');
+            input.value = '';
+            return;
+        }
         let progressContainer = document.getElementById('progress-container-' + idSyarat);
         let progressBar = document.getElementById('progress-bar-' + idSyarat);
         if (progressContainer) progressContainer.classList.remove('d-none');
@@ -249,7 +260,12 @@
                     }
                 } catch(e) { showCustomToast('Error: ' + e.message, 'error'); }
             } else {
-                showCustomToast('Upload gagal (HTTP ' + xhr.status + ')', 'error');
+                let pesan = null;
+                try { pesan = JSON.parse(xhr.responseText).message; } catch (e) { pesan = null; }
+                if (!pesan && xhr.status === 413) {
+                    pesan = 'Ukuran file terlalu besar untuk diproses server. Maksimal 10 MB per file — simpan file secara bertahap.';
+                }
+                showCustomToast(pesan || ('Upload gagal (HTTP ' + xhr.status + ')'), 'error');
             }
             input.value = '';
         };
@@ -264,6 +280,24 @@
     function showCustomToast(message, type) { showToast(type, message); }
 
     function savePersyaratan(tahapan) {
+        // Cegah HTTP 413: batasi ukuran tiap file (10 MB) dan total request.
+        if (typeof persyaratanFiles !== 'undefined') {
+            var totalSize = 0;
+            var fileIds = Object.keys(persyaratanFiles);
+            for (var i = 0; i < fileIds.length; i++) {
+                var f = persyaratanFiles[fileIds[i]];
+                if (!f) continue;
+                if (f.size > 10 * 1024 * 1024) {
+                    showCustomToast('Maksimal ukuran file 10 MB', 'error');
+                    return;
+                }
+                totalSize += f.size;
+            }
+            if (totalSize > 35 * 1024 * 1024) {
+                showCustomToast('Total ukuran file terlalu besar (' + (totalSize / 1024 / 1024).toFixed(1) + ' MB). Simpan file secara bertahap.', 'error');
+                return;
+            }
+        }
         var formData = new FormData();
         formData.append('_token', '{{ csrf_token() }}');
         formData.append('tahapan_sidang', tahapan);
@@ -285,7 +319,11 @@
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             body: formData
         })
-        .then(r => r.json())
+        .then(r => r.json().catch(function() {
+            return { success: false, message: r.status === 413
+                ? 'Ukuran file terlalu besar untuk diproses server. Maksimal 10 MB per file — simpan file secara bertahap.'
+                : 'Server error (HTTP ' + r.status + ')' };
+        }))
         .then(data => {
             if (data.success) {
                 showCustomToast('Persyaratan berhasil disimpan', 'success');
