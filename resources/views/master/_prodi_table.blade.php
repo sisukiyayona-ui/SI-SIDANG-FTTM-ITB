@@ -5,8 +5,10 @@
             <th>Kode Prodi</th>
             <th>Nama Prodi</th>
             <th>Alamat</th>
-            <th style="width: 120px;">TLP</th>
+            <th style="width: 110px;">TLP</th>
             <th>Email</th>
+            <th style="width: 110px;">Fax</th>
+            <th>Web</th>
             <th>Status</th>
         </tr>
         <tr>
@@ -16,6 +18,8 @@
             <th><input type="text" class="form-control form-control-sm column-search" name="alamat" placeholder="Cari..." value="{{ request('alamat') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="tlp" placeholder="Cari..." value="{{ request('tlp') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="email" placeholder="Cari..." value="{{ request('email') }}"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="fax" placeholder="Cari..." value="{{ request('fax') }}"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="web" placeholder="Cari..." value="{{ request('web') }}"></th>
             <th>
                 <select class="form-control form-control-sm column-search" name="status_aktif">
                     <option value="">Semua</option>
@@ -34,6 +38,8 @@
                 <td style="color: #000;">{{ $item['alamat'] ?? '-' }}</td>
                 <td style="color: #000;">{{ $item['tlp'] ?? '-' }}</td>
                 <td style="color: #000;">{{ $item['email'] ?? '-' }}</td>
+                <td style="color: #000;">{{ $item['fax'] ?? '-' }}</td>
+                <td style="color: #000;">{{ $item['web'] ?? '-' }}</td>
                 <td>
                     <span class="badge bg-{{ $item['status'] === 'AKTIF' ? 'success' : 'danger' }}">
                         {{ $item['status'] }}

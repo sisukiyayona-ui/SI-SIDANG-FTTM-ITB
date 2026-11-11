@@ -169,6 +169,12 @@ class ProdiController extends Controller
         if ($s = $request->get('email')) {
             $query->where('EMAIL', 'like', '%' . $s . '%');
         }
+        if ($s = $request->get('fax')) {
+            $query->where('FAX', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('web')) {
+            $query->where('WEB', 'like', '%' . $s . '%');
+        }
         if ($s = $request->get('status_aktif')) {
             $query->where('STATUS_AKTIF', $s);
         }
@@ -184,6 +190,8 @@ class ProdiController extends Controller
                 'alamat' => $p->ALAMAT,
                 'tlp' => $p->TLP,
                 'email' => $p->EMAIL,
+                'fax' => $p->FAX,
+                'web' => $p->WEB,
             ];
         });
 
@@ -198,6 +206,8 @@ class ProdiController extends Controller
                 'alamat' => $p->ALAMAT,
                 'tlp' => $p->TLP,
                 'email' => $p->EMAIL,
+                'fax' => $p->FAX,
+                'web' => $p->WEB,
             ];
         });
 
@@ -226,6 +236,8 @@ class ProdiController extends Controller
             'alamat' => 'nullable|string|max:250',
             'tlp' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:250',
+            'fax' => 'nullable|string|max:50',
+            'web' => 'nullable|string|max:250',
         ], [
             'kode_prodi.unique' => 'Kode prodi sudah terdaftar. Gunakan kode prodi lain.',
             'email.email' => 'Format email prodi tidak valid.',
@@ -242,6 +254,8 @@ class ProdiController extends Controller
             'ALAMAT' => $request->alamat ?: null,
             'TLP' => $request->tlp ?: null,
             'EMAIL' => $request->email ?: null,
+            'FAX' => $request->fax ?: null,
+            'WEB' => $request->web ?: null,
             'TGL_CREATE' => now(),
         ]);
 
@@ -265,6 +279,8 @@ class ProdiController extends Controller
             'alamat' => $p->ALAMAT,
             'tlp' => $p->TLP,
             'email' => $p->EMAIL,
+            'fax' => $p->FAX,
+            'web' => $p->WEB,
         ];
         $fakultas = TFs::all();
         return view('master.prodi-form', compact('prodi', 'fakultas'));
@@ -280,6 +296,8 @@ class ProdiController extends Controller
             'alamat' => 'nullable|string|max:250',
             'tlp' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:250',
+            'fax' => 'nullable|string|max:50',
+            'web' => 'nullable|string|max:250',
         ], [
             'kode_prodi.unique' => 'Kode prodi sudah terdaftar. Gunakan kode prodi lain.',
             'email.email' => 'Format email prodi tidak valid.',
@@ -297,6 +315,8 @@ class ProdiController extends Controller
                 'ALAMAT' => $request->alamat ?: null,
                 'TLP' => $request->tlp ?: null,
                 'EMAIL' => $request->email ?: null,
+                'FAX' => $request->fax ?: null,
+                'WEB' => $request->web ?: null,
                 'TGL_UPDATE' => now(),
             ]);
         }

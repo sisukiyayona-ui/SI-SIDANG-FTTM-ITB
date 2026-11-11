@@ -61,6 +61,18 @@
                                value="{{ $prodi['alamat'] ?? '' }}" placeholder="Alamat program studi" maxlength="250">
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="f_fax" class="form-label">Fax</label>
+                        <input type="text" name="fax" id="f_fax" class="form-control"
+                               value="{{ $prodi['fax'] ?? '' }}" placeholder="Fax prodi" maxlength="50">
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <label for="f_web" class="form-label">Web</label>
+                        <input type="text" name="web" id="f_web" class="form-control"
+                               value="{{ $prodi['web'] ?? '' }}" placeholder="Website prodi" maxlength="250">
+                    </div>
+                </div>
 
                 <div class="mb-4">
                     <label class="form-label">Status</label>

@@ -25,6 +25,8 @@ class TProdi extends Model
         'ALAMAT',
         'TLP',
         'EMAIL',
+        'FAX',
+        'WEB',
     ];
 
     protected $casts = [

@@ -108,6 +108,21 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="f_fax" class="form-label fw-semibold text-secondary">Fax</label>
+                            <input type="text" name="fax" id="f_fax" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Fax prodi" maxlength="50">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label for="f_web" class="form-label fw-semibold text-secondary">Web</label>
+                            <input type="text" name="web" id="f_web" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Website prodi" maxlength="250">
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="mb-4">
                     <label class="form-label fw-semibold text-secondary">Status</label>
@@ -146,6 +161,8 @@
                         <tr><th>Alamat</th><td id="detailAlamat"></td></tr>
                         <tr><th>TLP</th><td id="detailTlp"></td></tr>
                         <tr><th>Email</th><td id="detailEmail"></td></tr>
+                        <tr><th>Fax</th><td id="detailFax"></td></tr>
+                        <tr><th>Web</th><td id="detailWeb"></td></tr>
                         <tr><th>Status</th><td id="detailStatus"></td></tr>
                     </table>
                 </div>
@@ -450,6 +467,8 @@
         document.getElementById('f_tlp').value = '';
         document.getElementById('f_email').value = '';
         document.getElementById('f_alamat').value = '';
+        document.getElementById('f_fax').value = '';
+        document.getElementById('f_web').value = '';
         document.getElementById('statusAktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
@@ -469,6 +488,8 @@
         document.getElementById('f_tlp').value = item.tlp || '';
         document.getElementById('f_email').value = item.email || '';
         document.getElementById('f_alamat').value = item.alamat || '';
+        document.getElementById('f_fax').value = item.fax || '';
+        document.getElementById('f_web').value = item.web || '';
         document.getElementById(item.status === 'AKTIF' ? 'statusAktif' : 'statusNonaktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
@@ -488,6 +509,8 @@
         document.getElementById('detailAlamat').textContent = item.alamat || '-';
         document.getElementById('detailTlp').textContent = item.tlp || '-';
         document.getElementById('detailEmail').textContent = item.email || '-';
+        document.getElementById('detailFax').textContent = item.fax || '-';
+        document.getElementById('detailWeb').textContent = item.web || '-';
         document.getElementById('detailStatus').innerHTML = '<span class="badge bg-' + (item.status === 'AKTIF' ? 'success' : 'danger') + '">' + item.status + '</span>';
         new bootstrap.Modal(document.getElementById('modalDetail')).show();
     }
