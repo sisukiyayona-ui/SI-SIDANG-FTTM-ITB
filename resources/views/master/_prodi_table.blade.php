@@ -4,7 +4,6 @@
             <th style="width: 50px;">No</th>
             <th>Kode Prodi</th>
             <th>Nama Prodi</th>
-            <th>Strata</th>
             <th>Alamat</th>
             <th style="width: 120px;">TLP</th>
             <th>Email</th>
@@ -14,7 +13,6 @@
             <th></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="kode_prodi" placeholder="Cari..." value="{{ request('kode_prodi') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." value="{{ request('nama_prodi') }}"></th>
-            <th><input type="text" class="form-control form-control-sm column-search" name="strata" placeholder="Cari..." value="{{ request('strata') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="alamat" placeholder="Cari..." value="{{ request('alamat') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="tlp" placeholder="Cari..." value="{{ request('tlp') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="email" placeholder="Cari..." value="{{ request('email') }}"></th>
@@ -33,7 +31,6 @@
                 <td>{{ $prodi->firstItem() + $i }}</td>
                 <td style="color: #000;">{{ $item['kode'] }}</td>
                 <td><a href="javascript:void(0)" onclick="openEdit({{ $item['id'] }})" class="text-decoration-none">{{ $item['nama'] }}</a></td>
-                <td>{{ $item['strata'] ?? '-' }}</td>
                 <td style="color: #000;">{{ $item['alamat'] ?? '-' }}</td>
                 <td style="color: #000;">{{ $item['tlp'] ?? '-' }}</td>
                 <td style="color: #000;">{{ $item['email'] ?? '-' }}</td>

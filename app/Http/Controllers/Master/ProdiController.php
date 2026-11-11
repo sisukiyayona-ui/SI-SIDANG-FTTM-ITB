@@ -160,9 +160,6 @@ class ProdiController extends Controller
         if ($s = $request->get('nama_prodi')) {
             $query->where('NAMA_PRODI', 'like', '%' . $s . '%');
         }
-        if ($s = $request->get('strata')) {
-            $query->where('STRATA', 'like', '%' . $s . '%');
-        }
         if ($s = $request->get('alamat')) {
             $query->where('ALAMAT', 'like', '%' . $s . '%');
         }
@@ -181,7 +178,6 @@ class ProdiController extends Controller
                 'id' => $p->id,
                 'kode' => $p->kode_prodi,
                 'nama' => $p->nama_prodi,
-                'strata' => $p->strata ?? '',
                 'kode_fs' => $p->kode_fs,
                 'nama_fs' => $p->nama_fs,
                 'status' => $p->status_aktif,
@@ -196,7 +192,6 @@ class ProdiController extends Controller
                 'id' => $p->id,
                 'kode' => $p->kode_prodi,
                 'nama' => $p->nama_prodi,
-                'strata' => $p->strata ?? '',
                 'kode_fs' => $p->kode_fs,
                 'nama_fs' => $p->nama_fs,
                 'status' => $p->status_aktif,
