@@ -53,7 +53,6 @@ class KelengkapanNilaiSidang
             ->where('TAHAPAN_SIDANG', $tahapan)
             ->get(['ID_TIM_SIDANG', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'CATATAN']);
 
-        $filled = [];
         $filledByTim = [];
         foreach ($rows as $r) {
             $nilai = $r->NILAI === null ? '' : trim((string) $r->NILAI);
@@ -61,10 +60,8 @@ class KelengkapanNilaiSidang
             if ($nilai === '' && $catatan === '') {
                 continue;
             }
-            $filled[] = (int) $r->ID_PENILAIAN;
             $filledByTim[(int) $r->ID_TIM_SIDANG][] = (int) $r->ID_PENILAIAN;
         }
-        $filled = array_unique($filled);
         foreach ($filledByTim as $k => $v) {
             $filledByTim[$k] = array_unique($v);
         }
@@ -77,9 +74,9 @@ class KelengkapanNilaiSidang
         }
 
         $forms = $rows->pluck('NO_FORM')->filter()->unique()->values();
-        $belumParameter = [];
 
-        // Hitung sekali saja point aktif per form, dipakai untuk cek tim maupun per tim.
+        // Hitung sekali saja point aktif per form, dipakai untuk cek per penilai.
+        // Ketua Sidang tidak dihitung (sudah difilter dari $penilai).
         $pointPerForm = [];
         foreach ($forms as $form) {
             $pointIds = self::pointIds($tahapan, $form, $prodi);
@@ -88,18 +85,10 @@ class KelengkapanNilaiSidang
             }
         }
 
-        foreach ($pointPerForm as $form => $pointIds) {
-            foreach ($pointIds as $pointId) {
-                if (! in_array($pointId, $filled, true)) {
-                    $belumParameter[] = $form;
-                    break;
-                }
-            }
-        }
-
-        // Rincian per penilai: dipakai untuk membedakan "belum mengisi sama sekali"
-        // dari "sudah mengisi di form tapi belum klik Simpan" (data di DB masih kosong).
+        // Rincian per penilai: setiap Pembimbing/Penguji wajib melengkapi
+        // seluruh parameter form yang dipakai — bukan gabungan nilai tim.
         $hasil['per_tim'] = [];
+        $belumParameter = [];
         foreach ($penilai as $t) {
             $own = $filledByTim[$t->id] ?? [];
             $belumOwn = [];
@@ -119,10 +108,15 @@ class KelengkapanNilaiSidang
                 'lengkap' => $ada && $belumOwn === [],
                 'belum_parameter' => $belumOwn,
             ];
+            $belumParameter = array_merge($belumParameter, $belumOwn);
         }
 
         $hasil['belum_parameter'] = array_values(array_unique($belumParameter));
-        $hasil['lengkap'] = $hasil['belum'] === [] && $hasil['belum_parameter'] === [];
+        $semuaPenilaiLengkap = collect($hasil['per_tim'])->every(fn ($info) => ! empty($info['lengkap']));
+        $hasil['lengkap'] = $hasil['ada_tim']
+            && $hasil['belum'] === []
+            && $semuaPenilaiLengkap
+            && $hasil['belum_parameter'] === [];
         $hasil['sudah_pakai_form'] = $forms->all();
 
         return $hasil;
@@ -229,7 +223,7 @@ class KelengkapanNilaiSidang
         }
 
         if (! empty($hasil['belum_parameter'])) {
-            $baris[] = 'Parameter penilaian form ' . implode(', ', $hasil['belum_parameter']) . ' belum lengkap diisi.';
+            $baris[] = 'Parameter penilaian form ' . implode(', ', $hasil['belum_parameter']) . ' belum lengkap diisi oleh Pembimbing/Penguji (Ketua Sidang tidak mengisi nilai).';
         }
 
         if ($baris === []) {

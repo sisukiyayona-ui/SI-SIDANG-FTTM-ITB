@@ -402,17 +402,47 @@ class PenilaianController extends Controller
                 ], 403);
             }
 
+            // 1. Tentukan peran penilai yang mengunci. Hak kunci nilai milik
+            //    Ketua Sidang (dulu Ketua Pembimbing).
+            $timSidang = $idTimSidang ? TTimSidang::find($idTimSidang) : null;
+            $statusTimTerpilih = strtolower(trim((string) (
+                $timSidang?->STATUS_TIM_SIDANG
+                ?? $timSidang?->status_tim_sidang
+                ?? $timSidang?->keterangan
+                ?? ''
+            )));
+            $isKetuaSidangDipilih = str_contains($statusTimTerpilih, 'ketua sidang');
+
+            // Ketua Sidang (atau TU Prodi yang memilih Ketua Sidang) wajib pilih
+            // Status Kelulusan — mereka tidak mengisi parameter nilai.
+            $kunciSebagaiKetua = $isKetuaSidangRequest || (
+                ($user['role'] ?? null) === 'TU Prodi' && $isKetuaSidangDipilih
+            );
+            if ($kunciSebagaiKetua && $request->nilai_terkunci === 'y' && ! $statusLulus) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pilih Status Kelulusan terlebih dahulu sebelum mengunci nilai.',
+                ], 422);
+            }
+
             // 0b. Guard kelengkapan tim: Ketua Sidang baru boleh mengunci setelah
-            //     SELURUH penilai mengisi nilainya (baris Ketua Sidang tidak dihitung,
-            //     lihat KelengkapanNilaiSidang), begitu juga TU Prodi.
+            //     SELURUH Pembimbing/Penguji mengisi nilainya (baris Ketua Sidang
+            //     tidak dihitung, lihat KelengkapanNilaiSidang), begitu juga TU Prodi.
             $perluGate = ($user['role'] ?? null) === 'TU Prodi' || $isKetuaSidangRequest;
 
             if ($perluGate && $request->nilai_terkunci === 'y') {
-                $kodeProdi = DB::table('t_ajuan_sidang')
-                    ->where('ID_JUDUL', $id)
-                    ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
-                    ->orderByDesc('id')
-                    ->value('KODE_PRODI');
+                // Pakai KODE_PRODI mahasiswa (bukan ajuan yang bisa salah kode)
+                $kodeProdi = DB::table('t_judul as j')
+                    ->join('t_user as u', 'j.ID_USER_MHS', '=', 'u.id')
+                    ->where('j.id', $id)
+                    ->value('u.KODE_PRODI');
+                if (! $kodeProdi) {
+                    $kodeProdi = DB::table('t_ajuan_sidang')
+                        ->where('ID_JUDUL', $id)
+                        ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                        ->orderByDesc('id')
+                        ->value('KODE_PRODI');
+                }
 
                 $kelengkapan = \App\Services\KelengkapanNilaiSidang::cek(
                     $id,
@@ -425,6 +455,7 @@ class PenilaianController extends Controller
                         'id_judul' => $id,
                         'tahapan_sidang' => $request->tahapan_sidang,
                         'user' => $user,
+                        'kode_prodi' => $kodeProdi,
                     ]);
 
                     return response()->json([
@@ -433,12 +464,6 @@ class PenilaianController extends Controller
                     ], 422);
                 }
             }
-
-            // 1. Tentukan peran penilai yang mengunci. Hak kunci nilai milik
-            //    Ketua Sidang (dulu Ketua Pembimbing).
-            $timSidang = $idTimSidang ? TTimSidang::find($idTimSidang) : null;
-            $statusTimTerpilih = strtolower(trim((string) ($timSidang->STATUS_TIM_SIDANG ?? '')));
-            $isKetuaSidangDipilih = str_contains($statusTimTerpilih, 'ketua sidang');
 
             // 2. Update t_penilaian.
             //    - Ketua Sidang mengunci -> SELURUH penilai pada judul+tahapan ini

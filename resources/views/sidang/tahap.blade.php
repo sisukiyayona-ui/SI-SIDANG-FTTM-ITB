@@ -3513,9 +3513,30 @@ function syncLockNilaiGate(selectId, btnId) {
     if (wrap) wrap.style.display = tampil ? '' : 'none';
 }
 
+function statusLulusIdForTbody(tbodyId) {
+    if (tbodyId === 'penilaianReportBody') return 'statusLulusDisplay';
+    if (tbodyId === 'penilaianTahap2Body') return 'statusLulusTahap2';
+    if (tbodyId === 'penilaianTableBody') return 'statusLulusPembimbing';
+    return '';
+}
+
+// S3: Status Kelulusan hanya aktif saat penilai = Ketua Sidang (atau user
+// login memang Ketua Sidang). Pembimbing/Penguji tidak mengatur kelulusan.
+// S2 tetap mengikuti atribut disabled dari server (canEditS2Status).
+function syncStatusKelulusanForPenilai(statusLulusId, isKetuaDipilih) {
+    var statusEl = document.getElementById(statusLulusId);
+    if (!statusEl || isS2) return;
+    var bolehEdit = (isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2;
+    statusEl.disabled = !bolehEdit;
+}
+
 function toggleLockButton(tbodyId, btnId) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
+    var statusLulusId = statusLulusIdForTbody(tbodyId);
+    var isKetuaDipilih = isViewOnlyPenilai
+        || isPenilaiKetuaSidang(selectPenilaiEl(btnId));
+
     if (isS2 && isNilaiTerkunci) {
         btn.disabled = true;
         setLockNilaiTooltip(btnId, 'Nilai sudah dikunci oleh Ketua Sidang.');
@@ -3527,6 +3548,7 @@ function toggleLockButton(tbodyId, btnId) {
     if (isKppsGateBlocking) {
         btn.disabled = true;
         setLockNilaiTooltip(btnId, PESAN_KPPS_GATE || 'Menunggu approve KPPS prodi.');
+        syncStatusKelulusanForPenilai(statusLulusId, isKetuaDipilih);
         return;
     }
 
@@ -3542,17 +3564,16 @@ function toggleLockButton(tbodyId, btnId) {
     if (kunciPeranKetua) {
         var lengkapKetua = !!(KELENGKAPAN_NILAI && KELENGKAPAN_NILAI.lengkap);
         btn.disabled = !lengkapKetua;
+        // Status Kelulusan HARUS aktif saat penilai = Ketua Sidang
+        syncStatusKelulusanForPenilai(statusLulusId, true);
         setLockNilaiTooltip(btnId, lengkapKetua
-            ? 'Kunci nilai. Setelah dikunci, nilai tidak dapat diubah.'
+            ? 'Pilih Status Kelulusan, lalu kunci nilai. Setelah dikunci, nilai tidak dapat diubah.'
             : PESAN_KELENGKAPAN);
         return;
     }
 
-    var statusLulusId = '';
-    if (tbodyId === 'penilaianReportBody') statusLulusId = 'statusLulusDisplay';
-    else if (tbodyId === 'penilaianTahap2Body') statusLulusId = 'statusLulusTahap2';
-    else if (tbodyId === 'penilaianTableBody') statusLulusId = 'statusLulusPembimbing';
-    var statusEl = document.getElementById(statusLulusId);
+    // Bukan Ketua Sidang: Status Kelulusan disable; tombol kunci mengikuti isi nilai.
+    syncStatusKelulusanForPenilai(statusLulusId, false);
 
     var rows = tbody.querySelectorAll('tr[data-status-catatan]');
     var allFilled = true;
@@ -3588,7 +3609,6 @@ function toggleLockButton(tbodyId, btnId) {
 
     var enabled = hasVisible && allFilled && !belumDisimpan;
     btn.disabled = !enabled;
-    if (statusEl) statusEl.disabled = !enabled;
 
     var pesan = 'Kunci nilai. Setelah dikunci, nilai tidak dapat diubah.';
     if (!enabled) {
@@ -3647,6 +3667,15 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
             var opt = sel.options[sel.selectedIndex];
             if (opt) keterangan = opt.getAttribute('data-keterangan') || '';
         }
+    }
+
+    // Ketua Sidang / TU Prodi memilih Ketua Sidang: wajib pilih Status Kelulusan
+    // dulu. Ketua Sidang tidak mengisi parameter nilai.
+    var kunciSebagaiKetua = isViewOnlyPenilai
+        || (String(keterangan || '').toLowerCase().indexOf('ketua sidang') !== -1);
+    if (kunciSebagaiKetua && !String(statusLulusVal || '').trim()) {
+        showToast('Pilih Status Kelulusan terlebih dahulu sebelum mengunci nilai.', 'error');
+        return;
     }
 
     // Loading state pada tombol Kunci Nilai
