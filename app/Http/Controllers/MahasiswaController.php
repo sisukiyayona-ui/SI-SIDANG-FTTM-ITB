@@ -262,15 +262,21 @@ class MahasiswaController extends Controller
             $mahasiswaProdi = $judul->user->KODE_PRODI;
         }
 
-        // Get kode_prodi for persyaratan filtering (prioritas: ajuan, lalu prodi mahasiswa dari judul, terakhir session)
-        $kodeProdi = $ajuan->kode_prodi ?? $mahasiswaProdi ?? session('auth_user.kode_prodi');
-
-        // Resolve kode_prodi string to actual prodi ID (integer)
+        // Get kode_prodi for persyaratan filtering.
+        // Prioritas: prodi terkini mahasiswa (t_judul -> t_user), lalu KODE_PRODI
+        // ajuan (snapshot saat ajuan dibuat — bisa berbeda bila data master user
+        // dikoreksi setelah ajuan dibuat), terakhir session user.
+        // Kandidat yang tidak ada di t_prodi dilewati supaya filter tetap valid.
+        $kodeProdi = null;
         $prodiId = null;
         $prodi = null;
-        if ($kodeProdi) {
-            $prodi = TProdi::where('kode_prodi', $kodeProdi)->first();
-            $prodiId = $prodi?->id;
+        foreach (array_filter([$mahasiswaProdi, $ajuan->kode_prodi ?? null, session('auth_user.kode_prodi')]) as $kandidat) {
+            $prodi = TProdi::where('kode_prodi', $kandidat)->first();
+            if ($prodi) {
+                $kodeProdi = $kandidat;
+                $prodiId = $prodi->id;
+                break;
+            }
         }
 
         // Strata pemilik judul — sumber utama untuk filter persyaratan & tab.
@@ -728,7 +734,9 @@ class MahasiswaController extends Controller
         if ($isS2Upload) {
             $judulUpload = TJudul::with('user')->findOrFail($idJudul);
             $ajuanUpload = TAjuanSidang::where('ID_JUDUL', $idJudul)->where('TAHAPAN_SIDANG', $tahapan)->latest('id')->first();
-            $kodeProdiUpload = $ajuanUpload?->KODE_PRODI ?? $judulUpload->user?->KODE_PRODI;
+            // Prodi terkini mahasiswa (t_judul -> t_user) diutamakan; KODE_PRODI
+            // ajuan hanya snapshot saat ajuan dibuat.
+            $kodeProdiUpload = $judulUpload->user?->KODE_PRODI ?? $ajuanUpload?->KODE_PRODI;
             $prodiIdUpload = TProdi::where('KODE_PRODI', $kodeProdiUpload)->value('id');
             $syaratIds = array_unique(array_merge(array_keys($request->input('kelengkapan', [])), array_keys($request->file('files', []))));
             $validIds = \App\Models\TSyaratSidang::where('STRATA', 'S2')

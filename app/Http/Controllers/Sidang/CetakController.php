@@ -3069,12 +3069,14 @@ class CetakController extends Controller
             ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H.i')
             : '-';
 
-        $tglSuratUndangan = $ajuan->tgl_surat_undangan
-            ? \Carbon\Carbon::parse($ajuan->tgl_surat_undangan)->translatedFormat('d F Y')
+        // Kolom fisik di t_ajuan_sidang: NO_UNDANGAN dan TGL_UNDANGAN
+        // (bukan no_surat_undangan/tgl_surat_undangan).
+        $tglSuratUndangan = $ajuan->TGL_UNDANGAN
+            ? \Carbon\Carbon::parse($ajuan->TGL_UNDANGAN)->translatedFormat('d F Y')
             : ($ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('d F Y') : '-');
 
         $namaProdi = $ajuan->NAMA_PRODI ?? '-';
-        $noSuratUndangan = $ajuan->no_surat_undangan ?? $ajuan->NO_SURAT_UNDANGAN ?? '-';
+        $noSuratUndangan = $ajuan->NO_UNDANGAN ?? '-';
 
         $filename = 'Undangan_' . str_replace(' ', '_', $tahapan) . '_'
             . str_replace(' ', '_', $ajuan->NAMA_MHS ?? '') . '_'
