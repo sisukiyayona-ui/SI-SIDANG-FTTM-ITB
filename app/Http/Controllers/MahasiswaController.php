@@ -454,7 +454,7 @@ class MahasiswaController extends Controller
         // Return HTML fragment for AJAX request
         $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji', 'Ketua Sidang'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
 
-        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'isKetuaSidangTim', 'users', 'skList', 'kelengkapanNilai', 'kppsGate', 'strataView', 'showKppsTab');
+        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'isKetuaSidangTim', 'users', 'skList', 'kelengkapanNilai', 'kppsGate', 'strataView', 'showKppsTab', 'prodi');
 
         if (request()->ajax()) {
             return view($viewName, $viewData)->render();

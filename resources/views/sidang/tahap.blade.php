@@ -573,6 +573,16 @@
                                 </tbody>
                             </table>
                             </div>
+                            @if($strataView === 'S2' && isset($prodi))
+                            <div class="mt-3 p-2 border rounded" style="background-color: #f8fafc; font-size: 13px;">
+                                <div class="font-weight-bold mb-1 text-muted">Info Prodi</div>
+                                <div class="d-flex flex-wrap" style="gap: 8px 24px;">
+                                    <span><strong>Alamat:</strong> {{ $prodi->ALAMAT ?? '-' }}</span>
+                                    <span><strong>TLP:</strong> {{ $prodi->TLP ?? '-' }}</span>
+                                    <span><strong>Email:</strong> {{ $prodi->EMAIL ?? '-' }}</span>
+                                </div>
+                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -1016,6 +1026,16 @@
                                 </tbody>
                             </table>
                             </div>
+                            @if($strataView === 'S2' && isset($prodi))
+                            <div class="mt-3 p-2 border rounded" style="background-color: #f8fafc; font-size: 13px;">
+                                <div class="font-weight-bold mb-1 text-muted">Info Prodi</div>
+                                <div class="d-flex flex-wrap" style="gap: 8px 24px;">
+                                    <span><strong>Alamat:</strong> {{ $prodi->ALAMAT ?? '-' }}</span>
+                                    <span><strong>TLP:</strong> {{ $prodi->TLP ?? '-' }}</span>
+                                    <span><strong>Email:</strong> {{ $prodi->EMAIL ?? '-' }}</span>
+                                </div>
+                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
