@@ -292,17 +292,28 @@ class MahasiswaController extends Controller
             
         // Table t_tim_sidang (Pembimbing / Penguji)
         // Urutan tampil: Ketua Pembimbing, Pembimbing I/II, Penguji I/II/III,
-        // lalu role lain — Ketua Sidang paling bawah, karena ia tidak menginput
-        // nilai dan hanya update status lulus setelah semua nilai terisi.
+        // lalu role lain. Khusus S2, Ketua Sidang diletakkan paling bawah karena
+        // ia tidak menginput nilai — penilai lain mengisi nilai lebih dulu.
         $timSidangQuery = \App\Models\TTimSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)
-            ->orderByRaw("CASE
+            ->where('tahapan_sidang', $tahapan);
+
+        if ($strataView === 'S2') {
+            $timSidangQuery->orderByRaw("CASE
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 5
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 1
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 2
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 3
+                ELSE 4 END");
+        } else {
+            $timSidangQuery->orderByRaw("CASE
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 1
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 2
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 3
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 4
-                ELSE 5 END")
-            ->orderByRaw("CASE
+                ELSE 5 END");
+        }
+
+        $timSidangQuery->orderByRaw("CASE
                 WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
                 WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'II$' THEN 2
                 WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'I$' THEN 1
