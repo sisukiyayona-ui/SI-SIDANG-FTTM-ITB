@@ -134,7 +134,8 @@
         $nim = $ajuan->Nim ?? $userHeader?->NIP_NIM ?? session('auth_user.nip_nim');
         $judulText = $ajuan->Judul ?? $judulHeader?->Judul ?? '';
         // Strata untuk kontrol tampilan tab (KPPS voting hanya ada di S3)
-        $strataView = strtoupper($ajuan->STRATA ?? $userHeader?->STRATA ?? session('auth_user.strata') ?? 'S3');
+        $isTesisTahapan = in_array(strtolower($tahapan ?? ''), ['tesis i', 'tesis ii']);
+        $strataView = strtoupper($ajuan->STRATA ?? $userHeader?->STRATA ?? session('auth_user.strata') ?? ($isTesisTahapan ? 'S2' : 'S3'));
         $showKppsTab = ($strataView === 'S3');
         $abstrakText = '';
         if ($idJudul) {
@@ -146,7 +147,7 @@
         // Ketua Sidang pada tim sidang judul + tahapan ini) dan TU Prodi/Admin.
         // Pembimbing/Penguji hanya mengisi nilai, tanpa tombol Kunci Nilai.
         $isTuProdiAtauAdmin = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
-        $isKetuaSidangTim = ($isKetuaSidangTim ?? false) || session('auth_user.role') === 'Ketua Sidang';
+        $isKetuaSidangTim = ($isKetuaSidangTim ?? false) || ($strataView !== 'S2' && session('auth_user.role') === 'Ketua Sidang');
         $canManageKelulusan = $isKetuaSidangTim;
         $kelengkapanNilai = $kelengkapanNilai ?? ['lengkap' => false, 'ada_tim' => false, 'belum' => [], 'belum_parameter' => []];
         $pesanKelengkapanNilai = \App\Services\KelengkapanNilaiSidang::pesan($kelengkapanNilai);
@@ -187,6 +188,28 @@
             && ! empty($kppsGate['blocked'])
             && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji'], true);
         $pesanKppsGate = \App\Services\KppsApproveGate::pesan($kppsGate);
+
+        // S2: penilaian hanya bisa dilakukan setelah TU Prodi approve (status_ajukan_prodi='y')
+        $isS2PenilaianBlocked = $strataView === 'S2'
+            && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') !== 'y';
+        if ($isS2PenilaianBlocked) {
+            $isKppsGateBlocking = true;
+            $pesanKppsGate = 'Penilaian belum bisa dilakukan. Menunggu TU Prodi melakukan Approve jadwal sidang.';
+        }
+
+        // S2: FS hanya view-only — field jadwal readonly, input nilai disabled,
+        // tanpa tombol simpan/approve.
+        $isFsViewOnlyS2 = $strataView === 'S2' && session('auth_user.role') === 'FS';
+        $isS2ScoreReadOnly = $strataView === 'S2' && ($isTuProdiAtauAdmin || $isFsViewOnlyS2 || $isKetuaSidangTim);
+        $canEditS2Status = !$isS2PenilaianBlocked && (($isKetuaSidangTim && !$isNilaiTerkunci) || ($isTuProdiAtauAdmin && $isNilaiTerkunci));
+        $statusKelulusanS2 = $ajuan->STATUS_LULUS ?? '';
+        if ($strataView === 'S2' && !$isNilaiTerkunci) {
+            $statusKelulusanS2 = $penilaian->first(fn ($nilai) => !empty($nilai->STATUS_LULUS))?->STATUS_LULUS ?? '';
+        }
+        $jadwalReadonlyRoles = ['Pembimbing', 'Penguji', 'Ketua Sidang'];
+        if ($isFsViewOnlyS2) {
+            $jadwalReadonlyRoles[] = 'FS';
+        }
     @endphp
 
     <!-- Modal Tambah No SK -->
@@ -317,7 +340,7 @@
     <div style="padding: 30px;">
         @if($isTahap1)
             {{-- VIEW TAHAP I - WITH TABS FOR TU PRODI/ADMIN/FS --}}
-            @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
+            @if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))
             <ul class="nav text-center w-100 d-flex justify-content-center flex-wrap border-bottom-0 mb-3" id="myTab" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active font-weight-bold p-0 text-primary" id="persyaratan-tab" data-toggle="tab" href="#persyaratan" role="tab" style="text-decoration: underline;">Persyaratan</a>
@@ -340,7 +363,7 @@
                     </div>
                     <div class="warning-file-upload mb-3">
                         <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                        <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>2MB</strong></span>
+                        <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>{{ $strataView === 'S2' ? '10MB' : '2MB' }}</strong></span>
                     </div>
                     <table class="table table-bordered table-sm text-center mb-4">
                         <thead class="bg-light text-dark">
@@ -359,7 +382,7 @@
                                         <td>{{ $idx + 1 }}</td>
                                         <td class="text-left"><span>{{ $item->PERSYARATAN ?? $item->NAMA_PERSYARATAN }}</span></td>
                                         <td>
-                                            <input type="checkbox" {{ isset($item->STATUS_LENGKAP) && $item->STATUS_LENGKAP === 'y' ? 'checked' : '' }} data-syarat-id="{{ $syaratId }}">
+                                            <input type="checkbox" {{ isset($item->STATUS_LENGKAP) && $item->STATUS_LENGKAP === 'y' ? 'checked' : '' }} data-syarat-id="{{ $syaratId }}" {{ $isFsViewOnlyS2 ? 'disabled' : '' }}>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center justify-content-center">
@@ -505,7 +528,7 @@
                                         <th style="min-width: 280px; white-space: nowrap;">Nama</th>
                                         <th style="min-width: 120px;">Keterangan</th>
                                         <th style="min-width: 180px; white-space: nowrap;">No SK</th>
-                                        <th style="min-width: 70px;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="min-width: 70px;">Aksi</th>@endif
+                                        <th style="min-width: 70px;">File</th>@if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))<th style="min-width: 70px;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -532,7 +555,7 @@
                                                          -
                                                      @endif
                                                  </td>
-                                                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
+                                                 @if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))
                                                   <td style="white-space: nowrap;">
                                                       <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                       @if(session('auth_user.role') === 'TU Prodi')
@@ -544,7 +567,7 @@
                                          @endforeach
                                     @else
                                         <tr style="background-color: #dbe5f1;">
-                                            <td colspan="{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '7' : '6' }}" class="text-center text-muted">Belum ada tim penguji</td>
+                                            <td colspan="{{ (in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2) ? '7' : '6' }}" class="text-center text-muted">Belum ada tim penguji</td>
                                         </tr>
                                     @endif
                                 </tbody>
@@ -781,7 +804,7 @@
                     </div>
                     <div class="warning-file-upload mb-3">
                         <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                        <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>2MB</strong></span>
+                        <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>{{ $strataView === 'S2' ? '10MB' : '2MB' }}</strong></span>
                     </div>
                     <table class="table table-bordered table-sm text-center mb-4">
                         <thead style="background-color: #6998d3; color: white;">
@@ -800,7 +823,7 @@
                                         <td>{{ $idx + 1 }}</td>
                                         <td class="text-left"><span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">{{ $item->PERSYARATAN ?? $item->NAMA_PERSYARATAN }}</span></td>
                                         <td>
-                                            <input type="checkbox" {{ isset($item->STATUS_LENGKAP) && $item->STATUS_LENGKAP === 'y' ? 'checked' : '' }} data-syarat-id="{{ $syaratId }}">
+                                            <input type="checkbox" {{ isset($item->STATUS_LENGKAP) && $item->STATUS_LENGKAP === 'y' ? 'checked' : '' }} data-syarat-id="{{ $syaratId }}" {{ $isFsViewOnlyS2 ? 'disabled' : '' }}>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center justify-content-center">
@@ -838,7 +861,7 @@
                 <div class="tab-pane fade" id="tim" role="tabpanel">
                     {{-- TIM: FORM LEFT, REPORT RIGHT --}}
                     <div class="row">
-                        @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
+                        @if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))
                         {{-- KIRI: FORM --}}
                         <div class="col-md-6">
                             <div id="timFormTahap2" style="display: block;">
@@ -935,7 +958,7 @@
                         </div>
                         @endif
                         {{-- KANAN: REPORT --}}
-                        <div class="col-md-{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '6' : '12' }}">
+                        <div class="col-md-{{ (in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2) ? '6' : '12' }}">
                             <div class="text-muted font-weight-bold mb-2 ml-1" style="font-size: 14px;">
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
@@ -948,7 +971,7 @@
                                         <th style="min-width: 280px; white-space: nowrap;">Nama</th>
                                         <th style="min-width: 120px;">Keterangan</th>
                                         <th style="min-width: 180px; white-space: nowrap;">No SK</th>
-                                        <th style="min-width: 70px;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="min-width: 70px;">Aksi</th>@endif
+                                        <th style="min-width: 70px;">File</th>@if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))<th style="min-width: 70px;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -975,7 +998,7 @@
                                                          -
                                                      @endif
                                                  </td>
-                                                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
+                                                 @if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))
                                                   <td style="white-space: nowrap;">
                                                       <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                       @if(session('auth_user.role') === 'TU Prodi')
@@ -987,7 +1010,7 @@
                                          @endforeach
                                     @else
                                         <tr style="background-color: #dbe5f1;">
-                                            <td colspan="{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '7' : '6' }}" class="text-center text-muted">Belum ada tim penguji</td>
+                                            <td colspan="{{ (in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2) ? '7' : '6' }}" class="text-center text-muted">Belum ada tim penguji</td>
                                         </tr>
                                     @endif
                                 </tbody>
@@ -1191,7 +1214,8 @@
                                         <td><span class="badge bg-{{ getStatusColor($displayStatus) }}">{{ $displayStatus }}</span></td>
                                         <td>
                                             <div class="d-flex flex-nowrap align-items-center justify-content-center" style="gap: 6px;">
-                                                <button type="button" class="btn btn-sm btn-outline-primary px-3" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ ($a->status_lulus ?? '') === 'tidak lulus' ? 'disabled' : '' }}><i class="fas fa-clipboard-check mr-1"></i> Penilaian</button>
+                                                @php $penilaianBlocked = ($strataView === 'S2' && ($a->STATUS_AJUKAN_PRODI ?? 't') !== 'y') || ($a->status_lulus ?? '') === 'tidak lulus'; @endphp
+                                                <button type="button" class="btn btn-sm btn-outline-primary px-3" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ $penilaianBlocked ? 'disabled' : '' }} @if($strataView === 'S2' && ($a->STATUS_AJUKAN_PRODI ?? 't') !== 'y') title="Menunggu TU Prodi Approve" @endif><i class="fas fa-clipboard-check mr-1"></i> Penilaian</button>
                                                 @if(strtolower($tahapan) === 'tahap iv')
                                                 <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="cetakPedomanKetuaSidang({{ $idJudul }}, '{{ $tahapan }}')"><i class="fas fa-book mr-1"></i> PED Ketua Sidang</button>
                                                 @endif
@@ -1327,10 +1351,10 @@
                                                 <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                 <td>
                                                     <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                    <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5">
+                                                    <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                 </td>
                                                 <td>
-                                                    <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2"></textarea>
+                                                    <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}></textarea>
                                                 </td>
                                             </tr>
                                             @endunless
@@ -1342,10 +1366,10 @@
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                        <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ $existing->Nilai }}" min="1" max="5">
+                                                        <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ $existing->Nilai }}" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     <td>
-                                                        <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2">{{ $existing->catatan }}</textarea>
+                                                        <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>{{ $existing->catatan }}</textarea>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -1360,9 +1384,13 @@
                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3 mr-3" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
                                     <span class="mr-4 font-weight-bold">Status Kelulusan</span>
                                     @if(!in_array(session('auth_user.role'), ['FS']))
-                                    <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;">
+                                    <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                         <option value="">Pilih Status</option>
-                                        @if(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
+                                        @if($strataView === 'S2')
+                                            <option value="Lulus Sidang Magister" {{ strtolower($statusKelulusanS2) === 'lulus sidang magister' ? 'selected' : '' }}>LULUS Sidang Magister</option>
+                                            <option value="Tidak Lulus Sidang Magister" {{ strtolower($statusKelulusanS2) === 'tidak lulus sidang magister' ? 'selected' : '' }}>TIDAK LULUS Sidang Magister</option>
+                                            <option value="Mengulangi Sidang Magister" {{ strtolower($statusKelulusanS2) === 'mengulangi sidang magister' ? 'selected' : '' }}>Mengulangi Sidang Magister</option>
+                                        @elseif(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
                                             <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
                                         @else
@@ -1389,7 +1417,10 @@
                                     @endif
                                     @if($isKetuaSidangTim)
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusTahap2()"><i class="fas fa-save mr-1"></i> Simpan Status</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusTahap2()" @if($strataView === 'S2' && !$canEditS2Status) disabled title="Menunggu Approve TU Prodi dan kunci nilai oleh Ketua Sidang" @endif><i class="fas fa-save mr-1"></i> Simpan Status</button>
+                                    @elseif($isTuProdiAtauAdmin && $strataView === 'S2')
+                                    {{-- S2 TU Prodi: hanya update status lulus, tidak perlu Kunci Nilai --}}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusTahap2()" @if($strataView === 'S2' && !$canEditS2Status) disabled title="Menunggu Approve TU Prodi dan kunci nilai oleh Ketua Sidang" @endif><i class="fas fa-save mr-1"></i> Simpan Status</button>
                                     @elseif($isTuProdiAtauAdmin)
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
                                     <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()"><i class="fas fa-save mr-1"></i> Simpan</button>
@@ -1494,7 +1525,9 @@
                                 Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Tambah</span>/ Edit <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Jadwal Sidang {{ getTahapLabel($tahapan) }}</span>
                             </div>
                             <div>
+                                @if(!in_array(strtolower($tahapan), ['tesis i', 'tesis ii']))
                                 <button type="button" class="btn btn-sm btn-outline-primary mr-2" onclick="cetakSuratKesediaan()"><i class="fas fa-file-alt mr-1"></i> Surat Kesediaan Penelaah</button>
+                                @endif
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="cetakUndangan()"><i class="fas fa-print mr-1"></i> Cetak Undangan</button>
                             </div>
                         </div>
@@ -1520,64 +1553,75 @@
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tgl Seminar/Sidang</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_sidang" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_sidang" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Waktu Mulai</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_sidang" value="{{ isset($ajuan) ? $ajuan->waktu_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_sidang" value="{{ isset($ajuan) ? $ajuan->waktu_sidang : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Waktu Selesai</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_selesai" value="{{ isset($ajuan) ? ($ajuan->waktu_selesai ?? '') : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="time" class="form-control form-control-sm border-dark rounded-0" name="waktu_selesai" value="{{ isset($ajuan) ? ($ajuan->waktu_selesai ?? '') : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Ruangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="ruang_sidang" value="{{ isset($ajuan) ? $ajuan->ruang_sidang : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="ruang_sidang" value="{{ isset($ajuan) ? $ajuan->ruang_sidang : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
+                                @if($strataView !== 'S2')
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Undangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
+                                @endif
                                 </div>
                                 <div class="col-md-6">
+                                    @if($strataView === 'S2')
+                                    {{-- S2: No Surat Undangan dulu, baru Tgl Surat Undangan --}}
+                                    <div class="form-group row align-items-center mb-2 px-1">
+                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Undangan</label>
+                                        <div class="col-sm-6 px-2">
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
+                                        </div>
+                                    </div>
+                                    @endif
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Undangan</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     @if(!in_array(strtolower($tahapan), ['ts1', 'ts2', 'tesis i', 'tesis ii']))
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->no_surat_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->no_surat_penelaah : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->tgl_penelaah : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_penelaah" value="{{ isset($ajuan) ? $ajuan->tgl_penelaah : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Hasil Penilaian</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_hasil_penelahan" value="{{ isset($ajuan) ? $ajuan->TGL_HASIL_PENELAHAN : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_hasil_penelahan" value="{{ isset($ajuan) ? $ajuan->TGL_HASIL_PENELAHAN : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Email Surat Hasil Telaah</label>
                                         <div class="col-sm-6 px-2">
-                                            <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'readonly' : '' }}>
+                                            <input type="email" class="form-control form-control-sm border-dark rounded-0" name="email_surat" value="{{ isset($ajuan) ? $ajuan->email_surat : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
                                     @else
@@ -1602,7 +1646,11 @@
                                  <div>
 <input type="hidden" name="is_ajukan_fs" value="">
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) && (!isset($ajuan) || $ajuan->STATUS_AJUKAN_PRODI !== 'y'))
+                                       @if($strataView === 'S2')
+                                       <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);"><i class="fas fa-check mr-1"></i> Approve</button>
+                                       @else
                                        <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);"><i class="fas fa-paper-plane mr-1"></i> Ajukan ke FS</button>
+                                       @endif
                                       @endif
                                       @if($strataView === 'S3' && session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
                                        <input type="hidden" name="is_ajukan_kpps" value="">
@@ -1612,7 +1660,7 @@
                                        <input type="hidden" name="is_ajukan_kpps" value="">
                                        <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_kpps.value='1'; submitJadwalTahap2(event);"><i class="fas fa-redo mr-1"></i> Ajukan Ulang ke KPPS (Reject)</button>
                                       @endif
-                                      @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']))
+                                      @if(!in_array(session('auth_user.role'), $jadwalReadonlyRoles))
                                        <button type="submit" class="btn btn-sm btn-primary px-3" onclick="submitJadwalTahap2(event)"><i class="fas fa-save mr-1"></i> Simpan</button>
                                       @endif
                                  </div>
@@ -1868,7 +1916,7 @@
                 <div class="tab-pane fade" id="tim" role="tabpanel">
                     {{-- TIM: FORM LEFT, REPORT RIGHT --}}
                     <div class="row">
-                        @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
+                        @if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))
                         {{-- KIRI: FORM --}}
                         <div class="col-md-6">
                             <div id="timFormTahap2" style="display: block;">
@@ -1965,7 +2013,7 @@
                         </div>
                         @endif
                         {{-- KANAN: REPORT --}}
-                        <div class="col-md-{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '6' : '12' }}">
+                        <div class="col-md-{{ (in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2) ? '6' : '12' }}">
                             <div class="text-muted font-weight-bold mb-2 ml-1" style="font-size: 14px;">
                                 Tim <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Pembimbing</span> dan <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Penguji</span>
                             </div>
@@ -1978,7 +2026,7 @@
                                         <th style="min-width: 280px; white-space: nowrap;">Nama</th>
                                         <th style="min-width: 120px;">Keterangan</th>
                                         <th style="min-width: 180px; white-space: nowrap;">No SK</th>
-                                        <th style="min-width: 70px;">File</th>@if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))<th style="min-width: 70px;">Aksi</th>@endif
+                                        <th style="min-width: 70px;">File</th>@if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))<th style="min-width: 70px;">Aksi</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -2005,7 +2053,7 @@
                                                          -
                                                      @endif
                                                  </td>
-                                                 @if(in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']))
+                                                 @if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))
                                                   <td style="white-space: nowrap;">
                                                       <button type="button" class="btn btn-sm btn-warning py-0 px-1" onclick="editTimSidang(this)" title="Edit"><i class="fas fa-edit"></i></button>
                                                       @if(session('auth_user.role') === 'TU Prodi')
@@ -2017,7 +2065,7 @@
                                          @endforeach
                                     @else
                                         <tr style="background-color: #dbe5f1;">
-                                            <td colspan="{{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? '7' : '6' }}" class="text-center text-muted">Belum ada tim penguji</td>
+                                            <td colspan="{{ (in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2) ? '7' : '6' }}" class="text-center text-muted">Belum ada tim penguji</td>
                                         </tr>
                                     @endif
                                 </tbody>
@@ -2065,6 +2113,10 @@ var isLockGateActive = {{ ($isGateLockNilai ?? false) ? 'true' : 'false' }};
 var KELENGKAPAN_NILAI = @json($kelengkapanNilai);
 var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
 var isKppsGateBlocking = {{ ($isKppsGateBlocking ?? false) ? 'true' : 'false' }};
+// S2: FS hanya view-only, semua input nilai dikunci.
+var isFsViewOnlyS2 = {{ ($isFsViewOnlyS2 ?? false) ? 'true' : 'false' }};
+var isS2 = @json($strataView === 'S2');
+var isS2ScoreReadOnly = @json($isS2ScoreReadOnly);
 // Ketua Sidang: form penilaian hanya untuk melihat nilai penilai lain.
 var isViewOnlyPenilai = {{ ($isKetuaSidangTim ?? false) ? 'true' : 'false' }};
 var PESAN_KPPS_GATE = {!! json_encode($pesanKppsGate ?? '') !!};
@@ -2272,6 +2324,7 @@ function savePersyaratanTahap() {
         if (data.success) {
             showToast('Persyaratan berhasil disimpan', 'success');
             persyaratanFiles = {};
+            if (isS2) showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'persyaratan');
         } else {
             console.error('saveAllPersyaratan failed', data);
             if (data.expired || data.error === 'Session expired') {
@@ -2428,7 +2481,7 @@ function filterPenilaianTahap2() {
         return;
     }
 
-    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking;
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isFsViewOnlyS2 || isS2ScoreReadOnly;
     var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilai);
     var penilaiId = selPenilai.value;
     var noForm = selForm.value;
@@ -2516,6 +2569,7 @@ function renumberColumn(tbodyId) {
 }
 
 function applyStatusCatatan(row) {
+    if (typeof isFsViewOnlyS2 !== 'undefined' && isFsViewOnlyS2) return;
     var sc = row.getAttribute('data-status-catatan');
     var catatanInput = row.querySelector('.catatan-input');
     var nilaiInput = row.querySelector('input.nilai-input');
@@ -2529,7 +2583,7 @@ function applyStatusCatatan(row) {
 }
 
 function filterPenilaian() {
-    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking;
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isFsViewOnlyS2 || isS2ScoreReadOnly;
     var selPenilaiLaporan = document.getElementById('penilaianSelect');
     var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilaiLaporan);
     var penilaiId = selPenilaiLaporan.value;
@@ -2615,7 +2669,7 @@ function loadPenilaianForm() {
 
     const timSidangId = selPenilai.value;
     const noForm = selForm.value;
-    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isViewOnlyPenilai;
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isViewOnlyPenilai || isFsViewOnlyS2 || isS2ScoreReadOnly;
     var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilai);
     
     document.getElementById('selectedTimSidang').value = timSidangId;
@@ -2735,6 +2789,7 @@ function savePersyaratan(tahapan) {
         if (data.success) {
             showToast('Persyaratan berhasil disimpan', 'success');
             persyaratanFiles = {};
+            if (isS2) showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'persyaratan');
         } else {
             console.error('saveAllPersyaratan failed', data);
             if (data.expired || data.error === 'Session expired') {
@@ -2764,8 +2819,9 @@ function uploadFile(input, idSyarat, tahapan, idJudul) {
         input.value = '';
         return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-        showToast('Maksimal ukuran file 2 MB', 'error');
+    var maxUploadMb = {{ $strataView === 'S2' ? 10 : 2 }};
+    if (file.size > maxUploadMb * 1024 * 1024) {
+        showToast('Maksimal ukuran file ' + maxUploadMb + ' MB', 'error');
         input.value = '';
         return;
     }
@@ -3081,7 +3137,7 @@ function upsertTimSidangRow(form, formData, tim) {
     var selSk = form.querySelector('[name="id_sk"]');
     if (selSk && selSk.value && selSk.selectedOptions[0]) noSk = selSk.selectedOptions[0].textContent.trim();
 
-    var canAksi  = {{ in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) ? 'true' : 'false' }};
+    var canAksi  = {{ (in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2) ? 'true' : 'false' }};
     var isTuProdi = {{ session('auth_user.role') === 'TU Prodi' ? 'true' : 'false' }};
 
     var row = id ? tbody.querySelector('tr[data-id="' + id + '"]') : null;
@@ -3429,6 +3485,11 @@ function syncLockNilaiGate(selectId, btnId) {
 function toggleLockButton(tbodyId, btnId) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
+    if (isS2 && isNilaiTerkunci) {
+        btn.disabled = true;
+        setLockNilaiTooltip(btnId, 'Nilai sudah dikunci oleh Ketua Sidang.');
+        return;
+    }
 
     // Gate approve KPPS prodi (khusus Pembimbing/Penguji): Kunci Nilai diblokir
     // sampai semua anggota KPPS AKTIF prodi approve. Status Lulus tidak disentuh.
@@ -3580,6 +3641,11 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     .then(function(data) {
         if (data.success) {
             isNilaiTerkunci = true;
+            if (isS2) {
+                showToast('Nilai berhasil dikunci dan status kelulusan diperbarui', 'success');
+                showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal');
+                return;
+            }
             // Ketua Sidang dan TU Prodi/Admin tetap boleh mengunci ulang (mis.
             // memperbaiki status lulus). Penilai lain: input & Simpan dimatikan,
             // badge "Nilai Terkunci" sudah dirender server saat halaman dimuat.
@@ -3812,6 +3878,9 @@ async function saveTuProdiInput() {
     event.stopPropagation();
     var form = document.getElementById('jadwalFormTahap2Form');
     var formData = new FormData(form);
+    if (isS2) {
+        form.querySelector('[name="is_ajukan_fs"]').value = '';
+    }
 
     // Validate required fields
     var tglSidang = formData.get('tgl_sidang');
@@ -3825,8 +3894,8 @@ async function saveTuProdiInput() {
     var isAjukan = formData.get('is_ajukan_fs') === '1' || formData.get('is_ajukan_kpps') === '1';
 
     // Disable submit button
-    var submitBtn = event.target;
-    var originalText = submitBtn.innerHTML;
+    var submitBtn = event.submitter || event.target.closest('button');
+    var originalText = submitBtn ? submitBtn.innerHTML : '';
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
@@ -3842,10 +3911,10 @@ async function saveTuProdiInput() {
     })
     .then(function(response) {
         if (!response.ok) {
-            return response.json().then(function(err) {
-                throw new Error(err.message || 'HTTP ' + response.status);
-            }).catch(function() {
-                throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+            return response.json().catch(function() {
+                return {};
+            }).then(function(err) {
+                throw new Error(err.message || err.error || 'HTTP ' + response.status);
             });
         }
         return response.json();
@@ -3854,6 +3923,10 @@ async function saveTuProdiInput() {
         if (data.success) {
             showToast(data.message || 'Jadwal sidang berhasil disimpan', 'success');
             
+            if (isS2 && isAjukan) {
+                showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal');
+                return;
+            }
             // Jika "Ajukan", kembali ke list. Jika hanya "Simpan", tetap di form
             if (isAjukan) {
                 // Switch back to jadwal list view — instan, refresh senyap di belakang
@@ -4056,6 +4129,10 @@ function reloadTahapForm(tahapan, idJudul) {
 }
 
 function showToast(message, type) {
+    // Global layout memakai showToast(type, message); dukung kedua urutan argumen.
+    if ((message === 'success' || message === 'error' || message === 'warning' || message === 'info') && type !== undefined) {
+        var tmp = message; message = type; type = tmp;
+    }
     var isSuccess = type === 'success';
     var toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;top:24px;right:24px;z-index:9999;max-width:350px;width:100%;animation:slideInRight 0.3s ease forwards;';
@@ -4437,9 +4514,13 @@ function getStatusColor($status) {
         case 'terjadwal':
             return 'primary';
         case 'lulus':
+        case 'lulus sidang magister':
             return 'success';
         case 'tidak lulus':
+        case 'tidak lulus sidang magister':
             return 'danger';
+        case 'mengulangi sidang magister':
+            return 'warning';
         case 'diajukan':
         case 'diajukan ke fs':
             return 'info';
@@ -4453,8 +4534,26 @@ function getStatusColor($status) {
 
 function getAjuanDisplayStatus($ajuan) {
     if (!$ajuan) return 'Belum diajukan';
+    if (strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2') {
+        $status = strtolower(trim((string) ($ajuan->STATUS_LULUS ?? '')));
+        $labels = [
+            'lulus sidang magister' => 'LULUS Sidang Magister',
+            'tidak lulus sidang magister' => 'TIDAK LULUS Sidang Magister',
+            'mengulangi sidang magister' => 'Mengulangi Sidang Magister',
+        ];
+        if (strtolower((string) ($ajuan->NILAI_TERKUNCI ?? '')) === 'y' && isset($labels[$status])) return $labels[$status];
+        if (($ajuan->STATUS_AJUKAN_MHS ?? 't') !== 'y') return 'Belum Diajukan';
+        return ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y' ? 'Terjadwal' : 'Diproses di TU Prodi';
+    }
     $sl = $ajuan->status_lulus ?? $ajuan->STATUS_LULUS ?? null;
-    if (!empty($sl) && strtolower($sl) !== 'diajukan') return ucfirst($sl);
+    if (!empty($sl) && strtolower($sl) !== 'diajukan') {
+        $slMap = [
+            'lulus sidang magister' => 'LULUS Sidang Magister',
+            'tidak lulus sidang magister' => 'TIDAK LULUS Sidang Magister',
+            'mengulangi sidang magister' => 'Mengulangi Sidang Magister',
+        ];
+        return $slMap[strtolower($sl)] ?? ucfirst($sl);
+    }
     $mhs = $ajuan->status_ajukan_mhs ?? $ajuan->STATUS_AJUKAN_MHS ?? 't';
     if (empty($mhs) || $mhs === 't') return 'Belum diajukan';
     $prodi = $ajuan->status_ajukan_prodi ?? $ajuan->STATUS_AJUKAN_PRODI ?? 't';
@@ -4463,8 +4562,13 @@ function getAjuanDisplayStatus($ajuan) {
     $ajuanId = $ajuan->id ?? null;
     $strata = strtoupper($ajuan->STRATA ?? $ajuan->strata ?? 'S3');
 
-    // S1/S2 tidak memakai KPPS: setelah TU Prodi approve, ajuan diproses di
-    // fakultas dan menjadi terjadwal begitu tanggal sidang diisi.
+    // S2: setelah TU Prodi approve (status_ajukan_prodi='y') langsung = Terjadwal
+    if ($strata === 'S2') {
+        if ($prodi === 'y') return 'Terjadwal';
+        return 'Diproses di TU Prodi';
+    }
+
+    // S1: tidak memakai KPPS
     if ($strata !== 'S3') {
         if ($ajuanId) {
             $rejected = \Illuminate\Support\Facades\DB::table('t_app_ajuan_sidang')
