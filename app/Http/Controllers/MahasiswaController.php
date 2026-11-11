@@ -292,12 +292,13 @@ class MahasiswaController extends Controller
             
         // Table t_tim_sidang (Pembimbing / Penguji)
         // Urutan tampil: Ketua Pembimbing, Pembimbing I/II, Penguji I/II/III,
-        // lalu role lain. Khusus S2, Ketua Sidang diletakkan paling bawah karena
-        // ia tidak menginput nilai — penilai lain mengisi nilai lebih dulu.
+        // lalu role lain. S2 & S3: Ketua Sidang di paling bawah karena tidak
+        // menginput nilai — penilai lain mengisi lebih dulu. Berlaku semua tahap
+        // (Ujian Kualifikasi, Proposal, SK I–IV, Sidang Terbuka/Tertutup).
         $timSidangQuery = \App\Models\TTimSidang::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan);
 
-        if ($strataView === 'S2') {
+        if (in_array($strataView, ['S2', 'S3'], true)) {
             $timSidangQuery->orderByRaw("CASE
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 5
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 1
