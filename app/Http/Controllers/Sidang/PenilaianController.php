@@ -639,9 +639,21 @@ class PenilaianController extends Controller
 
     private function canScoreS2($user, TAjuanSidang $ajuan, TTimSidang $tim): bool
     {
-        return !in_array($user['role'] ?? '', ['TU Prodi', 'Admin', 'FS'], true)
-            && $tim->ID_USER_PENILAI == ($user['id'] ?? 0)
-            && $this->isS2Evaluator($tim)
+        $role = $user['role'] ?? '';
+        
+        // FS is view-only, never scores
+        if ($role === 'FS') return false;
+        
+        // Must be a valid evaluator (Pembimbing/Penguji, not Ketua Sidang)
+        if (!$this->isS2Evaluator($tim)) return false;
+        
+        // TU Prodi/Admin can score for ANY penilai
+        if (in_array($role, ['TU Prodi', 'Admin'], true)) {
+            return true;
+        }
+        
+        // Pembimbing/Penguji can only score for themselves
+        return $tim->ID_USER_PENILAI == ($user['id'] ?? 0)
             && !$this->isKetuaSidang($user, $ajuan->ID_JUDUL, $ajuan->TAHAPAN_SIDANG);
     }
 
@@ -732,7 +744,11 @@ class PenilaianController extends Controller
             if (!$tim) {
                 return response()->json(['error' => 'Tim sidang tidak sesuai dengan judul dan tahapan ajuan.'], 422);
             }
-            if ($penilaian->ID_USER_PENILAI != ($user['id'] ?? 0) || !$this->canScoreS2($user, $ajuan, $tim)) {
+            $role = $user['role'] ?? '';
+            if (!in_array($role, ['TU Prodi', 'Admin'], true) && $penilaian->ID_USER_PENILAI != ($user['id'] ?? 0)) {
+                return response()->json(['error' => 'Hanya Pembimbing/Penguji yang ditugaskan dapat mengubah nilainya sendiri.'], 403);
+            }
+            if (!$this->canScoreS2($user, $ajuan, $tim)) {
                 return response()->json(['error' => 'Hanya Pembimbing/Penguji yang ditugaskan dapat mengubah nilainya sendiri.'], 403);
             }
             if ($this->s2ScoresLocked($ajuan)) {
@@ -834,9 +850,10 @@ class PenilaianController extends Controller
         }
 
         return $this->withS2Ajuan($user, $idJudul, $request->tahapan_sidang, function ($ajuan) use ($request, $user) {
-            if (in_array($user['role'] ?? '', ['TU Prodi', 'Admin'], true)
-                || !$this->isKetuaSidang($user, $ajuan->ID_JUDUL, $ajuan->TAHAPAN_SIDANG)) {
-                return response()->json(['error' => 'Hanya Ketua Sidang yang ditugaskan dapat mengunci atau membuka nilai S2.'], 403);
+            $role = $user['role'] ?? '';
+            // Allow TU Prodi/Admin to lock/unlock; Ketua Sidang can also lock/unlock
+            if (!in_array($role, ['TU Prodi', 'Admin', 'Ketua Sidang'], true) && !$this->isKetuaSidang($user, $ajuan->ID_JUDUL, $ajuan->TAHAPAN_SIDANG)) {
+                return response()->json(['error' => 'Hanya TU Prodi, Admin, atau Ketua Sidang yang dapat mengunci atau membuka nilai S2.'], 403);
             }
             if ($request->filled('id_tim_sidang') && !$this->s2Tim($ajuan, $request->id_tim_sidang)) {
                 return response()->json(['error' => 'Tim sidang tidak sesuai dengan judul dan tahapan ajuan.'], 422);

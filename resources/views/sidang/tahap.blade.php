@@ -189,18 +189,14 @@
             && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji'], true);
         $pesanKppsGate = \App\Services\KppsApproveGate::pesan($kppsGate);
 
-        // S2: penilaian hanya bisa dilakukan setelah TU Prodi approve (status_ajukan_prodi='y')
-        $isS2PenilaianBlocked = $strataView === 'S2'
-            && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') !== 'y';
-        if ($isS2PenilaianBlocked) {
-            $isKppsGateBlocking = true;
-            $pesanKppsGate = 'Penilaian belum bisa dilakukan. Menunggu TU Prodi melakukan Approve jadwal sidang.';
-        }
+        // S2: penilaian diblokir hanya jika nilai sudah terkunci (bukan karena menunggu TU Prodi approve).
+        // Pembimbing/Penguji bisa input nilai kapan saja; TU Prodi approve hanya untuk sidang.
+        $isS2PenilaianBlocked = false;
 
         // S2: FS hanya view-only — field jadwal readonly, input nilai disabled,
         // tanpa tombol simpan/approve.
         $isFsViewOnlyS2 = $strataView === 'S2' && session('auth_user.role') === 'FS';
-        $isS2ScoreReadOnly = $strataView === 'S2' && ($isTuProdiAtauAdmin || $isFsViewOnlyS2 || $isKetuaSidangTim);
+        $isS2ScoreReadOnly = $strataView === 'S2' && ($isFsViewOnlyS2 || $isKetuaSidangTim);
         $canEditS2Status = !$isS2PenilaianBlocked && (($isKetuaSidangTim && !$isNilaiTerkunci) || ($isTuProdiAtauAdmin && $isNilaiTerkunci));
         $statusKelulusanS2 = $ajuan->STATUS_LULUS ?? '';
         if ($strataView === 'S2' && !$isNilaiTerkunci) {
@@ -1421,8 +1417,9 @@
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusTahap2()" @if($strataView === 'S2' && !$canEditS2Status) disabled title="Menunggu Approve TU Prodi dan kunci nilai oleh Ketua Sidang" @endif><i class="fas fa-save mr-1"></i> Simpan Status</button>
                                     @elseif($isTuProdiAtauAdmin && $strataView === 'S2')
-                                    {{-- S2 TU Prodi: hanya update status lulus, tidak perlu Kunci Nilai --}}
-                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusTahap2()" @if($strataView === 'S2' && !$canEditS2Status) disabled title="Menunggu Approve TU Prodi dan kunci nilai oleh Ketua Sidang" @endif><i class="fas fa-save mr-1"></i> Simpan Status</button>
+                                    {{-- S2 TU Prodi: Kunci Nilai muncul saat Ketua Sidang dipilih (via syncLockNilaiGate), Simpan untuk penilai lain --}}
+                                    <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" data-lock-gate="1" style="display:none;"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
+                                    <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()"><i class="fas fa-save mr-1"></i> Simpan</button>
                                     @elseif($isTuProdiAtauAdmin)
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
                                     <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()"><i class="fas fa-save mr-1"></i> Simpan</button>
@@ -1816,27 +1813,29 @@
                                     <table class="table table-bordered table-sm text-center mt-3 mb-0" style="table-layout: fixed; border-color: #fff;">
                                         <thead style="background-color: #6998d3; color: white;">
                                             <tr>
-                                                <th style="width: 10%;">No</th>
-                                                <th style="width: 45%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
+                                                <th style="width: 8%;">No</th>
+                                                <th style="width: 30%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
+                                                <th style="width: 17%;">Keterangan</th>
                                                 <th style="width: 15%;">Nilai</th>
                                                 <th style="width: 30%;">Catatan</th>
                                             </tr>
                                         </thead>
                                         <tbody id="penilaianTableBody">
                                             <tr id="penilaianFormEmptyRow" style="background-color: #dbe5f1;">
-                                                <td colspan="4" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
+                                                <td colspan="5" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
                                             </tr>
                                             @if(!$isViewOnlyPenilai && isset($penilaian) && $penilaian->count() > 0)
                                                 @foreach($penilaian as $idx => $nilai)
                                                  <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-tim="{{ $nilai->id_tim_sidang }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
+                                                    <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $nilai->pointPenilaian->keterangan ?? '-' }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $nilai->id_penilaian }}" hidden>
-                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="{{ $nilai->Nilai }}" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;">
+                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="{{ $nilai->Nilai }}" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     <td>
-                                                        <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2">{{ $nilai->catatan }}</textarea>
+                                                        <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>{{ $nilai->catatan }}</textarea>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -1845,12 +1844,13 @@
                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
+                                                    <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;">
+                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     <td>
-                                                        <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2"></textarea>
+                                                        <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}></textarea>
                                                     </td>
                                                 </tr>
                                                 @endforeach
@@ -1883,8 +1883,9 @@
                                 <table class="table table-bordered table-sm text-center mt-3 mb-0" style="table-layout: fixed; border-color: #fff;">
                                     <thead style="background-color: #6998d3; color: white;">
                                         <tr>
-                                            <th style="width: 10%;">No</th>
-                                            <th style="width: 45%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
+                                            <th style="width: 8%;">No</th>
+                                            <th style="width: 30%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
+                                            <th style="width: 17%;">Keterangan</th>
                                             <th style="width: 15%;">Nilai</th>
                                             <th style="width: 30%;">Catatan</th>
                                         </tr>
@@ -1895,16 +1896,17 @@
                                             <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }};">
                                                 <td>{{ $idx + 1 }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
+                                                <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $nilai->pointPenilaian->keterangan ?? '-' }}</span></td>
                                                 <td>{{ $nilai->Nilai }}</td>
                                                 <td>{{ $nilai->catatan }}</td>
                                             </tr>
                                             @endforeach
                                         @else
                                         <tr style="background-color: #dbe5f1; height: 30px;">
-                                            <td></td><td></td><td></td><td></td>
+                                            <td></td><td></td><td></td><td></td><td></td>
                                         </tr>
                                         <tr style="background-color: #e9eef6; height: 30px;">
-                                            <td></td><td></td><td></td><td></td>
+                                            <td></td><td></td><td></td><td></td><td></td>
                                         </tr>
                                         @endif
                                     </tbody>
@@ -2709,7 +2711,10 @@ function loadPenilaianForm() {
             });
         } else {
             row.querySelectorAll('input, textarea, select').forEach(function(inp) {
-                inp.disabled = false;
+                // Only enable if not already disabled by server-side logic
+                if (!inp.hasAttribute('disabled')) {
+                    inp.disabled = false;
+                }
             });
             applyStatusCatatan(row);
         }
@@ -3519,6 +3524,16 @@ function syncLockNilaiGate(selectId, btnId) {
         var sb = document.getElementById(id);
         if (sb) sb.style.display = tampil ? 'none' : '';
     });
+
+    // S2: aktifkan Status Kelulusan saat TU Prodi memilih Ketua Sidang di dropdown
+    if (isS2 && tampil) {
+        var statusEl = document.getElementById('statusLulusTahap2');
+        if (statusEl) statusEl.disabled = false;
+    } else if (isS2 && !tampil) {
+        // Ketika bukan Ketua Sidang, kembalikan ke disabled (non-editable untuk TU Prodi S2)
+        var statusEl = document.getElementById('statusLulusTahap2');
+        if (statusEl) statusEl.disabled = true;
+    }
 }
 
 function statusLulusIdForTbody(tbodyId) {
