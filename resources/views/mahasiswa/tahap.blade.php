@@ -478,13 +478,13 @@
                         <div class="form-group row align-items-center mb-2 px-1">
                             <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tanggal</label>
                             <div class="col-sm-8 px-2">
-                                <input type="date" id="f_tgl_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ isset($ajuan) ? $ajuan->tgl_sidang : '' }}">
+                                <input type="date" id="f_tgl_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ $ajuan?->tgl_sidang?->format('Y-m-d') ?? '' }}" @disabled($strataView === 'S2' && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y')>
                             </div>
                         </div>
                         <div class="form-group row align-items-center mb-2 px-1">
                             <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Waktu</label>
                             <div class="col-sm-8 px-2">
-                                <input type="time" id="f_waktu_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ isset($ajuan) ? $ajuan->waktu_sidang : '' }}">
+                                <input type="time" id="f_waktu_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ $ajuan?->waktu_sidang?->format('H:i') ?? '' }}" @disabled($strataView === 'S2' && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y')>
                             </div>
                         </div>
                         <div class="form-group row align-items-center mb-2 px-1">
@@ -507,7 +507,7 @@
                                 @else
                                 <button type="button" class="btn btn-secondary px-3 py-0 mr-2" style="font-size: 13px; border-radius: 0;" disabled title="Sudah diajukan ke Prodi"><i class="fas fa-check mr-1"></i> Sudah Diajukan</button>
                                 @endif
-                                <button type="button" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="saveJadwal()">Simpan</button>
+                                <button type="button" class="btn btn-primary px-3 py-0" style="font-size: 13px; border-radius: 0; text-decoration: underline; text-decoration-color: red;" onclick="saveJadwal()" @disabled($strataView === 'S2' && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y')>Simpan</button>
                             </div>
                         </div>
                     </div>
@@ -628,8 +628,9 @@ function uploadFile(input, idSyarat, tahapan) {
         input.value = '';
         return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-        showToast('error', 'Maksimal ukuran file 2 MB');
+    var maxUploadMb = {{ $strataView === 'S2' ? 10 : 2 }};
+    if (file.size > maxUploadMb * 1024 * 1024) {
+        showToast('error', 'Maksimal ukuran file ' + maxUploadMb + ' MB');
         input.value = '';
         return;
     }
@@ -923,7 +924,7 @@ function confirmAjukanProdi() {
                                     oldScript.parentNode.replaceChild(s, oldScript);
                                 });
                                 var jadwalTab = document.querySelector('a[href="#jadwal"]');
-                                if (jadwalTab) $(jadwalTab).tab('show');
+                                if (jadwalTab && window.jQuery) jQuery(jadwalTab).tab('show');
                             }
                         }
                     })
@@ -951,13 +952,15 @@ function kembaliKeJadwalList() {
     document.getElementById('jadwalList').style.display = 'block';
 }
 
-$(document).ready(function() {
-    $('#tahapModal').on('hidden.bs.modal', function(e) {
-        if (e.target && e.target.id === 'tahapModal' && window.location.href.includes('mahasiswa/dashboard')) {
-            location.reload();
-        }
+if (window.jQuery) {
+    jQuery(document).ready(function() {
+        jQuery('#tahapModal').on('hidden.bs.modal', function(e) {
+            if (e.target && e.target.id === 'tahapModal' && window.location.href.includes('mahasiswa/dashboard')) {
+                location.reload();
+            }
+        });
     });
-});
+}
 
 // Select2 untuk dropdown Penilai / Form (bisa dicari)
 if (window.jQuery && jQuery.fn.select2) {
@@ -1040,9 +1043,13 @@ if (window.jQuery && jQuery.fn.select2) {
           case 'terjadwal':
               return 'primary';
           case 'lulus':
+          case 'lulus sidang magister':
               return 'success';
           case 'tidak lulus':
+          case 'tidak lulus sidang magister':
               return 'danger';
+          case 'mengulangi sidang magister':
+              return 'warning';
           case 'rejected':
           case 'ditolak':
               return 'danger';
@@ -1053,13 +1060,36 @@ if (window.jQuery && jQuery.fn.select2) {
 
   // Item 21: Sync status dengan progress sidang
   function getAjuanDisplayStatus($ajuan) {
-      if (!$ajuan) return 'Belum diajukan';
-      if (!empty($ajuan->status_lulus) && strtolower($ajuan->status_lulus) !== 'diajukan') return ucfirst($ajuan->status_lulus);
+      if (!$ajuan) return 'Belum Diajukan';
+      if (strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2') {
+          $status = strtolower(trim((string) ($ajuan->STATUS_LULUS ?? '')));
+          $labels = [
+              'lulus sidang magister' => 'LULUS Sidang Magister',
+              'tidak lulus sidang magister' => 'TIDAK LULUS Sidang Magister',
+              'mengulangi sidang magister' => 'Mengulangi Sidang Magister',
+          ];
+          if (strtolower((string) ($ajuan->NILAI_TERKUNCI ?? '')) === 'y' && isset($labels[$status])) return $labels[$status];
+          if (($ajuan->STATUS_AJUKAN_MHS ?? 't') !== 'y') return 'Belum Diajukan';
+          return ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y' ? 'Terjadwal' : 'Diproses di TU Prodi';
+      }
+      if (!empty($ajuan->status_lulus) && strtolower($ajuan->status_lulus) !== 'diajukan') {
+          $slMap = [
+              'lulus sidang magister' => 'LULUS Sidang Magister',
+              'tidak lulus sidang magister' => 'TIDAK LULUS Sidang Magister',
+              'mengulangi sidang magister' => 'Mengulangi Sidang Magister',
+          ];
+          return $slMap[strtolower($ajuan->status_lulus)] ?? ucfirst($ajuan->status_lulus);
+      }
       if (empty($ajuan->status_ajukan_mhs) || $ajuan->status_ajukan_mhs === 't') return 'Belum diajukan';
       if ($ajuan->status_ajukan_mhs === 'y' && (empty($ajuan->status_ajukan_prodi) || $ajuan->status_ajukan_prodi === 't')) return 'Diproses di TU Prodi';
 
       $ajuanId = $ajuan->id ?? null;
       $strata = strtoupper((string) ($ajuan->STRATA ?? $ajuan->strata ?? session('auth_user.strata') ?? 'S3'));
+
+      if ($strata === 'S2') {
+          if ($ajuan->status_ajukan_prodi === 'y') return 'Terjadwal';
+          return 'Diproses di TU Prodi';
+      }
 
       if ($strata !== 'S3') {
           if ($ajuanId) {

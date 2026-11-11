@@ -9,6 +9,8 @@ namespace App\Services;
  *  - nilai sudah dikunci (t_ajuan_sidang.NILAI_TERKUNCI = 'y' atau ada baris
  *    t_penilaian dengan NILAI_TERKUNCI = 1), ATAU
  *  - status lulus sudah ditentukan.
+ * S2 hanya selesai setelah ajuan dikunci Ketua Sidang; keputusan sebelum itu
+ * masih berupa draf, dan kunci baris dari percobaan lama tidak berlaku.
  *
  * Saat selesai, parameter penilaian hanya diambil dari t_penilaian.
  * Parameter master yang ditambahkan SETELAH penilaian selesai tidak
@@ -21,6 +23,18 @@ class PenilaianSelesai
     {
         if (! $ajuan) {
             return false;
+        }
+
+        if (self::isS2($ajuan)) {
+            if (!self::terkunci($ajuan)) {
+                return false;
+            }
+
+            return in_array(strtolower(trim((string) ($ajuan->STATUS_LULUS ?? $ajuan->status_lulus ?? ''))), [
+                'lulus sidang magister',
+                'tidak lulus sidang magister',
+                'mengulangi sidang magister',
+            ], true);
         }
 
         $status = $ajuan->status_lulus ?? '';
@@ -43,6 +57,11 @@ class PenilaianSelesai
 
     public static function terkunci($ajuan, $penilaian = null): bool
     {
+        if (self::isS2($ajuan)) {
+            // S2 is locked collectively on the ajuan, not by individual/older score rows.
+            return strtolower(trim((string) ($ajuan->NILAI_TERKUNCI ?? $ajuan->nilai_terkunci ?? ''))) === 'y';
+        }
+
         if ($ajuan && strtolower((string) ($ajuan->nilai_terkunci ?? '')) === 'y') {
             return true;
         }
@@ -52,6 +71,17 @@ class PenilaianSelesai
         }
 
         return false;
+    }
+
+    private static function isS2($ajuan): bool
+    {
+        $strata = strtoupper(trim((string) ($ajuan->STRATA ?? $ajuan->strata ?? '')));
+        if ($strata === '' && $ajuan instanceof \App\Models\TAjuanSidang) {
+            // The JUDUL column masks property access to the judul relationship.
+            $strata = strtoupper(trim((string) ($ajuan->judul()->first()?->user?->STRATA ?? '')));
+        }
+
+        return $strata === 'S2';
     }
 
     public static function cek($ajuan, $penilaian = null): bool

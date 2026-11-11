@@ -304,6 +304,60 @@ class PrepareTemplate extends Command
                     'Tanda Tangan' => '${signature}',
                 ]
             ],
+            [
+                // Undangan Sidang Tesis S2 (undangan.docx)
+                // Template surat undangan untuk Sidang Tesis I & Tesis II program Magister (S2).
+                // Placeholder mengikuti marker yang ada di template asli: (no surat undangan), dsb.
+                'src' => base_path('template/undangan.docx'),
+                'dst' => base_path('template/undangan TEMPLATE.docx'),
+                'replacements' => [
+                    // Nomor & tanggal surat undangan
+                    '(no surat undangan)'  => '${no_surat_undangan}',
+                    '(tgl surat undangan)' => '${tgl_surat_undangan}',
+
+                    // Identitas prodi (dari t_prodi / kaprodi)
+                    '(nama prodi)'    => '${nama_prodi}',
+                    '(NAMA PRODI)'    => '${nama_prodi}',
+                    '(Alamat prodi)'  => '${alamat_prodi}',
+                    '(email prodi)'   => '${email_prodi}',
+
+                    // Kepada Yth. — tim sidang
+                    '(Nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
+                    '(Nama pembimbing I)'     => '${nama_pembimbing_i}',
+                    '(Nama pembimbing II)'    => '${nama_pembimbing_ii}',
+                    '(Nama ketua sidang)'     => '${nama_ketua_sidang}',
+                    '(penguji I)'             => '${nama_penguji_i}',
+                    '(penguji II)'            => '${nama_penguji_ii}',
+
+                    // Identitas mahasiswa
+                    '(nama mhs)'  => '${nama_mhs}',
+                    '(nama mhs) *)' => '${nama_mhs}',
+                    '(nim)'       => '${nim}',
+
+                    // Jadwal sidang
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)'      => '${waktu}',
+                    '(R. Sidang)'  => '${ruang_sidang}',
+                    '(judul)'      => '${judul}',
+
+                    // Tim (sub-items di body surat)
+                    '1. (Nama ketua pembimbing)' => '1. ${nama_ketua_pembimbing}',
+                    '2. (nama pembimbing I)'     => '2. ${nama_pembimbing_i}',
+                    '3. (nama pembimbing II)'    => '3. ${nama_pembimbing_ii}',
+                    '(nama ketua sidang)'        => '${nama_ketua_sidang}',
+                    '1. (Nama penguji I)'        => '1. ${nama_penguji_i}',
+                    '2. (Nama penguji II)'       => '2. ${nama_penguji_ii}',
+                    '(Nama penguji I)'           => '${nama_penguji_i}',
+                    '(Nama penguji II)'          => '${nama_penguji_ii}',
+
+                    // Kaprodi (tanda tangan & NIP)
+                    '(Nama Kaprodi)' => '${nama_kaprodi}',
+                    '(nip kaprodi)'  => '${nip_kaprodi}',
+
+                    // Placeholder tanda tangan kaprodi
+                    'Tanda Tangan' => '${signature}',
+                ],
+            ],
         ];
 
         foreach ($templates as $template) {

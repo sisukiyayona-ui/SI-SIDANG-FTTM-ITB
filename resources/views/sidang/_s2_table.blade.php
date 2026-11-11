@@ -14,9 +14,13 @@ if (!function_exists('getStatusColor')) {
             case 'dalam proses':
                 return 'warning';
             case 'lulus':
+            case 'lulus sidang magister':
                 return 'success';
             case 'tidak lulus':
+            case 'tidak lulus sidang magister':
                 return 'danger';
+            case 'mengulangi sidang magister':
+                return 'warning';
             case 'rejected':
             case 'ditolak':
                 return 'danger';
@@ -26,16 +30,38 @@ if (!function_exists('getStatusColor')) {
     }
 }
 
+if (!function_exists('s2StatusLabel')) {
+    function s2StatusLabel($status) {
+        $s = strtolower(trim((string) $status));
+        switch ($s) {
+            case 'lulus sidang magister':
+                return 'LULUS Sidang Magister';
+            case 'tidak lulus sidang magister':
+                return 'TIDAK LULUS Sidang Magister';
+            case 'mengulangi sidang magister':
+                return 'Mengulangi Sidang Magister';
+            case '':
+            case 'belum diajukan':
+                return 'Belum Diajukan';
+            case 'diproses di tu prodi':
+                return 'Diproses di TU Prodi';
+            case 'terjadwal':
+                return 'Terjadwal';
+            default:
+                return ucfirst($s);
+        }
+    }
+}
+
 if (!function_exists('s2StatusOptions')) {
     function s2StatusOptions($name) {
         $options = [
-            'belum diajukan' => 'Belum diajukan',
+            'belum diajukan' => 'Belum Diajukan',
             'diproses di TU Prodi' => 'Diproses di TU Prodi',
-            'diproses di fakultas' => 'Diproses di fakultas',
             'terjadwal' => 'Terjadwal',
-            'rejected' => 'Ditolak',
-            'lulus' => 'Lulus',
-            'tidak lulus' => 'Tidak Lulus',
+            'Lulus Sidang Magister' => 'LULUS Sidang Magister',
+            'Tidak Lulus Sidang Magister' => 'TIDAK LULUS Sidang Magister',
+            'Mengulangi Sidang Magister' => 'Mengulangi Sidang Magister',
         ];
         echo '<option value="">Semua</option>';
         foreach ($options as $value => $label) {
@@ -99,12 +125,12 @@ if (!function_exists('s2StatusOptions')) {
                 <td class="align-middle">{{ $item->nama_prodi ?? '—' }}</td>
                 <td class="align-middle">
                     <span class="badge bg-{{ getStatusColor($item->tesis1 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('Tesis I', {{ $item->id_judul }})">
-                        {{ ucfirst($item->tesis1 ?? 'belum diajukan') }}
+                        {{ s2StatusLabel($item->tesis1 ?? 'belum diajukan') }}
                     </span>
                 </td>
                 <td class="align-middle">
                     <span class="badge bg-{{ getStatusColor($item->tesis2 ?? 'belum diajukan') }}" role="button" onclick="showTahapForm('Tesis II', {{ $item->id_judul }})">
-                        {{ ucfirst($item->tesis2 ?? 'belum diajukan') }}
+                        {{ s2StatusLabel($item->tesis2 ?? 'belum diajukan') }}
                     </span>
                 </td>
             </tr>

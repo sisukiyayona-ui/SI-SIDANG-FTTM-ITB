@@ -2989,11 +2989,146 @@ class CetakController extends Controller
             || str_contains($t, 'terbuka')
             || str_contains($t, 'tertutup');
 
+        // S2 Tesis I / Tesis II → gunakan template undangan.docx (undangan TEMPLATE.docx)
+        $isTesis = $t === 'tesis i' || $t === 'tesis ii';
+
         if ($isSidang) {
             return $this->cetakUndanganSidang($judul, $ajuan, $timSidang);
         }
 
+        if ($isTesis) {
+            return $this->cetakUndanganS2Tesis($judul, $ajuan, $timSidang, $tahapan);
+        }
+
         return $this->cetakUndanganKemajuan($judul, $ajuan, $timSidang, $tahapan);
+    }
+
+    /**
+     * Cetak undangan sidang Tesis I / Tesis II (S2).
+     * Menggunakan template: template/undangan TEMPLATE.docx
+     */
+    private function cetakUndanganS2Tesis($judul, $ajuan, $timSidang, string $tahapan)
+    {
+        $templatePath = base_path('template/undangan TEMPLATE.docx');
+        if (!file_exists($templatePath)) {
+            abort(500, 'Template undangan S2 tidak ditemukan. Jalankan php artisan template:prepare terlebih dahulu.');
+        }
+
+        $normalizeStatus = fn($s) => preg_replace('/[\r\n]+/', '', strtolower(trim($s ?? '')));
+
+        $resolveNama = function ($t) {
+            if (!$t) return '-';
+            $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing']) || preg_match('/^\d{5,}$/', $nama)) {
+                $nama = trim($t->NAMA ?? '');
+            }
+            if ($nama === '' || preg_match('/^\d{5,}$/', $nama)) {
+                $userId = $t->id_user_penilai ?? null;
+                if ($userId) {
+                    $user = \App\Models\TUser::find($userId);
+                    $nama = trim($user->NAMA_LENGKAP ?? '');
+                }
+            }
+            return $nama ?: '-';
+        };
+
+        // Ketua Pembimbing
+        $ketuaPembimbing = $timSidang
+            ->filter(fn($t) => $normalizeStatus($t->status_tim_sidang) === 'ketua pembimbing')
+            ->first();
+
+        // Pembimbing Anggota
+        $pembimbingAnggota = $timSidang
+            ->filter(fn($t) => preg_match('/^pembimbing\s+(i{1,3}|iv|v)$/i', $normalizeStatus($t->status_tim_sidang)))
+            ->values();
+
+        // Penguji
+        $pengujis = $timSidang
+            ->filter(fn($t) => preg_match('/^penguji\s+(i{1,3}|iv|v)$/i', $normalizeStatus($t->status_tim_sidang)))
+            ->values();
+
+        // Ketua Sidang
+        $ketua = $timSidang
+            ->filter(fn($t) => $normalizeStatus($t->status_tim_sidang) === 'ketua sidang')
+            ->first();
+
+        // Data kaprodi
+        $kaprodi = \App\Models\TUser::where('STATUS_KAPRODI', 'y')
+            ->where('KODE_PRODI', $ajuan->KODE_PRODI ?? '')
+            ->first();
+        // Fallback: cari kaprodi tanpa filter prodi
+        if (!$kaprodi) {
+            $kaprodi = \App\Models\TUser::where('STATUS_KAPRODI', 'y')->first();
+        }
+
+        $tglSidang = $ajuan->tgl_sidang
+            ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y')
+            : '-';
+
+        $waktuMulai = $ajuan->waktu_sidang
+            ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H.i')
+            : '-';
+
+        $tglSuratUndangan = $ajuan->tgl_surat_undangan
+            ? \Carbon\Carbon::parse($ajuan->tgl_surat_undangan)->translatedFormat('d F Y')
+            : ($ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('d F Y') : '-');
+
+        $namaProdi = $ajuan->NAMA_PRODI ?? '-';
+        $noSuratUndangan = $ajuan->no_surat_undangan ?? $ajuan->NO_SURAT_UNDANGAN ?? '-';
+
+        $filename = 'Undangan_' . str_replace(' ', '_', $tahapan) . '_'
+            . str_replace(' ', '_', $ajuan->NAMA_MHS ?? '') . '_'
+            . ($ajuan->NIM ?? '') . '.docx';
+        $docxPath = storage_path('app/uploads/' . $filename);
+
+        if (!is_dir(dirname($docxPath))) {
+            \Illuminate\Support\Facades\File::makeDirectory(dirname($docxPath), 0775, true);
+        }
+
+        copy($templatePath, $docxPath);
+
+        $replacements = [
+            'no_surat_undangan'    => $noSuratUndangan,
+            'tgl_surat_undangan'   => $tglSuratUndangan,
+            'nama_prodi'           => $namaProdi,
+            'alamat_prodi'         => '',
+            'email_prodi'          => '',
+            'nama_mhs'             => $ajuan->NAMA_MHS ?? '-',
+            'nim'                  => $ajuan->NIM ?? '-',
+            'judul'                => $ajuan->JUDUL ?? $judul->JUDUL ?? '',
+            'tgl_sidang'           => $tglSidang,
+            'waktu'                => $waktuMulai,
+            'ruang_sidang'         => $ajuan->ruang_sidang ?? $ajuan->RUANG_SIDANG ?? '-',
+            'nama_ketua_pembimbing'=> $resolveNama($ketuaPembimbing),
+            'nama_pembimbing_i'    => $pembimbingAnggota->get(0) ? $resolveNama($pembimbingAnggota->get(0)) : '-',
+            'nama_pembimbing_ii'   => $pembimbingAnggota->get(1) ? $resolveNama($pembimbingAnggota->get(1)) : '-',
+            'nama_ketua_sidang'    => $resolveNama($ketua),
+            'nama_penguji_i'       => $pengujis->get(0) ? $resolveNama($pengujis->get(0)) : '-',
+            'nama_penguji_ii'      => $pengujis->get(1) ? $resolveNama($pengujis->get(1)) : '-',
+            'nama_kaprodi'         => $kaprodi?->NAMA_LENGKAP ?? '-',
+            'nip_kaprodi'          => $kaprodi?->NIP_NIM ?? '-',
+        ];
+
+        // Isi placeholder via PhpWord TemplateProcessor
+        try {
+            $tp = new \PhpOffice\PhpWord\TemplateProcessor($docxPath);
+            foreach ($replacements as $key => $value) {
+                $tp->setValue($key, htmlspecialchars((string) $value, ENT_COMPAT, 'UTF-8'));
+            }
+            $tp->saveAs($docxPath);
+        } catch (\Exception $e) {
+            \Log::error('cetakUndanganS2Tesis TemplateProcessor error: ' . $e->getMessage());
+            // Fallback ke replaceInDocx
+            $this->replaceInDocx($docxPath, $replacements);
+        }
+
+        // Sisipkan tanda tangan kaprodi jika ada
+        if ($kaprodi) {
+            $this->fillSignaturePlaceholder($docxPath, $kaprodi->id, 'signature');
+        }
+        $this->removePlaceholderText($docxPath, 'signature');
+
+        return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
 
     private function cetakUndanganSidang($judul, $ajuan, $timSidang)

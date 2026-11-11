@@ -885,6 +885,36 @@
         color: var(--mui-text) !important;
     }
 
+    /* Label merah bergaris bawah gaya lama dinetralkan mengikuti tema */
+    body.master-ui #tahapModal .text-danger[style*="underline"],
+    body.master-ui #tahapModal .text-danger.text-decoration-underline {
+        color: var(--mui-text) !important;
+        text-decoration: none !important;
+    }
+
+    body.master-ui #tahapModal thead th .text-danger[style*="underline"],
+    body.master-ui #tahapModal thead th .text-danger.text-decoration-underline {
+        color: inherit !important;
+    }
+
+    /* Dark mode: background baris tabel modal yang di-inline warna terang
+       harus mengikuti tema supaya teks tetap terbaca */
+    html.dark-mode body.master-ui #tahapModal table tbody tr[style*="background-color"] {
+        background-color: var(--mui-surface) !important;
+    }
+
+    html.dark-mode body.master-ui #tahapModal table tbody tr[style*="background-color"]:nth-child(even) {
+        background-color: var(--mui-surface-soft) !important;
+    }
+
+    html.dark-mode body.master-ui #tahapModal table thead[style*="background-color"] {
+        background-color: var(--mui-primary) !important;
+    }
+
+    html.dark-mode body.master-ui #tahapModal label[style*="color: #555"] {
+        color: var(--mui-muted) !important;
+    }
+
     body.master-ui #reportTable {
         table-layout: fixed !important;
         width: 100% !important;

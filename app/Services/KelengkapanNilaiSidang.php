@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\TAjuanSidang;
 use App\Models\TPointPenilaian;
 use App\Models\TTimSidang;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,17 @@ class KelengkapanNilaiSidang
             ->where('TAHAPAN_SIDANG', $tahapan)
             ->orderBy('URUTAN')
             ->get();
+
+        $ajuan = TAjuanSidang::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan)
+            ->latest('id')
+            ->first();
+
+        // Tahapan tesis tetap memakai aturan S2 meskipun belum ada ajuan.
+        if (strtoupper(trim((string) ($ajuan->STRATA ?? ''))) === 'S2'
+            || in_array(strtolower(trim((string) $tahapan)), ['tesis i', 'tesis ii'], true)) {
+            return self::cekS2($tim, $ajuan);
+        }
 
         $penilai = $tim->filter(function ($t) {
             $status = strtolower(trim((string) ($t->keterangan ?? $t->status_tim_sidang ?? '')));
@@ -112,6 +124,94 @@ class KelengkapanNilaiSidang
         $hasil['belum_parameter'] = array_values(array_unique($belumParameter));
         $hasil['lengkap'] = $hasil['belum'] === [] && $hasil['belum_parameter'] === [];
         $hasil['sudah_pakai_form'] = $forms->all();
+
+        return $hasil;
+    }
+
+    private static function cekS2($tim, ?TAjuanSidang $ajuan)
+    {
+        $chairIds = $tim->filter(fn ($member) => strtolower(trim((string) $member->STATUS_TIM_SIDANG)) === 'ketua sidang')
+            ->pluck('ID_USER_PENILAI');
+        $penilai = $tim->filter(function ($member) use ($chairIds) {
+            $status = strtolower(trim((string) $member->STATUS_TIM_SIDANG));
+            return $status !== 'ketua sidang'
+                && (str_contains($status, 'pembimbing') || str_contains($status, 'penguji'))
+                && ! $chairIds->contains($member->ID_USER_PENILAI);
+        });
+
+        $hasil = [
+            'lengkap' => false,
+            'ada_tim' => $penilai->isNotEmpty(),
+            'belum' => [],
+            'belum_parameter' => [],
+            'sudah_pakai_form' => [],
+            'per_tim' => [],
+        ];
+
+        if ($penilai->isEmpty()) {
+            return $hasil;
+        }
+
+        $points = collect();
+        $rows = collect();
+        if ($ajuan) {
+            $query = TPointPenilaian::where('TAHAPAN_SIDANG', $ajuan->TAHAPAN_SIDANG)
+                ->where('STRATA', 'S2')
+                ->where('STATUS_AKTIF', 'AKTIF');
+
+            // Prodi harus berasal dari ajuan terbaru, tanpa fallback lintas prodi.
+            if ($ajuan->KODE_PRODI) {
+                $query->where('KODE_PRODI', $ajuan->KODE_PRODI);
+            }
+            if ($ajuan->ID_PRODI) {
+                $query->where('ID_PRODI', $ajuan->ID_PRODI);
+            }
+            if (! $ajuan->KODE_PRODI && ! $ajuan->ID_PRODI) {
+                $query->whereRaw('1 = 0');
+            }
+            $points = $query->get();
+
+            $rows = DB::table('t_penilaian')
+                ->where('ID_AJUAN', $ajuan->id)
+                ->where('ID_JUDUL', $ajuan->ID_JUDUL)
+                ->where('TAHAPAN_SIDANG', $ajuan->TAHAPAN_SIDANG)
+                ->get(['ID_TIM_SIDANG', 'ID_USER_PENILAI', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'CATATAN']);
+        }
+
+        $perTim = $rows->groupBy('ID_TIM_SIDANG');
+        $forms = [];
+        foreach ($penilai as $t) {
+            $own = $perTim->get($t->id, collect())->where('ID_USER_PENILAI', $t->ID_USER_PENILAI);
+            $ada = $own->isNotEmpty();
+            if (! $ada) {
+                $hasil['belum'][] = self::label($t);
+            }
+            $forms = array_merge($forms, $own->pluck('NO_FORM')->filter()->all());
+            $own = $own->keyBy('ID_PENILAIAN');
+            $belumOwn = [];
+
+            // Setiap penilai wajib melengkapi seluruh point aktif, bukan gabungan nilai tim.
+            foreach ($points as $point) {
+                $score = $own->get($point->id);
+                $complete = strtolower(trim((string) $point->STATUS_CATATAN)) === 'y'
+                    ? trim((string) ($score->CATATAN ?? '')) !== ''
+                    : is_numeric($score->NILAI ?? null) && $score->NILAI >= 1 && $score->NILAI <= 5;
+                if (! $complete) {
+                    $belumOwn[] = $point->NO_FORM;
+                }
+            }
+            $belumOwn = array_values(array_unique($belumOwn));
+            $hasil['per_tim'][(string) $t->id] = [
+                'ada' => $ada,
+                'lengkap' => $points->isNotEmpty() && $ada && $belumOwn === [],
+                'belum_parameter' => $belumOwn,
+            ];
+            $hasil['belum_parameter'] = array_merge($hasil['belum_parameter'], $belumOwn);
+        }
+
+        $hasil['belum_parameter'] = array_values(array_unique($hasil['belum_parameter']));
+        $hasil['lengkap'] = $points->isNotEmpty() && $hasil['belum'] === [] && $hasil['belum_parameter'] === [];
+        $hasil['sudah_pakai_form'] = array_values(array_unique($forms));
 
         return $hasil;
     }

@@ -103,13 +103,22 @@
                                     <option value="">Semua</option>
                                     <option value="belum diajukan">Belum diajukan</option>
                                     <option value="diproses di tu prodi">Diproses di TU Prodi</option>
+                                    @if($strata !== 'S2')
                                     <option value="diproses di fakultas">Diproses di Fakultas</option>
+                                    @endif
                                     @if($strata === 'S3')
                                     <option value="menunggu approve kpps">Menunggu Approve KPPS</option>
                                     @endif
                                     <option value="terjadwal">Terjadwal</option>
+                                    @if($strata !== 'S2')
                                     <option value="lulus">Lulus</option>
                                     <option value="tidak lulus">Tidak lulus</option>
+                                    @endif
+                                    @if($strata === 'S2')
+                                    <option value="lulus sidang magister">LULUS Sidang Magister</option>
+                                    <option value="tidak lulus sidang magister">TIDAK LULUS Sidang Magister</option>
+                                    <option value="mengulangi sidang magister">Mengulangi Sidang Magister</option>
+                                    @endif
                                 </select>
                             </th>
                             @endforeach
@@ -126,7 +135,7 @@
                                     @php $statusValue = $item->{$stage['key']} ?? 'belum diajukan'; @endphp
                                     <td class="align-middle">
                                         <span class="badge bg-{{ getStatusColor($statusValue) }}" role="button" onclick="showTahapForm(@js($stage['tahapan']), @js($item->id_judul))">
-                                            {{ ucfirst($statusValue) }}
+                                            {{ mhsStatusLabel($statusValue) }}
                                         </span>
                                     </td>
                                 @endforeach
@@ -364,14 +373,39 @@ function getStatusColor($status) {
         case 'dalam proses':
             return 'warning';
         case 'lulus':
+        case 'lulus sidang magister':
             return 'success';
         case 'tidak lulus':
+        case 'tidak lulus sidang magister':
             return 'danger';
+        case 'mengulangi sidang magister':
+            return 'warning';
         case 'rejected':
         case 'ditolak':
             return 'danger';
         default:
             return 'info';
+    }
+}
+
+function mhsStatusLabel($status) {
+    $s = strtolower(trim((string) $status));
+    switch ($s) {
+        case 'lulus sidang magister':
+            return 'LULUS Sidang Magister';
+        case 'tidak lulus sidang magister':
+            return 'TIDAK LULUS Sidang Magister';
+        case 'mengulangi sidang magister':
+            return 'Mengulangi Sidang Magister';
+        case '':
+        case 'belum diajukan':
+            return 'Belum Diajukan';
+        case 'diproses di tu prodi':
+            return 'Diproses di TU Prodi';
+        case 'terjadwal':
+            return 'Terjadwal';
+        default:
+            return ucfirst($s);
     }
 }
 @endphp

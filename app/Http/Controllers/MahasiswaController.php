@@ -92,8 +92,16 @@ class MahasiswaController extends Controller
                         WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
                     )";
 
-            if ($strata !== 'S3') {
-                // S1/S2 tanpa KPPS: Prodi -> Fakultas -> Terjadwal.
+            if ($strata === 'S2') {
+                return "CASE
+                    WHEN LOWER(MAX({$alias}.NILAI_TERKUNCI)) = 'y' AND LOWER(MAX({$alias}.STATUS_LULUS)) IN ('lulus sidang magister', 'tidak lulus sidang magister', 'mengulangi sidang magister') THEN MAX({$alias}.STATUS_LULUS)
+                    WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.STATUS_AJUKAN_MHS), 't') != 'y' THEN 'belum diajukan'
+                    WHEN COALESCE(MAX({$alias}.STATUS_AJUKAN_PRODI), 't') != 'y' THEN 'Diproses di TU Prodi'
+                    ELSE 'Terjadwal'
+                END";
+            }
+
+            if ($strata === 'S1') {
                 return "CASE
                     WHEN MAX({$alias}.STATUS_LULUS) IS NOT NULL AND MAX({$alias}.STATUS_LULUS) != 'diajukan' THEN MAX({$alias}.STATUS_LULUS)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.STATUS_AJUKAN_MHS), 't') != 'y' THEN 'belum diajukan'
@@ -334,12 +342,15 @@ class MahasiswaController extends Controller
         //    bisa upload/ubah file persyaratan setelah status lulus.
         $persyaratanQuery = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
             ->where('TAHAPAN_SIDANG', $tahapan);
-        if ($syaratIdsForProdi->isNotEmpty()) {
+        if ($strataView === 'S2' || $syaratIdsForProdi->isNotEmpty()) {
             $persyaratanQuery->whereIn('ID_SYARAT_SIDANG', $syaratIdsForProdi);
         }
         $persyaratan = $persyaratanQuery->get();
 
-        if ($persyaratan->isEmpty()) {
+        if ($strataView === 'S2') {
+            $tersimpan = $persyaratan->pluck('ID_SYARAT_SIDANG');
+            $persyaratan = $persyaratan->concat($syaratSidangList()->reject(fn ($syarat) => $tersimpan->contains($syarat->id)))->values();
+        } elseif ($persyaratan->isEmpty()) {
             $persyaratan = collect($syaratSidangList());
         }
 
@@ -359,10 +370,15 @@ class MahasiswaController extends Controller
                 && (int) $item->id_user_penilai === (int) $user['id'];
         }) !== null;
 
-        $isKetuaSidangTim = ($ketuaSidangSaya || ($user['role'] ?? '') === 'Ketua Sidang') && ! $peranLainSaya;
+        $isKetuaSidangTim = $strataView === 'S2'
+            ? $ketuaSidangSaya
+            : ($ketuaSidangSaya || ($user['role'] ?? '') === 'Ketua Sidang') && ! $peranLainSaya;
 
         $penilaianQuery = \App\Models\TPenilaian::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan);
+        if ($strataView === 'S2') {
+            $penilaianQuery->where('ID_AJUAN', $ajuan?->id);
+        }
         
         if (in_array($user['role'], ['Pembimbing', 'Penguji']) && !$isKetuaSidangTim) {
             $penilaianQuery->where('id_user_penilai', $user['id']);
@@ -474,6 +490,12 @@ class MahasiswaController extends Controller
             return response()->json(['success' => false, 'message' => 'ID persyaratan tidak valid'], 422);
         }
 
+        // S2: FS hanya view-only, tidak boleh mengupload persyaratan.
+        $fsBlock = $this->fsViewOnlyS2Response($user, $idJudul, $tahapan);
+        if ($fsBlock) {
+            return $fsBlock;
+        }
+
         try {
         // Handle file upload
         if ($request->hasFile('file')) {
@@ -520,7 +542,12 @@ class MahasiswaController extends Controller
                 // Hanya buat baris untuk syarat milik strata & prodi mahasiswa,
                 // supaya persyaratan S3 tidak ikut muncul di S1/S2 (dan sebaliknya).
                 $judulUpload = TJudul::find($idJudul);
-                $strataUpload = strtoupper((string) ($judulUpload?->user?->STRATA ?? session('auth_user.strata') ?? ''));
+                // Strata: coba dari ajuan (paling akurat), lalu user, lalu session
+                $strataFromAjuan = strtoupper((string) (\App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
+                    ->whereNotNull('STRATA')->value('STRATA') ?? ''));
+                $strataUpload = $strataFromAjuan !== ''
+                    ? $strataFromAjuan
+                    : strtoupper((string) ($judulUpload?->user?->STRATA ?? session('auth_user.strata') ?? ''));
                 $prodiIdUpload = null;
                 if ($judulUpload?->user?->KODE_PRODI) {
                     $prodiIdUpload = TProdi::where('kode_prodi', $judulUpload->user->KODE_PRODI)->value('id');
@@ -628,6 +655,12 @@ class MahasiswaController extends Controller
         }
         
         $tahapan = $syarat->TAHAPAN_SIDANG;
+
+        // S2: FS hanya view-only, tidak boleh mengubah kelengkapan.
+        $fsBlock = $this->fsViewOnlyS2Response($user, $idJudul, $tahapan);
+        if ($fsBlock) {
+            return $fsBlock;
+        }
         
         // Check if exist in t_cek_persyaratan
         $cek = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
@@ -672,6 +705,39 @@ class MahasiswaController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
+        // S2: FS hanya view-only, tidak boleh menyimpan persyaratan.
+        $fsBlock = $this->fsViewOnlyS2Response($user, $idJudul, $tahapan);
+        if ($fsBlock) {
+            return $fsBlock;
+        }
+
+        $isS2Upload = in_array($tahapan, ['Tesis I', 'Tesis II'], true);
+        $maxUploadKb = $isS2Upload ? 10240 : 2048;
+        $request->validate([
+            'files' => 'nullable|array',
+            'files.*' => 'required|file|mimetypes:application/pdf|max:' . $maxUploadKb,
+            'kelengkapan' => 'nullable|array',
+            'kelengkapan.*' => 'required|in:y,t',
+        ], [
+            'files.*.mimetypes' => 'Hanya file PDF yang diizinkan.',
+            'files.*.max' => 'Maksimal ukuran file ' . ($maxUploadKb / 1024) . ' MB.',
+            'files.*.uploaded' => 'File gagal diunggah. Periksa ukuran file dan coba kembali.',
+        ]);
+
+        if ($isS2Upload) {
+            $judulUpload = TJudul::with('user')->findOrFail($idJudul);
+            $ajuanUpload = TAjuanSidang::where('ID_JUDUL', $idJudul)->where('TAHAPAN_SIDANG', $tahapan)->latest('id')->first();
+            $kodeProdiUpload = $ajuanUpload?->KODE_PRODI ?? $judulUpload->user?->KODE_PRODI;
+            $prodiIdUpload = TProdi::where('KODE_PRODI', $kodeProdiUpload)->value('id');
+            $syaratIds = array_unique(array_merge(array_keys($request->input('kelengkapan', [])), array_keys($request->file('files', []))));
+            $validIds = \App\Models\TSyaratSidang::where('STRATA', 'S2')
+                ->where('TAHAPAN_SIDANG', $tahapan)->where('ID_PRODI', $prodiIdUpload)
+                ->whereIn('id', $syaratIds)->pluck('id')->all();
+            if (array_diff($syaratIds, $validIds)) {
+                return response()->json(['success' => false, 'message' => 'Persyaratan tidak sesuai dengan tahapan dan prodi mahasiswa.'], 422);
+            }
+        }
+
         try {
         \Log::info('saveAllPersyaratan called', ['id_judul' => $idJudul, 'tahapan' => $tahapan, 'kelengkapan' => $request->kelengkapan]);
 
@@ -688,7 +754,9 @@ class MahasiswaController extends Controller
 
                 // t_judul tidak punya ID_PRODI — resolve prodi dari session lalu dari data mahasiswa
                 $prodi = null;
-                if (!empty($user['kode_prodi'])) {
+                if ($isS2Upload && $mahasiswa) {
+                    $prodi = TProdi::where('KODE_PRODI', $mahasiswa->KODE_PRODI)->first();
+                } elseif (!empty($user['kode_prodi'])) {
                     $prodi = \App\Models\TProdi::where('KODE_PRODI', $user['kode_prodi'])->first();
                 }
                 if (!$prodi && $mahasiswa && !empty($mahasiswa->KODE_PRODI)) {
@@ -783,8 +851,8 @@ class MahasiswaController extends Controller
                 if ($mimeType !== 'application/pdf') {
                     return response()->json(['success' => false, 'message' => 'Hanya file PDF yang diizinkan'], 422);
                 }
-                if ($file->getSize() > 2 * 1024 * 1024) {
-                    return response()->json(['success' => false, 'message' => 'Maksimal ukuran file 2 MB'], 422);
+                if ($file->getSize() > $maxUploadKb * 1024) {
+                    return response()->json(['success' => false, 'message' => 'Maksimal ukuran file ' . ($maxUploadKb / 1024) . ' MB'], 422);
                 }
 
                 $filename = time() . '_' . bin2hex(random_bytes(16)) . '.pdf';
@@ -815,6 +883,17 @@ class MahasiswaController extends Controller
                     // $cek->STATUS_LENGKAP = 'y';
                     $cek->TGL_UPDATE = date('Y-m-d');
                     $cek->save();
+                } elseif ($isS2Upload) {
+                    \App\Models\TCekPersyaratan::create([
+                        'ID_JUDUL' => $idJudul,
+                        'TAHAPAN_SIDANG' => $tahapan,
+                        'ID_SYARAT_SIDANG' => $idSyarat,
+                        'PERSYARATAN' => $syarat->NAMA_PERSYARATAN,
+                        'STATUS_LENGKAP' => 't',
+                        'LINK_FILE' => $linkFile,
+                        'TGL_BUAT' => date('Y-m-d'),
+                        'TGL_UPDATE' => date('Y-m-d'),
+                    ]);
                 } else {
                     // Get prodi ID from judul's user for filtering syarat
                     $prodiIdForSave = null;
@@ -824,6 +903,11 @@ class MahasiswaController extends Controller
                         $prodiForSave = \App\Models\TProdi::where('kode_prodi', $judulForSave->user->KODE_PRODI)->first();
                         $prodiIdForSave = $prodiForSave?->id;
                         $strataForSave = strtoupper((string) ($judulForSave->user->STRATA ?? ''));
+                    }
+                    // Fallback: ambil dari t_ajuan_sidang jika user.STRATA kosong
+                    if ($strataForSave === '') {
+                        $strataForSave = strtoupper((string) (\App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
+                            ->whereNotNull('STRATA')->value('STRATA') ?? ''));
                     }
                     if ($strataForSave === '') {
                         $strataForSave = strtoupper((string) (session('auth_user.strata') ?? ''));
@@ -885,6 +969,32 @@ class MahasiswaController extends Controller
         }
     }
 
+    /**
+     * S2: FS hanya view-only. Mengembalikan response 403 bila role FS
+     * mencoba mengubah data sidang S2, null bila tidak diblokir.
+     */
+    private function fsViewOnlyS2Response($user, $idJudul, $tahapan): ?\Illuminate\Http\JsonResponse
+    {
+        if (($user['role'] ?? '') !== 'FS') {
+            return null;
+        }
+
+        $strata = strtoupper(trim((string) (TAjuanSidang::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan)->latest('id')->value('STRATA') ?? '')));
+        if ($strata === '') {
+            $strata = strtoupper(trim((string) (TJudul::find($idJudul)?->user?->STRATA ?? '')));
+        }
+
+        if ($strata === 'S2') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Role FS hanya dapat melihat data sidang S2 (view-only), tanpa menyimpan.',
+            ], 403);
+        }
+
+        return null;
+    }
+
     public function storeTimSidang(\Illuminate\Http\Request $request)
     {
         $user = session('auth_user');
@@ -899,6 +1009,11 @@ class MahasiswaController extends Controller
         ], [
             'file_penelaah.max' => 'Maksimal ukuran file 2MB',
         ]);
+
+        $fsBlock = $this->fsViewOnlyS2Response($user, $request->id_judul, $request->tahapan_sidang);
+        if ($fsBlock) {
+            return $fsBlock;
+        }
 
         // External penguji (manual input)
         $manualNama = $request->input('manual_nama');
@@ -983,6 +1098,11 @@ class MahasiswaController extends Controller
         $timSidang = \App\Models\TTimSidang::find($id);
         if (!$timSidang) {
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        $fsBlock = $this->fsViewOnlyS2Response(session('auth_user'), $timSidang->ID_JUDUL, $timSidang->TAHAPAN_SIDANG);
+        if ($fsBlock) {
+            return $fsBlock;
         }
 
         // External penguji (manual input)
@@ -1093,6 +1213,11 @@ class MahasiswaController extends Controller
             'tahapan_sidang' => 'required',
         ]);
 
+        $fsBlock = $this->fsViewOnlyS2Response(session('auth_user'), $request->id_judul, $request->tahapan_sidang);
+        if ($fsBlock) {
+            return $fsBlock;
+        }
+
         $noSk = $request->no_sk;
         if (!$noSk) {
             $nextNumber = DB::table('t_sk')->where('TAHAPAN_SIDANG', $request->tahapan_sidang)->count() + 1;
@@ -1139,6 +1264,44 @@ class MahasiswaController extends Controller
         $tglSidang = $request->tgl_sidang;
         $waktuSidang = $request->waktu_sidang;
 
+        // S2: FS hanya view-only, tidak boleh menyimpan/meng-approve jadwal.
+        $fsBlock = $this->fsViewOnlyS2Response($user, $idJudul, $tahapan);
+        if ($fsBlock) {
+            return $fsBlock;
+        }
+
+        $isS2 = in_array($tahapan, ['Tesis I', 'Tesis II'], true);
+        if ($isS2) {
+            abort_unless(in_array($user['role'] ?? '', ['TU Prodi', 'Admin', 'Mahasiswa'], true), 403);
+            if (($user['role'] ?? '') === 'Mahasiswa') {
+                abort_unless(TJudul::where('id', $idJudul)->where('ID_USER_MHS', $user['id'])->exists(), 403);
+                $request->validate([
+                    'is_ajukan_fs' => 'prohibited',
+                    'no_surat_undangan' => 'prohibited',
+                    'tgl_surat_undangan' => 'prohibited',
+                    'no_sk_kelulusan' => 'prohibited',
+                ]);
+                if (TAjuanSidang::where('ID_JUDUL', $idJudul)->where('TAHAPAN_SIDANG', $tahapan)->latest('id')->first()?->STATUS_AJUKAN_PRODI === 'y') {
+                    return response()->json(['success' => false, 'message' => 'Jadwal sudah di-approve TU Prodi dan tidak dapat diubah mahasiswa.'], 403);
+                }
+            }
+            $request->validate([
+                'status_lulus' => 'prohibited',
+                'is_ajukan_kpps' => 'prohibited',
+                'waktu_sidang' => 'date_format:H:i,H:i:s',
+                'waktu_selesai' => 'nullable|date_format:H:i,H:i:s',
+                'tgl_surat_undangan' => 'nullable|date',
+                'no_surat_undangan' => 'nullable|string|max:250',
+            ]);
+            if ($request->filled('waktu_selesai') && strtotime($request->waktu_selesai) <= strtotime($request->waktu_sidang)) {
+                return response()->json(['success' => false, 'message' => 'Waktu selesai harus setelah waktu mulai.'], 422);
+            }
+            $ajuanS2 = TAjuanSidang::where('ID_JUDUL', $idJudul)->where('TAHAPAN_SIDANG', $tahapan)->latest('id')->first();
+            if ($request->is_ajukan_fs && ($ajuanS2?->STATUS_AJUKAN_MHS ?? 't') !== 'y') {
+                return response()->json(['success' => false, 'message' => 'Mahasiswa belum mengajukan sidang.'], 422);
+            }
+        }
+
         // Check schedule conflicts for pembimbing/penguji (2 hour gap)
         $timSidang = \App\Models\TTimSidang::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)
@@ -1183,7 +1346,7 @@ class MahasiswaController extends Controller
         // Find existing ajuan or create new one
         // If id_ajuan provided, update that specific record
         if ($request->filled('id_ajuan')) {
-            $ajuan = TAjuanSidang::find($request->id_ajuan);
+            $ajuan = TAjuanSidang::where('ID_JUDUL', $idJudul)->where('TAHAPAN_SIDANG', $tahapan)->find($request->id_ajuan);
             if (!$ajuan) {
                 return response()->json(['success' => false, 'message' => 'Data jadwal tidak ditemukan'], 404);
             }
@@ -1246,7 +1409,7 @@ class MahasiswaController extends Controller
 
         // Jika yang simpan bukan Mahasiswa (mis. TU Prodi), otomatis set STATUS_AJUKAN_MHS = 'y'
         // sehingga jadwal langsung terlihat di sisi mahasiswa
-        if (($user['role'] ?? '') !== 'Mahasiswa') {
+        if (!$isS2 && ($user['role'] ?? '') !== 'Mahasiswa') {
             $ajuan->STATUS_AJUKAN_MHS = 'y';
         }
 
@@ -1289,7 +1452,7 @@ class MahasiswaController extends Controller
             $ajuan->STATUS_LULUS = $request->status_lulus;
         }
 
-        if ($request->is_ajukan_fs) {
+        if ($request->is_ajukan_fs && (!$isS2 || $ajuan->STATUS_AJUKAN_PRODI !== 'y')) {
             $ajuan->STATUS_AJUKAN_PRODI = 'y';
             $ajuan->STATUS_AJUKAN_MHS = 'y';
             $ajuan->STATUS_LULUS = 'diajukan';
@@ -1308,7 +1471,10 @@ class MahasiswaController extends Controller
         $ajuan->save();
 
         if ($request->is_ajukan_fs) {
-            return response()->json(['success' => true, 'message' => 'Berhasil diajukan ke FS']);
+            $msg = strtoupper((string) $ajuan->STRATA) === 'S2'
+                ? 'Jadwal sidang berhasil di-approve. Status: Terjadwal.'
+                : 'Berhasil diajukan ke FS';
+            return response()->json(['success' => true, 'message' => $msg]);
         }
 
         if ($request->is_ajukan_kpps) {

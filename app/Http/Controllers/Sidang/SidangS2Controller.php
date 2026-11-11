@@ -23,21 +23,15 @@ class SidangS2Controller extends Controller
             return '(SELECT x.* FROM t_ajuan_sidang x INNER JOIN (SELECT id_judul, MAX(id) as max_id FROM t_ajuan_sidang WHERE tahapan_sidang = "' . $tahapan . '" GROUP BY id_judul) y ON x.id = y.max_id AND x.id_judul = y.id_judul)';
         };
 
-        // S2 tidak memakai KPPS: setelah TU Prodi approve, status lanjut ke
-        // fakultas dan menjadi terjadwal begitu tanggal sidang diisi.
+        // S2 tidak memakai KPPS: setelah TU Prodi approve (status_ajukan_prodi='y')
+        // status langsung = Terjadwal (tidak ada tahap Fakultas).
         $caseSql = function ($alias, $tahapan) {
             return "
                 CASE
-                    WHEN MAX({$alias}.status_lulus) IS NOT NULL AND MAX({$alias}.status_lulus) != 'diajukan' THEN MAX({$alias}.status_lulus)
+                    WHEN LOWER(MAX({$alias}.nilai_terkunci)) = 'y' AND LOWER(MAX({$alias}.status_lulus)) IN ('lulus sidang magister', 'tidak lulus sidang magister', 'mengulangi sidang magister') THEN MAX({$alias}.status_lulus)
                     WHEN MAX({$alias}.id) IS NULL OR COALESCE(MAX({$alias}.status_ajukan_mhs), 't') != 'y' THEN 'belum diajukan'
                     WHEN COALESCE(MAX({$alias}.status_ajukan_prodi), 't') != 'y' THEN 'diproses di TU Prodi'
-                    WHEN EXISTS (
-                        SELECT 1 FROM t_app_ajuan_sidang app
-                        INNER JOIN t_ajuan_sidang x2 ON x2.id = app.ID_AJUAN_SIDANG
-                        WHERE x2.id_judul = j.id AND x2.tahapan_sidang = '{$tahapan}' AND app.STATUS_APPROVE = 'f'
-                    ) THEN 'rejected'
-                    WHEN MAX({$alias}.tgl_sidang) IS NOT NULL THEN 'terjadwal'
-                    ELSE 'diproses di fakultas'
+                    ELSE 'terjadwal'
                 END";
         };
 
@@ -184,12 +178,13 @@ class SidangS2Controller extends Controller
     
     public function update(Request $request, $id)
     {
+        abort_unless(in_array(session('auth_user.role'), ['TU Prodi', 'Admin'], true), 403);
         $request->validate([
             'tgl_sidang' => 'nullable|date',
             'waktu_sidang' => 'nullable',
             'ruang_sidang' => 'nullable|string|max:250',
-            'status_ajukan_prodi' => 'nullable|in:y,t',
-            'status_lulus' => 'nullable|string|max:50',
+            'status_ajukan_prodi' => 'prohibited',
+            'status_lulus' => 'prohibited',
         ]);
         
         $sidang = TAjuanSidang::find($id);
@@ -198,8 +193,6 @@ class SidangS2Controller extends Controller
                 'tgl_sidang' => $request->tgl_sidang,
                 'waktu_sidang' => $request->waktu_sidang,
                 'ruang_sidang' => $request->ruang_sidang,
-                'status_ajukan_prodi' => $request->status_ajukan_prodi,
-                'status_lulus' => $request->status_lulus,
                 'tgl_update' => now(),
             ]);
         }
@@ -209,6 +202,7 @@ class SidangS2Controller extends Controller
 
     public function ubahJudul($idJudul)
     {
+        abort_unless(session('auth_user.role') === 'TU Prodi', 403);
         $judul = DB::table('t_judul')
             ->select('t_judul.ID as id_judul', 't_judul.JUDUL as Judul', 't_judul.ABSTRAK as ABSTRAK', 't_user.NAMA_LENGKAP as nama_mhs', 't_user.NIP_NIM as Nim')
             ->join('t_user', 't_judul.NIM', '=', 't_user.NIP_NIM')
@@ -238,6 +232,7 @@ class SidangS2Controller extends Controller
 
     public function storeUbahJudul(Request $request, $idJudul)
     {
+        abort_unless(session('auth_user.role') === 'TU Prodi', 403);
         $request->validate([
             'judul_baru' => 'required|string',
             'abstrak' => 'required|string|max:1000',
@@ -277,6 +272,7 @@ class SidangS2Controller extends Controller
 
     public function storeJudul(Request $request)
     {
+        abort_unless(session('auth_user.role') === 'TU Prodi', 403);
         $user = session('auth_user');
 
         $request->validate([

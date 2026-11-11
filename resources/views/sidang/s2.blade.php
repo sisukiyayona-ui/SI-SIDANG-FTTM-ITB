@@ -22,7 +22,7 @@
                 <p class="card-heading-sub">Pemantauan progres dan tahapan sidang tesis mahasiswa program Magister (S2).</p>
             </div>
             <div class="card-actions">
-                @if(in_array(session('auth_user.role'), ['TU Prodi', 'FS']))
+                @if(session('auth_user.role') === 'TU Prodi')
                     <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#tambahJudulModal">
                         <i class="fas fa-plus mr-1"></i> Tambah
                     </button>
@@ -67,7 +67,7 @@
         </div>
     </div>
 
-    <!-- Modal Tambah Judul (TU Prodi / FS) -->
+    @if(session('auth_user.role') === 'TU Prodi')
     <div class="modal fade" id="tambahJudulModal" tabindex="-1" role="dialog" aria-labelledby="tambahJudulModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
             <div class="modal-content tambah-judul-modal">
@@ -119,6 +119,7 @@
         </div>
     </div>
 
+    @endif
     <style>
         .tambah-judul-modal .modal-header {
             background: #1a1f2e; color: #fff; border: none;

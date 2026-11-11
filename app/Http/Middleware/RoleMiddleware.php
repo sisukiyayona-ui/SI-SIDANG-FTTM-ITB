@@ -18,7 +18,10 @@ class RoleMiddleware
 
         $roles = is_array($roles) ? $roles : [$roles];
 
-        $userRoles = $user['roles'] ?? [$user['role'] ?? null];
+        $userRoles = $user['roles'] ?? [];
+        if (empty($userRoles)) {
+            $userRoles = [$user['role'] ?? null];
+        }
 
         if (empty(array_intersect($roles, $userRoles))) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
