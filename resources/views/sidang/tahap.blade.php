@@ -3511,6 +3511,14 @@ function syncLockNilaiGate(selectId, btnId) {
     btn.style.display = tampil ? '' : 'none';
     var wrap = btn.closest('.lock-nilai-wrap');
     if (wrap) wrap.style.display = tampil ? '' : 'none';
+
+    // TU Prodi/Admin: sembunyikan tombol Simpan saat penilai terpilih = Ketua Sidang
+    // (Ketua Sidang tidak mengisi nilai, hanya mengunci).
+    var simpanBtnIds = ['savePenilaianTahap2Btn', 'savePenilaianBtn'];
+    simpanBtnIds.forEach(function(id) {
+        var sb = document.getElementById(id);
+        if (sb) sb.style.display = tampil ? 'none' : '';
+    });
 }
 
 function statusLulusIdForTbody(tbodyId) {
@@ -3706,6 +3714,7 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
                 showTahapForm('{{ $tahapan }}', '{{ $idJudul }}', 'jadwal');
                 return;
             }
+            showToast('Nilai berhasil dikunci', 'success');
             // Ketua Sidang dan TU Prodi/Admin tetap boleh mengunci ulang (mis.
             // memperbaiki status lulus). Penilai lain: input & Simpan dimatikan,
             // badge "Nilai Terkunci" sudah dirender server saat halaman dimuat.
@@ -3718,6 +3727,12 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
                 if (formSimpan) formSimpan.disabled = true;
                 var statusEl = document.getElementById(statusLulusId);
                 if (statusEl && !isViewOnlyPenilai) statusEl.disabled = true;
+            }
+            // Reset tombol kunci & update state
+            if (btnEl) { btnEl.innerHTML = lockLabel; toggleLockButton(tbodyId, btnId); }
+            // Reload form supaya badge "Nilai Terkunci" muncul
+            if (typeof reloadTahapForm === 'function') {
+                reloadTahapForm('{{ $tahapan }}', '{{ $idJudul }}');
             }
         } else {
             showToast('Error: ' + (data.error || data.message || 'Gagal mengunci nilai'), 'error');
