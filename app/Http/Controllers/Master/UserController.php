@@ -93,7 +93,10 @@ class UserController extends Controller
             $query->where('JENIS_USER', $searchJenisUser);
         }
         if ($searchProdi = $request->get('nama_prodi')) {
-            $query->where('NAMA_PRODI', 'like', '%' . $searchProdi . '%');
+            $query->where(function ($q) use ($searchProdi) {
+                $q->where('NAMA_PRODI', 'like', '%' . $searchProdi . '%')
+                  ->orWhere('KODE_PRODI', 'like', '%' . $searchProdi . '%');
+            });
         }
         if ($searchStatusAktif = $request->get('status_aktif')) {
             $query->where('STATUS_AKTIF', $searchStatusAktif);

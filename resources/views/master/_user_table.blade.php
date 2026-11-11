@@ -22,7 +22,7 @@
                     <option value="Mahasiswa" {{ request('status_pegawai') == 'Mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
                 </select>
             </th>
-            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." data-col="5" value="{{ request('nama_prodi') }}"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari kode/nama..." data-col="5" value="{{ request('nama_prodi') }}"></th>
             <th>
                 <select class="form-control form-control-sm column-search" name="status_aktif" data-col="6">
                     <option value="">Semua</option>
@@ -40,7 +40,13 @@
                 <td><a href="javascript:void(0)" onclick="openEdit('{{ $item['id'] }}')" class="text-decoration-none">{{ $item['nama_lengkap'] }}</a></td>
                 <td>{{ $item['email'] }}</td>
                 <td>{{ $item['status_pegawai'] ?? '-' }}</td>
-                <td>{{ $item['nama_prodi'] ?? '-' }}</td>
+                <td>
+                    @if(!empty($item['kode_prodi']) || !empty($item['nama_prodi']))
+                        {{ trim(($item['kode_prodi'] ?? '') . (!empty($item['kode_prodi']) && !empty($item['nama_prodi']) ? ' - ' : '') . ($item['nama_prodi'] ?? '')) }}
+                    @else
+                        -
+                    @endif
+                </td>
                 <td>
                     <span class="badge bg-{{ $item['status_aktif'] === 'AKTIF' ? 'success' : 'danger' }}">
                         {{ $item['status_aktif'] }}

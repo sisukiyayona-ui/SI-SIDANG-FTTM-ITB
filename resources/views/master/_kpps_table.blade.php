@@ -26,7 +26,7 @@
                 <select class="form-control form-control-sm column-search" name="kode_prodi" data-col="4">
                     <option value="">Semua</option>
                     @foreach($prodis as $p)
-                        <option value="{{ $p->KODE_PRODI }}" {{ request('kode_prodi') == $p->KODE_PRODI ? 'selected' : '' }}>{{ $p->NAMA_PRODI }}</option>
+                        <option value="{{ $p->KODE_PRODI }}" {{ request('kode_prodi') == $p->KODE_PRODI ? 'selected' : '' }}>{{ $p->KODE_PRODI }} - {{ $p->NAMA_PRODI }}</option>
                     @endforeach
                 </select>
             </th>
@@ -53,7 +53,13 @@
                     @endif
                 </td>
                 <td>{{ $item->NAMA_FS ?? '-' }}</td>
-                <td>{{ $item->NAMA_PRODI ?? '-' }}</td>
+                <td>
+                    @if(!empty($item->KODE_PRODI) || !empty($item->NAMA_PRODI))
+                        {{ trim(($item->KODE_PRODI ?? '') . (!empty($item->KODE_PRODI) && !empty($item->NAMA_PRODI) ? ' - ' : '') . ($item->NAMA_PRODI ?? '')) }}
+                    @else
+                        -
+                    @endif
+                </td>
                 <td>
                     <span class="badge bg-{{ $item->STATUS_AKTIF === 'AKTIF' ? 'success' : 'danger' }}">
                         {{ $item->STATUS_AKTIF }}
