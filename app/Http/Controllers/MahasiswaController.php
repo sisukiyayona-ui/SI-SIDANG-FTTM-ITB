@@ -267,6 +267,7 @@ class MahasiswaController extends Controller
 
         // Resolve kode_prodi string to actual prodi ID (integer)
         $prodiId = null;
+        $prodi = null;
         if ($kodeProdi) {
             $prodi = TProdi::where('kode_prodi', $kodeProdi)->first();
             $prodiId = $prodi?->id;
