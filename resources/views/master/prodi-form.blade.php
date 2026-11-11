@@ -43,6 +43,23 @@
                         <input type="text" name="nama_prodi" id="f_nama_prodi" class="form-control"
                                value="{{ $prodi['nama'] ?? '' }}" placeholder="Nama Program Studi" required>
                     </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="f_tlp" class="form-label">TLP</label>
+                        <input type="text" name="tlp" id="f_tlp" class="form-control"
+                               value="{{ $prodi['tlp'] ?? '' }}" placeholder="Telepon prodi" maxlength="50">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="f_email" class="form-label">Email</label>
+                        <input type="email" name="email" id="f_email" class="form-control"
+                               value="{{ $prodi['email'] ?? '' }}" placeholder="Email prodi" maxlength="250">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label for="f_alamat" class="form-label">Alamat</label>
+                        <input type="text" name="alamat" id="f_alamat" class="form-control"
+                               value="{{ $prodi['alamat'] ?? '' }}" placeholder="Alamat program studi" maxlength="250">
+                    </div>
                 </div>
 
                 <div class="mb-4">

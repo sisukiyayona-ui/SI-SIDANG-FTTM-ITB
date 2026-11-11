@@ -163,6 +163,15 @@ class ProdiController extends Controller
         if ($s = $request->get('strata')) {
             $query->where('STRATA', 'like', '%' . $s . '%');
         }
+        if ($s = $request->get('alamat')) {
+            $query->where('ALAMAT', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('tlp')) {
+            $query->where('TLP', 'like', '%' . $s . '%');
+        }
+        if ($s = $request->get('email')) {
+            $query->where('EMAIL', 'like', '%' . $s . '%');
+        }
         if ($s = $request->get('status_aktif')) {
             $query->where('STATUS_AKTIF', $s);
         }
@@ -176,6 +185,9 @@ class ProdiController extends Controller
                 'kode_fs' => $p->kode_fs,
                 'nama_fs' => $p->nama_fs,
                 'status' => $p->status_aktif,
+                'alamat' => $p->ALAMAT,
+                'tlp' => $p->TLP,
+                'email' => $p->EMAIL,
             ];
         });
 
@@ -188,6 +200,9 @@ class ProdiController extends Controller
                 'kode_fs' => $p->kode_fs,
                 'nama_fs' => $p->nama_fs,
                 'status' => $p->status_aktif,
+                'alamat' => $p->ALAMAT,
+                'tlp' => $p->TLP,
+                'email' => $p->EMAIL,
             ];
         });
 
@@ -213,8 +228,12 @@ class ProdiController extends Controller
             'nama_prodi' => 'required',
             'kode_fs' => 'required',
             'status_aktif' => 'required',
+            'alamat' => 'nullable|string|max:250',
+            'tlp' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:250',
         ], [
             'kode_prodi.unique' => 'Kode prodi sudah terdaftar. Gunakan kode prodi lain.',
+            'email.email' => 'Format email prodi tidak valid.',
         ]);
 
         $fs = TFs::where('KODE_FS', $request->kode_fs)->first();
@@ -225,6 +244,9 @@ class ProdiController extends Controller
             'STATUS_AKTIF' => $request->status_aktif,
             'KODE_FS' => $request->kode_fs,
             'NAMA_FS' => $fs?->nama_fs ?? $request->kode_fs,
+            'ALAMAT' => $request->alamat ?: null,
+            'TLP' => $request->tlp ?: null,
+            'EMAIL' => $request->email ?: null,
             'TGL_CREATE' => now(),
         ]);
 
@@ -245,6 +267,9 @@ class ProdiController extends Controller
             'status' => $p->status_aktif,
             'kode_fs' => $p->kode_fs,
             'nama_fs' => $p->nama_fs,
+            'alamat' => $p->ALAMAT,
+            'tlp' => $p->TLP,
+            'email' => $p->EMAIL,
         ];
         $fakultas = TFs::all();
         return view('master.prodi-form', compact('prodi', 'fakultas'));
@@ -257,8 +282,12 @@ class ProdiController extends Controller
             'nama_prodi' => 'required',
             'kode_fs' => 'required',
             'status_aktif' => 'required',
+            'alamat' => 'nullable|string|max:250',
+            'tlp' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:250',
         ], [
             'kode_prodi.unique' => 'Kode prodi sudah terdaftar. Gunakan kode prodi lain.',
+            'email.email' => 'Format email prodi tidak valid.',
         ]);
 
         $p = TProdi::find((int) $id);
@@ -270,6 +299,9 @@ class ProdiController extends Controller
                 'STATUS_AKTIF' => $request->status_aktif,
                 'KODE_FS' => $request->kode_fs,
                 'NAMA_FS' => $fs?->nama_fs ?? $request->kode_fs,
+                'ALAMAT' => $request->alamat ?: null,
+                'TLP' => $request->tlp ?: null,
+                'EMAIL' => $request->email ?: null,
                 'TGL_UPDATE' => now(),
             ]);
         }

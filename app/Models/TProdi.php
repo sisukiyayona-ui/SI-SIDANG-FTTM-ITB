@@ -22,6 +22,9 @@ class TProdi extends Model
         'STATUS_AKTIF',
         'KODE_FS',
         'NAMA_FS',
+        'ALAMAT',
+        'TLP',
+        'EMAIL',
     ];
 
     protected $casts = [

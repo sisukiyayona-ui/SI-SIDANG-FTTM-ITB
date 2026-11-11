@@ -3078,6 +3078,14 @@ class CetakController extends Controller
         $namaProdi = $ajuan->NAMA_PRODI ?? '-';
         $noSuratUndangan = $ajuan->NO_UNDANGAN ?? '-';
 
+        // Alamat & email prodi untuk template undangan — dari Data Master Prodi
+        // (t_prodi.ALAMAT / t_prodi.EMAIL). Prioritas cari via KODE_PRODI ajuan,
+        // fallback ke ID_PRODI ajuan.
+        $prodiSurat = \App\Models\TProdi::where('KODE_PRODI', $ajuan->KODE_PRODI ?? '')->first()
+            ?? ($ajuan->ID_PRODI ? \App\Models\TProdi::find($ajuan->ID_PRODI) : null);
+        $alamatProdi = $prodiSurat?->ALAMAT ?? '';
+        $emailProdi = $prodiSurat?->EMAIL ?? '';
+
         $filename = 'Undangan_' . str_replace(' ', '_', $tahapan) . '_'
             . str_replace(' ', '_', $ajuan->NAMA_MHS ?? '') . '_'
             . ($ajuan->NIM ?? '') . '.docx';
@@ -3093,8 +3101,8 @@ class CetakController extends Controller
             'no_surat_undangan'    => $noSuratUndangan,
             'tgl_surat_undangan'   => $tglSuratUndangan,
             'nama_prodi'           => $namaProdi,
-            'alamat_prodi'         => '',
-            'email_prodi'          => '',
+            'alamat_prodi'         => $alamatProdi,
+            'email_prodi'          => $emailProdi,
             'nama_mhs'             => $ajuan->NAMA_MHS ?? '-',
             'nim'                  => $ajuan->NIM ?? '-',
             'judul'                => $ajuan->JUDUL ?? $judul->JUDUL ?? '',

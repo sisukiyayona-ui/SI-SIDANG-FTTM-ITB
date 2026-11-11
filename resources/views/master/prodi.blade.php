@@ -86,6 +86,27 @@
                             <input type="text" name="nama_prodi" id="f_nama_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Nama Program Studi" required>
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="f_tlp" class="form-label fw-semibold text-secondary">TLP</label>
+                            <input type="text" name="tlp" id="f_tlp" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Telepon prodi" maxlength="50">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="f_email" class="form-label fw-semibold text-secondary">Email</label>
+                            <input type="email" name="email" id="f_email" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Email prodi" maxlength="250">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label for="f_alamat" class="form-label fw-semibold text-secondary">Alamat</label>
+                            <input type="text" name="alamat" id="f_alamat" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" placeholder="Alamat program studi" maxlength="250">
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="mb-4">
@@ -122,6 +143,9 @@
                     <table class="table table-bordered mb-0">
                         <tr><th style="width: 140px;">Kode Prodi</th><td id="detailKode"></td></tr>
                         <tr><th>Nama Prodi</th><td id="detailNama"></td></tr>
+                        <tr><th>Alamat</th><td id="detailAlamat"></td></tr>
+                        <tr><th>TLP</th><td id="detailTlp"></td></tr>
+                        <tr><th>Email</th><td id="detailEmail"></td></tr>
                         <tr><th>Status</th><td id="detailStatus"></td></tr>
                     </table>
                 </div>
@@ -423,6 +447,9 @@
         document.getElementById('f_kode_fs').value = '';
         document.getElementById('f_kode_prodi').value = '';
         document.getElementById('f_nama_prodi').value = '';
+        document.getElementById('f_tlp').value = '';
+        document.getElementById('f_email').value = '';
+        document.getElementById('f_alamat').value = '';
         document.getElementById('statusAktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
@@ -439,6 +466,9 @@
         document.getElementById('f_kode_fs').value = item.kode_fs || '';
         document.getElementById('f_kode_prodi').value = item.kode;
         document.getElementById('f_nama_prodi').value = item.nama;
+        document.getElementById('f_tlp').value = item.tlp || '';
+        document.getElementById('f_email').value = item.email || '';
+        document.getElementById('f_alamat').value = item.alamat || '';
         document.getElementById(item.status === 'AKTIF' ? 'statusAktif' : 'statusNonaktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
@@ -455,6 +485,9 @@
         if (!item) return;
         document.getElementById('detailKode').textContent = item.kode;
         document.getElementById('detailNama').textContent = item.nama;
+        document.getElementById('detailAlamat').textContent = item.alamat || '-';
+        document.getElementById('detailTlp').textContent = item.tlp || '-';
+        document.getElementById('detailEmail').textContent = item.email || '-';
         document.getElementById('detailStatus').innerHTML = '<span class="badge bg-' + (item.status === 'AKTIF' ? 'success' : 'danger') + '">' + item.status + '</span>';
         new bootstrap.Modal(document.getElementById('modalDetail')).show();
     }
