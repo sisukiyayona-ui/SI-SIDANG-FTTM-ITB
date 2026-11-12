@@ -358,6 +358,233 @@ class PrepareTemplate extends Command
                     'Tanda Tangan' => '${signature}',
                 ],
             ],
+            [
+                // BERITA ACARA PENILAIAN SIDANG MAGISTER (Form. 208.2) — S2 Tesis I & Tesis II
+                // Template Berita Acara Penilaian Sidang Magister program Magister (S2).
+                // Header "TANDA TANGAN" pada tabel dibiarkan sebagai teks (bukan ${signature}),
+                // supaya judul kolom tidak tertimpa gambar tanda tangan saat cetak.
+                'src' => base_path('template/S2/BA Tesis I 223 TG.docx'),
+                'dst' => base_path('template/S2/BA Tesis I 223 TG TEMPLATE.docx'),
+                'replacements' => [
+                    // Kop prodi (diulang untuk tiap halaman)
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(email)' => '${email_prodi}',
+
+                    // Identitas mahasiswa
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(judul)' => '${judul}',
+
+                    // Jadwal sidang
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(hari dari tgl sidang)' => '${hari_sidang}',
+
+                    // Data prodi & mata kuliah
+                    '(nama prodi)' => '${nama_prodi}',
+                    '(kode mk)' => '${kode_mk}',
+
+                    // Tim sidang
+                    '(nama pembimbing III)' => '${nama_pembimbing_iii}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nama tim sidang)' => '${nama_tim_sidang}',
+                    '(nama ketua sidang)' => '${nama_ketua_sidang}',
+                    '(nip ketua sidang)' => '${nip_ketua_sidang}',
+                    '(nama kaprodi)' => '${nama_kaprodi}',
+                    '(nama penilai)' => '${nama_penilai}',
+
+                    // Tanda tangan & nilai
+                    '(ttd)' => '${signature}',
+                    '(nilai akhir dari nilai rata2)' => '${nilai_akhir_rata2}',
+                    '(nilai huruf A / AB / B / BC / C / D / E dari nilai akhir)' => '${nilai_huruf}',
+                ],
+                // "(catatan)" pada baris Catatan pembimbing I/II/III dibedakan per baris.
+                'catatanPembimbingSlots' => true,
+                // "(nip)" berurutan: NIP/Nopeg pembimbing lalu NIP kaprodi.
+                'nipSequence' => ['${nip_penilai}', '${nip_kaprodi}'],
+                // Tabel penilaian: 6 sel "(Nilai)" -> ${nilai_1}..${nilai_6}.
+                'nilaiSequence' => 6,
+            ],
+            [
+                // Form Penilaian Sidang Magister S2 — form penilaian tabel komponen
+                'src' => base_path('template/S2/form penilaian Tesis I 223 TG.docx'),
+                'dst' => base_path('template/S2/form penilaian Tesis I 223 TG TEMPLATE.docx'),
+                'replacements' => [
+                    '(no form)' => '${no_form}',
+                    '(judul)' => '${judul}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(ruang)' => '${ruang_sidang}',
+                    '(nilai rata2)' => '${nilai_rata2}',
+                    '(parameter penilaian)' => '${nama_penilaian}',
+                    '(keterangan)' => '${keterangan}',
+                    '(nilai)' => '${nilai}',
+                    '(ttd)' => '${signature}',
+                    '(nama penilai)' => '${nama_penilai}',
+                ]
+            ],
+            [
+                // BA Tesis I prodi 225 — Berita Acara S2 prodi 225
+                'src' => base_path('template/S2/BA Tesis I prodi 225.docx'),
+                'dst' => base_path('template/S2/BA Tesis I prodi 225 TEMPLATE.docx'),
+                'replacements' => [
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(fax)' => '${fax_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(web)' => '${website_prodi}',
+                    '(kode mk)' => '${kode_mk}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(judul)' => '${judul}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nama prodi)' => '${nama_prodi}',
+                    '(nama kaprodi)' => '${nama_kaprodi}',
+                    '(nip)' => '${nip_kaprodi}',
+                ],
+                // Kolom nilai Pembimbing 1 & 2: 2 sel "(Nilai)" -> ${nilai_1}, ${nilai_2}.
+                'nilaiSequence' => 2,
+            ],
+            [
+                // Daftar Hadir Sidang Magister S2
+                'src' => base_path('template/S2/daftar hadir.docx'),
+                'dst' => base_path('template/S2/daftar hadir TEMPLATE.docx'),
+                'replacements' => [
+                    '(nama prodi)' => '${nama_prodi}',
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(waktu)' => '${waktu}',
+                    '(judul)' => '${judul}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nip)' => '${nip_pembimbing_i}',
+                ]
+            ],
+            [
+                // Form Penilaian Text S2 223 (Lembar Saran Perbaikan Tesis)
+                'src' => base_path('template/S2/form penilaian  text 223.docx'),
+                'dst' => base_path('template/S2/form penilaian  text 223 TEMPLATE.docx'),
+                'replacements' => [
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(judul)' => '${judul}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(catatan)' => '${catatan}',
+                    '(nama penilai)' => '${nama_penilai}',
+                ]
+            ],
+            [
+                // Form Penilaian Tesis I prodi 225 — S2 (form penilaian per penilai)
+                'src' => base_path('template/S2/form penilaian Tesis I prodi 225.docx'),
+                'dst' => base_path('template/S2/form penilaian Tesis I prodi 225 TEMPLATE.docx'),
+                'replacements' => [
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(fax)' => '${fax_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(web)' => '${website_prodi}',
+                    '(status tim sidang)' => '${status_tim_sidang}',
+                    '(kode mk)' => '${kode_mk}',
+                    '(no form)' => '${no_form}',
+                    '(judul)' => '${judul}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(ruang)' => '${ruang_sidang}',
+                    '(nilai rata2)' => '${nilai_rata2}',
+                    '(parameter penilaian)' => '${nama_penilaian}',
+                    '(keterangan)' => '${keterangan}',
+                    '(nilai)' => '${nilai}',
+                    '(nama penilai)' => '${nama_penilai}',
+                    '(nip)' => '${nip_penilai}',
+                ]
+            ],
+            [
+                // BA Tesis I prodi 221 — sumber asli .doc (Word 97-2003).
+                // Konversi dulu "BA Tesis I prodi 221.doc" -> .docx (Word: Save As .docx),
+                // karena ZipArchive hanya bisa membaca .docx.
+                'src' => base_path('template/S2/BA Tesis I prodi 221.docx'),
+                'dst' => base_path('template/S2/BA Tesis I prodi 221 TEMPLATE.docx'),
+                'optionalSource' => true,
+                'replacements' => [
+                    '(kode mk)' => '${kode_mk}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(judul)' => '${judul}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu sls)' => '${waktu_selesai}',
+                    '(waktu)' => '${waktu}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing I )' => '${nama_pembimbing_i}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nama penguji i)' => '${nama_penguji_i}',
+                    '(nama kaprodi)' => '${nama_kaprodi}',
+                    '(nip)' => '${nip_kaprodi}',
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(fax)' => '${fax_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(web)' => '${website_prodi}',
+                ],
+                // Tiga baris "Penilai 1..3": "(Nilai rata2)" -> ${nilai_1}..${nilai_3}.
+                'nilaiSearch' => '(Nilai rata2)',
+                'nilaiSequence' => 3,
+            ],
+            [
+                // Lembar Saran Perbaikan (form penilaian catatan) — sumber asli .doc.
+                // Konversi dulu ke .docx sebelum menjalankan command.
+                'src' => base_path('template/S2/form penilaian catatan.docx'),
+                'dst' => base_path('template/S2/form penilaian catatan TEMPLATE.docx'),
+                'optionalSource' => true,
+                'replacements' => [
+                    '(no form)' => '${no_form}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(judul)' => '${judul}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(catatan)' => '${catatan}',
+                    '(nama penilai)' => '${nama_penilai}',
+                    '(nip)' => '${nip_penilai}',
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(fax)' => '${fax_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(web)' => '${website_prodi}',
+                ]
+            ],
+            [
+                // Form Penilaian Prodi 221 — S2
+                'src' => base_path('template/S2/form penilaian prodi 221.docx'),
+                'dst' => base_path('template/S2/form penilaian prodi 221 TEMPLATE.docx'),
+                'replacements' => [
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(judul)' => '${judul}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nilai)' => '${nilai}',
+                    '(keterangan)' => '${keterangan}',
+                    '(nilai akhir rata2)' => '${nilai_akhir_rata2}',
+                    '(indeks nilai)' => '${indeks_nilai}',
+                    '(nama tim sidang)' => '${nama_tim_sidang}',
+                    '(catatan)' => '${catatan}',
+                    'Tanda Tangan' => '${signature}',
+                ]
+            ],
         ];
 
         foreach ($templates as $template) {
@@ -372,6 +599,10 @@ class PrepareTemplate extends Command
             }
 
             if (!file_exists($src)) {
+                if (!empty($template['optionalSource'])) {
+                    $this->warn('Skip (sumber belum dikonversi ke .docx): ' . $src);
+                    continue;
+                }
                 $this->error('Source template not found: ' . $src);
                 continue;
             }
@@ -387,6 +618,34 @@ class PrepareTemplate extends Command
             $xml = $zip->getFromName('word/document.xml');
 
             $xml = $this->fuzzyReplaceAll($xml, $replacements);
+
+            // "(catatan)" pada baris Catatan pembimbing I/II/III -> token per pembimbing,
+            // lalu sisa "(catatan)" lain (mis. baris "dengan catatan") menjadi ${catatan}.
+            if (!empty($template['catatanPembimbingSlots'])) {
+                foreach (['I' => 'i', 'II' => 'ii', 'III' => 'iii'] as $roman => $suffix) {
+                    $xml = $this->fuzzyReplaceInParagraph(
+                        $xml,
+                        '/Catatan pembimbing ' . $roman . '\b/i',
+                        '(catatan)',
+                        '${catatan_pembimbing_' . $suffix . '}'
+                    );
+                }
+                $xml = $this->fuzzyReplaceAll($xml, ['(catatan)' => '${catatan}']);
+            }
+
+            // Marker berulang "(nip)" -> token per posisi (pembimbing, kaprodi, dst.).
+            if (!empty($template['nipSequence'])) {
+                $xml = $this->fuzzyReplaceSequential($xml, '(nip)', $template['nipSequence']);
+            }
+
+            // Marker nilai berulang -> ${nilai_1}..${nilai_N} sesuai urutan di dokumen.
+            if (!empty($template['nilaiSequence'])) {
+                $tokens = [];
+                for ($i = 1; $i <= (int) $template['nilaiSequence']; $i++) {
+                    $tokens[] = '${nilai_' . $i . '}';
+                }
+                $xml = $this->fuzzyReplaceSequential($xml, $template['nilaiSearch'] ?? '(nilai)', $tokens);
+            }
 
             // Khusus PED Ketua Sidang: 6 slot "(asal instansi)" berurutan
             // (3 pembimbing lalu 3 penguji) menjadi placeholder per peran.
@@ -931,5 +1190,41 @@ class PrepareTemplate extends Command
         }, $xml, 1);
 
         return $out ?? $xml;
+    }
+
+    /**
+     * Ganti SATU occurrence teks, tetapi hanya di dalam paragraf (<w:p>) yang
+     * teksnya cocok dengan $paragraphPattern. Dipakai untuk marker yang sama
+     * muncul beberapa kali dengan makna berbeda (mis. "(catatan)" per pembimbing).
+     */
+    private function fuzzyReplaceInParagraph(string $xml, string $paragraphPattern, string $search, string $replace): string
+    {
+        $result = preg_replace_callback('/<w:p\b[^>]*>.*?<\/w:p>/s', function ($m) use ($paragraphPattern, $search, $replace) {
+            $paragraph = $m[0];
+            $plain = preg_replace('/<[^>]+>/', '', $paragraph);
+            if (!preg_match($paragraphPattern, $plain)) {
+                return $paragraph;
+            }
+            return $this->fuzzyReplaceOnce($paragraph, $search, $replace);
+        }, $xml);
+
+        return $result ?? $xml;
+    }
+
+    /**
+     * Ganti marker berulang dengan token berbeda sesuai urutan kemunculan.
+     * Contoh: "(Nilai)" x6 -> ${nilai_1} ... ${nilai_6}.
+     */
+    private function fuzzyReplaceSequential(string $xml, string $search, array $tokens): string
+    {
+        foreach ($tokens as $token) {
+            $before = $xml;
+            $xml = $this->fuzzyReplaceOnce($xml, $search, $token);
+            if ($xml === $before) {
+                break; // marker sudah habis
+            }
+        }
+
+        return $xml;
     }
 }

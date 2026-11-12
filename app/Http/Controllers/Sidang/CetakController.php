@@ -53,6 +53,40 @@ class CetakController extends Controller
     }
 
     /**
+     * Pilih template Berita Acara S2 berdasarkan KODE_PRODI:
+     * 221 -> BA Tesis I prodi 221
+     * 223 -> BA Tesis I 223 TG
+     * 225 atau lainnya -> BA Tesis I prodi 225
+     */
+    private function getS2BeritaAcaraTemplate($kodeProdi): string
+    {
+        $kp = trim((string) $kodeProdi);
+        if ($kp === '221') {
+            return base_path('template/S2/BA Tesis I prodi 221 TEMPLATE.docx');
+        } elseif ($kp === '223') {
+            return base_path('template/S2/BA Tesis I 223 TG TEMPLATE.docx');
+        }
+        return base_path('template/S2/BA Tesis I prodi 225 TEMPLATE.docx');
+    }
+
+    /**
+     * Pilih template Form Penilaian S2 berdasarkan KODE_PRODI:
+     * 221 -> form penilaian prodi 221
+     * 223 -> form penilaian Tesis I 223 TG
+     * 225 atau lainnya -> form penilaian Tesis I prodi 225
+     */
+    private function getS2FormTemplate($kodeProdi): string
+    {
+        $kp = trim((string) $kodeProdi);
+        if ($kp === '221') {
+            return base_path('template/S2/form penilaian prodi 221 TEMPLATE.docx');
+        } elseif ($kp === '223') {
+            return base_path('template/S2/form penilaian Tesis I 223 TG TEMPLATE.docx');
+        }
+        return base_path('template/S2/form penilaian Tesis I prodi 225 TEMPLATE.docx');
+    }
+
+    /**
      * Cetak form penilaian untuk penilai yang dipilih.
      * Menggunakan template: cetak form penilaian proposal tipe nilai TEMPLATE.docx
      * Mengisi data per-baris (nama_penilaian, keterangan, nilai, catatan) dari DB.
@@ -243,13 +277,19 @@ class CetakController extends Controller
             return $row;
         });
 
-        $templatePath = $isSk
-            ? base_path('template/SK-1/form penilaian sk I sd sk III TEMPLATE.docx')
-            : ($isSidangDoktor
-                ? base_path('template/SIDANG/form penilaian sidang akhir TEMPLATE.docx')
-                : ($isTextForm
-                    ? base_path('template/cetak form penilain tipe text TEMPLATE.docx')
-                    : base_path('template/pROPOSAL/cetak form penilaian proposal tipe nilai TEMPLATE.docx')));
+        // Template: S2 pakai template per-KODE_PRODI (221/223 TG/225), kecuali SK dan Text Form
+        $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
+        if ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
+            $templatePath = $this->getS2FormTemplate($kodeProdi);
+        } else {
+            $templatePath = $isSk
+                ? base_path('template/SK-1/form penilaian sk I sd sk III TEMPLATE.docx')
+                : ($isSidangDoktor
+                    ? base_path('template/SIDANG/form penilaian sidang akhir TEMPLATE.docx')
+                    : ($isTextForm
+                        ? base_path('template/cetak form penilain tipe text TEMPLATE.docx')
+                        : base_path('template/pROPOSAL/cetak form penilaian proposal tipe nilai TEMPLATE.docx')));
+        }
         if (!file_exists($templatePath) && $isTextForm) {
             // Fallback jika template tipe text belum ada
             $templatePath = base_path('template/pROPOSAL/cetak form penilaian proposal tipe nilai TEMPLATE.docx');
@@ -1340,8 +1380,13 @@ class CetakController extends Controller
         $tanggal = $latestPenilaian?->TGL_UPDATE ?? $latestPenilaian?->TGL_CREATE ?? null;
         $tanggalFormat = $tanggal ? \Carbon\Carbon::parse($tanggal)->translatedFormat('d F Y') : '';
 
-        // Template
-        $templatePath = base_path('template/pROPOSAL/BA proposal TEMPLATE.docx');
+        // Template: S2 pakai template BA per-KODE_PRODI (221/223 TG/225)
+        $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
+        if ($isS2) {
+            $templatePath = $this->getS2BeritaAcaraTemplate($kodeProdi);
+        } else {
+            $templatePath = base_path('template/pROPOSAL/BA proposal TEMPLATE.docx');
+        }
         if (!file_exists($templatePath)) {
             return response()->json(['error' => 'Template BA proposal tidak ditemukan.'], 500);
         }
