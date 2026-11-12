@@ -1387,7 +1387,6 @@
                                         @if($strataView === 'S2')
                                             <option value="Lulus Sidang Magister" {{ strtolower($statusKelulusanS2) === 'lulus sidang magister' ? 'selected' : '' }}>LULUS Sidang Magister</option>
                                             <option value="Tidak Lulus Sidang Magister" {{ strtolower($statusKelulusanS2) === 'tidak lulus sidang magister' ? 'selected' : '' }}>TIDAK LULUS Sidang Magister</option>
-                                            <option value="Mengulangi Sidang Magister" {{ strtolower($statusKelulusanS2) === 'mengulangi sidang magister' ? 'selected' : '' }}>Mengulangi Sidang Magister</option>
                                         @elseif(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
                                             <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>

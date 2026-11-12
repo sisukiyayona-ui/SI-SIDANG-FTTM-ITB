@@ -61,7 +61,6 @@ if (!function_exists('s2StatusOptions')) {
             'terjadwal' => 'Terjadwal',
             'Lulus Sidang Magister' => 'LULUS Sidang Magister',
             'Tidak Lulus Sidang Magister' => 'TIDAK LULUS Sidang Magister',
-            'Mengulangi Sidang Magister' => 'Mengulangi Sidang Magister',
         ];
         echo '<option value="">Semua</option>';
         foreach ($options as $value => $label) {

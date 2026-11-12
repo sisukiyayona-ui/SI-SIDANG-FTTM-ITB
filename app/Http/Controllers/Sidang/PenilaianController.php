@@ -28,7 +28,6 @@ class PenilaianController extends Controller
     private const STATUS_LULUS_S2 = [
         'Lulus Sidang Magister',
         'Tidak Lulus Sidang Magister',
-        'Mengulangi Sidang Magister',
     ];
 
     public function storeTuProdi(Request $request)
