@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\TProdi;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -37,6 +38,7 @@ class AutoApproveAjuanSidang extends Command
                 'a.NAMA_MHS',
                 'a.TAHAPAN_SIDANG',
                 'a.KODE_PRODI',
+                'a.ID_PRODI',
                 'a.STATUS_LULUS',
                 'a.STATUS_AJUKAN_KPPS',
                 'a.TGL_AJUKAN_KPPS'
@@ -54,7 +56,7 @@ class AutoApproveAjuanSidang extends Command
         $rows    = []; // data untuk ditampilkan di tabel
 
         foreach ($ajuans as $ajuan) {
-            $members = $this->getPendingMembers($ajuan->ajuan_id, $ajuan->KODE_PRODI);
+            $members = $this->getPendingMembers($ajuan->ajuan_id, $ajuan->KODE_PRODI, $ajuan->ID_PRODI);
 
             if ($members->isEmpty()) {
                 continue; // semua anggota sudah approve, skip
@@ -125,7 +127,7 @@ class AutoApproveAjuanSidang extends Command
      * Ambil anggota KPPS aktif di prodi tsb yang BELUM punya record approval
      * untuk ajuan ini.
      */
-    private function getPendingMembers(int $ajuanId, string $kodeProdi)
+    private function getPendingMembers(int $ajuanId, string $kodeProdi, ?int $idProdi = null)
     {
         // Satu baris per ID_USER (hindari duplikat Ketua+Anggota untuk orang yang sama)
         $members = DB::table('t_kpps as k')
@@ -133,8 +135,18 @@ class AutoApproveAjuanSidang extends Command
                 $join->on('app.ID_USER', '=', 'k.ID_USER')
                     ->where('app.ID_AJUAN_SIDANG', '=', $ajuanId);
             })
-            ->where('k.KODE_PRODI', $kodeProdi)
+            // Resolve KPPS KODE_PRODI ke ID_PROdi via t_prodi agar cocok dengan ID_PRODI ajuan
+            ->leftJoin('t_prodi as p', 'k.KODE_PRODI', '=', 'p.KODE_PRODI')
+            ->where(function ($query) use ($kodeProdi, $idProdi) {
+                // Match langsung via KODE_PRODI KPPS dengan KODE_PRODI ajuan
+                $query->where('k.KODE_PRODI', $kodeProdi);
+                // Atau via ID_PRODI: KPPS KODE_PRODI yang resolve ke ID_PRODI ajuan
+                if ($idProdi) {
+                    $query->orWhere('p.id', $idProdi);
+                }
+            })
             ->where('k.STATUS_AKTIF', 'AKTIF')
+            ->whereNotNull('k.ID_USER')
             ->whereNull('app.id')
             ->select(
                 'k.ID_USER',
