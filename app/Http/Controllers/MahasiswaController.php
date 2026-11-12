@@ -1317,10 +1317,8 @@ class MahasiswaController extends Controller
             if ($request->filled('waktu_selesai') && strtotime($request->waktu_selesai) <= strtotime($request->waktu_sidang)) {
                 return response()->json(['success' => false, 'message' => 'Waktu selesai harus setelah waktu mulai.'], 422);
             }
-            $ajuanS2 = TAjuanSidang::where('ID_JUDUL', $idJudul)->where('TAHAPAN_SIDANG', $tahapan)->latest('id')->first();
-            if ($request->is_ajukan_fs && ($ajuanS2?->STATUS_AJUKAN_MHS ?? 't') !== 'y') {
-                return response()->json(['success' => false, 'message' => 'Mahasiswa belum mengajukan sidang.'], 422);
-            }
+            // TU Prodi/Admin boleh mengajukan & approve jadwal atas nama mahasiswa
+            // (mis. mahasiswa tidak sempat klik Ajukan), jadi tidak dicek STATUS_AJUKAN_MHS.
         }
 
         // Check schedule conflicts for pembimbing/penguji (2 hour gap)
@@ -1445,9 +1443,10 @@ class MahasiswaController extends Controller
         $ajuan->TGL_SIDANG = $tglSidang;
         $ajuan->WAKTU_SIDANG = $waktuSidang;
 
-        // Jika yang simpan bukan Mahasiswa (mis. TU Prodi), otomatis set STATUS_AJUKAN_MHS = 'y'
-        // sehingga jadwal langsung terlihat di sisi mahasiswa
-        if (!$isS2 && ($user['role'] ?? '') !== 'Mahasiswa') {
+        // Jika yang simpan bukan Mahasiswa (mis. TU Prodi), ajuan dianggap sudah diajukan
+        // mahasiswa — termasuk S2 (Tesis I/II) — supaya status tidak "Belum Diajukan"
+        // dan TU Prodi bisa langsung Approve.
+        if (($user['role'] ?? '') !== 'Mahasiswa') {
             $ajuan->STATUS_AJUKAN_MHS = 'y';
         }
 
