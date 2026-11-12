@@ -4645,7 +4645,7 @@ function getAjuanDisplayStatus($ajuan) {
     $mhs = $ajuan->status_ajukan_mhs ?? $ajuan->STATUS_AJUKAN_MHS ?? 't';
     if (empty($mhs) || $mhs === 't') return 'Belum diajukan';
     $prodi = $ajuan->status_ajukan_prodi ?? $ajuan->STATUS_AJUKAN_PRODI ?? 't';
-    if ($mhs === 'y' && (empty($prodi) || $prodi === 't')) return 'Diproses di TU Prodi';
+    if ($prodi === 't') return 'Belum diajukan';
 
     $ajuanId = $ajuan->id ?? null;
     $strata = strtoupper($ajuan->STRATA ?? $ajuan->strata ?? 'S3');
