@@ -3548,7 +3548,9 @@ function statusLulusIdForTbody(tbodyId) {
 function syncStatusKelulusanForPenilai(statusLulusId, isKetuaDipilih) {
     var statusEl = document.getElementById(statusLulusId);
     if (!statusEl || isS2) return;
-    var bolehEdit = (isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2;
+    // TU Prodi/Admin selalu boleh edit Status Kelulusan di S3,
+    // tanpa tergantung apakah penilai terpilih = Ketua Sidang.
+    var bolehEdit = isTUPandi || ((isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2);
     statusEl.disabled = !bolehEdit;
 }
 

@@ -321,6 +321,18 @@ class CetakController extends Controller
             $tp->setValue('nama_penilai',          $penilaiNama);
             $tp->setValue('tgl_create_penilaian',  $tglCreate);
 
+            // S2: nilai untuk template Berita Acara / Form Penilaian Magister
+            if ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
+                $tp->setValue('judul',           $namaJudul);
+                $tp->setValue('nama mhs',        $ajuan->NAMA_MHS ?? '-');
+                $tp->setValue('nim',             $ajuan->NIM ?? '-');
+                $tp->setValue('tgl sidang',      $tglSidang);
+                $tp->setValue('tgl_sidang',      $tglSidang);
+                $tp->setValue('waktu',           $ajuan->waktu_sidang ?? '');
+                $tp->setValue('ruang',           $ajuan->ruang_sidang ?? '');
+                $tp->setValue('ruang_sidang',    $ajuan->ruang_sidang ?? '');
+            }
+
             if ($isSk) {
                 $tp->setValue('judul',                           $namaJudul);
                 $tp->setValue('bidang_keahlian_ketua_pembimbing', $ketuaPembimbing?->userPenilai?->KK ?? '');
@@ -1438,6 +1450,74 @@ class CetakController extends Controller
             // Set overall average (for the summary field)
             $tp->setValue('nilai_rata2_keseluruhan', $rataRataKeseluruhan);
             $tp->setValue('nilai_akhir_indeks', $indeks);
+
+            // S2: set Berita Acara Magister placeholders (prodi, jadwal, nilai, status, catatan)
+            if ($isS2) {
+                $kodeProdiBA = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? null;
+                $prodiBA = \App\Models\TProdi::where('KODE_PRODI', $kodeProdiBA)->first();
+
+                $tp->setValue('tgl sidang',      $tglSidang);
+                $tp->setValue('tgl_sidang',      $tglSidang);
+                $tp->setValue('waktu',           $ajuan->waktu_sidang ?? '');
+                $tp->setValue('nama prodi',      $prodiBA?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+                $tp->setValue('NAMA PRODI',      $prodiBA?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+                $tp->setValue('alamat prodi',    $prodiBA?->ALAMAT ?? '-');
+                $tp->setValue('tlp prodi',       $prodiBA?->TLP ?? $prodiBA?->tlp ?? '-');
+                $tp->setValue('email prodi',     $prodiBA?->EMAIL ?? $prodiBA?->email ?? '-');
+
+                // Kode MK from t_mk_prodi (match prodi + tahapan)
+                $kodeMkBA = '';
+                if ($kodeProdiBA) {
+                    $mkRecBA = \App\Models\TMkProdi::whereRaw('TRIM(KODE_PRODI) = ?', [trim((string) $kodeProdiBA)])
+                        ->first();
+                    if ($mkRecBA) {
+                        $kodeMkBA = trim((string) ($mkRecBA->KODE_MK ?? ''));
+                    }
+                }
+                $tp->setValue('kode mk',   $kodeMkBA);
+                $tp->setValue('KODE MK',   $kodeMkBA);
+
+                // Kaprodi for prodi
+                $kaprodiBA = null;
+                if ($kodeProdiBA) {
+                    $kaprodiUserIdBA = \App\Models\TUser::where('KODE_PRODI', $kodeProdiBA)
+                        ->where('STATUS_KAPRODI', 'y')
+                        ->value('id');
+                    if ($kaprodiUserIdBA) {
+                        $kaprodiBA = \App\Models\TUser::find($kaprodiUserIdBA);
+                    }
+                }
+
+                // Nilai & status kelulusan
+                $statusLulusBA = strtoupper(trim((string) ($ajuan->STATUS_LULUS ?? '')));
+                $tp->setValue('nilai rata2',   $rataRataKeseluruhan);
+                $tp->setValue('nilai huruf',   $indeks);
+                $tp->setValue('predikat',      $indeks);
+                $tp->setValue('status lulus',  $statusLulusBA);
+
+                // Catatan pembimbing (ambil dari penilai per pembimbing)
+                $catatanPembimbing = [];
+                foreach ($allTimSidang as $ts) {
+                    $sts = strtolower(trim((string) ($ts->status_tim_sidang ?? '')));
+                    if (str_contains($sts, 'pembimbing')) {
+                        $nilaiRow = TPenilaian::where('ID_JUDUL', $idJudul)
+                            ->where('TAHAPAN_SIDANG', $tahapan)
+                            ->where('ID_TIM_SIDANG', $ts->id)
+                            ->orderByDesc('TGL_UPDATE')
+                            ->first();
+                        $catatanPembimbing[] = $nilaiRow->CATATAN ?? '-';
+                    }
+                }
+                while (count($catatanPembimbing) < 3) {
+                    $catatanPembimbing[] = '-';
+                }
+                $tp->setValue('catatan pembimbing I', $catatanPembimbing[0] ?? '-');
+                $tp->setValue('catatan pembimbing II', $catatanPembimbing[1] ?? '-');
+                $tp->setValue('catatan pembimbing III', $catatanPembimbing[2] ?? '-');
+
+                $tp->setValue('nama kaprodi',    $kaprodiBA?->NAMA_LENGKAP ?? '-');
+                $tp->setValue('nip kaprodi',     $kaprodiBA?->NIP_NIM ?? '-');
+            }
 
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal memproses template BA: ' . $e->getMessage()], 500);

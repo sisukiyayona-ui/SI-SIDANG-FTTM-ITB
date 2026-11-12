@@ -520,7 +520,7 @@ class PenilaianController extends Controller
             //    NILAI_TERKUNCI tidak lagi tertahan bila dropdown "Pilih status"
             //    kosong (dulu membuat t_ajuan_sidang tetap NILAI_TERKUNCI='t'
             //    padahal nilai sudah dikunci).
-            if ($isKetuaSidangRequest || $isKetuaSidangDipilih) {
+            if ($isKetuaSidangRequest || $isKetuaSidangDipilih || $isTuProdi) {
                 $updateAjuan = [
                     'NILAI_TERKUNCI' => $request->nilai_terkunci,
                     'TGL_UPDATE' => now(),
