@@ -684,7 +684,8 @@ class PenilaianController extends Controller
             if (!$this->canScoreS2($user, $ajuan, $tim)) {
                 return response()->json(['error' => 'Hanya Pembimbing/Penguji yang ditugaskan dapat mengisi nilainya sendiri. Ketua Sidang tidak menginput nilai.'], 403);
             }
-            if ($this->s2ScoresLocked($ajuan)) {
+            $isPengelola = in_array($user['role'] ?? '', ['TU Prodi', 'Admin'], true);
+            if (!$isPengelola && $this->s2ScoresLocked($ajuan)) {
                 return response()->json(['error' => 'Nilai sudah dikunci. Hanya Ketua Sidang yang ditugaskan dapat membukanya kembali.'], 403);
             }
 
@@ -751,7 +752,8 @@ class PenilaianController extends Controller
             if (!$this->canScoreS2($user, $ajuan, $tim)) {
                 return response()->json(['error' => 'Hanya Pembimbing/Penguji yang ditugaskan dapat mengubah nilainya sendiri.'], 403);
             }
-            if ($this->s2ScoresLocked($ajuan)) {
+            $isPengelola = in_array($user['role'] ?? '', ['TU Prodi', 'Admin'], true);
+            if (!$isPengelola && $this->s2ScoresLocked($ajuan)) {
                 return response()->json(['error' => 'Nilai sudah dikunci. Hanya Ketua Sidang yang ditugaskan dapat membukanya kembali.'], 403);
             }
             if (!$this->s2Points($ajuan)->where('id', $penilaian->ID_PENILAIAN)->exists()) {
@@ -860,10 +862,11 @@ class PenilaianController extends Controller
             }
 
             $locking = $request->nilai_terkunci === 'y';
-            if ($locking && \App\Services\PenilaianSelesai::terkunci($ajuan)) {
+            $isPengelola = in_array($role, ['TU Prodi', 'Admin'], true);
+            if ($locking && \App\Services\PenilaianSelesai::terkunci($ajuan) && !$isPengelola) {
                 return response()->json(['error' => 'Nilai sudah dikunci. Buka kunci terlebih dahulu sebelum menetapkan keputusan baru.'], 403);
             }
-            if ($locking && ($error = $this->s2CompletenessError($ajuan))) {
+            if ($locking && ($error = $this->s2CompletenessError($ajuan)) && !$isPengelola) {
                 return response()->json(['error' => $error, 'message' => $error], 422);
             }
 

@@ -773,15 +773,15 @@ class MahasiswaController extends Controller
             if ($judul) {
                 $mahasiswa = \App\Models\TUser::find($judul->ID_USER_MHS);
 
-                // t_judul tidak punya ID_PRODI — resolve prodi dari session lalu dari data mahasiswa
+                // t_judul tidak punya ID_PRODI — prodi mahasiswa diutamakan, bukan prodi operator.
+                // Kode prodi berbeda per strata (mis. Teknik Geofisika: 123 S1, 323 S3), jadi
+                // memakai prodi operator membuat ajuan tidak cocok dengan t_kpps prodi mahasiswa.
                 $prodi = null;
-                if ($isS2Upload && $mahasiswa) {
-                    $prodi = TProdi::where('KODE_PRODI', $mahasiswa->KODE_PRODI)->first();
-                } elseif (!empty($user['kode_prodi'])) {
-                    $prodi = \App\Models\TProdi::where('KODE_PRODI', $user['kode_prodi'])->first();
-                }
-                if (!$prodi && $mahasiswa && !empty($mahasiswa->KODE_PRODI)) {
+                if ($mahasiswa && !empty($mahasiswa->KODE_PRODI)) {
                     $prodi = \App\Models\TProdi::where('KODE_PRODI', $mahasiswa->KODE_PRODI)->first();
+                }
+                if (!$prodi && !empty($user['kode_prodi'])) {
+                    $prodi = \App\Models\TProdi::where('KODE_PRODI', $user['kode_prodi'])->first();
                 }
 
                 if (!$prodi) {
@@ -1389,7 +1389,6 @@ class MahasiswaController extends Controller
 
             // Get user mahasiswa from judul
             $mahasiswa = \App\Models\TUser::find($judul->id_user_mhs);
-            $prodi = \App\Models\TProdi::where('KODE_PRODI', $mahasiswa->KODE_PRODI ?? $user['kode_prodi'])->first();
 
             // Kolom PK t_user fisiknya "id" (huruf kecil), jadi akses ->ID akan
             // selalu null dan ajuan tercatat atas nama operator, bukan mahasiswa.
@@ -1401,6 +1400,24 @@ class MahasiswaController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Strata mahasiswa ' . ($mahasiswa->NAMA_LENGKAP ?? $judul->NIM) . ' belum diisi. Lengkapi Strata di Data Master User dulu, lalu simpan jadwal lagi.',
+                ], 422);
+            }
+
+            // AJUAN SELALU PAKAI PRODI MAHASISWA (bukan prodi operator),
+            // agar tidak terjadi ketidaksesuaian KODE_PRODI/ID_PRODI antar baris
+            // t_ajuan_sidang yang sama judulnya.
+            if (empty($mahasiswa->KODE_PRODI)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'KODE_PRODI mahasiswa ' . ($mahasiswa->NAMA_LENGKAP ?? $judul->NIM) . ' belum diisi. Lengkapi di Data Master User dulu.',
+                ], 422);
+            }
+
+            $prodi = \App\Models\TProdi::where('KODE_PRODI', $mahasiswa->KODE_PRODI)->first();
+            if (!$prodi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Prodi mahasiswa dengan KODE_PRODI ' . $mahasiswa->KODE_PRODI . ' tidak ditemukan di t_prodi.',
                 ], 422);
             }
 
@@ -1418,9 +1435,9 @@ class MahasiswaController extends Controller
             $ajuan->ID_USER_CREATE = $user['id'];
             $ajuan->NAMA_USER_CREATE = $user['nama_lengkap'];
             $ajuan->THN_CREATE = date('Y');
-            $ajuan->ID_PRODI = $prodi->id ?? null;
-            $ajuan->KODE_PRODI = $mahasiswa->KODE_PRODI ?? $user['kode_prodi'];
-            $ajuan->NAMA_PRODI = $prodi->NAMA_PRODI ?? $user['nama_prodi'];
+            $ajuan->ID_PRODI = $prodi->id;
+            $ajuan->KODE_PRODI = $prodi->KODE_PRODI;
+            $ajuan->NAMA_PRODI = $prodi->NAMA_PRODI;
             }
         }
 

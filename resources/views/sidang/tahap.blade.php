@@ -3560,7 +3560,7 @@ function toggleLockButton(tbodyId, btnId) {
     var isKetuaDipilih = isViewOnlyPenilai
         || isPenilaiKetuaSidang(selectPenilaiEl(btnId));
 
-    if (isS2 && isNilaiTerkunci) {
+    if (isS2 && isNilaiTerkunci && !isTUPandi) {
         btn.disabled = true;
         setLockNilaiTooltip(btnId, 'Nilai sudah dikunci oleh Ketua Sidang.');
         return;
@@ -3968,9 +3968,6 @@ async function saveTuProdiInput() {
     event.stopPropagation();
     var form = document.getElementById('jadwalFormTahap2Form');
     var formData = new FormData(form);
-    if (isS2) {
-        form.querySelector('[name="is_ajukan_fs"]').value = '';
-    }
 
     // Validate required fields
     var tglSidang = formData.get('tgl_sidang');

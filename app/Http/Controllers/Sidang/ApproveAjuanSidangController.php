@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Sidang;
 
 use App\Http\Controllers\Controller;
+use App\Models\TProdi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -29,6 +30,12 @@ class ApproveAjuanSidangController extends Controller
             ->values()
             ->all();
 
+        // Resolve KPPS KODE_PRODI ke ID_PRODI juga (biar sama seperti SidangS3Controller)
+        $prodiIds = [];
+        if (!empty($kppsKodeProdi)) {
+            $prodiIds = TProdi::whereIn('KODE_PRODI', $kppsKodeProdi)->pluck('id')->all();
+        }
+
         $totalKpps = !empty($kppsKodeProdi)
             ? DB::table('t_kpps')->whereIn('KODE_PRODI', $kppsKodeProdi)->where('STATUS_AKTIF', 'AKTIF')->distinct()->count('ID_USER')
             : 0;
@@ -43,8 +50,15 @@ class ApproveAjuanSidangController extends Controller
             ->where('a.STATUS_AJUKAN_KPPS', 'y')
             ->where('a.TAHAPAN_SIDANG', '!=', 'tahap I');
 
-        if (!empty($kppsKodeProdi)) {
-            $q->whereIn('a.KODE_PRODI', $kppsKodeProdi);
+        if (!empty($kppsKodeProdi) || !empty($prodiIds)) {
+            $q->where(function ($query) use ($kppsKodeProdi, $prodiIds) {
+                if (!empty($kppsKodeProdi)) {
+                    $query->whereIn('a.KODE_PRODI', $kppsKodeProdi);
+                }
+                if (!empty($prodiIds)) {
+                    $query->orWhereIn('a.ID_PRODI', $prodiIds);
+                }
+            });
         } else {
             $q->whereRaw('1 = 0');
         }

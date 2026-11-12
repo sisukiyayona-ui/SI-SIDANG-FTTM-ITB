@@ -241,6 +241,52 @@
         html.dark-mode .table thead th {
             border-bottom-color: var(--border-color) !important;
         }
+        /* Baris yang sudah di-approve (table-secondary) di dark mode tampil
+           sama seperti baris biasa — tanpa highlight/petak tambahan. */
+        html.dark-mode .table-secondary,
+        html.dark-mode .table > tbody > tr.table-secondary,
+        html.dark-mode .table > tbody > tr > td.table-secondary,
+        html.dark-mode .table > tbody > tr.table-secondary > td,
+        html.dark-mode .table > tbody > tr.table-secondary > th {
+            background: transparent !important;
+            color: var(--text-dark) !important;
+            box-shadow: none !important;
+        }
+        /* Hover baris approved tetap sama seperti baris lain */
+        html.dark-mode .table-hover > tbody > tr.table-secondary:hover {
+            background: var(--table-hover) !important;
+        }
+        html.dark-mode .table-danger,
+        html.dark-mode .table > tbody > tr.table-danger,
+        html.dark-mode .table > tbody > tr > td.table-danger {
+            background: #7f1d1d !important;
+            color: #fecaca !important;
+        }
+        html.dark-mode .table > tbody > tr.table-danger > td,
+        html.dark-mode .table > tbody > tr.table-danger > th {
+            background-color: #7f1d1d !important;
+            color: #fecaca !important;
+        }
+        html.dark-mode .badge.bg-success,
+        html.dark-mode .badge.badge-success {
+            background-color: #15803d !important;
+            color: #fff !important;
+        }
+        html.dark-mode .badge.bg-danger,
+        html.dark-mode .badge.badge-danger {
+            background-color: #dc2626 !important;
+            color: #fff !important;
+        }
+        html.dark-mode .badge.bg-warning,
+        html.dark-mode .badge.badge-warning {
+            background-color: #d97706 !important;
+            color: #fff !important;
+        }
+        html.dark-mode .badge.bg-secondary,
+        html.dark-mode .badge.badge-secondary {
+            background-color: #475569 !important;
+            color: #fff !important;
+        }
         html.dark-mode .form-control {
             background: var(--input-bg) !important;
             border-color: var(--border-color) !important;
@@ -1988,10 +2034,9 @@
             border-color: #475569 !important;
         }
         
-        /* Calendar header row - keep pastel colors visible */
-        body.dark-mode .table thead th {
-            /* Warna background tetap dari inline style, tidak di-override */
-            color: #0f172a !important; /* Text gelap agar kontras dengan pastel */
+        /* Calendar header row - jangan bocor ke tabel lain di dark mode */
+        body.dark-mode .jadwal-calendar thead th {
+            color: var(--text-muted) !important;
             font-weight: 700 !important;
             border-color: #475569 !important;
         }
