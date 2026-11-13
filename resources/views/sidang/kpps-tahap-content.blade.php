@@ -404,9 +404,9 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <div class="form-group row align-items-center mb-2">
-                            <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Penilai</label>
-                            <div class="col-sm-8 px-1">
-                                <select class="form-control form-control-sm select2-search" id="kppsPenilai" onchange="filterKppsPenilaian()">
+                            <label class="col-sm-2 text-danger mb-0 px-1" for="kppsPenilai" style="font-size: 14px; text-decoration: underline;">Penilai</label>
+                            <div class="col-sm-10 px-1">
+                                <select class="form-control select2-search penilaian-select" id="kppsPenilai" onchange="filterKppsPenilaian()">
                                     <option value="">-- Pilih Penilai --</option>
                                     @if($timSidang && $timSidang->count() > 0)
                                         @foreach($timSidang as $tim)
@@ -420,9 +420,9 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group row align-items-center mb-2">
-                            <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Form</label>
-                            <div class="col-sm-8 px-1">
-                                <select class="form-control form-control-sm select2-search" id="kppsForm" onchange="filterKppsPenilaian()">
+                            <label class="col-sm-2 text-danger mb-0 px-1" for="kppsForm" style="font-size: 14px; text-decoration: underline;">Form</label>
+                            <div class="col-sm-10 px-1">
+                                <select class="form-control select2-search penilaian-select" id="kppsForm" onchange="filterKppsPenilaian()">
                                     <option value="">-- Pilih Form --</option>
                                     @if($pointPenilaian && $pointPenilaian->count() > 0)
                                         @foreach($pointPenilaian as $form)

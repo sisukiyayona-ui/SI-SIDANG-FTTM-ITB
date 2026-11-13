@@ -40,6 +40,55 @@
             height: calc(1.5em + 0.5rem) !important;
         }
         
+        .penilaian-toolbar,
+        .penilaian-filters {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .penilaian-filters {
+            flex: 1 1 580px;
+            min-width: 0;
+        }
+        .penilaian-filter-field {
+            display: flex;
+            align-items: center;
+            flex: 1 1 250px;
+            min-width: 0;
+            gap: 8px;
+        }
+        .penilaian-filter-field label {
+            flex-shrink: 0;
+            font-size: 14px !important;
+        }
+        .penilaian-filter-control {
+            flex: 1;
+            min-width: 0;
+        }
+        .tahap-container .penilaian-select,
+        .penilaian-select + .select2-container {
+            width: 100% !important;
+            min-width: 0;
+        }
+        .tahap-container .penilaian-select,
+        .penilaian-select + .select2-container--bootstrap .select2-selection--single {
+            height: 38px !important;
+            padding: 0 12px !important;
+            font-size: 14px !important;
+        }
+        .penilaian-select + .select2-container--bootstrap .select2-selection--single {
+            display: flex;
+            align-items: center;
+        }
+        .penilaian-select + .select2-container--bootstrap .select2-selection__rendered {
+            flex: 1;
+            line-height: 36px !important;
+        }
+        .penilaian-select + .select2-container--bootstrap .select2-selection__arrow {
+            height: 36px !important;
+        }
+
         /* Select2 Dark Mode */
         html.dark-mode .select2-container--bootstrap .select2-selection--single {
             background-color: #334155 !important;
@@ -327,6 +376,18 @@
             background: var(--input-bg) !important;
             color: var(--text-muted) !important;
         }
+        .modal-dialog.modal-tahapan-wide {
+            width: calc(100% - 32px);
+            max-width: 1680px;
+            margin: 1.75rem auto;
+        }
+        @media (max-width: 575.98px) {
+            .modal-dialog.modal-tahapan-wide {
+                width: calc(100% - 16px);
+                margin: 0.5rem auto;
+            }
+        }
+
         html.dark-mode .modal-content {
             background: var(--card-bg) !important;
             border-color: var(--border-color) !important;

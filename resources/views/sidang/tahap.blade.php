@@ -579,9 +579,9 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group row align-items-center mb-2">
-                                <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline;">Penilai</label>
-                                <div class="col-sm-8 px-1">
-                                    <select class="form-control form-control-sm select2-search" id="penilaianSelect" onchange="document.getElementById('selectedTimSidangTahap1').value=this.value;clearReferenceRows('penilaianReportBody');filterPenilaian();">
+                                <label class="col-sm-2 text-danger mb-0 px-1" for="penilaianSelect" style="font-size: 14px; text-decoration: underline;">Penilai</label>
+                                <div class="col-sm-10 px-1">
+                                    <select class="form-control select2-search penilaian-select" id="penilaianSelect" onchange="document.getElementById('selectedTimSidangTahap1').value=this.value;clearReferenceRows('penilaianReportBody');filterPenilaian();">
                                         <option value="">-- Pilih Penilai --</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
                                             @foreach($timSidang as $tim)
@@ -596,9 +596,9 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group row align-items-center mb-2">
-                                <label class="col-sm-4 text-danger mb-0 px-1" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">No Form</label>
-                                <div class="col-sm-8 px-1">
-                                    <select class="form-control form-control-sm select2-search" id="formFilterSelect" onchange="filterPenilaian()">
+                                <label class="col-sm-2 text-danger mb-0 px-1" for="formFilterSelect" style="font-size: 14px; text-decoration: underline; text-decoration-color: red;">No Form</label>
+                                <div class="col-sm-10 px-1">
+                                    <select class="form-control select2-search penilaian-select" id="formFilterSelect" onchange="filterPenilaian()">
                                         <option value="">-- Pilih No Form --</option>
                                         @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
                                             @foreach($pointPenilaian as $form)
@@ -637,7 +637,7 @@
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 <td>
-                                                    <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="" min="1" max="5">
+                                                    <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="" min="1" max="5">
                                                 </td>
                                                 <td>
                                                     <textarea class="form-control form-control-sm catatan-input" rows="2"></textarea>
@@ -650,7 +650,7 @@
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     <td>
-                                                        <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="{{ $existing->Nilai }}" min="1" max="5">
+                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="{{ str_replace('.', ',', (string) $existing->Nilai) }}" min="1" max="5">
                                                     </td>
                                                     <td>
                                                         <textarea class="form-control form-control-sm catatan-input" rows="2">{{ $existing->catatan }}</textarea>
@@ -1277,31 +1277,39 @@
                             @endphp
                             <input type="hidden" name="id_tim_sidang" id="selectedTimSidangTahap2" value="{{ $preselectedPenilai2 }}">
                             <input type="hidden" name="no_form" id="selectedNoFormTahap2">
-                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
-                                <div class="d-flex align-items-center">
+                            <div class="penilaian-toolbar mb-2">
+                                <div class="penilaian-filters">
                                     @unless($isKetuaSidangTim)
-                                    <label class="text-danger mb-0 text-nowrap mr-2" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Penilai</label>
-                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiTahap2" name="id_user_penilai" style="width: 150px;" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'disabled' : '' }}>
-                                        <option value="">Pilih Penilai</option>
-                                        @if(isset($timSidang) && $timSidang->count() > 0)
-                                            @foreach($timSidang as $tim)
-                                                @if(! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                    <label class="text-danger mb-0 text-nowrap mr-2 ml-3" style="font-size: 12px; text-decoration: underline; text-decoration-color: red;">Form</label>
-                                    <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="formTahap2" name="no_form_display" style="width: 160px;" onchange="filterPenilaianTahap2(); document.getElementById('selectedNoFormTahap2').value = this.value">
-                                        <option value="">Pilih Form</option>
-                                        @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
-                                            @foreach($pointPenilaian as $form)
-                                                <option value="{{ $form->no_form }}">{{ $form->no_form }}</option>
-                                            @endforeach
-                                        @endif
-                                    </select>
+                                    <div class="penilaian-filter-field">
+                                        <label class="text-danger mb-0 text-nowrap" for="penilaiTahap2" style="text-decoration: underline; text-decoration-color: red;">Penilai</label>
+                                        <div class="penilaian-filter-control">
+                                            <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="penilaiTahap2" name="id_user_penilai" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'disabled' : '' }}>
+                                                <option value="">Pilih Penilai</option>
+                                                @if(isset($timSidang) && $timSidang->count() > 0)
+                                                    @foreach($timSidang as $tim)
+                                                        @if(! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                        <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
+                                                    @endforeach
+                                                @endif
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="penilaian-filter-field">
+                                        <label class="text-danger mb-0 text-nowrap" for="formTahap2" style="text-decoration: underline; text-decoration-color: red;">Form</label>
+                                        <div class="penilaian-filter-control">
+                                            <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="formTahap2" name="no_form_display" onchange="filterPenilaianTahap2(); document.getElementById('selectedNoFormTahap2').value = this.value">
+                                                <option value="">Pilih Form</option>
+                                                @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
+                                                    @foreach($pointPenilaian as $form)
+                                                        <option value="{{ $form->no_form }}">{{ $form->no_form }}</option>
+                                                    @endforeach
+                                                @endif
+                                            </select>
+                                        </div>
+                                    </div>
                                     @endunless
                                 </div>
-                                <div>
+                                <div class="d-flex flex-wrap ml-auto">
                                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="cetakForm()"><i class="fas fa-print mr-1"></i> Cetak Penilaian</button>
                                     <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="cetakBeritaAcara()"><i class="fas fa-file-signature mr-1"></i> BA Sidang</button>
                                     @if(strtolower($tahapan) === 'tahap iv')
@@ -1325,9 +1333,9 @@
                                     <tr>
                                         <th style="width: 8%;">No</th>
                                         <th style="width: 24%;">Parameter Penilaian</th>
-                                        <th style="width: 13%;">Keterangan</th>
+                                        <th style="width: 35%;">Keterangan</th>
                                         <th style="width: 12%;">Nilai (Range 1 - 5)</th>
-                                        <th style="width: 43%;">Catatan</th>
+                                        <th style="width: 21%;">Catatan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="penilaianTahap2Body">
@@ -1349,7 +1357,7 @@
                                                 <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                 <td>
                                                     <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                    <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                    <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                 </td>
                                                 <td>
                                                     <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}></textarea>
@@ -1364,7 +1372,7 @@
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                        <input type="number" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ $existing->Nilai }}" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ str_replace('.', ',', (string) $existing->Nilai) }}" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     <td>
                                                         <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>{{ $existing->catatan }}</textarea>
@@ -1753,33 +1761,39 @@
                                     <input type="hidden" name="tahapan_sidang" value="{{ $tahapan }}">
                                     <input type="hidden" name="id_tim_sidang" id="selectedTimSidang">
                                     <input type="hidden" name="no_form" id="selectedNoForm">
-                                    <div class="form-group row align-items-center mb-2">
+                                    <div class="penilaian-toolbar mb-2">
                                         @unless($isViewOnlyPenilai)
-                                        <label class="col-sm-2 text-danger mb-0 px-1 text-right" style="font-size: 13px; text-decoration: underline;">Penilai</label>
-                                        <div class="col-sm-4 px-1">
-                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiSelect" onchange="document.getElementById('formSelect').value='';loadPenilaianForm();">
-                                                <option value="">Pilih Penilai</option>
-                                                @if(isset($timSidang) && $timSidang->count() > 0)
-                                                    @foreach($timSidang as $tim)
-                                                        @if(!$isViewOnlyPenilai && ! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
-                                                        <option value="{{ $tim->id }}" {{ $isViewOnlyPenilai ? ($penilaiAwal == $tim->id ? 'selected' : '') : ($tim->id_user_penilai == $user['id'] ? 'selected' : '') }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
-                                        </div>
-                                        <label class="col-sm-2 mb-0 px-1 text-center" style="font-size: 13px; color: #555;">Form</label>
-                                        <div class="col-sm-2 px-1">
-                                            <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="formSelect" onchange="loadPenilaianForm()">
-                                                <option value="">Pilih Form</option>
-                                                @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
-                                                    @foreach($pointPenilaian as $form)
-                                                        <option value="{{ $form->no_form }}">{{ $form->no_form }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
+                                        <div class="penilaian-filters">
+                                            <div class="penilaian-filter-field">
+                                                <label class="text-danger mb-0" for="penilaiSelect" style="text-decoration: underline;">Penilai</label>
+                                                <div class="penilaian-filter-control">
+                                                    <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="penilaiSelect" onchange="document.getElementById('formSelect').value='';loadPenilaianForm();">
+                                                        <option value="">Pilih Penilai</option>
+                                                        @if(isset($timSidang) && $timSidang->count() > 0)
+                                                            @foreach($timSidang as $tim)
+                                                                @if(!$isViewOnlyPenilai && ! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                                <option value="{{ $tim->id }}" {{ $isViewOnlyPenilai ? ($penilaiAwal == $tim->id ? 'selected' : '') : ($tim->id_user_penilai == $user['id'] ? 'selected' : '') }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
+                                                            @endforeach
+                                                        @endif
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="penilaian-filter-field">
+                                                <label class="mb-0" for="formSelect" style="color: #555;">Form</label>
+                                                <div class="penilaian-filter-control">
+                                                    <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="formSelect" onchange="loadPenilaianForm()">
+                                                        <option value="">Pilih Form</option>
+                                                        @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
+                                                            @foreach($pointPenilaian as $form)
+                                                                <option value="{{ $form->no_form }}">{{ $form->no_form }}</option>
+                                                            @endforeach
+                                                        @endif
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                         @endunless
-                                        <div class="col-sm-2 pl-0 d-flex align-items-center">
+                                        <div class="d-flex align-items-center">
                                             @if($isViewOnlyPenilai)
                                             {{-- Ketua Sidang tidak menginput nilai: simpan keputusan kelulusan saja --}}
                                             <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusPembimbing()"><i class="fas fa-save mr-1"></i> Simpan Status</button>
@@ -1792,7 +1806,7 @@
                                             @endif
                                         </div>
                                         @if($canManageKelulusan)
-                                        <div class="col-sm-2 pl-0 d-flex align-items-center ml-2">
+                                        <div class="d-flex align-items-center">
                                             <span class="lock-nilai-wrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiPembimbingBtn" class="btn btn-sm btn-success px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTableBody', 'statusLulusPembimbing', 'lockNilaiPembimbingBtn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
                                         </div>
                                         @endif
@@ -1814,9 +1828,9 @@
                                             <tr>
                                                 <th style="width: 8%;">No</th>
                                                 <th style="width: 30%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
-                                                <th style="width: 17%;">Keterangan</th>
+                                                <th style="width: 32%;">Keterangan</th>
                                                 <th style="width: 15%;">Nilai</th>
-                                                <th style="width: 30%;">Catatan</th>
+                                                <th style="width: 15%;">Catatan</th>
                                             </tr>
                                         </thead>
                                         <tbody id="penilaianTableBody">
@@ -1831,7 +1845,7 @@
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $nilai->pointPenilaian->keterangan ?? '-' }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $nilai->id_penilaian }}" hidden>
-                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="{{ $nilai->Nilai }}" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        <input type="text" inputmode="decimal" name="penilaian[{{ $idx }}][nilai]" value="{{ str_replace('.', ',', (string) $nilai->Nilai) }}" class="form-control form-control-sm nilai-input" min="1" max="5" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     <td>
                                                         <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>{{ $nilai->catatan }}</textarea>
@@ -1846,7 +1860,7 @@
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                        <input type="number" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="0" max="100" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        <input type="text" inputmode="decimal" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="1" max="5" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     <td>
                                                         <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}></textarea>
@@ -1858,22 +1872,28 @@
                                     </table>
                                 </form>
                                 @else
-                                <div class="form-group row align-items-center mb-2">
-                                    <label class="col-sm-2 text-danger mb-0 px-1 text-right" style="font-size: 13px; text-decoration: underline;">Penilai</label>
-                                    <div class="col-sm-4 px-1">
-                                        <select class="form-control form-control-sm border-dark rounded-0">
-                                            @if(isset($timSidang) && $timSidang->count() > 0)
-                                                @foreach($timSidang as $tim)
-                                                    <option value="{{ $tim->nip }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
-                                                @endforeach
-                                            @endif
-                                        </select>
+                                <div class="penilaian-toolbar mb-2">
+                                    <div class="penilaian-filters">
+                                        <div class="penilaian-filter-field">
+                                            <label class="text-danger mb-0" style="text-decoration: underline;">Penilai</label>
+                                            <div class="penilaian-filter-control">
+                                                <select class="form-control border-dark rounded-0 penilaian-select">
+                                                    @if(isset($timSidang) && $timSidang->count() > 0)
+                                                        @foreach($timSidang as $tim)
+                                                            <option value="{{ $tim->nip }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
+                                                        @endforeach
+                                                    @endif
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="penilaian-filter-field">
+                                            <label class="mb-0" style="color: #555;">Form</label>
+                                            <div class="penilaian-filter-control">
+                                                <input type="text" class="form-control border-dark rounded-0 penilaian-select">
+                                            </div>
+                                        </div>
                                     </div>
-                                    <label class="col-sm-2 mb-0 px-1 text-center" style="font-size: 13px; color: #555;">Form</label>
-                                    <div class="col-sm-2 px-1">
-                                        <input type="text" class="form-control form-control-sm border-dark rounded-0">
-                                    </div>
-                                    <div class="col-sm-3 pl-0 d-flex align-items-center">
+                                    <div class="d-flex align-items-center">
                                         <button type="button" class="btn btn-sm btn-outline-secondary px-2 mr-2"><i class="fas fa-search mr-1"></i> Cari</button>
                                         <button type="button" onclick="cetakBeritaAcara()" class="btn btn-sm btn-outline-primary px-2"><i class="fas fa-file-signature mr-1"></i> BA Sidang</button>
                                     </div>
@@ -1884,9 +1904,9 @@
                                         <tr>
                                             <th style="width: 8%;">No</th>
                                             <th style="width: 30%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
-                                            <th style="width: 17%;">Keterangan</th>
+                                            <th style="width: 32%;">Keterangan</th>
                                             <th style="width: 15%;">Nilai</th>
-                                            <th style="width: 30%;">Catatan</th>
+                                            <th style="width: 15%;">Catatan</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -2200,10 +2220,18 @@ function getNilaiAttrNum(inp, attr, fallback) {
     return isNaN(n) ? fallback : n;
 }
 
+function normalizeNilaiValue(value) {
+    return value.trim().replace(',', '.');
+}
+
 function checkNilaiRange(inp, silent) {
     if (!inp || inp.value === '') return true;
-    var v = parseFloat(inp.value);
-    if (isNaN(v)) return true;
+    var value = normalizeNilaiValue(inp.value);
+    if (!/^\d+(?:\.\d*)?$/.test(value)) {
+        if (!silent) notifyNilaiRange('Nilai harus berupa angka antara 1 dan 5.');
+        return false;
+    }
+    var v = Number(value);
     var min = getNilaiAttrNum(inp, 'min', 1);
     var max = getNilaiAttrNum(inp, 'max', 5);
     if (v > max) {
@@ -2256,16 +2284,29 @@ function formatNilaiServerError(data) {
     return 'Gagal menyimpan penilaian.';
 }
 
-document.addEventListener('input', function (e) {
-    if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
-        checkNilaiRange(e.target, false);
-    }
-});
-document.addEventListener('change', function (e) {
-    if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
-        checkNilaiRange(e.target, false);
-    }
-});
+if (!window.nilaiInputListenersBound) {
+    window.nilaiInputListenersBound = true;
+    document.addEventListener('focusin', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
+            e.target.dataset.nilaiValue = e.target.value;
+        }
+    });
+    document.addEventListener('input', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
+            var inp = e.target;
+            if (!/^\d*(?:[.,]\d*)?$/.test(inp.value)) {
+                inp.value = inp.dataset.nilaiValue ?? inp.defaultValue;
+            }
+            inp.dataset.nilaiValue = inp.value;
+            checkNilaiRange(inp, false);
+        }
+    });
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
+            checkNilaiRange(e.target, false);
+        }
+    });
+}
 
 
 document.addEventListener('change', function(e) {
@@ -2388,6 +2429,7 @@ function submitPenilaian(event) {
     const form = event.target;
     const btn = event.submitter || form.querySelector('button[type="submit"]');
     if (btn && btn.disabled) return;
+    if (!validateNilaiRangeInTbody('penilaianTableBody')) return;
     const formData = new FormData(form);
 
     // Convert to JSON
@@ -2400,7 +2442,7 @@ function submitPenilaian(event) {
                 const index = matches[1];
                 const field = matches[2];
                 if (!penilaianArr[index]) penilaianArr[index] = {};
-                penilaianArr[index][field] = value;
+                penilaianArr[index][field] = field === 'nilai' ? normalizeNilaiValue(value) : value;
             }
         } else {
             data[key] = value;
@@ -3359,7 +3401,7 @@ async function savePenilaianTahap1() {
         const idPenilaian = row.getAttribute('data-point-id');
         const nilaiEl = row.querySelector('.nilai-input');
         const catatanEl = row.querySelector('.catatan-input');
-        const nilai = nilaiEl ? nilaiEl.value : '';
+        const nilai = nilaiEl ? normalizeNilaiValue(nilaiEl.value) : '';
         const catatan = catatanEl ? catatanEl.value : '';
 
         penilaian.push({
@@ -3792,7 +3834,7 @@ async function savePenilaianTahap2() {
 
         penilaian.push({
             id_penilaian: idPenilaianInput.value,
-            nilai: nilaiInput ? nilaiInput.value : '',
+            nilai: nilaiInput ? normalizeNilaiValue(nilaiInput.value) : '',
             catatan: catatanInput ? catatanInput.value : ''
         });
     });

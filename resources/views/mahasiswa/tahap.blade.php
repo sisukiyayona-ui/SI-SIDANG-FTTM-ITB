@@ -19,6 +19,24 @@
             color: #64748b;
         }
 
+        #penilaianView .select2-container {
+            width: 100% !important;
+        }
+        #penilaianView .select2-container--bootstrap .select2-selection--single {
+            height: 38px !important;
+            padding: 0 0.75rem !important;
+            font-size: 14px !important;
+            display: flex;
+            align-items: center;
+        }
+        #penilaianView .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {
+            flex: 1;
+            line-height: 36px !important;
+        }
+        #penilaianView .select2-container--bootstrap .select2-selection--single .select2-selection__arrow {
+            height: 36px !important;
+        }
+
         /* Light mode overrides */
         html:not(.dark-mode) .tahap-container table thead th,
         html:not(.dark-mode) .tahap-container table thead th span {
@@ -535,11 +553,11 @@
                             Form <span class="text-danger" style="text-decoration: underline;">Penilaian</span> Seminar/Sidang {{ getTahapLabel($tahapan) }}
                         </div>
                         <div class="row align-items-center mb-2">
-                            <div class="col-md-4">
+                            <div class="col-md-6 mb-2 mb-md-0">
                                 <div class="form-group row align-items-center mb-0 px-1">
-                                    <label class="col-sm-4 text-danger mb-0 pr-0" style="font-size: 13px; text-decoration: underline;">Penilai</label>
-                                    <div class="col-sm-8 px-1">
-                                        <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="penilaiViewSelect" onchange="filterPenilaianView()">
+                                    <label class="col-sm-2 text-danger mb-0 pr-0" style="font-size: 14px; text-decoration: underline;">Penilai</label>
+                                    <div class="col-sm-10 px-1">
+                                        <select class="form-control border-dark rounded-0 select2-search" id="penilaiViewSelect" onchange="filterPenilaianView()">
                                             <option value="">-- Pilih Penilai --</option>
                                             @if(isset($timSidang) && $timSidang->count() > 0)
                                                 @foreach($timSidang as $tim)
@@ -551,11 +569,11 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-5">
                                 <div class="form-group row align-items-center mb-0 px-1">
-                                    <label class="col-sm-4 text-danger mb-0 pr-0" style="font-size: 13px; text-decoration: underline;">Form</label>
-                                    <div class="col-sm-8 px-1">
-                                        <select class="form-control form-control-sm border-dark rounded-0 select2-search" id="formViewSelect" onchange="filterPenilaianView()">
+                                    <label class="col-sm-2 text-danger mb-0 pr-0" style="font-size: 14px; text-decoration: underline;">Form</label>
+                                    <div class="col-sm-10 px-1">
+                                        <select class="form-control border-dark rounded-0 select2-search" id="formViewSelect" onchange="filterPenilaianView()">
                                             <option value="">-- Pilih Form --</option>
                                             @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
                                                 @foreach($pointPenilaian as $form)
@@ -566,7 +584,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-5 text-right">
+                            <div class="col-md-1 text-right">
                                 {{-- Tombol BA Sidang sengaja dihide untuk user mahasiswa --}}
                             </div>
                         </div>
@@ -1009,6 +1027,12 @@ if (window.jQuery && jQuery.fn.select2) {
                 allowClear: true,
                 width: '100%'
             });
+        });
+        jQuery(document).on('select2:open', function (e) {
+            var $select = jQuery(e.target);
+            var $dropdown = jQuery('.select2-dropdown--below');
+            var containerWidth = $select.outerWidth(true);
+            $dropdown.css({'width': containerWidth + 'px', 'min-width': containerWidth + 'px'});
         });
     });
 }
