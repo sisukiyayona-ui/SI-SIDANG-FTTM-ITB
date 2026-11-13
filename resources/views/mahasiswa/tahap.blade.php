@@ -100,6 +100,19 @@
     @php
         $judulHeader = $idJudul ? \App\Models\TJudul::find($idJudul) : null;
         $userHeader = $judulHeader?->user;
+        // Jika belum ada rekapan TAjuanSidang untuk judul+tahapan ini (mis. mahasiswa
+        // belum mengajukan Ujian Proposal), gunakan objek kosong dengan semua properti
+        // yang di-akses view di-set null, sehingga akses properti $ajuan tidak fatal
+        // dan form tetap tampil dengan data kosong.
+        $ajuan = $ajuan ?? (object) [
+            'nama_mhs' => null, 'Nim' => null, 'Judul' => null,
+            'status_lulus' => null, 'tgl_sidang' => null, 'waktu_sidang' => null,
+            'ruang_sidang' => null, 'STRATA' => null, 'STATUS_LULUS' => null,
+            'NILAI_TERKUNCI' => null, 'status_ajukan_mhs' => null,
+            'STATUS_AJUKAN_MHS' => null, 'STATUS_AJUKAN_PRODI' => null,
+            'STATUS_AJUKAN_KPPS' => null, 'KODE_PRODI' => null, 'ID_PRODI' => null,
+            'id' => null,
+        ];
         $nama = $ajuan->nama_mhs ?? $userHeader?->NAMA_LENGKAP ?? session('auth_user.nama_lengkap');
         $nim = $ajuan->Nim ?? $userHeader?->NIP_NIM ?? session('auth_user.nip_nim');
         $judulText = $ajuan->Judul ?? $judulHeader?->Judul ?? '';
@@ -262,6 +275,10 @@
                             ->where('tahapan_sidang', $tahapan)
                             ->latest('id')
                             ->first();
+                        $appAjuanMhs = $appAjuanMhs ?? (object) [
+                            'status_lulus' => null, 'KODE_PRODI' => null, 'kode_prodi' => null,
+                            'ID_PRODI' => null, 'id_prodi' => null, 'id' => null,
+                        ];
                         $votingStatusLulusMhs = $appAjuanMhs->status_lulus ?? ($ajuan->status_lulus ?? '');
                         $isVotingLulusMhs = stripos((string) $votingStatusLulusMhs, 'Lulus') !== false
                             || stripos((string) $votingStatusLulusMhs, 'Layak') !== false;
@@ -478,13 +495,13 @@
                         <div class="form-group row align-items-center mb-2 px-1">
                             <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Tanggal</label>
                             <div class="col-sm-8 px-2">
-                                <input type="date" id="f_tgl_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ $ajuan?->tgl_sidang?->format('Y-m-d') ?? '' }}" @disabled($strataView === 'S2' && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y')>
+                                <input type="date" id="f_tgl_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ $ajuan->tgl_sidang ?? '' }}" @disabled($strataView === 'S2' && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y')>
                             </div>
                         </div>
                         <div class="form-group row align-items-center mb-2 px-1">
                             <label class="col-sm-4 text-danger mb-0" style="font-size: 13px; text-decoration: underline; text-decoration-color: red;">Waktu</label>
                             <div class="col-sm-8 px-2">
-                                <input type="time" id="f_waktu_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ $ajuan?->waktu_sidang?->format('H:i') ?? '' }}" @disabled($strataView === 'S2' && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y')>
+                                <input type="time" id="f_waktu_sidang" class="form-control form-control-sm border-dark rounded-0" value="{{ $ajuan->waktu_sidang ?? '' }}" @disabled($strataView === 'S2' && ($ajuan->STATUS_AJUKAN_PRODI ?? 't') === 'y')>
                             </div>
                         </div>
                         <div class="form-group row align-items-center mb-2 px-1">
