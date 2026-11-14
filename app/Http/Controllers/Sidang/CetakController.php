@@ -68,6 +68,7 @@ class CetakController extends Controller
     /**
      * Pilih template Berita Acara S2 berdasarkan KODE_PRODI:
      * 221 -> BA Tesis I prodi 221
+     * 222 -> Berita Acara Sidang prodi 222 (Teknik Perminyakan)
      * 223 -> BA Tesis I 223 TG
      * 225 atau lainnya -> BA Tesis I prodi 225
      */
@@ -76,6 +77,8 @@ class CetakController extends Controller
         $kp = trim((string) $kodeProdi);
         if ($kp === '221') {
             return base_path('template/S2/BA Tesis I prodi 221 TEMPLATE.docx');
+        } elseif ($kp === '222') {
+            return base_path('template/S2/Berita Acara Sidang prodi 222 TEMPLATE.docx');
         } elseif ($kp === '223') {
             return base_path('template/S2/BA Tesis I 223 TG TEMPLATE.docx');
         }
@@ -1426,6 +1429,10 @@ class CetakController extends Controller
             return response()->json(['error' => 'Data judul/ajuan tidak ditemukan.'], 404);
         }
 
+        // Kode prodi dari ajuan (fallback ke judul) untuk memilih template BA per-prodi.
+        $kodeProdi = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi
+            ?? $judul->KODE_PRODI ?? $judul->kode_prodi ?? null;
+
         // Semua tim sidang untuk header pembimbing
         $allTimSidang = TTimSidang::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)->get();
@@ -1502,8 +1509,9 @@ class CetakController extends Controller
         $tanggal = $latestPenilaian?->TGL_UPDATE ?? $latestPenilaian?->TGL_CREATE ?? null;
         $tanggalFormat = $tanggal ? \Carbon\Carbon::parse($tanggal)->translatedFormat('d F Y') : '';
 
-        // Template: S2 pakai template BA per-KODE_PRODI (221/223 TG/225)
+        // Template: S2 pakai template BA per-KODE_PRODI (221/222/223 TG/225)
         $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
+        $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222';
         if ($isS2) {
             $templatePath = $this->getS2BeritaAcaraTemplate($kodeProdi);
         } else {
@@ -1627,6 +1635,45 @@ class CetakController extends Controller
 
                 $tp->setValue('nama kaprodi',    $kaprodiBA?->NAMA_LENGKAP ?? '-');
                 $tp->setValue('nip kaprodi',     $kaprodiBA?->NIP_NIM ?? '-');
+
+                // Placeholder versi underscore (sesuai hasil `template:prepare`)
+                // agar field benar-benar terisi di template BA S2.
+                $tp->setValue('nama_prodi',   $prodiBA?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+                $tp->setValue('kode_mk',      $kodeMkBA);
+                $tp->setValue('nama_kaprodi', $kaprodiBA?->NAMA_LENGKAP ?? '-');
+                $tp->setValue('nip_kaprodi',  $kaprodiBA?->NIP_NIM ?? '-');
+                $tp->setValue('nilai_huruf',  $indeks);
+                $tp->setValue('status_lulus', $statusLulusBA);
+
+                // Prodi 222 (Teknik Perminyakan): BA tabel 4 penilai (Pembimbing 1/2,
+                // Ketua Penguji, Penguji) + Form Pengeluaran Nilai. Tiap baris punya
+                // NIP & tanda tangan sendiri (diisi di embedAllSkSignatures setelah saveAs).
+                if ($isS2Prodi222) {
+                    $pembimbings = $allTimSidang->filter(fn($t) =>
+                        str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
+                    )->values();
+                    $p1 = $ketuaPembimbing ?? $pembimbings->get(0);
+                    $p2 = $pembimbings->first(fn($t) => $t->id !== ($p1?->id));
+
+                    $pengujis = $allTimSidang->filter(fn($t) =>
+                        str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji')
+                    )->values();
+                    $ketuaPenguji = $ketuaSidang ?? $pengujis->get(0);
+                    $penguji1 = $pengujis->first(fn($t) => $t->id !== ($ketuaPenguji?->id)) ?? $pengujis->get(0);
+
+                    $tp->setValue('nama_pembimbing_i',  $p1?->NAMA ?? '-');
+                    $tp->setValue('nama_pembimbing_ii', $p2?->NAMA ?? '-');
+                    $tp->setValue('nip_pembimbing_i',   $p1?->NIP ?? '-');
+                    $tp->setValue('nip_pembimbing_ii',  $p2?->NIP ?? '-');
+                    $tp->setValue('nama_ketua_penguji', $ketuaPenguji?->NAMA ?? '-');
+                    $tp->setValue('nip_ketua_penguji',  $ketuaPenguji?->NIP ?? '-');
+                    $tp->setValue('nama_penguji_i',     $penguji1?->NAMA ?? '-');
+                    $tp->setValue('nip_penguji_i',      $penguji1?->NIP ?? '-');
+
+                    $tp->setValue('semester',             $ajuan->SEMESTER ?? '');
+                    $tp->setValue('tahun_akademik',       $ajuan->THN_AKADEMIK ?? '');
+                    $tp->setValue('nilai_huruf_akhir_ba', $indeks);
+                }
             }
 
         } catch (\Exception $e) {
@@ -1665,7 +1712,17 @@ class CetakController extends Controller
         $this->centerValueCellsInBaProposal($docxPath);
 
         // Sisipkan tanda tangan penilai (ketua sidang) ke BA
-        if ($ketuaSidang) {
+        if ($isS2Prodi222) {
+            // BA prodi 222: 5 slot tanda tangan berurutan — Pembimbing 1, Pembimbing 2,
+            // Ketua Penguji, Penguji, lalu Pembimbing 1 lagi di Form Pengeluaran Nilai.
+            $this->embedAllSkSignatures($docxPath, [
+                $this->signatureBinary($p1),
+                $this->signatureBinary($p2),
+                $this->signatureBinary($ketuaPenguji),
+                $this->signatureBinary($penguji1),
+                $this->signatureBinary($p1),
+            ]);
+        } elseif ($ketuaSidang) {
             $this->fillSignaturePlaceholder($docxPath, $ketuaSidang->id_user_penilai);
         } elseif ($ketuaPembimbing) {
             $this->fillSignaturePlaceholder($docxPath, $ketuaPembimbing->id_user_penilai);

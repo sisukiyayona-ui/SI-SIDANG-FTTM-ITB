@@ -542,6 +542,53 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
+                // Berita Acara Sidang Magister prodi 222 (Teknik Perminyakan) — S2.
+                // Memuat BA (tabel 4 penilai: Pembimbing 1/2, Ketua Penguji, Penguji —
+                // tiap baris punya NIP & tanda tangan sendiri) + Form Pengeluaran Nilai.
+                'src' => base_path('template/S2/Berita Acara Sidang prodi 222.docx'),
+                'dst' => base_path('template/S2/Berita Acara Sidang prodi 222 TEMPLATE.docx'),
+                'replacements' => [
+                    // Kop & periode
+                    '(semester)'            => '${semester}',
+                    '(tahun akademik)'      => '${tahun_akademik}',
+                    '(thn akademik)'        => '${tahun_akademik}',
+
+                    // Identitas mahasiswa
+                    '(nama mhs)'            => '${nama_mhs}',
+                    '(nim)'                 => '${nim}',
+                    '(judul)'               => '${judul}',
+                    '(tgl sidang)'          => '${tgl_sidang}',
+
+                    // Nama penilai. '(nama pembimbing II)' sebelum '(nama pembimbing I)'.
+                    '(nama pembimbing II)'  => '${nama_pembimbing_ii}',
+                    '(nama pembimbing I)'   => '${nama_pembimbing_i}',
+                    '(nip pembimbing I)'    => '${nip_pembimbing_i}',
+
+                    // Prodi & kaprodi
+                    '(nama prodi)'          => '${nama_prodi}',
+                    '(nama kaprodi)'        => '${nama_kaprodi}',
+                    '(nip kaprodi)'         => '${nip_kaprodi}',
+                    '(kode MK)'             => '${kode_mk}',
+
+                    // Nilai. '(nilai huruf akhir BA)' sebelum '(nilai huruf)'.
+                    '(nilai huruf akhir BA)' => '${nilai_huruf_akhir_ba}',
+                    '(nilai huruf)'         => '${nilai_huruf}',
+                    // Di sumber teksnya "( nilai rata2 )" (ada spasi di dalam kurung).
+                    '( nilai rata2 )'       => '${nilai_rata2}',
+                    '(nilai rata2)'         => '${nilai_rata2}',
+                    'status lulus'          => '${status_lulus}',
+
+                    // Tanda tangan (5 slot: 4 baris tabel + 1 form pengeluaran nilai).
+                    '(ttd)'                 => '${signature}',
+                ],
+                // "(nama penguji)" x2 -> baris 3 (Ketua Penguji) & baris 4 (Penguji).
+                'sequenceReplacements' => [
+                    ['search' => '(nama penguji)', 'tokens' => ['${nama_ketua_penguji}', '${nama_penguji_i}']],
+                ],
+                // "(nip)" x4 di tabel BA -> Pembimbing 1, Pembimbing 2, Ketua Penguji, Penguji.
+                'nipSequence' => ['${nip_pembimbing_i}', '${nip_pembimbing_ii}', '${nip_ketua_penguji}', '${nip_penguji_i}'],
+            ],
+            [
                 // BA Tesis I prodi 221 — sumber asli .doc (Word 97-2003).
                 // Konversi dulu "BA Tesis I prodi 221.doc" -> .docx (Word: Save As .docx),
                 // karena ZipArchive hanya bisa membaca .docx.
@@ -676,6 +723,15 @@ class PrepareTemplate extends Command
                     $tokens[] = '${nilai_' . $i . '}';
                 }
                 $xml = $this->fuzzyReplaceSequential($xml, $template['nilaiSearch'] ?? '(nilai)', $tokens);
+            }
+
+            // Penggantian berurutan generik (mis. "(nama penguji)" x2 -> ketua penguji & penguji).
+            if (!empty($template['sequenceReplacements'])) {
+                foreach ($template['sequenceReplacements'] as $seq) {
+                    if (!empty($seq['search']) && !empty($seq['tokens'])) {
+                        $xml = $this->fuzzyReplaceSequential($xml, $seq['search'], $seq['tokens']);
+                    }
+                }
             }
 
             // Khusus PED Ketua Sidang: 6 slot "(asal instansi)" berurutan
