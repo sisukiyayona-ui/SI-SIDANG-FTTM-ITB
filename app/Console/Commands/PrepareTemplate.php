@@ -1061,6 +1061,9 @@ class PrepareTemplate extends Command
         // bagian "${" dan "}" agar menjadi satu run berisi ${kotak_lulus}.
         $xml = $this->mergeSplitKotakLulus($xml);
 
+        // Rapikan placeholder ${nilai_rata2} yang terpecah antar-run
+        $xml = $this->mergeSplitNilaiRata2($xml);
+
         // Rename placeholder per baris (hanya paragraf yang memuat kata kunci).
         $variants = [
             '${kotak_yudisium}'    => ['Rekomendasi'],
@@ -1129,6 +1132,24 @@ class PrepareTemplate extends Command
             '/(<w:t[^>]*>)\$\{(<\/w:t>)(.*?)(<w:r\b[^>]*><w:rPr>.*?<\/w:rPr><w:t[^>]*>)kotak_lulus(<\/w:t>)(.*?)(<w:r\b[^>]*><w:rPr>.*?<\/w:rPr><w:t[^>]*>)\}(<\/w:t>)/s',
             function ($m) {
                 return $m[1] . '${kotak_lulus}' . $m[2] . $m[3]
+                    . $m[4] . '' . $m[5] . $m[6] . $m[7] . '' . $m[8];
+            },
+            $xml,
+            1
+        );
+    }
+
+    /**
+     * Rapikan placeholder ${nilai_rata2} yang terpecah antar-run karena
+     * <w:proofErr> atau pemisahan <w:r> di tengah teks.
+     * Pola: "${" | "nilai_rata" | "2}" -> "${nilai_rata2}"
+     */
+    private function mergeSplitNilaiRata2(string $xml): string
+    {
+        return preg_replace_callback(
+            '/(<w:t[^>]*>)\$\{(<\/w:t>)(.*?)(<w:r\b[^>]*><w:rPr>.*?<\/w:rPr><w:t[^>]*>)nilai_rata(<\/w:t>)(.*?)(<w:r\b[^>]*><w:rPr>.*?<\/w:rPr><w:t[^>]*>)2\}(<\/w:t>)/s',
+            function ($m) {
+                return $m[1] . '${nilai_rata2}' . $m[2] . $m[3]
                     . $m[4] . '' . $m[5] . $m[6] . $m[7] . '' . $m[8];
             },
             $xml,

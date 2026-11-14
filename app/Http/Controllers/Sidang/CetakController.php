@@ -2378,7 +2378,7 @@ class CetakController extends Controller
         $this->fillSidangAkhirXml($docxPath, [
             'nilai_rows'           => $nilaiRows,
             'rata_rata'            => $rataRata,
-            'nilai_akhir'          => $rataRata,
+            'nilai_akhir'          => $indeks,
             'indeks'               => $indeks,
             'penguji_names'        => $pengujiNames,
             'waktu_selesai'        => $waktuSelesai,
@@ -2571,8 +2571,17 @@ class CetakController extends Controller
         $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
 
         // Nilai Rata-Rata (baris 7) & Nilai akhir Index (baris 8)
-        $xml = str_replace('${nilai_rata2}', $esc($data['rata_rata'] ?? ''), $xml);
-        $xml = str_replace('${nilai_rata_rata}', $esc($data['rata_rata'] ?? ''), $xml);
+        // Handle multiple placeholder variants + split XML runs
+        $rataValue = $esc($data['rata_rata'] ?? '');
+        $xml = str_replace('${nilai_rata2}', $rataValue, $xml);
+        $xml = str_replace('${nilai_rata_rata}', $rataValue, $xml);
+        $xml = str_replace('${nilai_akhir_rata_rata}', $rataValue, $xml);
+        // Handle split-run placeholder: ${nilai_rata` + `2} or similar fragmentation
+        $xml = preg_replace(
+            '/(<w:t[^>]*>)\$\{nilai_rata<\/w:t><w:r[^>]*><w:rPr>.*?<\/w:rPr><w:t[^>]*>2\}(<\/w:t>)/s',
+            '$1' . $rataValue . '$2',
+            $xml
+        );
         $xml = str_replace('${nilai_akhir_index}', $esc($data['indeks'] ?? ''), $xml);
         $xml = str_replace('${nilai_akhir}', $esc($data['nilai_akhir'] ?? ''), $xml);
 
