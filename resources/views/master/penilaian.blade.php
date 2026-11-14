@@ -83,9 +83,10 @@
                         <div class="mb-3">
                             <label for="f_strata" class="form-label fw-semibold">Strata</label>
                             <select name="strata" id="f_strata" class="form-control" required onchange="filterTahapanByStrata()">
-                                <option value="S3" selected>S3</option>
+                                <option value="">-- Pilih Strata --</option>
                                 <option value="S1">S1</option>
                                 <option value="S2">S2</option>
+                                <option value="S3">S3</option>
                             </select>
                         </div>
                     </div>
@@ -101,6 +102,7 @@
                             <label for="f_id_prodi" class="form-label fw-semibold">Program Studi</label>
                             @php $loginProdiP = (isset($penilaian) && is_object($penilaian) && property_exists($penilaian, 'id_prodi') && $penilaian->id_prodi) ? \App\Models\TProdi::find($penilaian->id_prodi) : null; @endphp
                             <select name="id_prodi" id="f_id_prodi" class="form-control" required>
+                                <option value="">-- Pilih Prodi --</option>
                                 @foreach($prodis as $p)
                                     <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" {{ $loginProdiP && (string) $loginProdiP->id === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                                 @endforeach
@@ -598,18 +600,25 @@
         var strata = document.getElementById('f_strata').value;
         var digit = strataDigit[strata] || null;
         var select = document.getElementById('f_id_prodi');
-        if (!select || !digit) return;
+        if (!select) return;
+        if (!digit) {
+            // Belum pilih strata: tampilkan semua prodi, biarkan placeholder terpilih.
+            Array.prototype.forEach.call(select.options, function (opt) {
+                opt.hidden = false;
+                opt.disabled = false;
+            });
+            return;
+        }
         var current = select.value;
-        var first = null;
         var visible = 0;
         Array.prototype.forEach.call(select.options, function (opt) {
             var kode = String(opt.dataset.kode || '');
+            // Placeholder (tanpa data-kode) selalu tampil.
             var show = !kode || kode.charAt(0) === digit;
             opt.hidden = !show;
             opt.disabled = !show;
             if (show) {
                 visible++;
-                if (first === null) first = opt.value;
             }
             if (!show && opt.value === current) {
                 current = '';
@@ -619,8 +628,9 @@
             Array.prototype.forEach.call(select.options, function (opt) { opt.hidden = false; opt.disabled = false; });
             return;
         }
-        if (!current && !keepIfCompatible && first) {
-            select.value = first;
+        // Jangan pilih otomatis; biarkan user memilih sendiri (placeholder tetap tampil).
+        if (select.value !== current) {
+            select.value = current || '';
         }
     }
 
@@ -663,10 +673,10 @@
         document.getElementById('dataId').value = '';
         document.getElementById('f_penilaian').value = '';
         document.getElementById('f_no_form').value = '';
-        document.getElementById('f_strata').value = 'S3';
+        document.getElementById('f_strata').value = '';
         filterTahapanByStrata();
         const prodiSelect = document.getElementById('f_id_prodi');
-        if (prodiSelect) prodiSelect.selectedIndex = 0;
+        if (prodiSelect) prodiSelect.value = '';
         document.getElementById('statusAktif').checked = true;
         document.getElementById('statusCatatanTidak').checked = true;
         document.getElementById('f_keterangan').value = '';

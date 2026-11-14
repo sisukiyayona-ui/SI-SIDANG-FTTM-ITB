@@ -53,6 +53,17 @@ class CetakController extends Controller
     }
 
     /**
+     * Nama program studi untuk dokumen cetak.
+     * Pakai NAMA_PRODI yang tersimpan di t_ajuan_sidang (bukan relasi prodi),
+     * karena ID_PRODI kadang menunjuk prodi yang berbeda dari data mahasiswa.
+     */
+    private function namaProdiAjuan($ajuan): string
+    {
+        $nama = trim((string) ($ajuan->NAMA_PRODI ?? ''));
+        return $nama !== '' ? $nama : '-';
+    }
+
+    /**
      * Pilih template Berita Acara S2 berdasarkan KODE_PRODI:
      * 221 -> BA Tesis I prodi 221
      * 223 -> BA Tesis I 223 TG
@@ -1718,6 +1729,7 @@ class CetakController extends Controller
             'nip_kaprodi'  => $kaprodi ? $kaprodi->NIP_NIM : '',
             'nama_penguji_i'  => $slot4,   // Row 4 (Penguji 1)
             'nama_penguji_ii' => $slot5,   // Row 5 (Penguji 2)
+            'prodi'        => $this->namaProdiAjuan($ajuan),
         ]);
 
         // Tanda tangan per-baris sesuai peran: Ketua, Ko-1, Ko-2, Penguji-1, Penguji-2
@@ -1800,6 +1812,11 @@ class CetakController extends Controller
         if (!empty($data['nip_kaprodi'])) {
             $xml = $this->fuzzyReplaceOnce($xml, '${nip_kaprodi}', $esc($data['nip_kaprodi']));
             $xml = $this->fuzzyReplaceOnce($xml, '$(nip kaprodi)', $esc($data['nip_kaprodi']));
+        }
+
+        // Nama prodi statis pada blok tanda tangan kaprodi -> NAMA_PRODI ajuan
+        if (!empty($data['prodi'])) {
+            $xml = $this->fuzzyReplaceAll($xml, 'Teknik Geofisika', $esc($data['prodi']));
         }
 
         // Baris 4-5 (Penguji I & II) menggunakan placeholder ${nama_penguji_i} (muncul 2x):
@@ -2039,6 +2056,7 @@ class CetakController extends Controller
             'nama_pembimbing_ii'   => $namaKoPembimbing2,
             'nama_kaprodi'         => $kaprodi ? $kaprodi->NAMA_LENGKAP : '',
             'nip_kaprodi'          => $kaprodi ? $kaprodi->NIP_NIM : '',
+            'prodi'                => $this->namaProdiAjuan($ajuan),
         ]);
 
         // Tanda tangan per-baris tabel: 5 slot = Ketua, Ko-1, Ko-2, Penguji-1, Penguji-2.
@@ -2158,6 +2176,11 @@ class CetakController extends Controller
         $xml = preg_replace('/\$\{nama_kaprodi\}/', '', $xml);
         $xml = preg_replace('/\$\{nip_kaprodi\}/', '', $xml);
         $xml = preg_replace('/\$\([^)]*kaprodi[^)]*\)/i', '', $xml);
+
+        // Nama prodi statis pada blok tanda tangan kaprodi -> NAMA_PRODI ajuan
+        if (!empty($data['prodi'])) {
+            $xml = $this->fuzzyReplaceAll($xml, 'Teknik Geofisika', $esc($data['prodi']));
+        }
 
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
@@ -2908,7 +2931,7 @@ class CetakController extends Controller
             $wda = TUser::where('STATUS_DEKAN', 'y')->first();
         }
 
-        $prodi = optional($ajuan->prodi)->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-';
+        $prodi = $this->namaProdiAjuan($ajuan);
 
         $fmt = function ($date, $default = '-') {
             return $date ? \Carbon\Carbon::parse($date)->translatedFormat('d F Y') : $default;
@@ -3317,7 +3340,7 @@ class CetakController extends Controller
 
         $dekan = TUser::where('STATUS_DEKAN', 'y')->first();
 
-        $prodi = optional($ajuan->prodi)->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-';
+        $prodi = $this->namaProdiAjuan($ajuan);
 
         $mulai = $ajuan->waktu_sidang;
         $selesai = $ajuan->waktu_selesai;
@@ -3533,7 +3556,7 @@ class CetakController extends Controller
             ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H:i') . ' – ' . \Carbon\Carbon::parse($ajuan->waktu_selesai)->format('H:i') . ' WIB'
             : '-';
 
-        $prodi = optional($ajuan->prodi)->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-';
+        $prodi = $this->namaProdiAjuan($ajuan);
 
         $wda = TUser::where('STATUS_WDA', 'y')->first();
         if (!$wda) {
@@ -3592,7 +3615,7 @@ class CetakController extends Controller
 
         // Nama tahapan pada template masih statis ("Seminar Kemajuan IV") —
         // ganti dinamis sesuai tahapan yang dicetak.
-        $postSave = function ($docxPath) use ($kepadaParagraphs, $perihal, $seminar, $wda) {
+        $postSave = function ($docxPath) use ($kepadaParagraphs, $perihal, $seminar, $wda, $prodi) {
             $z = new \ZipArchive();
             if ($z->open($docxPath) === true) {
                 $xml = $z->getFromName('word/document.xml');
@@ -3610,6 +3633,11 @@ class CetakController extends Controller
                     'Seminar Kemajuan IV (SK-IV)',
                     htmlspecialchars($seminar, ENT_XML1, 'UTF-8')
                 );
+
+                // Nama prodi statis ("Program Doktor Teknik Geofisika") -> NAMA_PRODI ajuan
+                if ($prodi !== '' && $prodi !== '-') {
+                    $xml = $this->fuzzyReplaceAll($xml, 'Teknik Geofisika', htmlspecialchars($prodi, ENT_XML1, 'UTF-8'));
+                }
 
                 if ($kepadaParagraphs !== '') {
                     // Replace the entire <w:p> that contains the {kepada} placeholder
@@ -3977,7 +4005,13 @@ class CetakController extends Controller
             
             // Replace prodi placeholder (split across runs, no $ prefix)
             $xml = $this->replaceSplitPlaceholder($xml, '{Teknik Geofisika nama prodi}', $prodi, 0);
-            
+
+            // Ganti sisa nama prodi statis pada template (mis. "Program Doktor Teknik Geofisika")
+            // dengan NAMA_PRODI dari ajuan agar sesuai program studi mahasiswa.
+            if ($prodi !== '') {
+                $xml = $this->fuzzyReplaceAll($xml, 'Teknik Geofisika', htmlspecialchars($prodi, ENT_XML1, 'UTF-8'));
+            }
+
             // Clean up any remaining placeholders
             $xml = str_replace('${nama_penguji}', '', $xml);
             $xml = str_replace('${institusi}', '', $xml);

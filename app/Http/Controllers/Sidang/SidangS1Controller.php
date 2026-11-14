@@ -364,7 +364,7 @@ class SidangS1Controller extends Controller
             'RUANG_SIDANG'        => null,
             'ID_PRODI'            => $prodi->id ?? null,
             'KODE_PRODI'          => $mhs->KODE_PRODI,
-            'NAMA_PRODI'          => $prodi->NAMA_PRODI ?? null,
+            'NAMA_PRODI'          => $mhs->NAMA_PRODI ?? '-',
             'ID_USER_CREATE'      => $user['id'],
             'NAMA_USER_CREATE'    => $user['nama_lengkap'],
             'THN_CREATE'          => date('Y'),

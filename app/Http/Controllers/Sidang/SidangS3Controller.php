@@ -401,7 +401,7 @@ class SidangS3Controller extends Controller
             'THN_CREATE' => date('Y'),
             'ID_PRODI' => $prodi->id,
             'KODE_PRODI' => $prodi->KODE_PRODI,
-            'NAMA_PRODI' => $prodi->NAMA_PRODI,
+            'NAMA_PRODI' => $mhs->NAMA_PRODI ?? '-',
         ]);
     }
 }

@@ -38,6 +38,7 @@
                 <div class="mb-3">
                     <label for="tahapan_sidang" class="form-label">Tahapan Sidang</label>
                     <select name="tahapan_sidang" id="tahapan_sidang" class="form-control" required>
+                        <option value="">-- Pilih Tahapan --</option>
                         @foreach($tahapans as $t)
                             <option value="{{ $t->Tahapan }}" {{ isset($penilaian) && $penilaian['tahapan_sidang'] == $t->Tahapan ? 'selected' : '' }}>{{ \App\Services\MasterExcelService::tahapanLabel($t->Tahapan) }}</option>
                         @endforeach
@@ -46,14 +47,16 @@
                 <div class="mb-3">
                     <label for="strata" class="form-label">Strata</label>
                     <select name="strata" id="strata" class="form-control" required>
+                        <option value="">-- Pilih Strata --</option>
                         <option value="S1" {{ isset($penilaian) && $penilaian['strata'] == 'S1' ? 'selected' : '' }}>S1</option>
                         <option value="S2" {{ isset($penilaian) && $penilaian['strata'] == 'S2' ? 'selected' : '' }}>S2</option>
-                        <option value="S3" {{ !isset($penilaian) || $penilaian['strata'] == 'S3' ? 'selected' : '' }}>S3</option>
+                        <option value="S3" {{ isset($penilaian) && $penilaian['strata'] == 'S3' ? 'selected' : '' }}>S3</option>
                     </select>
                 </div>
                 <div class="mb-3">
                     <label for="id_prodi" class="form-label">Program Studi</label>
                     <select name="id_prodi" id="id_prodi" class="form-control" required>
+                        <option value="">-- Pilih Prodi --</option>
                         @foreach($prodis as $p)
                             <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" {{ isset($penilaian) && $penilaian['id_prodi'] == $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                         @endforeach
@@ -121,6 +124,10 @@
         var tahapanSelect = document.getElementById('tahapan_sidang');
         var current = tahapanSelect.value;
         tahapanSelect.innerHTML = '';
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- Pilih Tahapan --';
+        tahapanSelect.appendChild(placeholder);
         options.forEach(function (o) {
             var el = document.createElement('option');
             el.value = o.value;
@@ -133,16 +140,23 @@
 
         var prodiSelect = document.getElementById('id_prodi');
         var currentProdi = prodiSelect.value;
-        var first = null, visible = 0;
+        var visible = 0;
         Array.prototype.forEach.call(prodiSelect.options, function (opt) {
             var kode = String(opt.dataset.kode || '');
+            // Placeholder (tanpa data-kode) selalu tampil.
             var show = !digit || !kode || kode.charAt(0) === digit;
             opt.hidden = !show;
             opt.disabled = !show;
-            if (show) { visible++; if (first === null) first = opt.value; }
+            if (show) { visible++; }
+            if (!show && opt.value === currentProdi) { currentProdi = ''; }
         });
-        if (visible > 0 && (!currentProdi || prodiSelect.options[prodiSelect.selectedIndex].disabled)) {
-            prodiSelect.value = first;
+        if (visible === 0) {
+            Array.prototype.forEach.call(prodiSelect.options, function (opt) { opt.hidden = false; opt.disabled = false; });
+            return;
+        }
+        // Jangan pilih otomatis; biarkan user memilih sendiri (placeholder tetap tampil).
+        if (prodiSelect.value !== currentProdi) {
+            prodiSelect.value = currentProdi || '';
         }
     }
 

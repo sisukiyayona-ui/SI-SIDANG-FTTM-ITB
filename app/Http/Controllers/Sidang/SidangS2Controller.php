@@ -310,7 +310,7 @@ class SidangS2Controller extends Controller
             }
 
             $this->insertAjuanTS1FromTuProdi($judulId, $existingJudul->JUDUL ?? $request->judul, $mhs, $prodi, $user);
-            return redirect()->back()->with('success', 'Judul sudah ada; pengajuan Tesis I dilengkapi dan langsung Diproses di TU Prodi.');
+            return redirect()->back()->with('success', 'Judul sudah ada; pengajuan Tesis I dilengkapi dengan status Belum Diajukan.');
         }
 
         try {
@@ -332,12 +332,13 @@ class SidangS2Controller extends Controller
             return redirect()->back()->with('error', 'Gagal menambah judul: ' . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Judul berhasil ditambahkan dan langsung Diproses di TU Prodi.');
+        return redirect()->back()->with('success', 'Judul berhasil ditambahkan dengan status Belum Diajukan.');
     }
 
     /**
      * Insert ajuan Tesis I saat judul S2 dibuat oleh TU Prodi / FS.
-     * STATUS_AJUKAN_MHS = 'y' agar status langsung "Diproses di TU Prodi".
+     * STATUS_AJUKAN_MHS = 't' agar status tetap "Belum Diajukan" sampai
+     * mahasiswa klik Ajukan (baru jadi "Diproses di TU Prodi").
      */
     private function insertAjuanTS1FromTuProdi(int $judulId, string $judul, $mhs, $prodi, array $user): void
     {
@@ -350,7 +351,7 @@ class SidangS2Controller extends Controller
             'JUDUL'             => $judul,
             'TAHAPAN_SIDANG'      => 'Tesis I',
             'STRATA'              => 'S2',
-            'STATUS_AJUKAN_MHS'   => 'y',
+            'STATUS_AJUKAN_MHS'   => 't',
             'STATUS_AJUKAN_PRODI' => 't',
             'STATUS_LULUS'        => null,
             'TGL_SIDANG'          => null,
@@ -358,7 +359,7 @@ class SidangS2Controller extends Controller
             'RUANG_SIDANG'        => null,
             'ID_PRODI'          => $prodi->id ?? null,
             'KODE_PRODI'        => $mhs->KODE_PRODI,
-            'NAMA_PRODI'        => $prodi->NAMA_PRODI ?? null,
+            'NAMA_PRODI'        => $mhs->NAMA_PRODI ?? '-',
             'ID_USER_CREATE'    => $user['id'],
             'NAMA_USER_CREATE'  => $user['nama_lengkap'],
             'THN_CREATE'        => date('Y'),
