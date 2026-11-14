@@ -54,9 +54,12 @@
         .penilaian-filter-field {
             display: flex;
             align-items: center;
-            flex: 1 1 250px;
+            flex: 0 1 470px;
             min-width: 0;
             gap: 8px;
+        }
+        .penilaian-filter-field.penilaian-filter-field--sm {
+            flex: 0 0 210px;
         }
         .penilaian-filter-field label {
             flex-shrink: 0;
@@ -377,14 +380,14 @@
             color: var(--text-muted) !important;
         }
         .modal-dialog.modal-tahapan-wide {
-            width: calc(100% - 32px);
-            max-width: 1680px;
-            margin: 1.75rem auto;
+            width: calc(100% - 64px);
+            max-width: 1200px;
+            margin: 2rem auto;
         }
         @media (max-width: 575.98px) {
             .modal-dialog.modal-tahapan-wide {
-                width: calc(100% - 16px);
-                margin: 0.5rem auto;
+                width: calc(100% - 32px);
+                margin: 1rem auto;
             }
         }
 

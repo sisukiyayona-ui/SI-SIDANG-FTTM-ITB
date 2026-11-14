@@ -84,7 +84,7 @@
                             <div class="col-md-7">
                                 <div class="form-group">
                                     <label class="fw-semibold">Nama Mahasiswa <span class="text-danger">*</span></label>
-                                    <select name="id_user_mhs" id="mhsSelect" class="form-control form-control-lg" required onchange="document.getElementById('nipDisplay').value = this.options[this.selectedIndex].dataset.nip || ''">
+                                    <select name="id_user_mhs" id="mhsSelect" class="form-control form-control-lg select2-search" required onchange="document.getElementById('nipDisplay').value = this.options[this.selectedIndex].dataset.nip || ''">
                                         <option value="">-- Pilih Mahasiswa --</option>
                                         @foreach($mahasiswaList as $mhs)
                                             <option value="{{ $mhs->id }}" {{ old('id_user_mhs') == $mhs->id ? 'selected' : '' }} data-nip="{{ $mhs->NIP_NIM }}">{{ $mhs->NAMA_LENGKAP }}</option>
@@ -514,5 +514,32 @@
     });
 
     bindFilters('{{ route("sidang.s1") }}', 'trackingTableContainer');
+
+    // Select2 untuk pencarian mahasiswa di modal Tambah Judul — inisialisasi saat modal dibuka
+    $('#tambahJudulModal').on('shown.bs.modal', function () {
+        if (window.jQuery && jQuery.fn.select2) {
+            if (!jQuery('#mhsSelect').data('select2')) {
+                jQuery('#mhsSelect').select2({
+                    theme: 'bootstrap',
+                    placeholder: '-- Pilih Mahasiswa --',
+                    allowClear: true,
+                    width: '100%',
+                    dropdownParent: $('#tambahJudulModal')
+                });
+            }
+            // Fokus otomatis ke kolom search Select2 agar user bisa langsung mengetik
+            setTimeout(function () {
+                jQuery('#tambahJudulModal .select2-search__field').first().focus();
+            }, 100);
+        }
+    });
+
+    // Saat mengetik di search Select2, buka dropdown otomatis (tanpa perlu klik dulu)
+    $(document).on('input', '#tambahJudulModal .select2-search__field', function () {
+        var $select = jQuery('#mhsSelect');
+        if ($select.data('select2') && !$select.data('select2').dropdown.isOpen()) {
+            $select.select2('open');
+        }
+    });
 </script>
 @endpush

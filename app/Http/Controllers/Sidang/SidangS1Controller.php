@@ -154,6 +154,7 @@ class SidangS1Controller extends Controller
             $existingMhsIds = DB::table('t_judul')->pluck('ID_USER_MHS');
             $mhsQuery = TUser::where('JENIS_USER', 'Mahasiswa')
                 ->where('STRATA', 'S1')
+                ->where('STATUS_AKTIF', 'AKTIF')
                 ->whereNotIn('id', $existingMhsIds);
             if ($user['role'] === 'TU Prodi') {
                 $prodiIds = DB::table('t_user_prodi')

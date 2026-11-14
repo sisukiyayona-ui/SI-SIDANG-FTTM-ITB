@@ -114,6 +114,7 @@ class PrepareTemplate extends Command
                     '$(nama kaprodi)' => '${nama_kaprodi}',
                     '$(nama ketua sidang)' => '${nama_ketua_sidang}',
                     'Nilai rata2' => '${nilai_rata2}',
+                    'usulan Nilai Akhir:' => 'usulan Nilai Akhir: ${nilai_akhir}',
 
                     // Nama tim penguji/penilai di tabel "Tim Penguji" — pola peran spesifik
                     // (baris 1-3 = pembimbing, baris 4-6 = penguji) seperti pada BA SK.

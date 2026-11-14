@@ -30,6 +30,7 @@
                 <div class="mb-3">
                     <label for="tahapan_sidang" class="form-label">Tahapan Sidang</label>
                     <select name="tahapan_sidang" id="tahapan_sidang" class="form-control" required>
+                        <option value="">-- Pilih Tahapan --</option>
                         @foreach($tahapans as $t)
                             <option value="{{ $t->Tahapan }}" {{ isset($persyaratan) && $persyaratan['tahapan_sidang'] == $t->Tahapan ? 'selected' : '' }}>{{ \App\Services\MasterExcelService::tahapanLabel($t->Tahapan) }}</option>
                         @endforeach
@@ -39,15 +40,17 @@
                 <div class="mb-3">
                     <label for="strata" class="form-label">Strata</label>
                     <select name="strata" id="strata" class="form-control" required>
+                        <option value="">-- Pilih Strata --</option>
                         <option value="S1" {{ isset($persyaratan) && $persyaratan['strata'] == 'S1' ? 'selected' : '' }}>S1</option>
                         <option value="S2" {{ isset($persyaratan) && $persyaratan['strata'] == 'S2' ? 'selected' : '' }}>S2</option>
-                        <option value="S3" {{ !isset($persyaratan) || $persyaratan['strata'] == 'S3' ? 'selected' : '' }}>S3</option>
+                        <option value="S3" {{ isset($persyaratan) && $persyaratan['strata'] == 'S3' ? 'selected' : '' }}>S3</option>
                     </select>
                 </div>
 
                 <div class="mb-3">
                     <label for="id_prodi" class="form-label">Program Studi</label>
                     <select name="id_prodi" id="id_prodi" class="form-control" required>
+                        <option value="">-- Pilih Prodi --</option>
                         @forelse($prodis as $p)
                             <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" {{ isset($persyaratan) && $persyaratan['id_prodi'] == $p->id ? 'selected' : ($userProdiId == $p->id ? 'selected' : '') }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                         @empty
@@ -100,7 +103,7 @@
         var options = (tahapanByStrata[strata] && tahapanByStrata[strata].length) ? tahapanByStrata[strata] : tahapanAll;
         var tahapanSelect = document.getElementById('tahapan_sidang');
         var current = tahapanSelect.value;
-        tahapanSelect.innerHTML = '';
+        tahapanSelect.innerHTML = '<option value="">-- Pilih Tahapan --</option>';
         options.forEach(function (o) {
             var el = document.createElement('option');
             el.value = o.value;

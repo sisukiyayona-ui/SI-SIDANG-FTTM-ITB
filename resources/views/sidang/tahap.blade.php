@@ -25,6 +25,44 @@
         .tahap-container .text-muted {
             color: #64748b;
         }
+
+        .tahap-container .nilai-spin {
+            position: relative;
+            margin: 0 auto;
+        }
+        .tahap-container .nilai-spin .nilai-input {
+            width: 100% !important;
+            padding-right: 22px;
+        }
+        .tahap-container .nilai-spin-btns {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            bottom: 2px;
+            width: 18px;
+            display: flex;
+            flex-direction: column;
+        }
+        .tahap-container .nilai-spin-btns button {
+            flex: 1;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #64748b;
+            font-size: 11px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .tahap-container .nilai-spin-btns button:hover {
+            color: #0066cc;
+            background: rgba(0, 102, 204, 0.08);
+        }
+        .tahap-container .nilai-spin .nilai-input:disabled + .nilai-spin-btns {
+            display: none;
+        }
+        html.dark-mode .tahap-container .nilai-spin-btns button {
+            color: #cbd5e1;
+        }
         
         /* Light mode global overrides */
         html:not(.dark-mode) .tahap-container table thead th,
@@ -576,11 +614,11 @@
 
                 {{-- TAB: JADWAL SIDANG & PENILAIAN --}}
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group row align-items-center mb-2">
-                                <label class="col-sm-2 text-danger mb-0 px-1" for="penilaianSelect" style="font-size: 14px; text-decoration: underline;">Penilai</label>
-                                <div class="col-sm-10 px-1">
+                    <div class="penilaian-toolbar mb-2">
+                        <div class="penilaian-filters">
+                            <div class="penilaian-filter-field">
+                                <label class="text-danger mb-0" for="penilaianSelect" style="text-decoration: underline;">Penilai</label>
+                                <div class="penilaian-filter-control">
                                     <select class="form-control select2-search penilaian-select" id="penilaianSelect" onchange="document.getElementById('selectedTimSidangTahap1').value=this.value;clearReferenceRows('penilaianReportBody');filterPenilaian();">
                                         <option value="">-- Pilih Penilai --</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
@@ -593,11 +631,9 @@
                                     <input type="hidden" id="selectedTimSidangTahap1" value="">
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group row align-items-center mb-2">
-                                <label class="col-sm-2 text-danger mb-0 px-1" for="formFilterSelect" style="font-size: 14px; text-decoration: underline; text-decoration-color: red;">No Form</label>
-                                <div class="col-sm-10 px-1">
+                            <div class="penilaian-filter-field penilaian-filter-field--sm">
+                                <label class="text-danger mb-0 text-nowrap" for="formFilterSelect" style="text-decoration: underline; text-decoration-color: red;">No Form</label>
+                                <div class="penilaian-filter-control">
                                     <select class="form-control select2-search penilaian-select" id="formFilterSelect" onchange="filterPenilaian()">
                                         <option value="">-- Pilih No Form --</option>
                                         @if(isset($pointPenilaian) && $pointPenilaian->count() > 0)
@@ -1294,7 +1330,7 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="penilaian-filter-field">
+                                    <div class="penilaian-filter-field penilaian-filter-field--sm">
                                         <label class="text-danger mb-0 text-nowrap" for="formTahap2" style="text-decoration: underline; text-decoration-color: red;">Form</label>
                                         <div class="penilaian-filter-control">
                                             <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="formTahap2" name="no_form_display" onchange="filterPenilaianTahap2(); document.getElementById('selectedNoFormTahap2').value = this.value">
@@ -1778,7 +1814,7 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="penilaian-filter-field">
+                                            <div class="penilaian-filter-field penilaian-filter-field--sm">
                                                 <label class="mb-0" for="formSelect" style="color: #555;">Form</label>
                                                 <div class="penilaian-filter-control">
                                                     <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="formSelect" onchange="loadPenilaianForm()">
@@ -1886,7 +1922,7 @@
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="penilaian-filter-field">
+                                        <div class="penilaian-filter-field penilaian-filter-field--sm">
                                             <label class="mb-0" style="color: #555;">Form</label>
                                             <div class="penilaian-filter-control">
                                                 <input type="text" class="form-control border-dark rounded-0 penilaian-select">
@@ -2306,7 +2342,35 @@ if (!window.nilaiInputListenersBound) {
             checkNilaiRange(e.target, false);
         }
     });
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('.nilai-spin-btns button') : null;
+        if (!btn) return;
+        e.preventDefault();
+        var inp = btn.closest('.nilai-spin').querySelector('.nilai-input');
+        if (!inp || inp.disabled || inp.readOnly) return;
+        var up = btn.getAttribute('data-step') === 'up';
+        var min = getNilaiAttrNum(inp, 'min', 1);
+        var max = getNilaiAttrNum(inp, 'max', 5);
+        var cur = parseFloat(normalizeNilaiValue(inp.value));
+        var next = isNaN(cur) ? (up ? min : max) : (up ? Math.floor(cur) + 1 : Math.ceil(cur) - 1);
+        next = Math.min(max, Math.max(min, next));
+        inp.value = String(next);
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
+    });
 }
+
+document.querySelectorAll('.tahap-container input.nilai-input').forEach(function (inp) {
+    if (inp.parentNode.classList.contains('nilai-spin')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'nilai-spin';
+    wrap.style.width = inp.style.width || '80px';
+    inp.style.width = '';
+    inp.style.margin = '';
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    wrap.insertAdjacentHTML('beforeend', '<div class="nilai-spin-btns"><button type="button" tabindex="-1" data-step="up" aria-label="Naikkan nilai"><i class="fas fa-caret-up"></i></button><button type="button" tabindex="-1" data-step="down" aria-label="Turunkan nilai"><i class="fas fa-caret-down"></i></button></div>');
+});
 
 
 document.addEventListener('change', function(e) {

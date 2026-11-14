@@ -2378,6 +2378,7 @@ class CetakController extends Controller
         $this->fillSidangAkhirXml($docxPath, [
             'nilai_rows'           => $nilaiRows,
             'rata_rata'            => $rataRata,
+            'nilai_akhir'          => $rataRata,
             'indeks'               => $indeks,
             'penguji_names'        => $pengujiNames,
             'waktu_selesai'        => $waktuSelesai,
@@ -2569,14 +2570,10 @@ class CetakController extends Controller
         $xml = $zip->getFromName('word/document.xml');
         $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
 
-        // Nilai kolom (3) per baris 1-6 ("${nilai_rata2}", 6 kemunculan, nilai bisa beda)
-        foreach ($data['nilai_rows'] as $v) {
-            $xml = preg_replace('/\$\{nilai_rata2\}/', $esc($v), $xml, 1);
-        }
-
         // Nilai Rata-Rata (baris 7) & Nilai akhir Index (baris 8)
-        $xml = str_replace('${nilai_rata_rata}', $esc($data['rata_rata'] ?? ''), $xml);
+        $xml = str_replace('${nilai_rata2}', $esc($data['rata_rata'] ?? ''), $xml);
         $xml = str_replace('${nilai_akhir_index}', $esc($data['indeks'] ?? ''), $xml);
+        $xml = str_replace('${nilai_akhir}', $esc($data['nilai_akhir'] ?? ''), $xml);
 
         // Daftar nama tanda tangan: baris 4-6 (Penguji 1, 2, 3) diisi ${nama_penguji_i}
         // secara per-kemunculan (placeholder muncul 3x di baris 4-6).
@@ -2901,7 +2898,7 @@ class CetakController extends Controller
             $wda = TUser::where('STATUS_DEKAN', 'y')->first();
         }
 
-        $prodi = $ajuan->NAMA_PRODI ?? optional($ajuan->prodi)->NAMA_PRODI ?? '-';
+        $prodi = optional($ajuan->prodi)->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-';
 
         $fmt = function ($date, $default = '-') {
             return $date ? \Carbon\Carbon::parse($date)->translatedFormat('d F Y') : $default;
@@ -3310,7 +3307,7 @@ class CetakController extends Controller
 
         $dekan = TUser::where('STATUS_DEKAN', 'y')->first();
 
-        $prodi = $ajuan->NAMA_PRODI ?? optional($ajuan->prodi)->NAMA_PRODI ?? '-';
+        $prodi = optional($ajuan->prodi)->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-';
 
         $mulai = $ajuan->waktu_sidang;
         $selesai = $ajuan->waktu_selesai;
@@ -3526,7 +3523,7 @@ class CetakController extends Controller
             ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H:i') . ' – ' . \Carbon\Carbon::parse($ajuan->waktu_selesai)->format('H:i') . ' WIB'
             : '-';
 
-        $prodi = $ajuan->NAMA_PRODI ?? optional($ajuan->prodi)->NAMA_PRODI ?? '-';
+        $prodi = optional($ajuan->prodi)->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-';
 
         $wda = TUser::where('STATUS_WDA', 'y')->first();
         if (!$wda) {

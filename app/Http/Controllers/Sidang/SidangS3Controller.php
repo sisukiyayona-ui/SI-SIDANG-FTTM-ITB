@@ -173,6 +173,7 @@ class SidangS3Controller extends Controller
         if (in_array($user['role'], ['TU Prodi', 'FS'])) {
             $existingMhsIds = DB::table('t_judul')->pluck('ID_USER_MHS');
             $mhsQuery = \App\Models\TUser::where('JENIS_USER', 'Mahasiswa')
+                ->where('STATUS_AKTIF', 'AKTIF')
                 ->whereNotIn('id', $existingMhsIds);
             if ($user['role'] === 'TU Prodi') {
                 $prodiIds = DB::table('t_user_prodi')

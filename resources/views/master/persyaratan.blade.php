@@ -69,7 +69,8 @@
                         <div class="mb-3">
                             <label for="strata" class="form-label fw-semibold text-secondary">Strata</label>
                             <select name="strata" id="f_strata" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required onchange="filterTahapanByStrata()">
-                                <option value="S3" selected>S3</option>
+                                <option value="">-- Pilih Strata --</option>
+                                <option value="S3">S3</option>
                                 <option value="S1">S1</option>
                                 <option value="S2">S2</option>
                             </select>
@@ -89,8 +90,9 @@
                         <div class="mb-3">
                             <label for="f_id_prodi" class="form-label fw-semibold text-secondary">Program Studi</label>
                             <select name="id_prodi" id="f_id_prodi" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required>
+                                <option value="">-- Pilih Prodi --</option>
                                 @forelse($prodis as $p)
-                                    <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}" {{ (string) ($userProdiId ?? '') === (string) $p->id ? 'selected' : '' }}>{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
+                                    <option value="{{ $p->id }}" data-kode="{{ $p->kode_prodi }}">{{ $p->kode_prodi }} - {{ $p->nama_prodi }}</option>
                                 @empty
                                     <option value="">Prodi tidak tersedia</option>
                                 @endforelse
@@ -621,11 +623,9 @@
         document.getElementById('methodField').value = 'POST';
         document.getElementById('dataId').value = '';
         document.getElementById('f_nama').value = '';
-        document.getElementById('f_strata').value = 'S3';
+        document.getElementById('f_strata').value = '';
         filterTahapanByStrata();
-        if (isTuProdi && userProdiId) {
-            document.getElementById('f_id_prodi').value = userProdiId;
-        }
+        document.getElementById('f_id_prodi').value = '';
         document.getElementById('statusAktif').checked = true;
 
         document.getElementById('listContainer').style.display = 'none';
