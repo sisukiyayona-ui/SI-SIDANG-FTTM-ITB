@@ -1301,6 +1301,8 @@ class MahasiswaController extends Controller
                     'no_surat_undangan' => 'prohibited',
                     'tgl_surat_undangan' => 'prohibited',
                     'no_sk_kelulusan' => 'prohibited',
+                    'semester' => 'prohibited',
+                    'thn_akademik' => 'prohibited',
                 ]);
                 if (TAjuanSidang::where('ID_JUDUL', $idJudul)->where('TAHAPAN_SIDANG', $tahapan)->latest('id')->first()?->STATUS_AJUKAN_PRODI === 'y') {
                     return response()->json(['success' => false, 'message' => 'Jadwal sudah di-approve TU Prodi dan tidak dapat diubah mahasiswa.'], 403);
@@ -1313,6 +1315,8 @@ class MahasiswaController extends Controller
                 'waktu_selesai' => 'nullable|date_format:H:i,H:i:s',
                 'tgl_surat_undangan' => 'nullable|date',
                 'no_surat_undangan' => 'nullable|string|max:250',
+                'semester' => 'nullable|in:I,II',
+                'thn_akademik' => 'nullable|string|max:100',
             ]);
             if ($request->filled('waktu_selesai') && strtotime($request->waktu_selesai) <= strtotime($request->waktu_sidang)) {
                 return response()->json(['success' => false, 'message' => 'Waktu selesai harus setelah waktu mulai.'], 422);
@@ -1487,6 +1491,15 @@ class MahasiswaController extends Controller
         }
         if ($request->filled('status_lulus')) {
             $ajuan->STATUS_LULUS = $request->status_lulus;
+        }
+        // Semester & Tahun Akademik (hanya untuk S2 Tesis I/II)
+        if ($isS2) {
+            if ($request->filled('semester')) {
+                $ajuan->SEMESTER = $request->semester;
+            }
+            if ($request->filled('thn_akademik')) {
+                $ajuan->THN_AKADEMIK = $request->thn_akademik;
+            }
         }
 
         if ($request->is_ajukan_fs && (!$isS2 || $ajuan->STATUS_AJUKAN_PRODI !== 'y')) {

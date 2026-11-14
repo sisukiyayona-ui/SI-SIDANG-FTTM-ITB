@@ -1634,6 +1634,23 @@
                                             <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
+                                    {{-- Semester & Tahun Akademik untuk S2 --}}
+                                    <div class="form-group row align-items-center mb-2 px-1">
+                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Semester</label>
+                                        <div class="col-sm-6 px-2">
+                                            <select class="form-control form-control-sm border-dark rounded-0" name="semester" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'disabled' : '' }}>
+                                                <option value="">-- Pilih Semester --</option>
+                                                <option value="I" {{ (isset($ajuan) && ($ajuan->SEMESTER ?? '') == 'I') ? 'selected' : '' }}>I (Ganjil)</option>
+                                                <option value="II" {{ (isset($ajuan) && ($ajuan->SEMESTER ?? '') == 'II') ? 'selected' : '' }}>II (Genap)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row align-items-center mb-2 px-1">
+                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tahun Akademik</label>
+                                        <div class="col-sm-6 px-2">
+                                            <input type="text" class="form-control form-control-sm border-dark rounded-0" name="thn_akademik" placeholder="cth: 2025/2026" value="{{ isset($ajuan) ? ($ajuan->THN_AKADEMIK ?? '') : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
+                                        </div>
+                                    </div>
                                     @endif
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Undangan</label>
