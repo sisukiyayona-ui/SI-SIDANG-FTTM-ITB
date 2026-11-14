@@ -1634,7 +1634,15 @@
                                             <input type="text" class="form-control form-control-sm border-dark rounded-0" name="no_surat_undangan" value="{{ isset($ajuan) ? $ajuan->NO_UNDANGAN : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
-                                    {{-- Semester & Tahun Akademik untuk S2 --}}
+                                    @endif
+                                    <div class="form-group row align-items-center mb-2 px-1">
+                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Undangan</label>
+                                        <div class="col-sm-6 px-2">
+                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
+                                        </div>
+                                    </div>
+                                    @if($strataView === 'S2')
+                                    {{-- Semester & Tahun Akademik untuk S2 (di bawah Tgl Surat Undangan) --}}
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Semester</label>
                                         <div class="col-sm-6 px-2">
@@ -1652,12 +1660,6 @@
                                         </div>
                                     </div>
                                     @endif
-                                    <div class="form-group row align-items-center mb-2 px-1">
-                                        <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Tgl Surat Undangan</label>
-                                        <div class="col-sm-6 px-2">
-                                            <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
-                                        </div>
-                                    </div>
                                     @if(!in_array(strtolower($tahapan), ['ts1', 'ts2', 'tesis i', 'tesis ii']))
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Penelaah</label>
