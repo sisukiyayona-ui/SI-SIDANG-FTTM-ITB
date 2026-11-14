@@ -512,6 +512,36 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
+                // Penilaian Sidang Tesis I & II prodi 222 (Teknik Perminyakan) — S2.
+                // Lembar Penguji gabungan: 3 kriteria teks (saran perbaikan) + 7 kriteria nilai.
+                // Baris teks (t_point_penilaian.STATUS_CATATAN='y') diisi ke ${nama_penilaian_text}
+                // dan ${catatan}; baris nilai ke ${nama_penilaian} dan ${nilai}.
+                'src' => base_path('template/S2/Penilaian Sidang Tesis I dan II prodi 222.docx'),
+                'dst' => base_path('template/S2/Penilaian Sidang Tesis I dan II prodi 222 TEMPLATE.docx'),
+                'replacements' => [
+                    // Identitas mahasiswa & penilai
+                    '(nama mhs)'    => '${nama_mhs}',
+                    '(nim)'         => '${nim}',
+                    '(nama penilai)' => '${nama_penilai}',
+
+                    // PENTING: '(parameter penilaian tipe text)' harus diproses LEBIH DULU
+                    // sebelum '(parameter penilaian)' agar tidak terpotong.
+                    '(parameter penilaian tipe text)' => '${nama_penilaian_text}',
+                    '(catatan)'     => '${catatan}',
+
+                    // Tabel kriteria nilai. '(nilai rata2)' sebelum '(nilai)'.
+                    '(parameter penilaian)' => '${nama_penilaian}',
+                    '(nilai rata2)' => '${nilai_rata2}',
+                    '(nilai)'       => '${nilai}',
+
+                    // Baris ringkasan
+                    '(index A, B dst)' => '${indeks_nilai}',
+                    'Diisi total nilai angka' => '${total_nilai}',
+                    'Bandung, tgl sidang' => 'Bandung, ${tgl_sidang}',
+                    '(nip)'         => '${nip_penilai}',
+                ]
+            ],
+            [
                 // BA Tesis I prodi 221 — sumber asli .doc (Word 97-2003).
                 // Konversi dulu "BA Tesis I prodi 221.doc" -> .docx (Word: Save As .docx),
                 // karena ZipArchive hanya bisa membaca .docx.

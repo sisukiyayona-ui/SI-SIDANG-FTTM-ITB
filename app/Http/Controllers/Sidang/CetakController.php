@@ -47,6 +47,8 @@ class CetakController extends Controller
             'NAMA_MHS'       => $base->NAMA_MHS,
             'NIM'            => $base->NIM,
             'NAMA_PRODI'     => $base->NAMA_PRODI,
+            'KODE_PRODI'     => $base->KODE_PRODI,
+            'ID_PRODI'       => $base->ID_PRODI,
         ], true);
 
         return $stub;
@@ -83,6 +85,7 @@ class CetakController extends Controller
     /**
      * Pilih template Form Penilaian S2 berdasarkan KODE_PRODI:
      * 221 -> form penilaian prodi 221
+     * 222 -> Penilaian Sidang Tesis I dan II prodi 222 (Teknik Perminyakan)
      * 223 -> form penilaian Tesis I 223 TG
      * 225 atau lainnya -> form penilaian Tesis I prodi 225
      */
@@ -91,6 +94,8 @@ class CetakController extends Controller
         $kp = trim((string) $kodeProdi);
         if ($kp === '221') {
             return base_path('template/S2/form penilaian prodi 221 TEMPLATE.docx');
+        } elseif ($kp === '222') {
+            return base_path('template/S2/Penilaian Sidang Tesis I dan II prodi 222 TEMPLATE.docx');
         } elseif ($kp === '223') {
             return base_path('template/S2/form penilaian Tesis I 223 TG TEMPLATE.docx');
         }
@@ -166,6 +171,10 @@ class CetakController extends Controller
             foreach ($penilaianRows as $row) {
                 if ($row->pointPenilaian) {
                     $row->KETERANGAN = $row->pointPenilaian->KETERANGAN;
+                    // STATUS_CATATAN tidak ada di t_penilaian; ambil dari master point
+                    // agar baris bertipe teks (STATUS_CATATAN='y') bisa dibedakan
+                    // dari baris nilai saat cetak (mis. template prodi 222).
+                    $row->STATUS_CATATAN = $row->pointPenilaian->STATUS_CATATAN ?? '';
                 } else {
                     $row->KETERANGAN = '';
                 }
@@ -288,9 +297,16 @@ class CetakController extends Controller
             return $row;
         });
 
-        // Template: S2 pakai template per-KODE_PRODI (221/223 TG/225), kecuali SK dan Text Form
+        // Template: S2 pakai template per-KODE_PRODI (221/222/223 TG/225), kecuali SK dan Text Form
         $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
-        if ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
+
+        // Prodi 222 (Teknik Perminyakan): template Lembar Penguji gabungan (teks + tabel nilai).
+        // Selalu dipakai (mengalahkan deteksi isTextForm) karena satu template memuat keduanya.
+        $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222' && !$isSk && !$isSidangDoktor;
+
+        if ($isS2Prodi222) {
+            $templatePath = $this->getS2FormTemplate($kodeProdi);
+        } elseif ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
             $templatePath = $this->getS2FormTemplate($kodeProdi);
         } else {
             $templatePath = $isSk
@@ -330,10 +346,11 @@ class CetakController extends Controller
             $tp->setValue('nama_penguji_i',        $pengujiNames[0] ?? '-');
             $tp->setValue('nama_penguji_ii',       $pengujiNames[1] ?? '-');
             $tp->setValue('nama_penilai',          $penilaiNama);
+            $tp->setValue('nip_penilai',           $penilaiNip);
             $tp->setValue('tgl_create_penilaian',  $tglCreate);
 
             // S2: nilai untuk template Berita Acara / Form Penilaian Magister
-            if ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
+            if (($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) || $isS2Prodi222) {
                 $tp->setValue('judul',           $namaJudul);
                 $tp->setValue('nama mhs',        $ajuan->NAMA_MHS ?? '-');
                 $tp->setValue('nim',             $ajuan->NIM ?? '-');
@@ -391,6 +408,9 @@ class CetakController extends Controller
         } elseif ($isSidangDoktor) {
             // Template form penilaian sidang doktor: isi baris detail penilaian (5 baris) + rata-rata
             $this->postProcessSidangForm($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
+        } elseif ($isS2Prodi222) {
+            // Prodi 222: Lembar Penguji gabungan (3 kriteria teks + 7 kriteria nilai).
+            $this->postProcessS2Form222($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
         } else {
             $this->fillPenilaianRows($docxPath, $penilaianRows->values()->toArray(), $rataNilai, $tanggal);
         }
@@ -929,6 +949,85 @@ class CetakController extends Controller
         }
         imagedestroy($dst);
         return $out;
+    }
+
+    /**
+     * Isi template Penilaian Sidang Tesis I & II prodi 222 (Lembar Penguji).
+     *
+     * Template memuat DUA bagian:
+     *  - 3 blok kriteria teks (saran perbaikan): ${nama_penilaian_text} + ${catatan}
+     *  - tabel 7 baris kriteria nilai: ${nama_penilaian} + ${nilai}
+     * plus ${indeks_nilai}, ${nilai_rata2}, dan ${total_nilai}.
+     *
+     * Baris penilaian dipisah: STATUS_CATATAN='y' -> bagian teks, sisanya -> tabel nilai.
+     */
+    private function postProcessS2Form222(string $docxPath, array $rows, string $rataNilai): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+
+        $xml = $zip->getFromName('word/document.xml');
+        $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
+
+        // Pisahkan baris teks (saran perbaikan) dan baris nilai.
+        $textRows  = [];
+        $nilaiRows = [];
+        foreach ($rows as $row) {
+            $arr    = is_object($row) ? (array) $row : $row;
+            $isText = strtolower((string) ($arr['STATUS_CATATAN'] ?? $arr['status_catatan'] ?? '')) === 'y';
+            if ($isText) {
+                $textRows[] = $arr;
+            } else {
+                $nilaiRows[] = $arr;
+            }
+        }
+
+        // Bagian teks: tiap blok -> ${nama_penilaian_text} & ${catatan} (urut).
+        foreach ($textRows as $arr) {
+            $nama = $arr['NAMA_PENILAIAN'] ?? $arr['nama_penilaian'] ?? $arr['PENILAIAN'] ?? '';
+            $cat  = $arr['CATATAN'] ?? $arr['catatan'] ?? '';
+            $xml  = preg_replace('/\$\{nama_penilaian_text\}/', $esc($nama), $xml, 1);
+            $xml  = preg_replace('/\$\{catatan\}/', $esc($cat), $xml, 1);
+        }
+
+        // Tabel nilai: tiap baris -> ${nama_penilaian} & ${nilai} (urut).
+        $total       = 0.0;
+        $jumlahNilai = 0;
+        foreach ($nilaiRows as $arr) {
+            $nama  = $arr['NAMA_PENILAIAN'] ?? $arr['nama_penilaian'] ?? $arr['PENILAIAN'] ?? '';
+            $nilai = $arr['NILAI'] ?? $arr['nilai'] ?? '';
+            $xml   = preg_replace('/\$\{nama_penilaian\}/', $esc($nama), $xml, 1);
+            $xml   = preg_replace('/\$\{nilai\}/', $esc($nilai), $xml, 1);
+            if ($nilai !== '' && $nilai !== null && is_numeric($nilai)) {
+                $total += (float) $nilai;
+                $jumlahNilai++;
+            }
+        }
+
+        // Ringkasan: rata-rata, indeks huruf, total skor.
+        $rata     = (string) $rataNilai;
+        $indeks   = ($rata !== '' && is_numeric($rata)) ? $this->calculateIndeks((float) $rata) : '';
+        $totalStr = $jumlahNilai > 0 ? number_format($total, 2) : '';
+
+        $xml = preg_replace('/\$\{nilai_rata2\}/', $esc($rata), $xml, 1);
+        $xml = preg_replace('/\$\{indeks_nilai\}/', $esc($indeks), $xml, 1);
+        $xml = preg_replace('/\$\{total_nilai\}/', $esc($totalStr), $xml, 1);
+
+        // Bersihkan sisa placeholder yang belum terisi (kecuali ${signature}).
+        $xml = preg_replace('/\$\{nama_penilaian_text\}/', '', $xml);
+        $xml = preg_replace('/\$\{nama_penilaian\}/', '', $xml);
+        $xml = preg_replace('/\$\{nilai\}/', '', $xml);
+        $xml = preg_replace('/\$\{catatan\}/', '', $xml);
+        $xml = preg_replace('/\$\{indeks_nilai\}/', '', $xml);
+        $xml = preg_replace('/\$\{nilai_rata2\}/', '', $xml);
+        $xml = preg_replace('/\$\{total_nilai\}/', '', $xml);
+        $xml = preg_replace('/\$\{(?!signature)[^}]*\}/i', '', $xml);
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $xml);
+        $zip->close();
     }
 
     /**
