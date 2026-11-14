@@ -2572,6 +2572,7 @@ class CetakController extends Controller
 
         // Nilai Rata-Rata (baris 7) & Nilai akhir Index (baris 8)
         $xml = str_replace('${nilai_rata2}', $esc($data['rata_rata'] ?? ''), $xml);
+        $xml = str_replace('${nilai_rata_rata}', $esc($data['rata_rata'] ?? ''), $xml);
         $xml = str_replace('${nilai_akhir_index}', $esc($data['indeks'] ?? ''), $xml);
         $xml = str_replace('${nilai_akhir}', $esc($data['nilai_akhir'] ?? ''), $xml);
 

@@ -1071,8 +1071,12 @@ class PrepareTemplate extends Command
                 '/<w:p\b[^>]*>.*?<\/w:p>/s',
                 function ($m) use ($keywords, $placeholder) {
                     $p = $m[0];
+                    // Strip XML tags untuk pencarian kata kunci yang mungkin
+                    // terpecah antar-run (contoh: "Tidak Lulus" di run 1,
+                    // "Sidang" di run 2).
+                    $plainText = strip_tags($p);
                     foreach ($keywords as $kw) {
-                        if (strpos($p, $kw) !== false) {
+                        if (strpos($plainText, $kw) !== false) {
                             $p = preg_replace(
                                 '/(<w:t[^>]*>)\$\{kotak_lulus\}(<\/w:t>)/',
                                 '$1' . $placeholder . '$2',
