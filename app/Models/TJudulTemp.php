@@ -20,8 +20,11 @@ class TJudulTemp extends Model
         'ID_USER_MHS',
         'NIM',
         'JUDUL_BARU',
+        'ABSTRAK',
         'TAHAP_PERUBAHAN',
         'ALASAN_PERUBAHAN',
+        'OPSI',
+        'OPSI_BARU',
         'TGL_CREATE',
         'TGL_UPDATE',
     ];

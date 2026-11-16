@@ -48,7 +48,7 @@ class PrepareTemplate extends Command
                     '$(Nama ketua sidang)' => '${nama_ketua_sidang}',
                     '$(nip ketua sidang)' => '${nip_ketua_sidang}',
 
-                    // Placeholder tanda tangan — ganti "Tanda Tangan" dengan ${signature}
+                    // Placeholder tanda tangan â€” ganti "Tanda Tangan" dengan ${signature}
                     'Tanda Tangan' => '${signature}',
                 ]
             ],
@@ -116,7 +116,7 @@ class PrepareTemplate extends Command
                     'Nilai rata2' => '${nilai_rata2}',
                     'usulan Nilai Akhir:' => 'usulan Nilai Akhir: ${nilai_akhir}',
 
-                    // Nama tim penguji/penilai di tabel "Tim Penguji" — pola peran spesifik
+                    // Nama tim penguji/penilai di tabel "Tim Penguji" â€” pola peran spesifik
                     // (baris 1-3 = pembimbing, baris 4-6 = penguji) seperti pada BA SK.
                     '$(Nama Ketua Pembimbing)'  => '${nama_ketua_pembimbing}',
                     '$(Nama Ko-Pembimbing 1)'   => '${nama_pembimbing_i}',
@@ -125,7 +125,7 @@ class PrepareTemplate extends Command
                     // diisi per-kemunculan saat cetak (fillSidangAkhirXml).
                     '$(Nama Penguji)'           => '${nama_penguji_i}',
 
-                    // Placeholder tanda tangan di baris pertama ("$ Tanda Tangan") — ambil ttd dari DB.
+                    // Placeholder tanda tangan di baris pertama ("$ Tanda Tangan") â€” ambil ttd dari DB.
                     // Baris "Tanda Tangan dan Nama Jelas" TETAP sebagai teks (tidak diganti).
                     '$ Tanda Tangan' => '${signature}',
                 ],
@@ -152,13 +152,13 @@ class PrepareTemplate extends Command
                     '(catatan)' => '${catatan}',
                     '(rata nilai)' => '${rata_nilai}',
 
-                    // Placeholder tanda tangan di baris "Penguji" ("$ Tanda Tangan") — ambil ttd dari DB.
+                    // Placeholder tanda tangan di baris "Penguji" ("$ Tanda Tangan") â€” ambil ttd dari DB.
                     // Baris "Tanda Tangan dan Nama Jelas" TETAP sebagai teks (tidak diganti).
                     '$ Tanda Tangan' => '${signature}',
                 ]
             ],
             [
-                // PEDOMAN MEMIMPIN SIDANG (PED Ketua Sidang) — Sidang Terbuka/Tertutup.
+                // PEDOMAN MEMIMPIN SIDANG (PED Ketua Sidang) â€” Sidang Terbuka/Tertutup.
                 // Source .docx adalah konversi 1:1 dari "PED KETUA SIDANG.doc" memakai
                 // Save As Word (bukan rebuild), jadi layout/font/tabel asli tidak berubah.
                 // Yang diganti hanya token data "(...)" milik template aslinya.
@@ -178,7 +178,7 @@ class PrepareTemplate extends Command
                     // Di dokumen asli tidak ada token "(nilai akhir)"/"(predikat)",
                     // melainkan titik-titik & garis bawah pada kalimat keputusan sidang.
                     // Ganti hanya karakter titik/garis bawahnya agar tab & spasi asli tetap.
-                    'Nilai Akhir ……………' => 'Nilai Akhir ${nilai_akhir}',
+                    'Nilai Akhir â€¦â€¦â€¦â€¦â€¦' => 'Nilai Akhir ${nilai_akhir}',
                     '________' => '${predikat}',
                 ],
                 'asalInstansiSlots' => true,
@@ -190,7 +190,7 @@ class PrepareTemplate extends Command
                     '$(tgl sidang)' => '${tgl_sidang}',
                     '$(waktu)' => '${waktu}',
                     '$(Nilai rata2)' => '${nilai_rata2}',
-                    // Updated role‑specific placeholders
+                    // Updated roleâ€‘specific placeholders
                     '$(Nama Ketua Pembimbing)'   => '${nama_ketua_pembimbing}',
                     '$(Nama Ko-Pembimbing 1)'    => '${nama_pembimbing_i}',
                     '$(Nama Ko-Pembimbing 2)'    => '${nama_pembimbing_ii}',
@@ -237,8 +237,8 @@ class PrepareTemplate extends Command
                     '$(judul)' => '${judul}',
                     '$(nama mhs)' => '${nama_mhs}',
                     '$(nim)' => '${nim}',
-                    // Role‑specific placeholders for Ketua Pembimbing and Ko‑Pembimbing (including leading spaces as in the source docx)
-                    // Role‑specific placeholders for Ketua Pembimbing and Ko‑Pembimbing (including leading spaces as in the source docx)
+                    // Roleâ€‘specific placeholders for Ketua Pembimbing and Koâ€‘Pembimbing (including leading spaces as in the source docx)
+                    // Roleâ€‘specific placeholders for Ketua Pembimbing and Koâ€‘Pembimbing (including leading spaces as in the source docx)
                     '$(nama ketua pembimbing)'   => '${nama_ketua_pembimbing}',
                     '$( Ketua Pembimbing)'       => '${nama_ketua_pembimbing}',
                     '$(nama pembimbing I)'       => '${nama_pembimbing_i}',
@@ -295,7 +295,7 @@ class PrepareTemplate extends Command
                     '$(nim)' => '${nim}',
                     '$(judul)' => '${judul}',
                     '$(Tanggal Sidang)' => '${tanggal_sidang}',
-                    '$(waktu – waktu selesai)' => '${waktu_waktu_selesai}',
+                    '$(waktu â€“ waktu selesai)' => '${waktu_waktu_selesai}',
                     '$(ruangan)' => '${ruangan}',
                     '$(NAMA WDA)' => '${nama_wda}',
                     '$(NIP WDA)' => '${nip_wda}',
@@ -322,7 +322,7 @@ class PrepareTemplate extends Command
                     '(Alamat prodi)'  => '${alamat_prodi}',
                     '(email prodi)'   => '${email_prodi}',
 
-                    // Kepada Yth. — tim sidang
+                    // Kepada Yth. â€” tim sidang
                     '(Nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
                     '(Nama pembimbing I)'     => '${nama_pembimbing_i}',
                     '(Nama pembimbing II)'    => '${nama_pembimbing_ii}',
@@ -360,46 +360,50 @@ class PrepareTemplate extends Command
                 ],
             ],
             [
-                // BERITA ACARA PENILAIAN SIDANG MAGISTER (Form. 208.2) — S2 Tesis I & Tesis II
-                // Template Berita Acara Penilaian Sidang Magister program Magister (S2).
-                // Header "TANDA TANGAN" pada tabel dibiarkan sebagai teks (bukan ${signature}),
-                // supaya judul kolom tidak tertimpa gambar tanda tangan saat cetak.
+                // BERITA ACARA PENILAIAN SIDANG MAGISTER (Form. 208.2) — S2 Tesis I prodi 223 (Teknik Geofisika)
+                // Diselaraskan dengan BA Penilaian SK I sd SK III: baris tim penilai berisi nama per peran dan kolom tanda tangan.
                 'src' => base_path('template/S2/BA Tesis I 223 TG.docx'),
                 'dst' => base_path('template/S2/BA Tesis I 223 TG TEMPLATE.docx'),
                 'replacements' => [
-                    // Kop prodi (diulang untuk tiap halaman)
+                    // Kop prodi / identitas
                     '(alamat)' => '${alamat_prodi}',
                     '(tlp)' => '${tlp_prodi}',
                     '(email)' => '${email_prodi}',
-
-                    // Identitas mahasiswa
                     '(nama mhs)' => '${nama_mhs}',
                     '(nim)' => '${nim}',
                     '(judul)' => '${judul}',
-
-                    // Jadwal sidang
                     '(tgl sidang)' => '${tgl_sidang}',
                     '(waktu)' => '${waktu}',
                     '(hari dari tgl sidang)' => '${hari_sidang}',
-
-                    // Data prodi & mata kuliah
                     '(nama prodi)' => '${nama_prodi}',
                     '(kode mk)' => '${kode_mk}',
 
-                    // Tim sidang
-                    '(nama pembimbing III)' => '${nama_pembimbing_iii}',
-                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    // Nama tim per peran (jika template menggunakan placeholder spesifik)
+                    '(Nama Ketua Pembimbing)' => '${nama_ketua_pembimbing}',
+                    '(Nama Pembimbing)' => '${nama_pembimbing_i}',
+                    '(Nama Ko-Pembimbing 1)' => '${nama_pembimbing_ii}',
+                    '(Nama Ko-Pembimbing 2)' => '${nama_pembimbing_iii}',
+                    '(Nama Ketua Sidang)' => '${nama_ketua_sidang}',
+                    '(Nama Penguji)' => '${nama_penguji_i}',
+                    '(Nama Penguji 1)' => '${nama_penguji_i}',
+                    '(Nama Penguji 2)' => '${nama_penguji_ii}',
                     '(nama pembimbing I)' => '${nama_pembimbing_i}',
-                    '(nama tim sidang)' => '${nama_tim_sidang}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing III)' => '${nama_pembimbing_iii}',
                     '(nama ketua sidang)' => '${nama_ketua_sidang}',
                     '(nip ketua sidang)' => '${nip_ketua_sidang}',
                     '(nama kaprodi)' => '${nama_kaprodi}',
-                    '(nama penilai)' => '${nama_penilai}',
+                    '(nip kaprodi)' => '${nip_kaprodi}',
 
-                    // Tanda tangan & nilai
+                    // Nilai / tanda tangan umum
                     '(ttd)' => '${signature}',
                     '(nilai akhir dari nilai rata2)' => '${nilai_akhir_rata2}',
                     '(nilai huruf A / AB / B / BC / C / D / E dari nilai akhir)' => '${nilai_huruf}',
+                ],
+                // Jika template memakai "( Nama tim sidang )" / "(nama tim sidang)" berulang per baris, isi berurutan sesuai peran.
+                'sequenceReplacements' => [
+                    ['search' => '( Nama tim sidang )', 'tokens' => ['${nama_pembimbing_i}', '${nama_pembimbing_ii}', '${nama_pembimbing_iii}', '${nama_ketua_sidang}', '${nama_penguji_i}', '${nama_penguji_ii}']],
+                    ['search' => '(nama tim sidang)', 'tokens' => ['${nama_pembimbing_i}', '${nama_pembimbing_ii}', '${nama_pembimbing_iii}', '${nama_ketua_sidang}', '${nama_penguji_i}', '${nama_penguji_ii}']],
                 ],
                 // "(catatan)" pada baris Catatan pembimbing I/II/III dibedakan per baris.
                 'catatanPembimbingSlots' => true,
@@ -407,9 +411,11 @@ class PrepareTemplate extends Command
                 'nipSequence' => ['${nip_penilai}', '${nip_kaprodi}'],
                 // Tabel penilaian: 6 sel "(Nilai)" -> ${nilai_1}..${nilai_6}.
                 'nilaiSequence' => 6,
+                // Ganti titik-titik di kolom Tanda Tangan menjadi placeholder signature per baris.
+                'replaceSignatureDots' => true,
             ],
             [
-                // Form Penilaian Sidang Magister S2 — form penilaian tabel komponen
+                // Form Penilaian Sidang Magister S2 â€” form penilaian tabel komponen
                 'src' => base_path('template/S2/form penilaian Tesis I 223 TG.docx'),
                 'dst' => base_path('template/S2/form penilaian Tesis I 223 TG TEMPLATE.docx'),
                 'replacements' => [
@@ -428,7 +434,7 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
-                // BA Tesis I prodi 225 — Berita Acara S2 prodi 225
+                // BA Tesis I prodi 225 â€” Berita Acara S2 prodi 225
                 'src' => base_path('template/S2/BA Tesis I prodi 225.docx'),
                 'dst' => base_path('template/S2/BA Tesis I prodi 225 TEMPLATE.docx'),
                 'replacements' => [
@@ -484,7 +490,7 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
-                // Form Penilaian Tesis I prodi 225 — S2 (form penilaian per penilai)
+                // Form Penilaian Tesis I prodi 225 â€” S2 (form penilaian per penilai)
                 'src' => base_path('template/S2/form penilaian Tesis I prodi 225.docx'),
                 'dst' => base_path('template/S2/form penilaian Tesis I prodi 225 TEMPLATE.docx'),
                 'replacements' => [
@@ -512,7 +518,7 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
-                // Penilaian Sidang Tesis I & II prodi 222 (Teknik Perminyakan) — S2.
+                // Penilaian Sidang Tesis I & II prodi 222 (Teknik Perminyakan) â€” S2.
                 // Lembar Penguji gabungan: 3 kriteria teks (saran perbaikan) + 7 kriteria nilai.
                 // Baris teks (t_point_penilaian.STATUS_CATATAN='y') diisi ke ${nama_penilaian_text}
                 // dan ${catatan}; baris nilai ke ${nama_penilaian} dan ${nilai}.
@@ -542,8 +548,8 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
-                // Berita Acara Sidang Magister prodi 222 (Teknik Perminyakan) — S2.
-                // Memuat BA (tabel 4 penilai: Pembimbing 1/2, Ketua Penguji, Penguji —
+                // Berita Acara Sidang Magister prodi 222 (Teknik Perminyakan) â€” S2.
+                // Memuat BA (tabel 4 penilai: Pembimbing 1/2, Ketua Penguji, Penguji â€”
                 // tiap baris punya NIP & tanda tangan sendiri) + Form Pengeluaran Nilai.
                 'src' => base_path('template/S2/Berita Acara Sidang prodi 222.docx'),
                 'dst' => base_path('template/S2/Berita Acara Sidang prodi 222 TEMPLATE.docx'),
@@ -589,7 +595,7 @@ class PrepareTemplate extends Command
                 'nipSequence' => ['${nip_pembimbing_i}', '${nip_pembimbing_ii}', '${nip_ketua_penguji}', '${nip_penguji_i}'],
             ],
             [
-                // BA Tesis I prodi 221 — sumber asli .doc (Word 97-2003).
+                // BA Tesis I prodi 221 â€” sumber asli .doc (Word 97-2003).
                 // Konversi dulu "BA Tesis I prodi 221.doc" -> .docx (Word: Save As .docx),
                 // karena ZipArchive hanya bisa membaca .docx.
                 'src' => base_path('template/S2/BA Tesis I prodi 221.docx'),
@@ -620,7 +626,7 @@ class PrepareTemplate extends Command
                 'nilaiSequence' => 3,
             ],
             [
-                // Lembar Saran Perbaikan (form penilaian catatan) — sumber asli .doc.
+                // Lembar Saran Perbaikan (form penilaian catatan) â€” sumber asli .doc.
                 // Konversi dulu ke .docx sebelum menjalankan command.
                 'src' => base_path('template/S2/form penilaian catatan.docx'),
                 'dst' => base_path('template/S2/form penilaian catatan TEMPLATE.docx'),
@@ -642,7 +648,7 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
-                // Form Penilaian Prodi 221 — S2
+                // Form Penilaian Prodi 221 â€” S2
                 'src' => base_path('template/S2/form penilaian prodi 221.docx'),
                 'dst' => base_path('template/S2/form penilaian prodi 221 TEMPLATE.docx'),
                 'replacements' => [
@@ -674,8 +680,8 @@ class PrepareTemplate extends Command
                 ]
             ],
             [
-                // BA Tesis 2 223 TG — Berita Acara Penilaian Tesis II Magister prodi 223 (Teknik Geofisika)
-                // Placeholder menggunakan spasi di dalam kurung: "( nama mhs )"
+                // BA Tesis 2 223 TG â€” Berita Acara Penilaian Tesis II Magister prodi 223 (Teknik Geofisika)
+                // Diselaraskan dengan BA Penilaian SK I sd SK III: baris tim penilai berisi nama per peran dan kolom tanda tangan.
                 'src' => base_path('template/S2/BA Tesis 2 223 TG.docx'),
                 'dst' => base_path('template/S2/BA Tesis 2 223 TG TEMPLATE.docx'),
                 'replacements' => [
@@ -688,8 +694,15 @@ class PrepareTemplate extends Command
                     '( tgl sidang )' => '${tgl_sidang}',
                     '( waktu )' => '${waktu}',
 
-                    // Tim sidang - nama penilai (6 baris: Pembimbing, Ko-Pem 1, Ko-Pem 2, Ketua Sidang, Penguji 1, Penguji 2)
-                    '( Nama tim sidang )' => '${nama_tim_sidang}',
+                    // Nama tim per peran (jika template menggunakan placeholder spesifik)
+                    '(Nama Ketua Pembimbing)' => '${nama_ketua_pembimbing}',
+                    '(Nama Pembimbing)' => '${nama_pembimbing_i}',
+                    '(Nama Ko-Pembimbing 1)' => '${nama_pembimbing_ii}',
+                    '(Nama Ko-Pembimbing 2)' => '${nama_pembimbing_iii}',
+                    '(Nama Ketua Sidang)' => '${nama_ketua_sidang}',
+                    '(Nama Penguji)' => '${nama_penguji_i}',
+                    '(Nama Penguji 1)' => '${nama_penguji_i}',
+                    '(Nama Penguji 2)' => '${nama_penguji_ii}',
 
                     // Catatan
                     '( catatan )' => '${catatan}',
@@ -702,6 +715,11 @@ class PrepareTemplate extends Command
                     '( Nama ketua sidang )' => '${nama_ketua_sidang}',
                     '( nip ketua sidan g )' => '${nip_ketua_sidang}', // typo di template: "sidan g"
                 ],
+                // Jika template memakai "( Nama tim sidang )" berulang per baris, isi berurutan sesuai peran.
+                'sequenceReplacements' => [
+                    ['search' => '( Nama tim sidang )', 'tokens' => ['${nama_pembimbing_i}', '${nama_pembimbing_ii}', '${nama_pembimbing_iii}', '${nama_ketua_sidang}', '${nama_penguji_i}', '${nama_penguji_ii}']],
+                    ['search' => '(nama tim sidang)', 'tokens' => ['${nama_pembimbing_i}', '${nama_pembimbing_ii}', '${nama_pembimbing_iii}', '${nama_ketua_sidang}', '${nama_penguji_i}', '${nama_penguji_ii}']],
+                ],
                 // 6 baris penilaian: kolom "( Nilai )" -> ${nilai_1}..${nilai_6}
                 'nilaiSequence' => 6,
                 'nilaiSearch' => '( Nilai )',
@@ -709,7 +727,7 @@ class PrepareTemplate extends Command
                 'replaceSignatureDots' => true,
             ],
             [
-                // BA Tesis 2 prodi 221,225,226 — Berita Acara Penilaian Tesis II Magister prodi 221,225,226
+                // BA Tesis 2 prodi 221,225,226 â€” Berita Acara Penilaian Tesis II Magister prodi 221,225,226
                 // Placeholder TANPA spasi di dalam kurung
                 'src' => base_path('template/S2/BA tesis 2 prodi 221,225,226.docx'),
                 'dst' => base_path('template/S2/BA tesis 2 prodi 221,225,226 TEMPLATE.docx'),
@@ -752,7 +770,7 @@ class PrepareTemplate extends Command
                 'replaceSignatureDots' => true,
             ],
             [
-                // Form Penilaian Tesis 2 prodi 223 TG — Lembar Penilaian Tesis II Magister prodi 223
+                // Form Penilaian Tesis 2 prodi 223 TG â€” Lembar Penilaian Tesis II Magister prodi 223
                 // Placeholder DENGAN spasi di dalam kurung
                 // JANGAN taruh "( nilai )" dan "(nilai)" di replacements utama, biarkan sequenceReplacements yg handle
                 'src' => base_path('template/S2/form penilaian Tesis 2 prodi 223 TG.docx'),
@@ -784,7 +802,7 @@ class PrepareTemplate extends Command
                 ],
             ],
             [
-                // Form Penilaian Tesis 2 prodi 221,225,226 — Lembar Penilaian Tesis II Magister prodi 221,225,226
+                // Form Penilaian Tesis 2 prodi 221,225,226 â€” Lembar Penilaian Tesis II Magister prodi 221,225,226
                 // Placeholder CAMPURAN (beberapa dengan spasi, beberapa tanpa)
                 // JANGAN taruh "( nilai )" dan "(nilai)" di replacements utama
                 'src' => base_path('template/S2/penilaian tesis 2 prodi 221,225,226.docx'),
@@ -973,8 +991,8 @@ class PrepareTemplate extends Command
      * Buat template undangan seminar kemajuan dengan benar.
      * 
      * Pendekatan:
-     * 1. Copy file asli → TEMPLATE
-     * 2. Ganti $(xxx) → ${xxx} dengan fuzzy XML match
+     * 1. Copy file asli â†’ TEMPLATE
+     * 2. Ganti $(xxx) â†’ ${xxx} dengan fuzzy XML match
      * 3. Ganti semua paragraf daftar tim sidang (ListParagraph + numId=2)
      *    setelah "Kepada Yth." dengan satu paragraf {kepada}
      */
@@ -999,7 +1017,7 @@ class PrepareTemplate extends Command
         $xml = $zip->getFromName('word/document.xml');
         $zip->close();
 
-        // LANGKAH 1: Ganti $(xxx) → ${xxx}
+        // LANGKAH 1: Ganti $(xxx) â†’ ${xxx}
         $textReplacements = [
             '$(no undnagan)'                  => '${no_undnagan}',
             '$(Tgl Undangan)'                 => '${tgl_undangan}',
@@ -1009,7 +1027,7 @@ class PrepareTemplate extends Command
             '$(nim)'                          => '${nim}',
             '$(judul)'                        => '${judul}',
             '$(Tanggal Sidang)'               => '${tanggal_sidang}',
-            '$(waktu – waktu selesai)'        => '${waktu_waktu_selesai}',
+            '$(waktu â€“ waktu selesai)'        => '${waktu_waktu_selesai}',
             '$(ruangan)'                      => '${ruangan}',
             '$(NAMA WDA)'                     => '${nama_wda}',
             '$(NIP WDA)'                      => '${nip_wda}',
@@ -1089,7 +1107,7 @@ class PrepareTemplate extends Command
                 }
                 $endIdx = $i;
             } elseif ($startIdx !== -1 && ($hasSectPr || $hasColBreak || $isKppsText)) {
-                // Paragraf perantara di dalam blok — masukkan ke range
+                // Paragraf perantara di dalam blok â€” masukkan ke range
                 $endIdx = $i;
             } elseif ($startIdx !== -1) {
                 // Sudah keluar dari blok list
@@ -1134,7 +1152,7 @@ class PrepareTemplate extends Command
 
 
     /**
-     * Ganti semua placeholder $(xxx) → ${xxx} di XML Word dengan fuzzy matching
+     * Ganti semua placeholder $(xxx) â†’ ${xxx} di XML Word dengan fuzzy matching
      * yang toleran terhadap XML tags yang menyela di antara karakter teks.
      */
     private function fuzzyReplaceAll(string $xml, array $replacements): string
@@ -1199,10 +1217,9 @@ class PrepareTemplate extends Command
      */
     private function replaceSignatureDots(string $xml): string
     {
-        // Ganti HANYA dots pendek (≤9 karakter) di kolom TANDATANGAN dengan ${signature}.
-        // Pattern signature di template: "……………….." (6×U+2026 + 2×U+002E = 8 chars).
-        // Dots panjang (10+ chars) di kolom nama PENGUJI tidak boleh diganti.
-        $xml = preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{3,9}(<\/w:t>)/u', function ($matches) {
+        // Ganti rangkaian titik-titik/ellipsis (pendek atau panjang) di kolom tanda tangan
+        // dengan ${signature}. Template BA/SK umumnya memakai titik-titik sebagai slot ttd.
+        $xml = preg_replace_callback('/(<w:t[^>]*>)[\x{002E}\x{2026}]{3,}(<\/w:t>)/u', function ($matches) {
             return $matches[1] . '${signature}' . $matches[2];
         }, $xml);
 
@@ -1297,7 +1314,7 @@ class PrepareTemplate extends Command
      *   - baris "Tidak Lulus Sidang"       -> ${kotak_tidak_lulus}
      * Placeholder ${kotak_lulus} yang terpecah antar-run (${ ... kotak_lulus
      * ... } karena <w:proofErr> di tengah) dirapikan menjadi satu run.
-     * Titik-titik pada baris "dan Rekomendasi Yudisium: …………" diganti
+     * Titik-titik pada baris "dan Rekomendasi Yudisium: â€¦â€¦â€¦â€¦" diganti
      * ${rekomendasi_yudisium} agar diisi dari DB saat cetak.
      */
     private function replaceBaSidangLulusBox(string $xml): string
@@ -1341,10 +1358,10 @@ class PrepareTemplate extends Command
             );
         }
 
-        // Ganti titik-titik pada baris "dan Rekomendasi Yudisium: …………"
+        // Ganti titik-titik pada baris "dan Rekomendasi Yudisium: â€¦â€¦â€¦â€¦"
         // menjadi placeholder ${rekomendasi_yudisium}, agar saat cetak diisi
         // dari kolom REKOMENDASI_YUDISIUM di t_ajuan_sidang. Dots bisa berupa
-        // U+002E (.) berulang atau U+2026 (…) berulang di akhir w:t.
+        // U+002E (.) berulang atau U+2026 (â€¦) berulang di akhir w:t.
         $xml = preg_replace_callback(
             '/<w:p\b[^>]*>.*?<\/w:p>/s',
             function ($m) {

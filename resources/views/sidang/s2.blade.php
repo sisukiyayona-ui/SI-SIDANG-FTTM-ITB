@@ -109,6 +109,11 @@
                             <label class="fw-semibold">Abstrak <span class="text-danger">*</span></label>
                             <textarea name="abstrak" id="abstrakInput" class="form-control" rows="7" required placeholder="Masukkan abstrak penelitian"></textarea>
                         </div>
+
+                        <div class="form-group">
+                            <label class="fw-semibold">Opsi</label>
+                            <input type="text" name="opsi" class="form-control" maxlength="250" placeholder="Masukkan opsi" value="{{ old('opsi') }}">
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light btn-lg px-4" data-dismiss="modal">Batal</button>

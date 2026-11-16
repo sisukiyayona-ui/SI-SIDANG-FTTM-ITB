@@ -43,6 +43,13 @@
                 </div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
+                        <label class="form-label">Opsi Lama</label>
+                        <input type="text" class="form-control" value="{{ $judul->OPSI ?? '' }}" disabled>
+                        <input type="hidden" name="opsi_lama" value="{{ $judul->OPSI ?? '' }}">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
                         <label class="form-label">Judul Baru <span class="text-danger">*</span></label>
                         <textarea class="form-control" name="judul_baru" rows="4" style="font-size: 14px;" required>{{ old('judul_baru') }}</textarea>
                     </div>
@@ -52,6 +59,12 @@
                         <label class="form-label">Abstrak Baru <span class="text-danger">*</span></label>
                         <textarea class="form-control" name="abstrak" rows="10" maxlength="1000" style="font-size: 14px;" required placeholder="Masukkan abstrak baru">{{ old('abstrak') }}</textarea>
                         <small class="text-muted">Maksimal 1000 karakter</small>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Opsi Baru</label>
+                        <input type="text" class="form-control" name="opsi_baru" maxlength="250" value="{{ old('opsi_baru') }}" placeholder="Masukkan opsi baru">
                     </div>
                 </div>
                 <div class="row">
@@ -98,6 +111,8 @@
                                 <th>Nama</th>
                                 <th>Judul Lama</th>
                                 <th>Judul Baru</th>
+                                <th>Opsi</th>
+                                <th>Opsi Baru</th>
                                 <th>Tahap Perubahan</th>
                                 <th>Alasan Perubahan</th>
                             </tr>
@@ -110,6 +125,8 @@
                                     <td>{{ $judul->nama_mhs ?? '-' }}</td>
                                     <td>{{ $item->judul_lama ?? '-' }}</td>
                                     <td><strong>{{ $item->judul_baru }}</strong></td>
+                                    <td>{{ $item->opsi ?? '-' }}</td>
+                                    <td>{{ $item->opsi_baru ?? '-' }}</td>
                                     <td><span class="badge badge-info">{{ $item->tahap }}</span></td>
                                     <td>{{ $item->alasan ?? '-' }}</td>
                                 </tr>

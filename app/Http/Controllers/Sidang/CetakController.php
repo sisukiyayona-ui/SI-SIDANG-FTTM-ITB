@@ -66,21 +66,26 @@ class CetakController extends Controller
     }
 
     /**
-     * Pilih template Berita Acara S2 berdasarkan KODE_PRODI:
+     * Pilih template Berita Acara S2 berdasarkan KODE_PRODI dan tahapan:
      * 221 -> BA Tesis I prodi 221
      * 222 -> Berita Acara Sidang prodi 222 (Teknik Perminyakan)
-     * 223 -> BA Tesis I 223 TG
+     * 223 -> BA Tesis I 223 TG / BA Tesis 2 223 TG (Tesis II)
      * 225 atau lainnya -> BA Tesis I prodi 225
      */
-    private function getS2BeritaAcaraTemplate($kodeProdi): string
+    private function getS2BeritaAcaraTemplate($kodeProdi, $tahapan = null): string
     {
         $kp = trim((string) $kodeProdi);
+        $tahapanNorm = strtolower(trim((string) $tahapan));
+        $isTesisII = $tahapanNorm === 'tesis ii' || $tahapanNorm === 'tesis 2';
+
         if ($kp === '221') {
             return base_path('template/S2/BA Tesis I prodi 221 TEMPLATE.docx');
         } elseif ($kp === '222') {
             return base_path('template/S2/Berita Acara Sidang prodi 222 TEMPLATE.docx');
         } elseif ($kp === '223') {
-            return base_path('template/S2/BA Tesis I 223 TG TEMPLATE.docx');
+            return $isTesisII
+                ? base_path('template/S2/BA Tesis 2 223 TG TEMPLATE.docx')
+                : base_path('template/S2/BA Tesis I 223 TG TEMPLATE.docx');
         }
         return base_path('template/S2/BA Tesis I prodi 225 TEMPLATE.docx');
     }
@@ -1564,8 +1569,9 @@ class CetakController extends Controller
         // Template: S2 pakai template BA per-KODE_PRODI (221/222/223 TG/225)
         $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
         $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222';
+        $isS2Prodi223 = $isS2 && trim((string) $kodeProdi) === '223';
         if ($isS2) {
-            $templatePath = $this->getS2BeritaAcaraTemplate($kodeProdi);
+            $templatePath = $this->getS2BeritaAcaraTemplate($kodeProdi, $tahapan);
         } else {
             $templatePath = base_path('template/pROPOSAL/BA proposal TEMPLATE.docx');
         }
@@ -1759,6 +1765,29 @@ class CetakController extends Controller
                 $tp->setValue('nama_penguji_i',     $penguji1?->NAMA ?? '-');
                 $tp->setValue('nip_penguji_i',      $penguji1?->NIP ?? '-');
 
+                // BA Tesis I/II 223 TG: 6 baris tim penilai (Pembimbing, Ko-Pem 1, Ko-Pem 2, Ketua Sidang, Penguji 1, Penguji 2)
+                if ($isS2Prodi223) {
+                    $pembimbingUtama223 = $ketuaPembimbing ?? $pembimbings->get(0);
+                    $anggota223 = $pembimbings->filter(fn($t) => $t->id !== ($pembimbingUtama223?->id))->values();
+                    $ko1_223 = $anggota223->get(0);
+                    $ko2_223 = $anggota223->get(1);
+                    $pengujisOnly223 = $allTimSidang->filter(fn($t) =>
+                        str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji')
+                    )->values();
+                    $ketuaSidang223 = $ketuaSidang ?? $allTimSidang->first(fn($t) =>
+                        strtolower(trim($t->status_tim_sidang ?? '')) === 'ketua sidang'
+                    );
+                    $penguji1_223 = $pengujisOnly223->get(0);
+                    $penguji2_223 = $pengujisOnly223->get(1);
+
+                    $tp->setValue('nama_pembimbing_i',   $pembimbingUtama223?->NAMA ?? '-');
+                    $tp->setValue('nama_pembimbing_ii',  $ko1_223?->NAMA ?? ($p2?->NAMA ?? '-'));
+                    $tp->setValue('nama_pembimbing_iii', $ko2_223?->NAMA ?? '-');
+                    $tp->setValue('nama_ketua_sidang',   $ketuaSidang223?->NAMA ?? ($ketuaPenguji?->NAMA ?? '-'));
+                    $tp->setValue('nama_penguji_i',      $penguji1_223?->NAMA ?? ($penguji1?->NAMA ?? '-'));
+                    $tp->setValue('nama_penguji_ii',     $penguji2_223?->NAMA ?? '-');
+                }
+
                 // Prodi 222 (Teknik Perminyakan): BA tabel 4 penilai + Form Pengeluaran Nilai
                 if ($isS2Prodi222) {
                     $tp->setValue('semester',             $ajuan->SEMESTER ?? '');
@@ -1802,7 +1831,7 @@ class CetakController extends Controller
         // Pusatkan nilai di cell tabel BA (kolom Nilai = center align)
         $this->centerValueCellsInBaProposal($docxPath);
 
-        // Sisipkan tanda tangan penilai (ketua sidang) ke BA
+        // Sisipkan tanda tangan penilai ke BA
         if ($isS2Prodi222) {
             // BA prodi 222: 5 slot tanda tangan berurutan — Pembimbing 1, Pembimbing 2,
             // Ketua Penguji, Penguji, lalu Pembimbing 1 lagi di Form Pengeluaran Nilai.
@@ -1812,6 +1841,29 @@ class CetakController extends Controller
                 $this->signatureBinary($ketuaPenguji),
                 $this->signatureBinary($penguji1),
                 $this->signatureBinary($p1),
+            ]);
+        } elseif ($isS2Prodi223) {
+            // BA Tesis I/II 223 TG: 6 baris (Pembimbing, Ko-Pem 1, Ko-Pem 2, Ketua Sidang, Penguji 1, Penguji 2)
+            $pembimbingUtama223 = $ketuaPembimbing ?? $pembimbingsBA->get(0);
+            $anggota223 = $pembimbingsBA->filter(fn($t) => $t->id !== ($pembimbingUtama223?->id))->values();
+            $ko1_223 = $anggota223->get(0);
+            $ko2_223 = $anggota223->get(1);
+            $pengujisOnly223 = $allTimSidang->filter(fn($t) =>
+                str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji')
+            )->values();
+            $ketuaSidang223 = $ketuaSidang ?? $allTimSidang->first(fn($t) =>
+                strtolower(trim($t->status_tim_sidang ?? '')) === 'ketua sidang'
+            );
+            $penguji1_223 = $pengujisOnly223->get(0);
+            $penguji2_223 = $pengujisOnly223->get(1);
+
+            $this->embedAllSkSignatures($docxPath, [
+                $this->signatureBinary($pembimbingUtama223),
+                $this->signatureBinary($ko1_223),
+                $this->signatureBinary($ko2_223),
+                $this->signatureBinary($ketuaSidang223),
+                $this->signatureBinary($penguji1_223),
+                $this->signatureBinary($penguji2_223),
             ]);
         } elseif ($ketuaSidang) {
             $this->fillSignaturePlaceholder($docxPath, $ketuaSidang->id_user_penilai);

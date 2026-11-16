@@ -213,7 +213,7 @@ class SidangS1Controller extends Controller
     public function ubahJudul($idJudul)
     {
         $judul = DB::table('t_judul')
-            ->select('t_judul.ID as id_judul', 't_judul.JUDUL as Judul', 't_judul.ABSTRAK as ABSTRAK', 't_user.NAMA_LENGKAP as nama_mhs', 't_user.NIP_NIM as Nim')
+            ->select('t_judul.ID as id_judul', 't_judul.JUDUL as Judul', 't_judul.ABSTRAK as ABSTRAK', 't_judul.OPSI as OPSI', 't_user.NAMA_LENGKAP as nama_mhs', 't_user.NIP_NIM as Nim')
             ->join('t_user', 't_judul.NIM', '=', 't_user.NIP_NIM')
             ->where('t_judul.ID', $idJudul)
             ->first();
@@ -223,7 +223,7 @@ class SidangS1Controller extends Controller
         }
 
         $history = DB::table('t_judul_temp')
-            ->select('ID_JUDUL', 'JUDUL as judul_lama', 'JUDUL_BARU as judul_baru', 'TAHAP_PERUBAHAN as tahap', 'ALASAN_PERUBAHAN as alasan', 'TGL_CREATE as tgl_create')
+            ->select('ID_JUDUL', 'JUDUL as judul_lama', 'JUDUL_BARU as judul_baru', 'OPSI as opsi', 'OPSI_BARU as opsi_baru', 'TAHAP_PERUBAHAN as tahap', 'ALASAN_PERUBAHAN as alasan', 'TGL_CREATE as tgl_create')
             ->where('ID_JUDUL', $idJudul)
             ->orderBy('ID', 'desc')
             ->get();
@@ -244,12 +244,15 @@ class SidangS1Controller extends Controller
         $request->validate([
             'judul_baru' => 'required|string',
             'abstrak' => 'required|string|max:1000',
+            'opsi_baru' => 'nullable|string|max:250',
             'tahap' => 'required|in:TA I,TA II',
             'alasan' => 'required|string',
         ]);
 
         $user = session('auth_user');
-        $nim = DB::table('t_judul')->where('id', $idJudul)->value('NIM');
+        $judulRow = DB::table('t_judul')->where('id', $idJudul)->first();
+        $nim = $judulRow->NIM ?? null;
+        $opsiLama = $request->input('opsi_lama', $judulRow->OPSI ?? null);
 
         DB::table('t_judul_temp')->insert([
             'ID_JUDUL' => $idJudul,
@@ -258,6 +261,8 @@ class SidangS1Controller extends Controller
             'ABSTRAK' => $request->abstrak,
             'TAHAP_PERUBAHAN' => $request->tahap,
             'ALASAN_PERUBAHAN' => $request->alasan,
+            'OPSI' => $opsiLama,
+            'OPSI_BARU' => $request->input('opsi_baru'),
             'ID_USER_MHS' => $user['id'],
             'NIM' => $nim,
             'TGL_CREATE' => now(),
@@ -265,7 +270,12 @@ class SidangS1Controller extends Controller
 
         DB::table('t_judul')
             ->where('id', $idJudul)
-            ->update(['Judul' => $request->judul_baru, 'ABSTRAK' => $request->abstrak, 'tgl_update' => now()]);
+            ->update([
+                'Judul' => $request->judul_baru,
+                'ABSTRAK' => $request->abstrak,
+                'OPSI' => $request->input('opsi_baru'),
+                'tgl_update' => now(),
+            ]);
 
         DB::table('t_ajuan_sidang')
             ->where('id_judul', $idJudul)

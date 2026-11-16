@@ -17,6 +17,7 @@ class TJudul extends Model
     protected $fillable = [
         'JUDUL',
         'ABSTRAK',
+        'OPSI',
         'ID_USER_MHS',
         'NIM',
         'THN_CREATE',
