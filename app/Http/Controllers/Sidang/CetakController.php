@@ -91,21 +91,26 @@ class CetakController extends Controller
     }
 
     /**
-     * Pilih template Form Penilaian S2 berdasarkan KODE_PRODI:
+     * Pilih template Form Penilaian S2 berdasarkan KODE_PRODI dan tahapan:
      * 221 -> form penilaian prodi 221
      * 222 -> Penilaian Sidang Tesis I dan II prodi 222 (Teknik Perminyakan)
-     * 223 -> form penilaian Tesis I 223 TG
+     * 223 -> form penilaian Tesis I 223 TG / form penilaian Tesis 2 prodi 223 TG
      * 225 atau lainnya -> form penilaian Tesis I prodi 225
      */
-    private function getS2FormTemplate($kodeProdi): string
+    private function getS2FormTemplate($kodeProdi, $tahapan = null): string
     {
         $kp = trim((string) $kodeProdi);
+        $tahapanNorm = strtolower(trim((string) $tahapan));
+        $isTesisII = $tahapanNorm === 'tesis ii' || $tahapanNorm === 'tesis 2';
+
         if ($kp === '221') {
             return base_path('template/S2/form penilaian prodi 221 TEMPLATE.docx');
         } elseif ($kp === '222') {
             return base_path('template/S2/Penilaian Sidang Tesis I dan II prodi 222 TEMPLATE.docx');
         } elseif ($kp === '223') {
-            return base_path('template/S2/form penilaian Tesis I 223 TG TEMPLATE.docx');
+            return $isTesisII
+                ? base_path('template/S2/form penilaian Tesis 2 prodi 223 TG TEMPLATE.docx')
+                : base_path('template/S2/form penilaian Tesis I 223 TG TEMPLATE.docx');
         }
         return base_path('template/S2/form penilaian Tesis I prodi 225 TEMPLATE.docx');
     }
@@ -189,7 +194,7 @@ class CetakController extends Controller
             }
         }
 
-        // Jika belum ada record, ambil point penilaian (baris kosong) — per prodi
+        // Jika belum ada record, ambil point penilaian (baris kosong) â€” per prodi
         if ($penilaianRows->isEmpty()) {
             $pointQuery = TPointPenilaian::where('tahapan_sidang', $tahapan)
                 ->whereIn('status_aktif', ['AKTIF', 'aktif', 'Aktif', 'y', 'Y', 't']);
@@ -216,7 +221,7 @@ class CetakController extends Controller
 
         // Rata-rata nilai: jumlah total skor dibagi jumlah kriteria detail (skala dinamis).
         // Baris "Usulan Perbaikan" dan baris bertipe teks (STATUS_CATATAN=y) bukan kriteria
-        // ber-skala (bobotnya bukan angka) — jangan dihitung.
+        // ber-skala (bobotnya bukan angka) â€” jangan dihitung.
         $detailRows = $penilaianRows->filter(function ($r) {
             $nama          = (string) ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? '');
             $statusCatatan = strtolower((string) ($r->STATUS_CATATAN ?? $r->status_catatan ?? ''));
@@ -314,9 +319,9 @@ class CetakController extends Controller
         $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222' && !$isSk && !$isSidangDoktor;
 
         if ($isS2Prodi222) {
-            $templatePath = $this->getS2FormTemplate($kodeProdi);
+            $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan);
         } elseif ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
-            $templatePath = $this->getS2FormTemplate($kodeProdi);
+            $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan);
         } else {
             $templatePath = $isSk
                 ? base_path('template/SK-1/form penilaian sk I sd sk III TEMPLATE.docx')
@@ -450,7 +455,7 @@ class CetakController extends Controller
         if ($isSk) {
             // Template SK: isi nomor form, heading romawi, dan expand baris detail penilaian.
             // Template form penilaian SK hanya punya SATU ${signature} (milik penilai terpilih),
-            // jadi jangan diisi per-peran di sini — biar embedSignature di bawah yang mengisinya.
+            // jadi jangan diisi per-peran di sini â€” biar embedSignature di bawah yang mengisinya.
             $this->postProcessSkForm($docxPath, $noForm ?? '', $skRomawi, $kodeMk, $penilaianRows->values()->toArray(), $rataNilai, $jumlahDetail);
         } elseif ($isSidangDoktor) {
             // Template form penilaian sidang doktor: isi baris detail penilaian (5 baris) + rata-rata
@@ -1082,7 +1087,7 @@ class CetakController extends Controller
     /**
      * Isi placeholder per-baris penilaian di DOCX.
      * Template memiliki ${nama_penilaian}, ${keterangan}, ${nilai}, ${catatan}
-     * berulang (satu per baris) — ganti SATU occurrence per iterasi row.
+     * berulang (satu per baris) â€” ganti SATU occurrence per iterasi row.
      */
     private function fillPenilaianRows(string $docxPath, array $rows, string $rataNilai, string $tanggal = ''): void
     {
@@ -1106,7 +1111,7 @@ class CetakController extends Controller
             );
         }
 
-        // Map field name → kemungkinan key di array/object
+        // Map field name â†’ kemungkinan key di array/object
         $placeholders = [
             'nama_penilaian' => ['NAMA_PENILAIAN', 'nama_penilaian', 'PENILAIAN'],
             'keterangan'     => ['KETERANGAN', 'keterangan'],
@@ -1831,9 +1836,22 @@ class CetakController extends Controller
         // Pusatkan nilai di cell tabel BA (kolom Nilai = center align)
         $this->centerValueCellsInBaProposal($docxPath);
 
+        // Checkbox LULUS/TIDAK LULUS & Status Publikasi untuk semua template BA S2 (Tesis I & Tesis II)
+        $publikasiBa = ['Submitt' => 't', 'Under Review' => 't', 'Publish' => 't'];
+        try {
+            $rowsPub = DB::table('t_publikasi')->where('ID_AJUAN_SIDANG', $ajuan->id)->get();
+            foreach ($rowsPub as $rp) {
+                $k = (string) ($rp->PUBLIKASI ?? '');
+                if ($k !== '') {
+                    $publikasiBa[$k] = (string) ($rp->STATUS ?? 't');
+                }
+            }
+        } catch (\Throwable $e) {}
+        $this->applyS2BaCheckboxes($docxPath, $ajuan->STATUS_LULUS ?? '', $publikasiBa);
+
         // Sisipkan tanda tangan penilai ke BA
         if ($isS2Prodi222) {
-            // BA prodi 222: 5 slot tanda tangan berurutan — Pembimbing 1, Pembimbing 2,
+            // BA prodi 222: 5 slot tanda tangan berurutan â€” Pembimbing 1, Pembimbing 2,
             // Ketua Penguji, Penguji, lalu Pembimbing 1 lagi di Form Pengeluaran Nilai.
             $this->embedAllSkSignatures($docxPath, [
                 $this->signatureBinary($p1),
@@ -2859,7 +2877,7 @@ class CetakController extends Controller
             $tp->setValue('nama_penguji_iii',            $esc($resolveNama($penguji->get(2))));
             $tp->setValue('instansi_penguji_iii',        $esc($resolveInstansi($penguji->get(2))));
 
-            $tp->setValue('nilai_akhir',                 $esc($rata ?? '……………'));
+            $tp->setValue('nilai_akhir',                 $esc($rata ?? 'â€¦â€¦â€¦â€¦â€¦'));
             $tp->setValue('predikat',                    $esc($rata !== null ? $this->calculateIndeksSidang((float) $rata) : '________'));
         } catch (\Exception $e) {
             abort(500, 'Gagal memproses template PED Ketua Sidang: ' . $e->getMessage());
@@ -2937,7 +2955,7 @@ class CetakController extends Controller
         // Resume catatan dari semua penilai: blok "Catatan:" di template berisi
         // "(resume catatan dari semua penilai)" + titik-titik. Ganti seluruh blok
         // (mulai paragraf resume s/d sebelum tabel Tim Penguji) dengan daftar
-        // catatan "- <penilai>: <catatan>" — satu paragraf per baris.
+        // catatan "- <penilai>: <catatan>" â€” satu paragraf per baris.
         if (isset($data['catatan']) && is_array($data['catatan'])) {
             $xml = $this->fillSidangAkhirCatatan($xml, $data['catatan']);
         }
@@ -2963,18 +2981,18 @@ class CetakController extends Controller
         // Baris lulus dicentang bila lulus; baris tidak lulus dicentang bila
         // tidak lulus.
         $lulus    = !empty($data['lulus']);
-        $mcentang = "\u{2611}"; // ☑
-        $kosong   = "\u{2610}"; // ☐
+        $mcentang = "\u{2611}"; // â˜‘
+        $kosong   = "\u{2610}"; // â˜
         $adaRekommendasi = trim((string) ($data['rekomendasi_yudisium'] ?? '')) !== '';
         $xml = str_replace('${kotak_lulus}',       $lulus ? $mcentang : $kosong, $xml);
         $xml = str_replace('${kotak_yudisium}',    $adaRekommendasi ? $mcentang : $kosong, $xml);
         $xml = str_replace('${kotak_tidak_lulus}', $lulus ? $kosong : $mcentang, $xml);
 
         // Rekomendasi Yudisium: isi titik-titik pada baris "dan Rekomendasi
-        // Yudisium: …………" dengan nilai REKOMENDASI_YUDISIUM dari t_ajuan_sidang.
-        // Bila kosong, titik-titik asli (… … .) dipertahankan.
+        // Yudisium: â€¦â€¦â€¦â€¦" dengan nilai REKOMENDASI_YUDISIUM dari t_ajuan_sidang.
+        // Bila kosong, titik-titik asli (â€¦ â€¦ .) dipertahankan.
         $rekomendasiValue = trim((string) ($data['rekomendasi_yudisium'] ?? ''));
-        $rekomendasiFill  = $rekomendasiValue !== '' ? $rekomendasiValue : '…………………….';
+        $rekomendasiFill  = $rekomendasiValue !== '' ? $rekomendasiValue : 'â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦.';
         $xml = str_replace('${rekomendasi_yudisium}', $esc($rekomendasiFill), $xml);
 
         $zip->deleteName('word/document.xml');
@@ -3444,7 +3462,7 @@ class CetakController extends Controller
             || str_contains($t, 'tertutup');
 
         $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
-        // S2 Tesis I / Tesis II → gunakan template undangan.docx (undangan TEMPLATE.docx)
+        // S2 Tesis I / Tesis II â†’ gunakan template undangan.docx (undangan TEMPLATE.docx)
         $isTesis = $t === 'tesis i' || $t === 'tesis ii' || $isS2;
 
         if ($isTesis) {
@@ -3887,7 +3905,7 @@ class CetakController extends Controller
         $pukulDoktor = '-';
         if ($selesai) {
             $doktorStart = \Carbon\Carbon::parse($selesai);
-            $pukulDoktor = $doktorStart->format('H:i') . ' – ' . $doktorStart->copy()->addMinutes(150)->format('H:i');
+            $pukulDoktor = $doktorStart->format('H:i') . ' â€“ ' . $doktorStart->copy()->addMinutes(150)->format('H:i');
         }
 
         $tempat = $ajuan->ruang_sidang ?? '';
@@ -3931,9 +3949,9 @@ class CetakController extends Controller
             'waktu_waktu_selesai' => $pukulPendahuluan,
             'ruang' => $tempat,
             'ruangan' => $tempat,
-            'waktu selesai – di tambah 2,5 jam' => $pukulDoktor,
+            'waktu selesai â€“ di tambah 2,5 jam' => $pukulDoktor,
             'nama user status dekan \'y\'' => $dekan->NAMA_LENGKAP ?? '',
-            'nama user status dekan ‘y’' => $dekan->NAMA_LENGKAP ?? '',
+            'nama user status dekan â€˜yâ€™' => $dekan->NAMA_LENGKAP ?? '',
             'dekan' => $dekan->NAMA_LENGKAP ?? '',
         ];
         
@@ -4067,7 +4085,7 @@ class CetakController extends Controller
             $rows[] = ['nama' => $ku->NAMA, 'jabatan' => $jabatan];
         }
 
-        // Build kepada paragraphs – each row becomes a separate <w:p> so columns align properly
+        // Build kepada paragraphs â€“ each row becomes a separate <w:p> so columns align properly
         $kepadaParagraphs = '';
         $i = 1;
         foreach ($rows as $r) {
@@ -4089,7 +4107,7 @@ class CetakController extends Controller
         }
 
         $waktu = $ajuan->waktu_sidang && $ajuan->waktu_selesai
-            ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H:i') . ' – ' . \Carbon\Carbon::parse($ajuan->waktu_selesai)->format('H:i') . ' WIB'
+            ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H:i') . ' â€“ ' . \Carbon\Carbon::parse($ajuan->waktu_selesai)->format('H:i') . ' WIB'
             : '-';
 
         $prodi = $this->namaProdiAjuan($ajuan);
@@ -4149,7 +4167,7 @@ class CetakController extends Controller
 
         $filename = 'Undangan_' . str_replace(' ', '_', $perihal) . '_' . str_replace(' ', '_', $ajuan->NAMA_MHS ?? '') . '_' . ($ajuan->NIM ?? '') . '.pdf';
 
-        // Nama tahapan pada template masih statis ("Seminar Kemajuan IV") —
+        // Nama tahapan pada template masih statis ("Seminar Kemajuan IV") â€”
         // ganti dinamis sesuai tahapan yang dicetak.
         $postSave = function ($docxPath) use ($kepadaParagraphs, $perihal, $seminar, $wda, $prodi) {
             $z = new \ZipArchive();
@@ -4220,7 +4238,7 @@ class CetakController extends Controller
             // Save the generated DOCX
             $tp->saveAs($docxPath);
 
-            // Apply any post‑save modifications (e.g., inserting "kepada" rows)
+            // Apply any postâ€‘save modifications (e.g., inserting "kepada" rows)
             if ($postSave) {
                 $postSave($docxPath);
             }
@@ -4588,4 +4606,97 @@ class CetakController extends Controller
         }, $xml);
     }
 
+    /**
+     * Tandai checkbox/opsi LULUS & Status Publikasi pada semua template BA S2 (Tesis I & Tesis II).
+     * Template memakai teks/shape (bukan ${placeholder}), sehingga ditandai via
+     * penyisipan simbol ☐/☑ pada teks yang sesuai. Pola yang tidak ada di template
+     * akan diabaikan aman (str_replace/preg_replace tidak cocok).
+     */
+    private function applyS2BaCheckboxes(string $docxPath, $statusLulus, array $publikasi): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName("word/document.xml");
+        if ($xml === false) {
+            $zip->close();
+            return;
+        }
+
+        $sl = strtolower(trim((string) $statusLulus));
+        $isLulus = str_contains($sl, 'lulus sidang magister')
+            || in_array($sl, ['lulus', 'y', 'ya', '1', 'lulus sidang'], true);
+        $isTidak = str_contains($sl, 'tidak lulus') || str_contains($sl, 'mengulang');
+
+        $cb = fn(bool $on) => $on ? '☑ ' : '☐ ';
+
+        // --- Status publikasi (Submitt / Under review / Publish) ---
+        if (str_contains($xml, 'Status publikasi :')) {
+            $sub = $cb(strtolower(trim((string) ($publikasi['Submitt'] ?? 't'))) === 'y');
+            $und = $cb(strtolower(trim((string) ($publikasi['Under Review'] ?? 't'))) === 'y');
+            $pub = $cb(strtolower(trim((string) ($publikasi['Publish'] ?? 't'))) === 'y');
+            $xml = preg_replace(
+                '/>Status publikasi :\s+Submitt\s+Under review\s+Publish</u',
+                '>Status publikasi :        ' . $sub . 'Submitt                 ' . $und . 'Under review                 ' . $pub . 'Publish<',
+                $xml
+            );
+        }
+
+        // --- Opsi kelulusan: LULUS Sidang Magister (terpisah) ---
+        if (preg_match('/>LULUS Sidang Magister/u', $xml)) {
+            $xml = preg_replace(
+                '/>LULUS Sidang Magister(?! dan Mengulangi)/u',
+                '>' . $cb($isLulus && !$isTidak) . 'LULUS Sidang Magister',
+                $xml,
+                1
+            );
+        }
+
+        // --- Opsi kelulusan: TIDAK LULUS Sidang Magister dan Mengulangi Sidang Magister ---
+        if (preg_match('/>TIDAK LULUS Sidang Magister/u', $xml)) {
+            $xml = str_replace(
+                '>TIDAK LULUS Sidang Magister',
+                '>' . $cb($isTidak) . 'TIDAK LULUS Sidang Magister',
+                $xml
+            );
+        }
+
+        // --- Kombinasi LULUS / TIDAK LULUS dengan strike (BA Tesis I gaya) ---
+        if (str_contains($xml, '>LULUS / </w:t>')) {
+            if ($isTidak) {
+                // Strike LULUS, un-strike TIDAK LULUS
+                $xml = preg_replace(
+                    '/<w:r([^>]*)><w:rPr>(.*?)<\/w:rPr><w:t>LULUS<\/w:t><\/w:r>/u',
+                    '<w:r$1><w:rPr>$2<w:strike/></w:rPr><w:t>LULUS</w:t></w:r>',
+                    $xml,
+                    1
+                );
+                $xml = preg_replace(
+                    '/<w:r([^>]*)><w:rPr><w:strike\/><w:lang w:val="sv-SE"\/><\/w:rPr><w:t>TIDAK LULUS<\/w:t><\/w:r>/u',
+                    '<w:r$1><w:rPr><w:lang w:val="sv-SE"/></w:rPr><w:t>TIDAK LULUS</w:t></w:r>',
+                    $xml,
+                    1
+                );
+            } elseif ($isLulus) {
+                // Strike TIDAK LULUS, un-strike LULUS
+                $xml = preg_replace(
+                    '/<w:r([^>]*)><w:rPr><w:strike\/><w:lang w:val="sv-SE"\/><\/w:rPr><w:t>TIDAK LULUS<\/w:t><\/w:r>/u',
+                    '<w:r$1><w:rPr><w:strike/><w:lang w:val="sv-SE"/></w:rPr><w:t>TIDAK LULUS</w:t></w:r>',
+                    $xml,
+                    1
+                );
+                $xml = preg_replace(
+                    '/<w:r([^>]*)><w:rPr>(.*?)<w:strike\/>(.*?)<\/w:rPr><w:t>LULUS<\/w:t><\/w:r>/u',
+                    '<w:r$1><w:rPr>$2$3</w:rPr><w:t>LULUS</w:t></w:r>',
+                    $xml,
+                    1
+                );
+            }
+        }
+
+        $zip->deleteName("word/document.xml");
+        $zip->addFromString("word/document.xml", $xml);
+        $zip->close();
+    }
 }
