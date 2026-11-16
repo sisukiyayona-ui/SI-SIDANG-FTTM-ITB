@@ -70,9 +70,9 @@
                             <label for="strata" class="form-label fw-semibold text-secondary">Strata</label>
                             <select name="strata" id="f_strata" class="form-control" style="border-radius: 8px; border: 1px solid #e0e0e0; padding: 10px 15px;" required onchange="filterTahapanByStrata()">
                                 <option value="">-- Pilih Strata --</option>
-                                <option value="S3">S3</option>
                                 <option value="S1">S1</option>
                                 <option value="S2">S2</option>
+                                <option value="S3">S3</option>
                             </select>
                         </div>
                     </div>
