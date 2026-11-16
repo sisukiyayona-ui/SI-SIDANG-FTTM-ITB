@@ -3391,15 +3391,16 @@ class CetakController extends Controller
             || str_contains($t, 'terbuka')
             || str_contains($t, 'tertutup');
 
+        $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
         // S2 Tesis I / Tesis II → gunakan template undangan.docx (undangan TEMPLATE.docx)
-        $isTesis = $t === 'tesis i' || $t === 'tesis ii';
-
-        if ($isSidang) {
-            return $this->cetakUndanganSidang($judul, $ajuan, $timSidang);
-        }
+        $isTesis = $t === 'tesis i' || $t === 'tesis ii' || $isS2;
 
         if ($isTesis) {
             return $this->cetakUndanganS2Tesis($judul, $ajuan, $timSidang, $tahapan);
+        }
+
+        if ($isSidang) {
+            return $this->cetakUndanganSidang($judul, $ajuan, $timSidang);
         }
 
         return $this->cetakUndanganKemajuan($judul, $ajuan, $timSidang, $tahapan);
@@ -3408,6 +3409,10 @@ class CetakController extends Controller
     /**
      * Cetak undangan sidang Tesis I / Tesis II (S2).
      * Menggunakan template: template/undangan TEMPLATE.docx
+     * Data pembimbing dan penguji disesuaikan secara dinamis:
+     * - "Kepada Yth." hanya memuat dosen yang sebenarnya menjadi tim sidang.
+     * - Baris Pembimbing hanya menampilkan pembimbing yang ada (1, 2, atau 3).
+     * - Baris Penguji hanya menampilkan penguji yang ada (1 atau 2).
      */
     private function cetakUndanganS2Tesis($judul, $ajuan, $timSidang, string $tahapan)
     {
@@ -3416,15 +3421,25 @@ class CetakController extends Controller
             abort(500, 'Template undangan S2 tidak ditemukan. Jalankan php artisan template:prepare terlebih dahulu.');
         }
 
+        // Pastikan timSidang terisi, fallback jika filter tahapan sedikit berbeda
+        if ($timSidang->isEmpty()) {
+            $timSidang = TTimSidang::where('id_judul', $judul->ID_JUDUL ?? $ajuan->ID_JUDUL)
+                ->whereRaw('LOWER(TRIM(tahapan_sidang)) = ?', [strtolower(trim($tahapan))])
+                ->get();
+        }
+        if ($timSidang->isEmpty()) {
+            $timSidang = TTimSidang::where('id_judul', $judul->ID_JUDUL ?? $ajuan->ID_JUDUL)->get();
+        }
+
         $normalizeStatus = fn($s) => preg_replace('/[\r\n]+/', '', strtolower(trim($s ?? '')));
 
         $resolveNama = function ($t) {
             if (!$t) return '-';
             $nama = trim(optional($t->userPenilai)->NAMA_LENGKAP ?? '');
-            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing']) || preg_match('/^\d{5,}$/', $nama)) {
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
                 $nama = trim($t->NAMA ?? '');
             }
-            if ($nama === '' || preg_match('/^\d{5,}$/', $nama)) {
+            if ($nama === '' || in_array(strtolower($nama), ['pembimbing', 'penguji', 'ketua sidang', 'ketua pembimbing', 'dua_role']) || preg_match('/^\d{5,}$/', $nama)) {
                 $userId = $t->id_user_penilai ?? null;
                 if ($userId) {
                     $user = \App\Models\TUser::find($userId);
@@ -3434,31 +3449,77 @@ class CetakController extends Controller
             return $nama ?: '-';
         };
 
-        // Ketua Pembimbing
-        $ketuaPembimbing = $timSidang
-            ->filter(fn($t) => $normalizeStatus($t->status_tim_sidang) === 'ketua pembimbing')
-            ->first();
+        // 1. Pembimbing (urutkan ketua pembimbing / pembimbing 1 dulu, lalu pembimbing 2, dst)
+        $pembimbings = $timSidang->filter(function ($t) use ($normalizeStatus) {
+            return str_contains($normalizeStatus($t->status_tim_sidang), 'pembimbing');
+        })->sort(function ($a, $b) use ($normalizeStatus) {
+            $stA = $normalizeStatus($a->status_tim_sidang);
+            $stB = $normalizeStatus($b->status_tim_sidang);
+            $rank = function ($st, $urutan) {
+                if (str_contains($st, 'ketua')) return 1;
+                if (preg_match('/pembimbing\s*(i|1)\b/', $st)) return 2;
+                if (preg_match('/pembimbing\s*(ii|2)\b/', $st)) return 3;
+                if (preg_match('/pembimbing\s*(iii|3)\b/', $st)) return 4;
+                return 10 + (int) $urutan;
+            };
+            return $rank($stA, $a->URUTAN ?? 0) <=> $rank($stB, $b->URUTAN ?? 0);
+        })->values();
 
-        // Pembimbing Anggota
-        $pembimbingAnggota = $timSidang
-            ->filter(fn($t) => preg_match('/^pembimbing\s+(i{1,3}|iv|v)$/i', $normalizeStatus($t->status_tim_sidang)))
-            ->values();
+        // 2. Ketua Sidang
+        $ketua = $timSidang->first(function ($t) use ($normalizeStatus) {
+            return str_contains($normalizeStatus($t->status_tim_sidang), 'ketua sidang');
+        });
 
-        // Penguji
-        $pengujis = $timSidang
-            ->filter(fn($t) => preg_match('/^penguji\s+(i{1,3}|iv|v)$/i', $normalizeStatus($t->status_tim_sidang)))
-            ->values();
+        // 3. Penguji (jangan dobel jika ketua sidang memiliki status lain)
+        $pengujis = $timSidang->filter(function ($t) use ($normalizeStatus, $ketua) {
+            if ($ketua && $t->id === $ketua->id) {
+                return false;
+            }
+            return str_contains($normalizeStatus($t->status_tim_sidang), 'penguji');
+        })->sort(function ($a, $b) use ($normalizeStatus) {
+            $stA = $normalizeStatus($a->status_tim_sidang);
+            $stB = $normalizeStatus($b->status_tim_sidang);
+            $rank = function ($st, $urutan) {
+                if (preg_match('/penguji\s*(i|1)\b/', $st)) return 1;
+                if (preg_match('/penguji\s*(ii|2)\b/', $st)) return 2;
+                if (preg_match('/penguji\s*(iii|3)\b/', $st)) return 3;
+                if (preg_match('/penguji\s*(iv|4)\b/', $st)) return 4;
+                return 10 + (int) $urutan;
+            };
+            return $rank($stA, $a->URUTAN ?? 0) <=> $rank($stB, $b->URUTAN ?? 0);
+        })->values();
 
-        // Ketua Sidang
-        $ketua = $timSidang
-            ->filter(fn($t) => $normalizeStatus($t->status_tim_sidang) === 'ketua sidang')
-            ->first();
+        $pembimbingNames = $pembimbings->map($resolveNama)->filter(fn($n) => $n !== '-' && $n !== '')->values()->all();
+        $ketuaSidangName = $ketua ? $resolveNama($ketua) : null;
+        if ($ketuaSidangName === '-') $ketuaSidangName = null;
+        $pengujiNames = $pengujis->map($resolveNama)->filter(fn($n) => $n !== '-' && $n !== '')->values()->all();
 
-        // Data kaprodi
+        // Daftar penerima undangan pada blok "Kepada Yth."
+        $kepadaYthList = [];
+        foreach ($pembimbingNames as $pName) {
+            if (!in_array($pName, $kepadaYthList)) {
+                $kepadaYthList[] = $pName;
+            }
+        }
+        if ($ketuaSidangName && !in_array($ketuaSidangName, $kepadaYthList)) {
+            $kepadaYthList[] = $ketuaSidangName;
+        }
+        foreach ($pengujiNames as $pgName) {
+            if (!in_array($pgName, $kepadaYthList)) {
+                $kepadaYthList[] = $pgName;
+            }
+        }
+
+        // Data kaprodi dengan fallback rumpun S3/321
         $kaprodi = \App\Models\TUser::where('STATUS_KAPRODI', 'y')
             ->where('KODE_PRODI', $ajuan->KODE_PRODI ?? '')
             ->first();
-        // Fallback: cari kaprodi tanpa filter prodi
+        if (!$kaprodi && !empty($ajuan->KODE_PRODI)) {
+            $s3Prodi = '3' . substr((string) $ajuan->KODE_PRODI, 1);
+            $kaprodi = \App\Models\TUser::where('KODE_PRODI', $s3Prodi)
+                ->where('STATUS_KAPRODI', 'y')
+                ->first();
+        }
         if (!$kaprodi) {
             $kaprodi = \App\Models\TUser::where('STATUS_KAPRODI', 'y')->first();
         }
@@ -3471,8 +3532,6 @@ class CetakController extends Controller
             ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H.i')
             : '-';
 
-        // Kolom fisik di t_ajuan_sidang: NO_UNDANGAN dan TGL_UNDANGAN
-        // (bukan no_surat_undangan/tgl_surat_undangan).
         $tglSuratUndangan = $ajuan->TGL_UNDANGAN
             ? \Carbon\Carbon::parse($ajuan->TGL_UNDANGAN)->translatedFormat('d F Y')
             : ($ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('d F Y') : '-');
@@ -3480,9 +3539,6 @@ class CetakController extends Controller
         $namaProdi = $ajuan->NAMA_PRODI ?? '-';
         $noSuratUndangan = $ajuan->NO_UNDANGAN ?? '-';
 
-        // Alamat & email prodi untuk template undangan — dari Data Master Prodi
-        // (t_prodi.ALAMAT / t_prodi.EMAIL). Prioritas cari via KODE_PRODI ajuan,
-        // fallback ke ID_PRODI ajuan.
         $prodiSurat = \App\Models\TProdi::where('KODE_PRODI', $ajuan->KODE_PRODI ?? '')->first()
             ?? ($ajuan->ID_PRODI ? \App\Models\TProdi::find($ajuan->ID_PRODI) : null);
         $alamatProdi = $prodiSurat?->ALAMAT ?? '';
@@ -3499,6 +3555,166 @@ class CetakController extends Controller
 
         copy($templatePath, $docxPath);
 
+        // Manipulasi struktur XML: sesuaikan jumlah baris Kepada Yth, Pembimbing, dan Penguji
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($docxPath) === true) {
+                $xml = $zip->getFromName('word/document.xml');
+                $dom = new \DOMDocument();
+                $dom->loadXML($xml);
+                $xpath = new \DOMXPath($dom);
+                $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+                // 1. Sesuaikan blok "Kepada Yth."
+                $ythNode = null;
+                foreach ($xpath->query('//w:p') as $p) {
+                    if (str_contains($p->textContent, 'Kepada Yth')) {
+                        $ythNode = $p;
+                        break;
+                    }
+                }
+
+                if ($ythNode) {
+                    $recipientPlaceholders = [
+                        '${nama_ketua_pembimbing}',
+                        '${nama_pembimbing_i}',
+                        '${nama_pembimbing_ii}',
+                        '${nama_ketua_sidang}',
+                        '${nama_penguji_i}',
+                        '${nama_penguji_ii}',
+                    ];
+                    $targetParas = [];
+                    $curr = $ythNode->nextSibling;
+                    while ($curr) {
+                        if ($curr->nodeType === XML_ELEMENT_NODE && $curr->localName === 'p') {
+                            $pTxt = $curr->textContent;
+                            $hasPh = false;
+                            foreach ($recipientPlaceholders as $ph) {
+                                if (str_contains($pTxt, $ph)) {
+                                    $hasPh = true;
+                                    break;
+                                }
+                            }
+                            if ($hasPh) {
+                                $targetParas[] = $curr;
+                            } else {
+                                break;
+                            }
+                        }
+                        $curr = $curr->nextSibling;
+                    }
+
+                    $templatePara = !empty($targetParas) ? $targetParas[0]->cloneNode(true) : null;
+                    $insertAfter = $ythNode;
+
+                    foreach ($targetParas as $tp) {
+                        $tp->parentNode->removeChild($tp);
+                    }
+
+                    foreach ($kepadaYthList as $rName) {
+                        if ($templatePara) {
+                            $newP = $templatePara->cloneNode(true);
+                            $tNodes = $xpath->query('.//w:t', $newP);
+                            if ($tNodes->length > 0) {
+                                $tNodes->item(0)->nodeValue = $rName;
+                                for ($k = 1; $k < $tNodes->length; $k++) {
+                                    $tNodes->item($k)->nodeValue = '';
+                                }
+                            }
+                        } else {
+                            $newP = $dom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:p');
+                            $r = $dom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:r');
+                            $t = $dom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:t', htmlspecialchars($rName));
+                            $r->appendChild($t);
+                            $newP->appendChild($r);
+                        }
+                        $insertAfter->parentNode->insertBefore($newP, $insertAfter->nextSibling);
+                        $insertAfter = $newP;
+                    }
+                }
+
+                // 2. Sesuaikan Pembimbing, Ketua Sidang, dan Penguji di badan surat
+                $bodyParas = $xpath->query('//w:p');
+                $pembimbingParas = [];
+                $ketuaSidangPara = null;
+                $pengujiParas = [];
+
+                foreach ($bodyParas as $p) {
+                    $txt = $p->textContent;
+                    if (str_contains($txt, 'Pembimbing:') && str_contains($txt, '${nama_ketua_pembimbing}')) {
+                        $pembimbingParas[0] = $p;
+                    } elseif (str_contains($txt, '${nama_pembimbing_i}') && preg_match('/^\s*2\./', $txt)) {
+                        $pembimbingParas[1] = $p;
+                    } elseif (str_contains($txt, '${nama_pembimbing_ii}') && preg_match('/^\s*3\./', $txt)) {
+                        $pembimbingParas[2] = $p;
+                    } elseif (str_contains($txt, 'Ketua Sidang:') && str_contains($txt, '${nama_ketua_sidang}')) {
+                        $ketuaSidangPara = $p;
+                    } elseif (str_contains($txt, 'Penguji:') && str_contains($txt, '${nama_penguji_i}')) {
+                        $pengujiParas[0] = $p;
+                    } elseif (str_contains($txt, '${nama_penguji_ii}') && preg_match('/^\s*2\./', $txt)) {
+                        $pengujiParas[1] = $p;
+                    }
+                }
+
+                // A) Pembimbing: tampilkan hanya baris pembimbing yang ada
+                $pCount = count($pembimbingNames);
+                if ($pCount === 0) {
+                    $this->replaceTextInPara($xpath, $pembimbingParas[0] ?? null, '${nama_ketua_pembimbing}', '-');
+                    if (isset($pembimbingParas[1])) $pembimbingParas[1]->parentNode->removeChild($pembimbingParas[1]);
+                    if (isset($pembimbingParas[2])) $pembimbingParas[2]->parentNode->removeChild($pembimbingParas[2]);
+                } elseif ($pCount === 1) {
+                    $this->replaceTextInPara($xpath, $pembimbingParas[0] ?? null, '${nama_ketua_pembimbing}', $pembimbingNames[0]);
+                    if (isset($pembimbingParas[1])) $pembimbingParas[1]->parentNode->removeChild($pembimbingParas[1]);
+                    if (isset($pembimbingParas[2])) $pembimbingParas[2]->parentNode->removeChild($pembimbingParas[2]);
+                } elseif ($pCount === 2) {
+                    $this->replaceTextInPara($xpath, $pembimbingParas[0] ?? null, '${nama_ketua_pembimbing}', $pembimbingNames[0]);
+                    $this->replaceTextInPara($xpath, $pembimbingParas[1] ?? null, '${nama_pembimbing_i}', $pembimbingNames[1]);
+                    if (isset($pembimbingParas[2])) $pembimbingParas[2]->parentNode->removeChild($pembimbingParas[2]);
+                } else {
+                    $this->replaceTextInPara($xpath, $pembimbingParas[0] ?? null, '${nama_ketua_pembimbing}', $pembimbingNames[0]);
+                    $this->replaceTextInPara($xpath, $pembimbingParas[1] ?? null, '${nama_pembimbing_i}', $pembimbingNames[1]);
+                    $this->replaceTextInPara($xpath, $pembimbingParas[2] ?? null, '${nama_pembimbing_ii}', $pembimbingNames[2]);
+                }
+
+                // B) Ketua Sidang
+                if ($ketuaSidangPara) {
+                    if ($ketuaSidangName) {
+                        $this->replaceTextInPara($xpath, $ketuaSidangPara, '${nama_ketua_sidang}', $ketuaSidangName);
+                    } else {
+                        $ketuaSidangPara->parentNode->removeChild($ketuaSidangPara);
+                    }
+                }
+
+                // C) Penguji: tampilkan hanya baris penguji yang ada
+                $pgCount = count($pengujiNames);
+                if ($pgCount === 0) {
+                    $this->replaceTextInPara($xpath, $pengujiParas[0] ?? null, '1. ${nama_penguji_i}', '-');
+                    $this->replaceTextInPara($xpath, $pengujiParas[0] ?? null, '${nama_penguji_i}', '-');
+                    if (isset($pengujiParas[1])) $pengujiParas[1]->parentNode->removeChild($pengujiParas[1]);
+                } elseif ($pgCount === 1) {
+                    $this->replaceTextInPara($xpath, $pengujiParas[0] ?? null, '${nama_penguji_i}', $pengujiNames[0]);
+                    if (isset($pengujiParas[1])) $pengujiParas[1]->parentNode->removeChild($pengujiParas[1]);
+                } else {
+                    $this->replaceTextInPara($xpath, $pengujiParas[0] ?? null, '${nama_penguji_i}', $pengujiNames[0]);
+                    $this->replaceTextInPara($xpath, $pengujiParas[1] ?? null, '${nama_penguji_ii}', $pengujiNames[1]);
+                }
+
+                // Ubah Ketua Program Studi Sarjana -> Magister untuk S2
+                foreach ($xpath->query('//w:p') as $p) {
+                    if (str_contains($p->textContent, 'Ketua Program Studi Sarjana')) {
+                        $this->replaceTextInPara($xpath, $p, 'Sarjana', 'Magister');
+                    }
+                }
+
+                $newXml = $dom->saveXML();
+                $zip->addFromString('word/document.xml', $newXml);
+                $zip->close();
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Gagal memproses struktur undangan S2: ' . $e->getMessage());
+        }
+
+        // Isi sisa metadata via TemplateProcessor
         $replacements = [
             'no_surat_undangan'    => $noSuratUndangan,
             'tgl_surat_undangan'   => $tglSuratUndangan,
@@ -3511,17 +3727,10 @@ class CetakController extends Controller
             'tgl_sidang'           => $tglSidang,
             'waktu'                => $waktuMulai,
             'ruang_sidang'         => $ajuan->ruang_sidang ?? $ajuan->RUANG_SIDANG ?? '-',
-            'nama_ketua_pembimbing'=> $resolveNama($ketuaPembimbing),
-            'nama_pembimbing_i'    => $pembimbingAnggota->get(0) ? $resolveNama($pembimbingAnggota->get(0)) : '-',
-            'nama_pembimbing_ii'   => $pembimbingAnggota->get(1) ? $resolveNama($pembimbingAnggota->get(1)) : '-',
-            'nama_ketua_sidang'    => $resolveNama($ketua),
-            'nama_penguji_i'       => $pengujis->get(0) ? $resolveNama($pengujis->get(0)) : '-',
-            'nama_penguji_ii'      => $pengujis->get(1) ? $resolveNama($pengujis->get(1)) : '-',
             'nama_kaprodi'         => $kaprodi?->NAMA_LENGKAP ?? '-',
             'nip_kaprodi'          => $kaprodi?->NIP_NIM ?? '-',
         ];
 
-        // Isi placeholder via PhpWord TemplateProcessor
         try {
             $tp = new \PhpOffice\PhpWord\TemplateProcessor($docxPath);
             foreach ($replacements as $key => $value) {
@@ -3530,7 +3739,6 @@ class CetakController extends Controller
             $tp->saveAs($docxPath);
         } catch (\Exception $e) {
             \Log::error('cetakUndanganS2Tesis TemplateProcessor error: ' . $e->getMessage());
-            // Fallback ke replaceInDocx
             $this->replaceInDocx($docxPath, $replacements);
         }
 
@@ -3541,6 +3749,35 @@ class CetakController extends Controller
         $this->removePlaceholderText($docxPath, 'signature');
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Helper untuk mengganti teks di dalam run <w:t> sebuah paragraf DOM.
+     */
+    private function replaceTextInPara(\DOMXPath $xpath, ?\DOMNode $para, string $search, string $replace): void
+    {
+        if (!$para) return;
+        $found = false;
+        foreach ($xpath->query('.//w:t', $para) as $t) {
+            if (str_contains($t->nodeValue, $search)) {
+                $t->nodeValue = str_replace($search, $replace, $t->nodeValue);
+                $found = true;
+            }
+        }
+        if (!$found && str_contains($para->textContent, $search)) {
+            $tNodes = $xpath->query('.//w:t', $para);
+            if ($tNodes->length > 0) {
+                $full = '';
+                foreach ($tNodes as $t) {
+                    $full .= $t->nodeValue;
+                }
+                $full = str_replace($search, $replace, $full);
+                $tNodes->item(0)->nodeValue = $full;
+                for ($k = 1; $k < $tNodes->length; $k++) {
+                    $tNodes->item($k)->nodeValue = '';
+                }
+            }
+        }
     }
 
     private function cetakUndanganSidang($judul, $ajuan, $timSidang)
