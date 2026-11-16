@@ -646,21 +646,31 @@ class PrepareTemplate extends Command
                 'src' => base_path('template/S2/form penilaian prodi 221.docx'),
                 'dst' => base_path('template/S2/form penilaian prodi 221 TEMPLATE.docx'),
                 'replacements' => [
-                    '(nama mhs)' => '${nama_mhs}',
-                    '(nim)' => '${nim}',
-                    '(judul)' => '${judul}',
-                    '(tgl sidang)' => '${tgl_sidang}',
-                    '(waktu)' => '${waktu}',
-                    '(nama ketua pembimbing)' => '${nama_ketua_pembimbing}',
-                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
-                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
-                    '(nilai)' => '${nilai}',
-                    '(keterangan)' => '${keterangan}',
-                    '(nilai akhir rata2)' => '${nilai_akhir_rata2}',
-                    '(indeks nilai)' => '${indeks_nilai}',
-                    '(nama tim sidang)' => '${nama_tim_sidang}',
-                    '(catatan)' => '${catatan}',
-                    'Tanda Tangan' => '${signature}',
+                    '(STATUS TIM SIDANG)'   => '${status_tim_sidang}',
+                    'STATUS TIM SIDANG'     => '${status_tim_sidang}',
+                    'KODE MK'               => '${kode_mk}',
+                    '(no form)'             => '${no_form}',
+                    'no form'               => '${no_form}',
+                    '(judul)'               => '${judul}',
+                    '(Nama mhs)'            => '${nama_mhs}',
+                    '(nim)'                 => '${nim}',
+                    '(Nama pembimbing I)'   => '${nama_pembimbing_i}',
+                    '(Nama pembimbing II)'  => '${nama_pembimbing_ii}',
+                    '(Tgl sidang)'          => '${tgl_sidang}',
+                    '(ruang)'               => '${ruang_sidang}',
+                    '(Nilai rata2)'         => '${nilai_rata2}',
+                    '(Parameter penilaian)' => '${nama_penilaian}',
+                    '(Keterangan)'          => '${keterangan}',
+                    '(Nilai)'               => '${nilai}',
+                    '(tgl sidang)'          => '${tgl_sidang}',
+                    '(ttd)'                 => '${signature}',
+                    'ttd'                   => '${signature}',
+                    '(Nama penilai)'        => '${nama_penilai}',
+                    '(Status tim sidang)'   => '${status_tim_sidang}',
+                    '(alamat)'              => '${alamat_prodi}',
+                    '(tlp)'                 => '${tlp_prodi}',
+                    '(email)'               => '${email_prodi}',
+                    'Tanda Tangan'          => '${signature}',
                 ]
             ],
         ];
@@ -790,6 +800,16 @@ class PrepareTemplate extends Command
                 for ($i = 1; $i <= 6; $i++) {
                     $xml = $this->fuzzyReplaceOnce($xml, '$(Nilai rata2)', '${nilai_' . $i . '}');
                     // jika sudah jadi ${nilai_SLOT} dari replace bulk (tidak dipakai), biarkan
+                }
+            }
+
+            // Proses juga file header dan footer jika memuat placeholder (alamat, tlp, email, dsb)
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $entryName = $zip->getNameIndex($i);
+                if (preg_match('~word/(header\d+|footer\d+)\.xml$~', $entryName)) {
+                    $partXml = $zip->getFromName($entryName);
+                    $partXml = $this->fuzzyReplaceAll($partXml, $replacements);
+                    $zip->addFromString($entryName, $partXml);
                 }
             }
 

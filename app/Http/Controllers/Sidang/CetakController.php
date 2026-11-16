@@ -228,6 +228,7 @@ class CetakController extends Controller
 
         // Info penilai & tanggal (tanggal penilaian = tgl create penilaian)
         $firstRow    = $penilaianRows->first();
+        $noForm      = $noForm ?: ($firstRow?->NO_FORM ?? $firstRow?->no_form ?? null);
         $tgl         = $firstRow?->TGL_CREATE ?? $firstRow?->TGL_UPDATE ?? null;
         $tanggal     = $tgl ? \Carbon\Carbon::parse($tgl)->translatedFormat('d F Y') : '';
         $penilaiNama = (isset($firstRow->NAMA) && trim((string) $firstRow->NAMA) !== '')
@@ -341,11 +342,22 @@ class CetakController extends Controller
                 ->map(fn($t) => $t->NAMA ?? '-')
                 ->all();
 
+            $pembimbings = $allTimSidang->filter(fn($t) =>
+                str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
+            )->values();
+            $p1 = $ketuaPembimbing ?? $pembimbings->get(0);
+            $p2 = $pembimbings->first(fn($t) => $t->id !== ($p1?->id));
+
+            $namaP1 = $isS2 ? ($p1?->NAMA ?? '-') : ($anggotaPembimbing->get(0)?->NAMA ?? '-');
+            $namaP2 = $isS2 ? ($p2?->NAMA ?? '-') : ($anggotaPembimbing->get(1)?->NAMA ?? '-');
+
             $tp->setValue('nama_mhs',              $ajuan->NAMA_MHS ?? '-');
             $tp->setValue('nim',                   $ajuan->NIM ?? '-');
             $tp->setValue('nama_ketua_pembimbing', $ketuaPembimbing?->NAMA ?? '-');
-            $tp->setValue('nama_pembimbing_i',     $anggotaPembimbing->get(0)?->NAMA ?? '-');
-            $tp->setValue('nama_pembimbing_ii',    $anggotaPembimbing->get(1)?->NAMA ?? '-');
+            $tp->setValue('nama_pembimbing_i',     $namaP1);
+            $tp->setValue('nama_pembimbing_ii',    $namaP2);
+            $tp->setValue('nama pembimbing I',     $namaP1);
+            $tp->setValue('nama pembimbing II',    $namaP2);
             $tp->setValue('nama_penguji_i',        $pengujiNames[0] ?? '-');
             $tp->setValue('nama_penguji_ii',       $pengujiNames[1] ?? '-');
             $tp->setValue('nama_penilai',          $penilaiNama);
@@ -354,6 +366,21 @@ class CetakController extends Controller
 
             // S2: nilai untuk template Berita Acara / Form Penilaian Magister
             if (($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) || $isS2Prodi222) {
+                $pembimbings = $allTimSidang->filter(fn($t) =>
+                    str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
+                )->values();
+                $p1 = $ketuaPembimbing ?? $pembimbings->get(0);
+                $p2 = $pembimbings->first(fn($t) => $t->id !== ($p1?->id));
+
+                $statusTimSidang = strtoupper((string) ($timSidangRecord?->status_tim_sidang ?? ''));
+
+                $prodiS2 = \App\Models\TProdi::where('KODE_PRODI', $kodeProdi)->first();
+
+                $tp->setValue('status_tim_sidang',     $statusTimSidang);
+                $tp->setValue('no_form',               $noForm ?? '');
+                $tp->setValue('kode_mk',               $kodeMk ?? '');
+                $tp->setValue('nama_pembimbing_i',     $p1?->NAMA ?? '-');
+                $tp->setValue('nama_pembimbing_ii',    $p2?->NAMA ?? '-');
                 $tp->setValue('judul',           $namaJudul);
                 $tp->setValue('nama mhs',        $ajuan->NAMA_MHS ?? '-');
                 $tp->setValue('nim',             $ajuan->NIM ?? '-');
@@ -362,6 +389,18 @@ class CetakController extends Controller
                 $tp->setValue('waktu',           $ajuan->waktu_sidang ?? '');
                 $tp->setValue('ruang',           $ajuan->ruang_sidang ?? '');
                 $tp->setValue('ruang_sidang',    $ajuan->ruang_sidang ?? '');
+                $tp->setValue('alamat',          $prodiS2?->ALAMAT ?? '-');
+                $tp->setValue('alamat_prodi',    $prodiS2?->ALAMAT ?? '-');
+                $tp->setValue('tlp',             $prodiS2?->TLP ?? '-');
+                $tp->setValue('tlp_prodi',       $prodiS2?->TLP ?? '-');
+                $tp->setValue('email',           $prodiS2?->EMAIL ?? '-');
+                $tp->setValue('email_prodi',     $prodiS2?->EMAIL ?? '-');
+                $tp->setValue('fax',             $prodiS2?->FAX ?? '-');
+                $tp->setValue('fax_prodi',       $prodiS2?->FAX ?? '-');
+                $tp->setValue('web',             $prodiS2?->WEB ?? '-');
+                $tp->setValue('website_prodi',   $prodiS2?->WEB ?? '-');
+                $tp->setValue('nama_prodi',      $prodiS2?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+                $tp->setValue('NAMA PRODI',      $prodiS2?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
             }
 
             if ($isSk) {
@@ -483,8 +522,10 @@ class CetakController extends Controller
             }
             
             if (!$hasSignaturePlaceholder) {
-                foreach (array_filter([$anchorNama, $anchorNip]) as $anchor) {
-                    if ($anchor !== '' && ($pos = strpos($xml, $anchor)) !== false) {
+                // Utamakan NIP atau cari kemunculan terakhir nama di dokumen (bagian tanda tangan bawah)
+                // agar tidak salah menyisipkan tanda tangan di baris nama pembimbing di atas.
+                foreach (array_filter([$anchorNip, $anchorNama]) as $anchor) {
+                    if ($anchor !== '' && ($pos = strrpos($xml, $anchor)) !== false) {
                         break;
                     }
                     $pos = false;
@@ -1500,6 +1541,17 @@ class CetakController extends Controller
         // Calculate index based on overall average
         $indeks = $this->calculateIndeks($rataRataKeseluruhan);
 
+        // Tanggal & waktu sidang
+        $tglSidang = $ajuan->tgl_sidang
+            ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y')
+            : '-';
+        $waktuMulai = $ajuan->waktu_sidang
+            ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H:i')
+            : '';
+        $waktuSelesai = $ajuan->waktu_selesai
+            ? (strlen($ajuan->waktu_selesai) > 5 ? \Carbon\Carbon::parse($ajuan->waktu_selesai)->format('H:i') : substr((string) $ajuan->waktu_selesai, 0, 5))
+            : '';
+
         // Get latest evaluation date
         $latestPenilaian = TPenilaian::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)
@@ -1524,16 +1576,25 @@ class CetakController extends Controller
         try {
             $tp = new TemplateProcessor($templatePath);
 
+            $pembimbingsBA = $allTimSidang->filter(fn($t) =>
+                str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
+            )->values();
+            $p1BA = $ketuaPembimbing ?? $pembimbingsBA->get(0);
+            $p2BA = $pembimbingsBA->first(fn($t) => $t->id !== ($p1BA?->id));
+
+            $namaP1BA = $isS2 ? ($p1BA?->NAMA ?? '-') : ($anggotaPembimbing->get(0)?->NAMA ?? '-');
+            $namaP2BA = $isS2 ? ($p2BA?->NAMA ?? '-') : ($anggotaPembimbing->get(1)?->NAMA ?? '-');
+
             // Set basic placeholders
             $tp->setValue('judul',                  $ajuan->JUDUL    ?? $judul->JUDUL ?? '');
             $tp->setValue('nama_mhs',                $ajuan->NAMA_MHS ?? '-');
             $tp->setValue('nim',                     $ajuan->NIM      ?? '-');
             $tp->setValue('nama_ketua_pembimbing',   $ketuaPembimbing?->NAMA ?? '-');
-            $tp->setValue('nama_pembimbing_i',       $anggotaPembimbing->get(0)?->NAMA ?? '-');
-            $tp->setValue('nama_pembimbing_ii',      $anggotaPembimbing->get(1)?->NAMA ?? '-');
+            $tp->setValue('nama_pembimbing_i',       $namaP1BA);
+            $tp->setValue('nama_pembimbing_ii',      $namaP2BA);
             $tp->setValue('nama ketua pembimbing',   $ketuaPembimbing?->NAMA ?? '-');
-            $tp->setValue('nama pembimbing I',       $anggotaPembimbing->get(0)?->NAMA ?? '-');
-            $tp->setValue('nama pembimbing II',      $anggotaPembimbing->get(1)?->NAMA ?? '-');
+            $tp->setValue('nama pembimbing I',       $namaP1BA);
+            $tp->setValue('nama pembimbing II',      $namaP2BA);
             $tp->setValue('tgl_create_penilaian',   $tanggalFormat);
             $tp->setValue('tgl create penilaian',   $tanggalFormat);
             $tp->setValue('nip_ketua_pembimbing',   $ketuaPembimbing?->NIP ?? '-');
@@ -1558,10 +1619,11 @@ class CetakController extends Controller
             $tp->setValue('nilai_akhir_rata_rata', $rataRataKeseluruhan);
             $tp->setValue('nilai akhir rata rata', $rataRataKeseluruhan);
             
-            // Set individual penilai averages (up to 3 penilai)
-            for ($i = 0; $i < 3; $i++) {
+            // Set individual penilai averages (up to 6 penilai)
+            for ($i = 0; $i < 6; $i++) {
                 $penilaiNum = $i + 1;
                 $nilai = $penilaiAverages[$i]['rata_nilai'] ?? '';
+                $tp->setValue("nilai_$penilaiNum", $nilai !== '' ? $nilai : '-');
                 $tp->setValue("nilai_rata2_dari_form_penilaian_$penilaiNum", $nilai);
             }
 
@@ -1576,12 +1638,24 @@ class CetakController extends Controller
 
                 $tp->setValue('tgl sidang',      $tglSidang);
                 $tp->setValue('tgl_sidang',      $tglSidang);
-                $tp->setValue('waktu',           $ajuan->waktu_sidang ?? '');
+                $tp->setValue('waktu',           $waktuMulai);
+                $tp->setValue('waktu_selesai',   $waktuSelesai);
                 $tp->setValue('nama prodi',      $prodiBA?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
                 $tp->setValue('NAMA PRODI',      $prodiBA?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
                 $tp->setValue('alamat prodi',    $prodiBA?->ALAMAT ?? '-');
+                $tp->setValue('alamat_prodi',    $prodiBA?->ALAMAT ?? '-');
+                $tp->setValue('alamat',          $prodiBA?->ALAMAT ?? '-');
                 $tp->setValue('tlp prodi',       $prodiBA?->TLP ?? $prodiBA?->tlp ?? '-');
+                $tp->setValue('tlp_prodi',       $prodiBA?->TLP ?? $prodiBA?->tlp ?? '-');
+                $tp->setValue('tlp',             $prodiBA?->TLP ?? $prodiBA?->tlp ?? '-');
+                $tp->setValue('fax prodi',       $prodiBA?->FAX ?? $prodiBA?->fax ?? '-');
+                $tp->setValue('fax_prodi',       $prodiBA?->FAX ?? $prodiBA?->fax ?? '-');
+                $tp->setValue('fax',             $prodiBA?->FAX ?? $prodiBA?->fax ?? '-');
                 $tp->setValue('email prodi',     $prodiBA?->EMAIL ?? $prodiBA?->email ?? '-');
+                $tp->setValue('email_prodi',     $prodiBA?->EMAIL ?? $prodiBA?->email ?? '-');
+                $tp->setValue('email',           $prodiBA?->EMAIL ?? $prodiBA?->email ?? '-');
+                $tp->setValue('website_prodi',   $prodiBA?->WEB ?? $prodiBA?->web ?? '-');
+                $tp->setValue('web',             $prodiBA?->WEB ?? $prodiBA?->web ?? '-');
 
                 // Kode MK from t_mk_prodi (match prodi + tahapan)
                 $kodeMkBA = '';
@@ -1597,13 +1671,30 @@ class CetakController extends Controller
 
                 // Kaprodi for prodi
                 $kaprodiBA = null;
-                if ($kodeProdiBA) {
-                    $kaprodiUserIdBA = \App\Models\TUser::where('KODE_PRODI', $kodeProdiBA)
-                        ->where('STATUS_KAPRODI', 'y')
-                        ->value('id');
+                if (!empty($ajuan->ID_PRODI)) {
+                    $kaprodiUserIdBA = DB::table('t_user_prodi')
+                        ->join('t_user', 't_user_prodi.ID_USER', '=', 't_user.id')
+                        ->where('t_user_prodi.ID_PRODI', $ajuan->ID_PRODI)
+                        ->where('t_user.STATUS_KAPRODI', 'y')
+                        ->value('t_user_prodi.ID_USER');
                     if ($kaprodiUserIdBA) {
                         $kaprodiBA = \App\Models\TUser::find($kaprodiUserIdBA);
                     }
+                }
+                if (!$kaprodiBA && $kodeProdiBA) {
+                    $kaprodiBA = \App\Models\TUser::where('KODE_PRODI', $kodeProdiBA)
+                        ->where('STATUS_KAPRODI', 'y')
+                        ->first();
+                }
+                // Fallback: prodi S2 serumpun S3 (221 -> 321, dsb)
+                if (!$kaprodiBA && $kodeProdiBA) {
+                    $s3Prodi = '3' . substr((string) $kodeProdiBA, 1);
+                    $kaprodiBA = \App\Models\TUser::where('KODE_PRODI', $s3Prodi)
+                        ->where('STATUS_KAPRODI', 'y')
+                        ->first();
+                }
+                if (!$kaprodiBA) {
+                    $kaprodiBA = \App\Models\TUser::where('STATUS_KAPRODI', 'y')->first();
                 }
 
                 // Nilai & status kelulusan
@@ -1645,31 +1736,31 @@ class CetakController extends Controller
                 $tp->setValue('nilai_huruf',  $indeks);
                 $tp->setValue('status_lulus', $statusLulusBA);
 
-                // Prodi 222 (Teknik Perminyakan): BA tabel 4 penilai (Pembimbing 1/2,
-                // Ketua Penguji, Penguji) + Form Pengeluaran Nilai. Tiap baris punya
-                // NIP & tanda tangan sendiri (diisi di embedAllSkSignatures setelah saveAs).
+                // Tim sidang S2 (Pembimbing 1, Pembimbing 2, Penguji 1, Ketua Penguji)
+                $pembimbings = $allTimSidang->filter(fn($t) =>
+                    str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
+                )->values();
+                $p1 = $ketuaPembimbing ?? $pembimbings->get(0);
+                $p2 = $pembimbings->first(fn($t) => $t->id !== ($p1?->id));
+
+                $pengujis = $allTimSidang->filter(fn($t) =>
+                    str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji')
+                    || str_contains(strtolower($t->status_tim_sidang ?? ''), 'ketua sidang')
+                )->values();
+                $ketuaPenguji = $ketuaSidang ?? $pengujis->get(0);
+                $penguji1 = $pengujis->first(fn($t) => $t->id !== ($ketuaPenguji?->id)) ?? $pengujis->get(0);
+
+                $tp->setValue('nama_pembimbing_i',  $p1?->NAMA ?? '-');
+                $tp->setValue('nama_pembimbing_ii', $p2?->NAMA ?? '-');
+                $tp->setValue('nip_pembimbing_i',   $p1?->NIP ?? '-');
+                $tp->setValue('nip_pembimbing_ii',  $p2?->NIP ?? '-');
+                $tp->setValue('nama_ketua_penguji', $ketuaPenguji?->NAMA ?? '-');
+                $tp->setValue('nip_ketua_penguji',  $ketuaPenguji?->NIP ?? '-');
+                $tp->setValue('nama_penguji_i',     $penguji1?->NAMA ?? '-');
+                $tp->setValue('nip_penguji_i',      $penguji1?->NIP ?? '-');
+
+                // Prodi 222 (Teknik Perminyakan): BA tabel 4 penilai + Form Pengeluaran Nilai
                 if ($isS2Prodi222) {
-                    $pembimbings = $allTimSidang->filter(fn($t) =>
-                        str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing')
-                    )->values();
-                    $p1 = $ketuaPembimbing ?? $pembimbings->get(0);
-                    $p2 = $pembimbings->first(fn($t) => $t->id !== ($p1?->id));
-
-                    $pengujis = $allTimSidang->filter(fn($t) =>
-                        str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji')
-                    )->values();
-                    $ketuaPenguji = $ketuaSidang ?? $pengujis->get(0);
-                    $penguji1 = $pengujis->first(fn($t) => $t->id !== ($ketuaPenguji?->id)) ?? $pengujis->get(0);
-
-                    $tp->setValue('nama_pembimbing_i',  $p1?->NAMA ?? '-');
-                    $tp->setValue('nama_pembimbing_ii', $p2?->NAMA ?? '-');
-                    $tp->setValue('nip_pembimbing_i',   $p1?->NIP ?? '-');
-                    $tp->setValue('nip_pembimbing_ii',  $p2?->NIP ?? '-');
-                    $tp->setValue('nama_ketua_penguji', $ketuaPenguji?->NAMA ?? '-');
-                    $tp->setValue('nip_ketua_penguji',  $ketuaPenguji?->NIP ?? '-');
-                    $tp->setValue('nama_penguji_i',     $penguji1?->NAMA ?? '-');
-                    $tp->setValue('nip_penguji_i',      $penguji1?->NIP ?? '-');
-
                     $tp->setValue('semester',             $ajuan->SEMESTER ?? '');
                     $tp->setValue('tahun_akademik',       $ajuan->THN_AKADEMIK ?? '');
                     $tp->setValue('nilai_huruf_akhir_ba', $indeks);
