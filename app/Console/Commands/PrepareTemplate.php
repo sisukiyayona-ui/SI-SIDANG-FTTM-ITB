@@ -673,6 +673,146 @@ class PrepareTemplate extends Command
                     'Tanda Tangan'          => '${signature}',
                 ]
             ],
+            [
+                // BA Tesis 2 223 TG — Berita Acara Penilaian Tesis II Magister prodi 223 (Teknik Geofisika)
+                // Placeholder menggunakan spasi di dalam kurung: "( nama mhs )"
+                'src' => base_path('template/S2/BA Tesis 2 223 TG.docx'),
+                'dst' => base_path('template/S2/BA Tesis 2 223 TG TEMPLATE.docx'),
+                'replacements' => [
+                    // Identitas mahasiswa
+                    '( nama mhs )' => '${nama_mhs}',
+                    '( nim )' => '${nim}',
+                    '( judul )' => '${judul}',
+
+                    // Jadwal sidang
+                    '( tgl sidang )' => '${tgl_sidang}',
+                    '( waktu )' => '${waktu}',
+
+                    // Tim sidang - nama penilai (6 baris: Pembimbing, Ko-Pem 1, Ko-Pem 2, Ketua Sidang, Penguji 1, Penguji 2)
+                    '( Nama tim sidang )' => '${nama_tim_sidang}',
+
+                    // Catatan
+                    '( catatan )' => '${catatan}',
+
+                    // Kaprodi
+                    '( Nama kaprodi )' => '${nama_kaprodi}',
+                    '( nip )' => '${nip_kaprodi}',
+
+                    // Ketua Sidang
+                    '( Nama ketua sidang )' => '${nama_ketua_sidang}',
+                    '( nip ketua sidan g )' => '${nip_ketua_sidang}', // typo di template: "sidan g"
+                ],
+                // 6 baris penilaian: kolom "( Nilai )" -> ${nilai_1}..${nilai_6}
+                'nilaiSequence' => 6,
+                'nilaiSearch' => '( Nilai )',
+                // Tanda tangan: ganti titik-titik di kolom Tanda Tangan (6 baris)
+                'replaceSignatureDots' => true,
+            ],
+            [
+                // BA Tesis 2 prodi 221,225,226 — Berita Acara Penilaian Tesis II Magister prodi 221,225,226
+                // Placeholder TANPA spasi di dalam kurung
+                'src' => base_path('template/S2/BA tesis 2 prodi 221,225,226.docx'),
+                'dst' => base_path('template/S2/BA tesis 2 prodi 221,225,226 TEMPLATE.docx'),
+                'replacements' => [
+                    // Identitas mahasiswa
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(judul)' => '${judul}',
+                    '(opsi)' => '${opsi}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(waktu slsai)' => '${waktu_selesai}', // typo di template: "slsai"
+
+                    // Nilai rata-rata per penilai (4 baris: "(niai rata)" - typo "niai")
+                    '(niai rata)' => '${nilai_rata2}',
+
+                    // NIP per peran (explisit, bukan pakai nipSequence karena label beda)
+                    '(nip ketua sidang)' => '${nip_ketua_sidang}',
+                    '(nip kaprodi)' => '${nip_kaprodi}',
+
+                    // Ketua Sidang
+                    '(nama ketua sidang)' => '${nama_ketua_sidang}',
+
+                    // Kaprodi
+                    '(nama kaprodi)' => '${nama_kaprodi}',
+                ],
+                // Sequence replacements untuk placeholder yang berulang
+                'sequenceReplacements' => [
+                    // 4x "(Nama pembimbing/penguji)" -> pembimbing 1, pembimbing 2, penguji 1, penguji 2
+                    ['search' => '(Nama pembimbing/penguji)', 'tokens' => ['${nama_pembimbing_i}', '${nama_pembimbing_ii}', '${nama_penguji_i}', '${nama_penguji_ii}']],
+                    // 4x "(Penilai X)" -> label peran (teks statis, bukan placeholder)
+                    ['search' => '(Penilai 1)', 'tokens' => ['Pembimbing 1']],
+                    ['search' => '(Penilai 2)', 'tokens' => ['Pembimbing 2']],
+                    ['search' => '(Penilai 3)', 'tokens' => ['Penguji 1']],
+                    ['search' => '(Penilai 4 )', 'tokens' => ['Penguji 2']],
+                    // "(catatan)" -> catatan per peran (hanya 1x di template, tapi sediakan 5 token)
+                    ['search' => '(catatan)', 'tokens' => ['${catatan_pembimbing_i}', '${catatan_pembimbing_ii}', '${catatan_ketua_sidang}', '${catatan_penguji_i}', '${catatan_penguji_ii}']],
+                ],
+                // Tanda tangan: ganti titik-titik di kolom Tanda Tangan (4 baris)
+                'replaceSignatureDots' => true,
+            ],
+            [
+                // Form Penilaian Tesis 2 prodi 223 TG — Lembar Penilaian Tesis II Magister prodi 223
+                // Placeholder DENGAN spasi di dalam kurung
+                // JANGAN taruh "( nilai )" dan "(nilai)" di replacements utama, biarkan sequenceReplacements yg handle
+                'src' => base_path('template/S2/form penilaian Tesis 2 prodi 223 TG.docx'),
+                'dst' => base_path('template/S2/form penilaian Tesis 2 prodi 223 TG TEMPLATE.docx'),
+                'replacements' => [
+                    '( no form )' => '${no_form}',
+                    '( kode mk )' => '${kode_mk}',
+                    '( judul )' => '${judul}',
+                    '( nama mhs )' => '${nama_mhs}',
+                    '( nim )' => '${nim}',
+                    '( tgl sidang )' => '${tgl_sidang}',
+                    '( waktu )' => '${waktu}',
+                    '( waktu sls )' => '${waktu_selesai}',
+                    '( ruang )' => '${ruang_sidang}',
+                    '( Parameter penilaian )' => '${nama_penilaian}',
+                    '( keterangan )' => '${keterangan}',
+                    // '( nilai )' => '${nilai}',  // DIHAPUS - dihandle sequenceReplacements
+                    // '(nilai)' => '${nilai}',    // DIHAPUS - dihandle sequenceReplacements
+                    '(Parameter penilaian )' => '${nama_penilaian}',
+                    '( Nilai rata2 )' => '${nilai_rata2}',
+                    '( ttd )' => '${signature}',
+                    '( Nama Penilai )' => '${nama_penilai}',
+                    '( nip )' => '${nip_penilai}',
+                ],
+                // 5 baris penilaian: 4x "( nilai )" + 1x "(nilai)" -> ${nilai_1}..${nilai_5}
+                'sequenceReplacements' => [
+                    ['search' => '( nilai )', 'tokens' => ['${nilai_1}', '${nilai_2}', '${nilai_3}', '${nilai_4}']],
+                    ['search' => '(nilai)', 'tokens' => ['${nilai_5}']],
+                ],
+            ],
+            [
+                // Form Penilaian Tesis 2 prodi 221,225,226 — Lembar Penilaian Tesis II Magister prodi 221,225,226
+                // Placeholder CAMPURAN (beberapa dengan spasi, beberapa tanpa)
+                // JANGAN taruh "( nilai )" dan "(nilai)" di replacements utama
+                'src' => base_path('template/S2/penilaian tesis 2 prodi 221,225,226.docx'),
+                'dst' => base_path('template/S2/penilaian tesis 2 prodi 221,225,226 TEMPLATE.docx'),
+                'replacements' => [
+                    '(no form)' => '${no_form}',
+                    '(kode mk)' => '${kode_mk}',
+                    '( judul)' => '${judul}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(ruang)' => '${ruang_sidang}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '( waktu )' => '${waktu}',
+                    '(waktu sls)' => '${waktu_selesai}',
+                    '(parameter penilaian)' => '${nama_penilaian}',
+                    '(keterangan)' => '${keterangan}',
+                    // '( nilai )' => '${nilai}',  // DIHAPUS - dihandle sequenceReplacements
+                    // '(nilai)' => '${nilai}',    // DIHAPUS - dihandle sequenceReplacements
+                    '(nilai rata2)' => '${nilai_rata2}',
+                    '(nama penilai)' => '${nama_penilai}',
+                    '(nip)' => '${nip_penilai}',
+                ],
+                // 5 baris penilaian: 3x "( nilai )" + 2x "(nilai)" -> ${nilai_1}..${nilai_5}
+                'sequenceReplacements' => [
+                    ['search' => '( nilai )', 'tokens' => ['${nilai_1}', '${nilai_2}', '${nilai_3}']],
+                    ['search' => '(nilai)', 'tokens' => ['${nilai_4}', '${nilai_5}']],
+                ],
+            ],
         ];
 
         foreach ($templates as $template) {

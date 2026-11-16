@@ -7,6 +7,7 @@ use App\Models\TAjuanSidang;
 use App\Models\TPenilaian;
 use App\Models\TPointPenilaian;
 use App\Models\TTimSidang;
+use App\Models\TPublikasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -974,5 +975,83 @@ class PenilaianController extends Controller
             ->where('ID_USER_PENILAI', $user['id'] ?? 0)
             ->whereRaw("LOWER(TRIM(STATUS_TIM_SIDANG)) = ?", ['ketua sidang'])
             ->exists();
+    }
+
+    // ========== PUBLIKASI ==========
+
+    /**
+     * GET /sidang/publikasi/get?id_judul=&tahapan_sidang=
+     * Kembalikan status checklist Submitt, Under Review, Publish untuk ajuan Tesis II.
+     */
+    public function getPublikasi(Request $request)
+    {
+        $idJudul  = $request->input('id_judul');
+        $tahapan  = $request->input('tahapan_sidang', 'Tesis II');
+
+        $ajuan = TAjuanSidang::where('ID_JUDUL', $idJudul)
+            ->whereRaw('LOWER(TRIM(TAHAPAN_SIDANG)) = ?', [strtolower(trim($tahapan))])
+            ->latest('id')->first();
+
+        if (!$ajuan) {
+            return response()->json([
+                'Submitt'      => 't',
+                'Under Review' => 't',
+                'Publish'      => 't',
+            ]);
+        }
+
+        $statuses = ['Submitt', 'Under Review', 'Publish'];
+        $result   = [];
+        foreach ($statuses as $s) {
+            $row = DB::table('t_publikasi')
+                ->where('ID_AJUAN_SIDANG', $ajuan->id)
+                ->where('PUBLIKASI', $s)
+                ->first();
+            $result[$s] = $row ? ($row->STATUS ?? 't') : 't';
+        }
+        return response()->json($result);
+    }
+
+    /**
+     * POST /sidang/publikasi/store
+     * Simpan checklist Submitt, Under Review, Publish ke t_publikasi.
+     */
+    public function storePublikasi(Request $request)
+    {
+        abort_unless(in_array(session('auth_user.role'), ['TU Prodi', 'Admin'], true), 403);
+
+        $idJudul  = $request->input('id_judul');
+        $tahapan  = $request->input('tahapan_sidang', 'Tesis II');
+
+        $ajuan = TAjuanSidang::where('ID_JUDUL', $idJudul)
+            ->whereRaw('LOWER(TRIM(TAHAPAN_SIDANG)) = ?', [strtolower(trim($tahapan))])
+            ->latest('id')->first();
+
+        if (!$ajuan) {
+            return response()->json(['success' => false, 'message' => 'Data ajuan sidang Tesis II tidak ditemukan.'], 404);
+        }
+
+        $checklistMap = [
+            'Submitt'      => $request->input('submitt', 't'),
+            'Under Review' => $request->input('under_review', 't'),
+            'Publish'      => $request->input('publish', 't'),
+        ];
+
+        foreach ($checklistMap as $publikasi => $status) {
+            $status = ($status === 'y') ? 'y' : 't';
+            DB::table('t_publikasi')->updateOrInsert(
+                [
+                    'ID_AJUAN_SIDANG' => $ajuan->id,
+                    'PUBLIKASI'       => $publikasi,
+                ],
+                [
+                    'STATUS'     => $status,
+                    'TGL_UPDATE' => now()->toDateString(),
+                    'TGL_CREATE' => DB::raw('IFNULL(TGL_CREATE, \'' . now()->toDateString() . '\')'),
+                ]
+            );
+        }
+
+        return response()->json(['success' => true, 'message' => 'Data publikasi berhasil disimpan']);
     }
 }

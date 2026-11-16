@@ -33,6 +33,8 @@ Route::prefix('sidang')->name('sidang.')->middleware(['auth.dummy'])->group(func
         Route::put('penilaian/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'update'])->name('penilaian.update');
         Route::put('status-lulus/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'updateStatusLulus'])->name('penilaian.update-status-lulus');
         Route::post('lock-nilai/{id}', [\App\Http\Controllers\Sidang\PenilaianController::class, 'lockNilai'])->name('penilaian.lock-nilai');
+        Route::get('publikasi', [\App\Http\Controllers\Sidang\PenilaianController::class, 'getPublikasi'])->name('publikasi.get');
+        Route::post('publikasi', [\App\Http\Controllers\Sidang\PenilaianController::class, 'storePublikasi'])->name('publikasi.store');
         Route::post('tim-sidang', [\App\Http\Controllers\MahasiswaController::class, 'storeTimSidang'])->name('tim-sidang.store');
         Route::post('sk', [\App\Http\Controllers\MahasiswaController::class, 'storeSk'])->name('sk.store');
         Route::get('sk/next/{tahapan}', [\App\Http\Controllers\MahasiswaController::class, 'getNextSkNumber'])->name('sk.next');

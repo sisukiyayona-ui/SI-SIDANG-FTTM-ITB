@@ -1346,8 +1346,14 @@
                                     @endunless
                                 </div>
                                 <div class="d-flex flex-wrap ml-auto">
+                                    @if(strtolower($tahapan) === 'tesis ii')
+                                    <button type="button" id="publikasiBtn" class="btn btn-sm btn-outline-primary" onclick="openPublikasiForm()" {{ !$isTuProdiAtauAdmin ? 'disabled' : '' }} title="{{ !$isTuProdiAtauAdmin ? 'Hanya TU Prodi/Admin yang dapat mengisi' : 'Input Status Publikasi' }}"><i class="fas fa-file-alt mr-1"></i> Publikasi</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="cetakForm()"><i class="fas fa-print mr-1"></i> Cetak Penilaian</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="cetakBeritaAcara()"><i class="fas fa-file-signature mr-1"></i> BA Sidang</button>
+                                    @else
                                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="cetakForm()"><i class="fas fa-print mr-1"></i> Cetak Penilaian</button>
                                     <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="cetakBeritaAcara()"><i class="fas fa-file-signature mr-1"></i> BA Sidang</button>
+                                    @endif
                                     @if(strtolower($tahapan) === 'tahap iv')
                                     <button type="button" id="akademikBtn" class="btn btn-sm btn-outline-primary ml-1" onclick="openAkademikForm()" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }} title="{{ session('auth_user.role') !== 'TU Prodi' ? 'Hanya TU Prodi yang dapat mengisi' : '' }}"><i class="fas fa-graduation-cap mr-1"></i> Capaian Akademik</button>
                                     @endif
@@ -1533,6 +1539,54 @@
                                 <div class="mt-4 d-flex justify-content-end align-items-center" style="gap: 10px;">
                                     <button type="button" class="btn btn-danger px-4 py-1" style="font-size: 14px; border-radius: 4px; color: #fff;" onclick="closeAkademikForm()">Batal</button>
                                     <button type="button" class="btn btn-dark px-4 py-1" style="font-size: 14px; border-radius: 4px; color: #fff;" onclick="saveTuProdiInput()" {{ session('auth_user.role') !== 'TU Prodi' ? 'disabled' : '' }}>Simpan</button>
+                                </div>
+                            </form>
+                        </div>
+                        @endif
+
+                        @if(strtolower($tahapan) === 'tesis ii')
+                        {{-- FORM PUBLIKASI (INLINE) --}}
+                        <div id="publikasiForm" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="text-muted" style="font-size: 13px; font-weight: bold;">
+                                    Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Publikasi</span>
+                                </div>
+                            </div>
+                            <form id="publikasiFormForm" onsubmit="event.preventDefault(); savePublikasiForm()">
+                                @csrf
+                                <input type="hidden" name="id_judul" value="{{ $idJudul }}">
+                                <input type="hidden" name="tahapan_sidang" value="{{ $tahapan }}">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm mb-3 w-100" style="width: 100%; table-layout: fixed;">
+                                        <thead style="background-color: #6998d3; color: white;">
+                                            <tr>
+                                                <th style="width: 60px;" class="text-center">No</th>
+                                                <th>Publikasi</th>
+                                                <th style="width: 140px;" class="text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-center">1</td>
+                                                <td>Submitt</td>
+                                                <td class="text-center"><input type="checkbox" id="pub_submitt" value="y"></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-center">2</td>
+                                                <td>Under Review</td>
+                                                <td class="text-center"><input type="checkbox" id="pub_under_review" value="y"></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-center">3</td>
+                                                <td>Publish</td>
+                                                <td class="text-center"><input type="checkbox" id="pub_publish" value="y"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-2 d-flex justify-content-end align-items-center" style="gap: 10px;">
+                                    <button type="button" class="btn btn-secondary px-4 py-1" style="font-size: 14px; border-radius: 4px;" onclick="closePublikasiForm()">Batal</button>
+                                    <button type="button" class="btn btn-primary px-4 py-1" style="font-size: 14px; border-radius: 4px;" onclick="savePublikasiForm()"><i class="fas fa-save mr-1"></i> Simpan</button>
                                 </div>
                             </form>
                         </div>
@@ -4086,6 +4140,73 @@ async function saveTuProdiInput() {
         }
     } catch (error) {
         showToast('Error: ' + error, 'error');
+    }
+}
+
+function openPublikasiForm() {
+    var main = document.getElementById('penilaianMainTahap2');
+    var form = document.getElementById('publikasiForm');
+    if (main) main.style.display = 'none';
+    if (form) form.style.display = 'block';
+    loadPublikasiForm();
+}
+
+function closePublikasiForm() {
+    var main = document.getElementById('penilaianMainTahap2');
+    var form = document.getElementById('publikasiForm');
+    if (form) form.style.display = 'none';
+    if (main) main.style.display = 'block';
+}
+
+async function loadPublikasiForm() {
+    var form = document.getElementById('publikasiFormForm');
+    if (!form) return;
+    var idJudul = form.querySelector('[name="id_judul"]').value;
+    var tahapan = form.querySelector('[name="tahapan_sidang"]').value;
+    try {
+        const res = await fetch('/sidang/publikasi?id_judul=' + encodeURIComponent(idJudul) + '&tahapan_sidang=' + encodeURIComponent(tahapan), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+        var s = document.getElementById('pub_submitt'); if (s) s.checked = (data['Submitt'] === 'y');
+        var u = document.getElementById('pub_under_review'); if (u) u.checked = (data['Under Review'] === 'y');
+        var p = document.getElementById('pub_publish'); if (p) p.checked = (data['Publish'] === 'y');
+    } catch (e) {
+        showToast('Gagal memuat data publikasi', 'error');
+    }
+}
+
+async function savePublikasiForm() {
+    var form = document.getElementById('publikasiFormForm');
+    if (!form) return;
+    var idJudul = form.querySelector('[name="id_judul"]').value;
+    var tahapan = form.querySelector('[name="tahapan_sidang"]').value;
+    var body = {
+        id_judul: idJudul,
+        tahapan_sidang: tahapan,
+        submitt: document.getElementById('pub_submitt') && document.getElementById('pub_submitt').checked ? 'y' : 't',
+        under_review: document.getElementById('pub_under_review') && document.getElementById('pub_under_review').checked ? 'y' : 't',
+        publish: document.getElementById('pub_publish') && document.getElementById('pub_publish').checked ? 'y' : 't'
+    };
+    try {
+        const res = await fetch('/sidang/publikasi', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            showToast(data.message || 'Gagal menyimpan data publikasi', 'error');
+            return;
+        }
+        showToast(data.message || 'Data publikasi berhasil disimpan', 'success');
+        closePublikasiForm();
+    } catch (e) {
+        showToast('Error: ' + e, 'error');
     }
 }
 
