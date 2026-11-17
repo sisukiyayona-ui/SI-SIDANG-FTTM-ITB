@@ -726,6 +726,7 @@
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     @if($isProdi123 || $isProdi124)
+                                                    <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     <td class="text-center">{{ $point->bobot ?? '-' }}</td>
                                                     @endif
                                                     <td>
