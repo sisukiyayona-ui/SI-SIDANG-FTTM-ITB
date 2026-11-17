@@ -73,9 +73,19 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="f_keterangan" class="form-label fw-semibold">Keterangan</label>
-                    <textarea name="Keterangan" id="f_keterangan" class="form-control" placeholder="Keterangan tambahan" rows="2"></textarea>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label for="f_keterangan" class="form-label fw-semibold">Keterangan</label>
+                            <textarea name="Keterangan" id="f_keterangan" class="form-control" placeholder="Keterangan tambahan" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="f_bobot" class="form-label fw-semibold">Bobot (dalam %)</label>
+                            <input type="text" name="bobot" id="f_bobot" class="form-control" placeholder="Bobot (mis. 5,20)" autocomplete="off">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -680,6 +690,7 @@
         document.getElementById('statusAktif').checked = true;
         document.getElementById('statusCatatanTidak').checked = true;
         document.getElementById('f_keterangan').value = '';
+        document.getElementById('f_bobot').value = '';
 
         document.getElementById('listContainer').style.display = 'none';
         document.getElementById('formContainer').style.display = 'block';
@@ -719,6 +730,7 @@
             (item.status_aktif === 'AKTIF' ? document.getElementById('statusAktif') : document.getElementById('statusNonaktif')).checked = true;
             (item.status_catatan === 'y' ? document.getElementById('statusCatatanYa') : document.getElementById('statusCatatanTidak')).checked = true;
             document.getElementById('f_keterangan').value = item.Keterangan || '';
+            document.getElementById('f_bobot').value = item.Bobot || '';
 
             document.getElementById('listContainer').style.display = 'none';
             document.getElementById('formContainer').style.display = 'block';

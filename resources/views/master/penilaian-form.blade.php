@@ -26,9 +26,20 @@
                     <input type="text" name="penilaian" id="nama" class="form-control"
                            value="{{ $penilaian['nama'] ?? '' }}" placeholder="Nama parameter komponen" required>
                 </div>
-                <div class="mb-3">
-                    <label for="keterangan" class="form-label">Keterangan</label>
-                    <textarea name="Keterangan" id="keterangan" class="form-control" placeholder="Keterangan tambahan" rows="2">{{ $penilaian['Keterangan'] ?? '' }}</textarea>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label for="keterangan" class="form-label">Keterangan</label>
+                            <textarea name="Keterangan" id="keterangan" class="form-control" placeholder="Keterangan tambahan" rows="2">{{ $penilaian['Keterangan'] ?? '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="bobot" class="form-label">Bobot (dalam %)</label>
+                            <input type="text" name="bobot" id="bobot" class="form-control"
+                                   value="{{ $penilaian['Bobot'] ?? '' }}" placeholder="Bobot (mis. 5,20)" autocomplete="off">
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label for="no_form" class="form-label">No Form</label>

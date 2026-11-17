@@ -405,13 +405,16 @@ class MahasiswaController extends Controller
         
         $penilaian = $penilaianQuery->get();
         
-        // Get point penilaian for form (distinct no_form based on tahapan and prodi)
+        // Get point penilaian for form (distinct no_form based on tahapan and prodi).
+        // Kode prodi dari ajuan dipakai bila data master mahasiswa kosong, supaya
+        // parameter prodi (mis. 123/124) tidak tercampur prodi lain.
+        $pointProdi = $kodeProdi ?: $mahasiswaProdi;
         $pointPenilaianQuery = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
             ->where('status_aktif', 'AKTIF');
         
         // Filter by prodi if mahasiswa prodi is available
-        if ($mahasiswaProdi) {
-            $pointPenilaianQuery->where('KODE_PRODI', $mahasiswaProdi);
+        if ($pointProdi) {
+            $pointPenilaianQuery->where('KODE_PRODI', $pointProdi);
         }
         
         $pointPenilaian = $pointPenilaianQuery->select('no_form')
@@ -423,8 +426,8 @@ class MahasiswaController extends Controller
         $allPointPenilaianQuery = \App\Models\TPointPenilaian::where('tahapan_sidang', $tahapan)
             ->where('status_aktif', 'AKTIF');
         
-        if ($mahasiswaProdi) {
-            $allPointPenilaianQuery->where('KODE_PRODI', $mahasiswaProdi);
+        if ($pointProdi) {
+            $allPointPenilaianQuery->where('KODE_PRODI', $pointProdi);
         }
         
         $allPointPenilaian = $allPointPenilaianQuery->get();
@@ -473,7 +476,7 @@ class MahasiswaController extends Controller
         // Return HTML fragment for AJAX request
         $viewName = (in_array($user['role'], ['Admin', 'TU Prodi', 'FS', 'Pembimbing', 'Penguji', 'Ketua Sidang'])) ? 'sidang.tahap' : 'mahasiswa.tahap';
 
-        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'isKetuaSidangTim', 'users', 'skList', 'kelengkapanNilai', 'kppsGate', 'strataView', 'showKppsTab', 'prodi');
+        $viewData = compact('ajuan', 'allAjuan', 'allAjuanJson', 'timSidang', 'persyaratan', 'cekPersyaratan', 'penilaian', 'tahapan', 'idJudul', 'pointPenilaian', 'allPointPenilaian', 'isKetuaPembimbing', 'isKetuaSidangTim', 'users', 'skList', 'kelengkapanNilai', 'kppsGate', 'strataView', 'showKppsTab', 'prodi', 'kodeProdi', 'mahasiswaProdi');
 
         if (request()->ajax()) {
             return view($viewName, $viewData)->render();

@@ -12,6 +12,7 @@
             <th>Strata</th>
             <th>Program Studi</th>
             <th>Keterangan</th>
+            <th style="width:80px;">Bobot</th>
             <th>Status</th>
         </tr>
         <tr>
@@ -22,6 +23,7 @@
             <th><input type="text" class="form-control form-control-sm column-search" name="strata" placeholder="Cari..." value="{{ request('strata') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="nama_prodi" placeholder="Cari..." value="{{ request('nama_prodi') }}"></th>
             <th><input type="text" class="form-control form-control-sm column-search" name="Keterangan" placeholder="Cari..." value="{{ request('Keterangan') }}"></th>
+            <th><input type="text" class="form-control form-control-sm column-search" name="bobot" placeholder="Cari..." value="{{ request('bobot') }}"></th>
             <th>
                 <select class="form-control form-control-sm column-search" name="status_aktif">
                     <option value="">Semua</option>
@@ -41,6 +43,7 @@
                 <td>{{ $item['strata'] }}</td>
                 <td>{{ $item['kode_prodi'] }} - {{ $item['nama_prodi'] }}</td>
                 <td>{{ $item['Keterangan'] ?? '-' }}</td>
+                <td class="text-right">{{ $item['Bobot'] ?? '-' }}</td>
                 <td>
                     <span class="badge bg-{{ $item['status_aktif'] === 'AKTIF' ? 'success' : 'danger' }}">
                         {{ $item['status_aktif'] }}

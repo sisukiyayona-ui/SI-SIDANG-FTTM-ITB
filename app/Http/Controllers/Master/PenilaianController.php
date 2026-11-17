@@ -71,6 +71,7 @@ class PenilaianController extends Controller
                 'no_form' => $item->no_form,
                 'status_catatan' => $item->status_catatan,
                 'Keterangan' => $item->keterangan ?? $item->KETERANGAN,
+                'Bobot' => $item->bobot ?? $item->BOBOT,
             ]);
         }
 
@@ -84,6 +85,7 @@ class PenilaianController extends Controller
             'no_form' => $item->no_form,
             'status_catatan' => $item->status_catatan,
             'Keterangan' => $item->keterangan ?? $item->KETERANGAN,
+            'Bobot' => $item->bobot ?? $item->BOBOT,
         ];
 
         $prodis = $this->filteredProdis();
@@ -118,6 +120,9 @@ class PenilaianController extends Controller
         if ($s = $request->get('Keterangan')) {
             $query->where('KETERANGAN', 'like', '%' . $s . '%');
         }
+        if ($s = $request->get('bobot')) {
+            $query->where('BOBOT', 'like', '%' . $s . '%');
+        }
         if ($s = $request->get('status_aktif')) {
             $query->where('STATUS_AKTIF', $s);
         }
@@ -137,6 +142,7 @@ class PenilaianController extends Controller
                 'no_form' => $item->no_form,
                 'status_catatan' => $item->status_catatan,
                 'Keterangan' => $item->keterangan ?? $item->KETERANGAN,
+                'Bobot' => $item->bobot ?? $item->BOBOT,
             ];
         });
 
@@ -181,6 +187,7 @@ class PenilaianController extends Controller
             $request->strata,
             $request->status_catatan,
             $request->Keterangan,
+            $request->bobot,
         ], 'penilaian');
 
         if ($check['result'] !== 'ok') {
@@ -199,6 +206,7 @@ class PenilaianController extends Controller
             'NO_FORM' => $check['no_form'],
             'STATUS_CATATAN' => $check['status_catatan'],
             'KETERANGAN' => $check['keterangan'],
+            'BOBOT' => $check['bobot'],
             'TGL_CREATE' => now(),
         ]);
 
@@ -240,6 +248,7 @@ class PenilaianController extends Controller
                 $request->strata,
                 $request->status_catatan,
                 $request->Keterangan,
+                $request->bobot,
             ], 'penilaian', [], $item->id);
 
             if ($check['result'] !== 'ok') {
@@ -258,6 +267,7 @@ class PenilaianController extends Controller
                 'NO_FORM' => $check['no_form'],
                 'STATUS_CATATAN' => $check['status_catatan'],
                 'KETERANGAN' => $check['keterangan'],
+                'BOBOT' => $check['bobot'],
                 'TGL_UPDATE' => now(),
             ]);
         }

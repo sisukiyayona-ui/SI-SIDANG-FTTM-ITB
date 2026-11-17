@@ -36,12 +36,16 @@ class TPenilaian extends Model
         'ID_USER_CREATE',
         'NAMA_USER_CREATE',
         'NO_FORM',
+        'NILAI_HURUF',
+        'STATUS_LULUS',
+        'NILAI_TERKUNCI',
     ];
 
     protected $casts = [
         'TGL_CREATE' => 'date',
         'TGL_UPDATE' => 'date',
         'NILAI' => 'decimal:2',
+        'NILAI_HURUF' => 'string',
     ];
 
     public function ajuan()

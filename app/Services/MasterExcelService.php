@@ -30,6 +30,7 @@ class MasterExcelService
             'STRATA',
             'STATUS CATATAN (y/t)',
             'KETERANGAN',
+            'BOBOT',
         ],
         'prodi' => [
             'FAKULTAS',
@@ -287,7 +288,7 @@ class MasterExcelService
     public static function validateItemRow(array $values, string $type, array $seen = [], $ignoreId = null): array
     {
         if ($type === 'penilaian') {
-            [$programStudi, $nama, $noForm, $tahapan, $strata, $statusCatatan, $keterangan] = $values + array_fill(0, 7, '');
+            [$programStudi, $nama, $noForm, $tahapan, $strata, $statusCatatan, $keterangan, $bobot] = $values + array_fill(0, 8, '');
         } else {
             [$programStudi, $nama, $tahapan, $strata] = $values + array_fill(0, 4, '');
             $noForm = $statusCatatan = $keterangan = '';
@@ -303,6 +304,7 @@ class MasterExcelService
             'status_aktif' => 'AKTIF',
             'status_catatan' => self::canonicalStatusCatatan($statusCatatan),
             'keterangan' => trim((string) $keterangan),
+            'bobot' => trim((string) $bobot),
         ];
 
         // Nilai status catatan yang tidak dikenal ditolak, bukan dipaksa jadi default,
@@ -758,6 +760,7 @@ class MasterExcelService
                 'STATUS_AKTIF' => $check['status_aktif'],
                 'STATUS_CATATAN' => $check['status_catatan'],
                 'KETERANGAN' => $check['keterangan'],
+                'BOBOT' => $check['bobot'],
                 'TGL_CREATE' => now(),
             ]);
 
@@ -792,6 +795,7 @@ class MasterExcelService
                 $row['strata'] ?? '',
                 $row['status_catatan'] ?? 't',
                 $row['keterangan'] ?? '',
+                $row['bobot'] ?? '',
             ];
         }
 

@@ -240,6 +240,17 @@
         if ($strataView === 'S2' && !$isNilaiTerkunci) {
             $statusKelulusanS2 = $penilaian->first(fn ($nilai) => !empty($nilai->STATUS_LULUS))?->STATUS_LULUS ?? '';
         }
+
+        // Kode prodi untuk kontrol tampilan input nilai (per prodi).
+        // Prioritas: ajuan, lalu kode prodi dari controller, lalu data mahasiswa.
+        $kodeProdi = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? ($kodeProdi ?? null);
+        if (!$kodeProdi) {
+            $kodeProdi = $mahasiswaProdi ?? ($judulHeader?->user?->KODE_PRODI ?? null);
+        }
+        $nilaiMode = \App\Services\NilaiSidang::mode($kodeProdi);
+        $isProdi123 = $nilaiMode === \App\Services\NilaiSidang::MODE_HURUF; // nilai huruf + status per baris
+        $isProdi124 = $nilaiMode === \App\Services\NilaiSidang::MODE_100;   // nilai 1 - 100
+
         $jadwalReadonlyRoles = ['Pembimbing', 'Penguji', 'Ketua Sidang'];
         if ($isFsViewOnlyS2) {
             $jadwalReadonlyRoles[] = 'FS';
@@ -651,15 +662,22 @@
                         <table class="table table-bordered table-sm text-center">
                             <thead style="background-color: #6998d3; color: white;">
                                 <tr>
-                                    <th style="width: 10%;">No</th>
-                                    <th style="width: 40%;"><span class="text-danger text-decoration-underline">Parameter Nilai</span></th>
-                                    <th style="width: 15%;"><span class="text-danger text-decoration-underline">Nilai (Range 1 - 5)</span></th>
-                                    <th style="width: 35%;"><span class="text-danger text-decoration-underline">Catatan</span></th>
+                                    <th style="width: 8%;">No</th>
+                                    <th style="width: {{ ($isProdi123 || $isProdi124) ? '22%' : '40%' }};"><span class="text-danger text-decoration-underline">Parameter Nilai</span></th>
+                                    @if($isProdi123 || $isProdi124)
+                                    <th style="width: 22%;"><span class="text-danger text-decoration-underline">Keterangan</span></th>
+                                    <th style="width: 9%;"><span class="text-danger text-decoration-underline">Bobot (dalam %)</span></th>
+                                    @endif
+                                    <th style="width: 12%;"><span class="text-danger text-decoration-underline">{{ $isProdi123 ? 'Nilai Huruf' : ($isProdi124 ? 'Nilai (Range 1 - 100)' : 'Nilai (Range 1 - 5)') }}</span></th>
+                                    @if($isProdi123)
+                                    <th style="width: 12%;"><span class="text-danger text-decoration-underline">Status Lulus</span></th>
+                                    @endif
+                                    <th style="width: {{ ($isProdi123 || $isProdi124) ? '15%' : '35%' }};"><span class="text-danger text-decoration-underline">Catatan</span></th>
                                 </tr>
                             </thead>
                                  <tbody id="penilaianReportBody">
                                     <tr id="penilaianEmptyRow" style="background-color: #dbe5f1;">
-                                        <td colspan="4" class="text-center text-muted">Pilih No Form untuk melihat parameter penilaian</td>
+                                        <td colspan="{{ 4 + (($isProdi123 || $isProdi124) ? 2 : 0) + ($isProdi123 ? 1 : 0) }}" class="text-center text-muted">Pilih No Form untuk melihat parameter penilaian</td>
                                     </tr>
                                     @if(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
                                         @php $rowNum = 0; @endphp
@@ -672,9 +690,31 @@
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
+                                                @if($isProdi123 || $isProdi124)
+                                                <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                @endif
                                                 <td>
-                                                    <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="" min="1" max="5">
+                                                    @if($isProdi123)
+                                                    <select class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;">
+                                                        <option value="">Pilih</option>
+                                                        @foreach(\App\Services\NilaiSidang::HURUF as $huruf)
+                                                        <option value="{{ $huruf }}">{{ $huruf }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @else
+                                                    <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="" min="1" max="{{ $isProdi124 ? 100 : 5 }}">
+                                                    @endif
                                                 </td>
+                                                @if($isProdi123)
+                                                <td>
+                                                    <select class="form-control form-control-sm status-lulus-input" style="width: 100px; margin: auto;">
+                                                        <option value="">Pilih</option>
+                                                        <option value="LULUS">LULUS</option>
+                                                        <option value="TIDAK LULUS">TIDAK LULUS</option>
+                                                    </select>
+                                                </td>
+                                                @endif
                                                 <td>
                                                     <textarea class="form-control form-control-sm catatan-input" rows="2"></textarea>
                                                 </td>
@@ -685,9 +725,32 @@
                                                 <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
+                                                    @if($isProdi123 || $isProdi124)
+                                                    <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                    @endif
                                                     <td>
-                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="{{ str_replace('.', ',', (string) $existing->Nilai) }}" min="1" max="5">
+                                                        @if($isProdi123)
+                                                        @php $existingHuruf = strtoupper(trim((string) $existing->getAttribute('NILAI_HURUF'))); @endphp
+                                                        <select class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;">
+                                                            <option value="">Pilih</option>
+                                                            @foreach(\App\Services\NilaiSidang::HURUF as $huruf)
+                                                            <option value="{{ $huruf }}" {{ $existingHuruf === $huruf ? 'selected' : '' }}>{{ $huruf }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        @else
+                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" value="{{ $existing->Nilai === null ? '' : str_replace('.', ',', (string) $existing->Nilai) }}" min="1" max="{{ $isProdi124 ? 100 : 5 }}">
+                                                        @endif
                                                     </td>
+                                                    @if($isProdi123)
+                                                    @php $existingStatus = strtoupper(trim((string) $existing->getAttribute('STATUS_LULUS'))); @endphp
+                                                    <td>
+                                                        <select class="form-control form-control-sm status-lulus-input" style="width: 100px; margin: auto;">
+                                                            <option value="">Pilih</option>
+                                                            <option value="LULUS" {{ $existingStatus === 'LULUS' ? 'selected' : '' }}>LULUS</option>
+                                                            <option value="TIDAK LULUS" {{ $existingStatus === 'TIDAK LULUS' ? 'selected' : '' }}>TIDAK LULUS</option>
+                                                        </select>
+                                                    </td>
+                                                    @endif
                                                     <td>
                                                         <textarea class="form-control form-control-sm catatan-input" rows="2">{{ $existing->catatan }}</textarea>
                                                     </td>
@@ -705,8 +768,13 @@
                             @if(!in_array(session('auth_user.role'), ['FS']))
                             <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
                                 <option value="" {{ (!isset($ajuan) || !$ajuan->status_lulus) ? 'selected' : '' }}>Pilih status</option>
+                                @if($isProdi123)
+                                <option value="LULUS" {{ (isset($ajuan) && strtolower(trim((string) $ajuan->status_lulus)) === 'lulus') ? 'selected' : '' }}>LULUS</option>
+                                <option value="TIDAK LULUS" {{ (isset($ajuan) && strtolower(trim((string) $ajuan->status_lulus)) === 'tidak lulus') ? 'selected' : '' }}>TIDAK LULUS</option>
+                                @else
                                 <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                 <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
+                                @endif
                             </select>
                             @else
                             <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
@@ -1374,15 +1442,30 @@
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
                                         <th style="width: 8%;">No</th>
-                                        <th style="width: 24%;">Parameter Penilaian</th>
-                                        <th style="width: 35%;">Keterangan</th>
-                                        <th style="width: 12%;">Nilai (Range 1 - 5)</th>
-                                        <th style="width: 21%;">Catatan</th>
+                                        <th style="width: 22%;">Parameter Penilaian</th>
+                                        <th style="width: 26%;">Keterangan</th>
+                                        @if($isProdi123 || $isProdi124)
+                                        <th style="width: 9%;">Bobot (dalam %)</th>
+                                        @endif
+                                        @php
+                                            $nilaiHeader = 'Nilai (Range 1 - 5)';
+                                            if ($isProdi123) {
+                                                $nilaiHeader = 'Nilai Huruf';
+                                            } elseif ($isProdi124) {
+                                                $nilaiHeader = 'Nilai (Range 1 - 100)';
+                                            }
+                                            $colCount = 5 + (($isProdi123 || $isProdi124) ? 1 : 0) + ($isProdi123 ? 1 : 0);
+                                        @endphp
+                                        <th style="width: 12%;">{{ $nilaiHeader }}</th>
+                                        @if($isProdi123)
+                                        <th style="width: 12%;">Status Lulus</th>
+                                        @endif
+                                        <th style="width: 11%;">Catatan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="penilaianTahap2Body">
                                     <tr id="penilaianTahap2EmptyRow" style="background-color: #dbe5f1;">
-                                        <td colspan="5" class="text-center text-muted">{{ $isKetuaSidangTim ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Form untuk melihat parameter penilaian' }}</td>
+                                        <td colspan="{{ $colCount }}" class="text-center text-muted">{{ $isKetuaSidangTim ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Form untuk melihat parameter penilaian' }}</td>
                                     </tr>
                                     @unless($isKetuaSidangTim)
                                     @if(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
@@ -1397,10 +1480,36 @@
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                @if($isProdi123 || $isProdi124)
+                                                <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                @endif
                                                 <td>
                                                     <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                    <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                    @if($isProdi123)
+                                                        <select name="penilaian[{{ $rowNum }}][nilai]" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                            <option value="">Pilih</option>
+                                                            <option value="A">A</option>
+                                                            <option value="AB">AB</option>
+                                                            <option value="B">B</option>
+                                                            <option value="BC">BC</option>
+                                                            <option value="C">C</option>
+                                                            <option value="D">D</option>
+                                                        </select>
+                                                    @elseif($isProdi124)
+                                                        <input type="number" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="100" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                    @else
+                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                    @endif
                                                 </td>
+                                                @if($isProdi123)
+                                                <td>
+                                                    <select name="penilaian[{{ $rowNum }}][status_lulus]" class="form-control form-control-sm status-lulus-input" style="width: 100px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        <option value="">Pilih</option>
+                                                        <option value="LULUS">LULUS</option>
+                                                        <option value="TIDAK LULUS">TIDAK LULUS</option>
+                                                    </select>
+                                                </td>
+                                                @endif
                                                 <td>
                                                     <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}></textarea>
                                                 </td>
@@ -1412,10 +1521,38 @@
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                    @if($isProdi123 || $isProdi124)
+                                                    <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                    @endif
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
+                                                        @if($isProdi123)
+                                                        @php $existingHuruf = strtoupper(trim((string) $existing->getAttribute('NILAI_HURUF'))); @endphp
+                                                        <select name="penilaian[{{ $rowNum }}][nilai]" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                            <option value="">Pilih</option>
+                                                            <option value="A" {{ $existingHuruf === 'A' ? 'selected' : '' }}>A</option>
+                                                            <option value="AB" {{ $existingHuruf === 'AB' ? 'selected' : '' }}>AB</option>
+                                                            <option value="B" {{ $existingHuruf === 'B' ? 'selected' : '' }}>B</option>
+                                                            <option value="BC" {{ $existingHuruf === 'BC' ? 'selected' : '' }}>BC</option>
+                                                            <option value="C" {{ $existingHuruf === 'C' ? 'selected' : '' }}>C</option>
+                                                            <option value="D" {{ $existingHuruf === 'D' ? 'selected' : '' }}>D</option>
+                                                        </select>
+                                                    @elseif($isProdi124)
+                                                        <input type="number" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ $existing->Nilai === null ? '' : (float) $existing->Nilai }}" min="1" max="100" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                    @else
                                                         <input type="text" inputmode="decimal" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" name="penilaian[{{ $rowNum }}][nilai]" value="{{ str_replace('.', ',', (string) $existing->Nilai) }}" min="1" max="5" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                    @endif
                                                     </td>
+                                                    @if($isProdi123)
+                                                    @php $existingStatus = strtoupper(trim((string) $existing->getAttribute('STATUS_LULUS'))); @endphp
+                                                    <td>
+                                                        <select name="penilaian[{{ $rowNum }}][status_lulus]" class="form-control form-control-sm status-lulus-input" style="width: 100px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                            <option value="">Pilih</option>
+                                                            <option value="LULUS" {{ $existingStatus === 'LULUS' ? 'selected' : '' }}>LULUS</option>
+                                                            <option value="TIDAK LULUS" {{ $existingStatus === 'TIDAK LULUS' ? 'selected' : '' }}>TIDAK LULUS</option>
+                                                        </select>
+                                                    </td>
+                                                    @endif
                                                     <td>
                                                         <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>{{ $existing->catatan }}</textarea>
                                                     </td>
@@ -1434,9 +1571,12 @@
                                     @if(!in_array(session('auth_user.role'), ['FS']))
                                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                         <option value="">Pilih Status</option>
-                                        @if($strataView === 'S2')
-                                            <option value="Lulus Sidang Magister" {{ strtolower($statusKelulusanS2) === 'lulus sidang magister' ? 'selected' : '' }}>LULUS Sidang Magister</option>
-                                            <option value="Tidak Lulus Sidang Magister" {{ strtolower($statusKelulusanS2) === 'tidak lulus sidang magister' ? 'selected' : '' }}>TIDAK LULUS Sidang Magister</option>
+                                        @if($isProdi123)
+                                            <option value="LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : ($ajuan->status_lulus ?? '')))) === 'lulus' ? 'selected' : '' }}>LULUS</option>
+                                            <option value="TIDAK LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : ($ajuan->status_lulus ?? '')))) === 'tidak lulus' ? 'selected' : '' }}>TIDAK LULUS</option>
+                                        @elseif($strataView === 'S2')
+                                            <option value="Lulus Sidang Magister" {{ in_array(strtolower(trim((string) $statusKelulusanS2)), ['lulus sidang magister', 'lulus'], true) ? 'selected' : '' }}>LULUS Sidang Magister</option>
+                                            <option value="Tidak Lulus Sidang Magister" {{ in_array(strtolower(trim((string) $statusKelulusanS2)), ['tidak lulus sidang magister', 'tidak lulus'], true) ? 'selected' : '' }}>TIDAK LULUS Sidang Magister</option>
                                         @elseif(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
                                             <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
@@ -1621,7 +1761,7 @@
                                 Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Tambah</span>/ Edit <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Jadwal Sidang {{ getTahapLabel($tahapan) }}</span>
                             </div>
                             <div>
-                                @if(!in_array(strtolower($tahapan), ['tesis i', 'tesis ii']))
+                                @if(!in_array(strtolower($tahapan), ['tesis i', 'tesis ii', 'tahap iv']))
                                 <button type="button" class="btn btn-sm btn-outline-primary mr-2" onclick="cetakSuratKesediaan()"><i class="fas fa-file-alt mr-1"></i> Surat Kesediaan Penelaah</button>
                                 @endif
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="cetakUndangan()"><i class="fas fa-print mr-1"></i> Cetak Undangan</button>
@@ -1761,11 +1901,7 @@
                                  <div>
 <input type="hidden" name="is_ajukan_fs" value="">
                                       @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) && (!isset($ajuan) || $ajuan->STATUS_AJUKAN_PRODI !== 'y'))
-                                       @if($strataView === 'S2')
                                        <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);"><i class="fas fa-check mr-1"></i> Approve</button>
-                                       @else
-                                       <button type="button" class="btn btn-sm btn-success px-3 mr-2" onclick="this.form.is_ajukan_fs.value='1'; submitJadwalTahap2(event);"><i class="fas fa-paper-plane mr-1"></i> Ajukan ke FS</button>
-                                       @endif
                                       @endif
                                       @if($strataView === 'S3' && session('auth_user.role') === 'FS' && (!isset($ajuan) || !$ajuan->STATUS_AJUKAN_KPPS))
                                        <input type="hidden" name="is_ajukan_kpps" value="">
@@ -1926,8 +2062,13 @@
                                         <span class="mr-2 font-weight-bold" style="font-size: 13px;">Status Kelulusan</span>
                                         <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;">
                                             <option value="">Pilih Status</option>
+                                            @if($isProdi123)
+                                            <option value="LULUS" {{ strtolower(trim((string) ($ajuan->status_lulus ?? ''))) === 'lulus' ? 'selected' : '' }}>LULUS</option>
+                                            <option value="TIDAK LULUS" {{ strtolower(trim((string) ($ajuan->status_lulus ?? ''))) === 'tidak lulus' ? 'selected' : '' }}>TIDAK LULUS</option>
+                                            @else
                                             <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
                                             <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
+                                            @endif
                                         </select>
                                     </div>
                                     @endif
@@ -1936,15 +2077,21 @@
                                         <thead style="background-color: #6998d3; color: white;">
                                             <tr>
                                                 <th style="width: 8%;">No</th>
-                                                <th style="width: 30%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
-                                                <th style="width: 32%;">Keterangan</th>
-                                                <th style="width: 15%;">Nilai</th>
-                                                <th style="width: 15%;">Catatan</th>
+                                                <th style="width: 24%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
+                                                <th style="width: 24%;">Keterangan</th>
+                                                @if($isProdi123 || $isProdi124)
+                                                <th style="width: 9%;">Bobot (dalam %)</th>
+                                                @endif
+                                                <th style="width: 14%;">{{ $isProdi123 ? 'Nilai Huruf' : ($isProdi124 ? 'Nilai (1 - 100)' : 'Nilai') }}</th>
+                                                @if($isProdi123)
+                                                <th style="width: 13%;">Status Lulus</th>
+                                                @endif
+                                                <th style="width: 12%;">Catatan</th>
                                             </tr>
                                         </thead>
                                         <tbody id="penilaianTableBody">
                                             <tr id="penilaianFormEmptyRow" style="background-color: #dbe5f1;">
-                                                <td colspan="5" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
+                                                <td colspan="{{ 5 + (($isProdi123 || $isProdi124) ? 1 : 0) + ($isProdi123 ? 1 : 0) }}" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
                                             </tr>
                                             @if(!$isViewOnlyPenilai && isset($penilaian) && $penilaian->count() > 0)
                                                 @foreach($penilaian as $idx => $nilai)
@@ -1952,10 +2099,33 @@
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $nilai->pointPenilaian->keterangan ?? '-' }}</span></td>
+                                                    @if($isProdi123 || $isProdi124)
+                                                    <td class="text-center">{{ $nilai->pointPenilaian->bobot ?? '-' }}</td>
+                                                    @endif
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $nilai->id_penilaian }}" hidden>
-                                                        <input type="text" inputmode="decimal" name="penilaian[{{ $idx }}][nilai]" value="{{ str_replace('.', ',', (string) $nilai->Nilai) }}" class="form-control form-control-sm nilai-input" min="1" max="5" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        @if($isProdi123)
+                                                        @php $existingHuruf = strtoupper(trim((string) $nilai->getAttribute('NILAI_HURUF'))); @endphp
+                                                        <select name="penilaian[{{ $idx }}][nilai]" class="form-control form-control-sm nilai-input" style="width: 70px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                            <option value="">Pilih</option>
+                                                            @foreach(\App\Services\NilaiSidang::HURUF as $huruf)
+                                                            <option value="{{ $huruf }}" {{ $existingHuruf === $huruf ? 'selected' : '' }}>{{ $huruf }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        @else
+                                                        <input type="text" inputmode="decimal" name="penilaian[{{ $idx }}][nilai]" value="{{ $nilai->Nilai === null ? '' : str_replace('.', ',', (string) $nilai->Nilai) }}" class="form-control form-control-sm nilai-input" min="1" max="{{ $isProdi124 ? 100 : 5 }}" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        @endif
                                                     </td>
+                                                    @if($isProdi123)
+                                                    @php $existingStatus = strtoupper(trim((string) $nilai->getAttribute('STATUS_LULUS'))); @endphp
+                                                    <td>
+                                                        <select name="penilaian[{{ $idx }}][status_lulus]" class="form-control form-control-sm status-lulus-input" style="width: 100px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                            <option value="">Pilih</option>
+                                                            <option value="LULUS" {{ $existingStatus === 'LULUS' ? 'selected' : '' }}>LULUS</option>
+                                                            <option value="TIDAK LULUS" {{ $existingStatus === 'TIDAK LULUS' ? 'selected' : '' }}>TIDAK LULUS</option>
+                                                        </select>
+                                                    </td>
+                                                    @endif
                                                     <td>
                                                         <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>{{ $nilai->catatan }}</textarea>
                                                     </td>
@@ -1967,10 +2137,31 @@
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                    @if($isProdi123 || $isProdi124)
+                                                    <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                    @endif
                                                     <td>
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $point->id }}" hidden>
-                                                        <input type="text" inputmode="decimal" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="1" max="5" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        @if($isProdi123)
+                                                        <select name="penilaian[{{ $idx }}][nilai]" class="form-control form-control-sm nilai-input" style="width: 70px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                            <option value="">Pilih</option>
+                                                            @foreach(\App\Services\NilaiSidang::HURUF as $huruf)
+                                                            <option value="{{ $huruf }}">{{ $huruf }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        @else
+                                                        <input type="text" inputmode="decimal" name="penilaian[{{ $idx }}][nilai]" value="" class="form-control form-control-sm nilai-input" min="1" max="{{ $isProdi124 ? 100 : 5 }}" style="width: 60px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                        @endif
                                                     </td>
+                                                    @if($isProdi123)
+                                                    <td>
+                                                        <select name="penilaian[{{ $idx }}][status_lulus]" class="form-control form-control-sm status-lulus-input" style="width: 100px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                            <option value="">Pilih</option>
+                                                            <option value="LULUS">LULUS</option>
+                                                            <option value="TIDAK LULUS">TIDAK LULUS</option>
+                                                        </select>
+                                                    </td>
+                                                    @endif
                                                     <td>
                                                         <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}></textarea>
                                                     </td>
@@ -2249,6 +2440,10 @@ var isKppsGateBlocking = {{ ($isKppsGateBlocking ?? false) ? 'true' : 'false' }}
 var isFsViewOnlyS2 = {{ ($isFsViewOnlyS2 ?? false) ? 'true' : 'false' }};
 var isS2 = @json($strataView === 'S2');
 var isS2ScoreReadOnly = @json($isS2ScoreReadOnly);
+var kodeProdi = @json($kodeProdi ?? null);
+var isProdi123 = {{ ($isProdi123 ?? false) ? 'true' : 'false' }};
+var isProdi124 = {{ ($isProdi124 ?? false) ? 'true' : 'false' }};
+
 // Ketua Sidang: form penilaian hanya untuk melihat nilai penilai lain.
 var isViewOnlyPenilai = {{ ($isKetuaSidangTim ?? false) ? 'true' : 'false' }};
 var PESAN_KPPS_GATE = {!! json_encode($pesanKppsGate ?? '') !!};
@@ -2310,7 +2505,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function disablePenilaianInputs(tbodyId) {
     var tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-    tbody.querySelectorAll('input.nilai-input, .catatan-input').forEach(function(inp) {
+    tbody.querySelectorAll('input.nilai-input, select.nilai-input, .catatan-input, .status-lulus-input').forEach(function(inp) {
         inp.disabled = true;
     });
 }
@@ -2336,6 +2531,38 @@ function normalizeNilaiValue(value) {
 function checkNilaiRange(inp, silent) {
     if (!inp || inp.value === '') return true;
     var value = normalizeNilaiValue(inp.value);
+
+    // Prodi 123 (Teknik Geofisika): nilai huruf A, AB, B, BC, C, D — tidak ada batas angka
+    if (isProdi123) {
+        var validHuruf = ['', 'A', 'AB', 'B', 'BC', 'C', 'D'];
+        if (!validHuruf.includes(value)) {
+            if (!silent) notifyNilaiRange('Nilai huruf harus salah satu: A, AB, B, BC, C, D.');
+            return false;
+        }
+        return true;
+    }
+
+    // Prodi 124 (Metalurgi): angka 1 - 100
+    if (isProdi124) {
+        if (!/^\d+(?:\.\d*)?$/.test(value)) {
+            if (!silent) notifyNilaiRange('Nilai harus berupa angka antara 1 dan 100.');
+            return false;
+        }
+        var v = Number(value);
+        var min = getNilaiAttrNum(inp, 'min', 1);
+        var max = getNilaiAttrNum(inp, 'max', 100);
+        if (v > max) {
+            if (!silent) notifyNilaiRange('Nilai tidak boleh lebih dari ' + max);
+            return false;
+        }
+        if (v < min) {
+            if (!silent) notifyNilaiRange('Nilai tidak boleh kurang dari ' + min);
+            return false;
+        }
+        return true;
+    }
+
+    // Default: angka 1 - 5
     if (!/^\d+(?:\.\d*)?$/.test(value)) {
         if (!silent) notifyNilaiRange('Nilai harus berupa angka antara 1 dan 5.');
         return false;
@@ -2362,12 +2589,15 @@ function validateNilaiRangeInTbody(tbodyId) {
         var row = rows[i];
         if (row.style.display === 'none') continue;
         if (row.id && row.id.indexOf('Empty') !== -1) continue;
-        var inp = row.querySelector('input.nilai-input');
+        var inp = row.querySelector('.nilai-input');
         if (!inp || inp.disabled || inp.value === '') continue;
         if (!checkNilaiRange(inp, false)) {
             inp.focus();
             __nilaiToastAt = 0;
-            notifyNilaiRange('Nilai tidak boleh lebih dari ' + getNilaiAttrNum(inp, 'max', 5) + ' atau kurang dari ' + getNilaiAttrNum(inp, 'min', 1) + '. Data tidak disimpan.');
+            var pesan = isProdi123
+                ? 'Nilai huruf harus salah satu: A, AB, B, BC, C, D.'
+                : ('Nilai tidak boleh lebih dari ' + getNilaiAttrNum(inp, 'max', isProdi124 ? 100 : 5) + ' atau kurang dari ' + getNilaiAttrNum(inp, 'min', 1) + '. Data tidak disimpan.');
+            notifyNilaiRange(pesan);
             return false;
         }
     }
@@ -2380,9 +2610,6 @@ function formatNilaiServerError(data) {
         for (var i = 0; i < keys.length; i++) {
             var vals = data.errors[keys[i]];
             if (vals && vals.length) {
-                if (keys[i].indexOf('nilai') !== -1) {
-                    return 'Gagal menyimpan. Nilai harus antara 1 dan 5.';
-                }
                 return 'Gagal menyimpan. ' + vals[0];
             }
         }
@@ -2401,6 +2628,7 @@ if (!window.nilaiInputListenersBound) {
         }
     });
     document.addEventListener('input', function (e) {
+        if (e.target && e.target.tagName === 'SELECT') return;
         if (e.target && e.target.classList && e.target.classList.contains('nilai-input')) {
             var inp = e.target;
             if (!/^\d*(?:[.,]\d*)?$/.test(inp.value)) {
@@ -2757,7 +2985,7 @@ function applyStatusCatatan(row) {
     if (typeof isFsViewOnlyS2 !== 'undefined' && isFsViewOnlyS2) return;
     var sc = row.getAttribute('data-status-catatan');
     var catatanInput = row.querySelector('.catatan-input');
-    var nilaiInput = row.querySelector('input.nilai-input');
+    var nilaiInput = row.querySelector('.nilai-input');
     if (sc === 'y') {
         if (catatanInput) catatanInput.disabled = false;
         if (nilaiInput) nilaiInput.disabled = true;
@@ -3538,14 +3766,19 @@ async function savePenilaianTahap1() {
         const idPenilaian = row.getAttribute('data-point-id');
         const nilaiEl = row.querySelector('.nilai-input');
         const catatanEl = row.querySelector('.catatan-input');
+        const statusEl = row.querySelector('.status-lulus-input');
         const nilai = nilaiEl ? normalizeNilaiValue(nilaiEl.value) : '';
         const catatan = catatanEl ? catatanEl.value : '';
 
-        penilaian.push({
+        var item = {
             id_penilaian: idPenilaian,
             nilai: nilai,
             catatan: catatan
-        });
+        };
+        if (statusEl) {
+            item.status_lulus = statusEl.value;
+        }
+        penilaian.push(item);
     });
 
     if (penilaian.length === 0) {
@@ -3794,7 +4027,7 @@ function toggleLockButton(tbodyId, btnId) {
                 break;
             }
         } else {
-            var nilaiInput = row.querySelector('input.nilai-input');
+            var nilaiInput = row.querySelector('.nilai-input');
             if (nilaiInput && !nilaiInput.value.trim()) {
                 allFilled = false;
                 break;
@@ -3965,15 +4198,20 @@ async function savePenilaianTahap2() {
         if (row.id === 'penilaianTahap2EmptyRow') return;
 
         const idPenilaianInput = row.querySelector('input[name$="[id_penilaian]"]');
-        const nilaiInput = row.querySelector('input[name$="[nilai]"]');
+        const nilaiInput = row.querySelector('[name$="[nilai]"]');
         const catatanInput = row.querySelector('textarea[name$="[catatan]"]') || row.querySelector('.catatan-input');
+        const statusLulusInput = row.querySelector('[name$="[status_lulus]"]');
         if (!idPenilaianInput) return;
 
-        penilaian.push({
+        var item = {
             id_penilaian: idPenilaianInput.value,
             nilai: nilaiInput ? normalizeNilaiValue(nilaiInput.value) : '',
             catatan: catatanInput ? catatanInput.value : ''
-        });
+        };
+        if (statusLulusInput) {
+            item.status_lulus = statusLulusInput.value;
+        }
+        penilaian.push(item);
     });
 
     if (penilaian.length === 0) {

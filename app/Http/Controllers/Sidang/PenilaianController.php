@@ -16,6 +16,8 @@ class PenilaianController extends Controller
     private const STATUS_LULUS_ALLOWED = [
         'lulus',
         'tidak lulus',
+        'LULUS',
+        'TIDAK LULUS',
         'Layak tanpa perbaikan',
         'Layak dengan perbaikan minor tanpa harus dibaca kembali',
         'Layak dengan perbaikan minor dan perbaikan harus dibaca kembali',
@@ -29,6 +31,8 @@ class PenilaianController extends Controller
     private const STATUS_LULUS_S2 = [
         'Lulus Sidang Magister',
         'Tidak Lulus Sidang Magister',
+        'LULUS',
+        'TIDAK LULUS',
     ];
 
     public function storeTuProdi(Request $request)
@@ -83,18 +87,33 @@ class PenilaianController extends Controller
         // Allowed status lulus values based on tahapan
         $allowedStatusLulus = self::STATUS_LULUS_ALLOWED;
         
+        // Deteksi kode prodi untuk validasi nilai per prodi
+        $idJudul = $request->input('id_judul');
+        $tahapanSidang = $request->input('tahapan_sidang');
+        $ajuanForProdi = TAjuanSidang::where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapanSidang)
+            ->latest('id')
+            ->first();
+        $kodeProdi = trim((string) ($ajuanForProdi?->KODE_PRODI ?? $ajuanForProdi?->kode_prodi ?? ''));
+        $isProdi123 = \App\Services\NilaiSidang::isHuruf($kodeProdi);
+
+        $nilaiRule = \App\Services\NilaiSidang::rule($kodeProdi);
+        $nilaiNumericMsg = \App\Services\NilaiSidang::message($kodeProdi);
+
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'id_judul' => 'required',
             'tahapan_sidang' => 'required',
             'id_tim_sidang' => 'required',
             'penilaian' => 'required|array',
             'penilaian.*.id_penilaian' => 'required',
-            'penilaian.*.nilai' => 'nullable|numeric|min:1|max:5',
+            'penilaian.*.nilai' => $nilaiRule,
+            'penilaian.*.status_lulus' => 'nullable|in:LULUS,TIDAK LULUS',
             'status_lulus' => 'nullable|in:' . implode(',', $allowedStatusLulus),
         ], [
-            'penilaian.*.nilai.min' => 'Nilai minimal 1.',
-            'penilaian.*.nilai.max' => 'Nilai maksimal 5.',
-            'penilaian.*.nilai.numeric' => 'Nilai harus berupa angka.',
+            'penilaian.*.nilai.min' => $nilaiNumericMsg,
+            'penilaian.*.nilai.max' => $nilaiNumericMsg,
+            'penilaian.*.nilai.numeric' => $nilaiNumericMsg,
+            'penilaian.*.nilai.in' => $nilaiNumericMsg,
         ], [
             'id_judul' => 'ID Judul',
             'tahapan_sidang' => 'Tahapan Sidang',
@@ -179,12 +198,37 @@ class PenilaianController extends Controller
 
         // Save each penilaian
         foreach ($request->penilaian as $item) {
-            if (empty($item['nilai']) && empty($item['catatan'])) {
+            if (empty($item['nilai']) && empty($item['catatan']) && empty($item['status_lulus'])) {
                 continue;
             }
             $pointPenilaian = TPointPenilaian::find($item['id_penilaian']);
             if (!$pointPenilaian) {
                 continue;
+            }
+
+            $nilaiRaw = isset($item['nilai']) ? trim((string) $item['nilai']) : '';
+
+            $values = [
+                'JUDUL' => $ajuan->Judul,
+                'NIM' => $ajuan->Nim,
+                'NAMA_MHS' => $ajuan->nama_mhs,
+                'STATUS_TIM_SIDANG' => $timSidang->STATUS_TIM_SIDANG,
+                'NIP' => $penilaiUser->NIP_NIM ?? $user['nip_nim'],
+                'NAMA' => $penilaiUser->NAMA_LENGKAP ?? $user['nama_lengkap'],
+                'NAMA_PENILAIAN' => $pointPenilaian->penilaian,
+                // Prodi 123 memakai nilai huruf; kolom NILAI (angka) dikosongkan.
+                'NILAI' => (! $isProdi123 && $nilaiRaw !== '') ? $nilaiRaw : null,
+                'NILAI_HURUF' => ($isProdi123 && $nilaiRaw !== '') ? strtoupper($nilaiRaw) : null,
+                'CATATAN' => $item['catatan'] ?? null,
+                'NO_FORM' => $pointPenilaian->no_form,
+                'STATUS_SUBMIT' => 't',
+                'TGL_CREATE' => now(),
+                'TGL_UPDATE' => now(),
+                'ID_USER_CREATE' => $user['id'],
+                'NAMA_USER_CREATE' => $user['nama_lengkap'],
+            ];
+            if (array_key_exists('status_lulus', $item)) {
+                $values['STATUS_LULUS'] = $item['status_lulus'] ?: null;
             }
 
             TPenilaian::updateOrCreate(
@@ -196,32 +240,30 @@ class PenilaianController extends Controller
                     'ID_USER_PENILAI' => $penilaiUserId,
                     'ID_PENILAIAN' => $item['id_penilaian'],
                 ],
-                [
-                    'JUDUL' => $ajuan->Judul,
-                    'NIM' => $ajuan->Nim,
-                    'NAMA_MHS' => $ajuan->nama_mhs,
-                    'STATUS_TIM_SIDANG' => $timSidang->STATUS_TIM_SIDANG,
-                    'NIP' => $penilaiUser->NIP_NIM ?? $user['nip_nim'],
-                    'NAMA' => $penilaiUser->NAMA_LENGKAP ?? $user['nama_lengkap'],
-                    'NAMA_PENILAIAN' => $pointPenilaian->penilaian,
-                    'NILAI' => $item['nilai'] !== '' ? $item['nilai'] : null,
-                    'CATATAN' => $item['catatan'] ?? null,
-                    'NO_FORM' => $pointPenilaian->no_form,
-                    'STATUS_SUBMIT' => 't',
-                    'TGL_CREATE' => now(),
-                    'TGL_UPDATE' => now(),
-                    'ID_USER_CREATE' => $user['id'],
-                    'NAMA_USER_CREATE' => $user['nama_lengkap'],
-                ]
+                $values
             );
         }
 
-        // Save status_lulus to t_penilaian only (not t_ajuan_sidang)
-        if ($request->has('status_lulus') && $request->input('status_lulus') !== '') {
+        // Status kelulusan final S1 disimpan ke t_ajuan_sidang. Baris t_penilaian
+        // hanya diisi bila statusnya masih kosong, supaya status per baris
+        // (mis. prodi 123) tidak tertimpa keputusan ketua sidang.
+        if ($request->filled('status_lulus')) {
+            $statusLulus = $request->input('status_lulus');
+
+            DB::table('t_ajuan_sidang')
+                ->where('ID_JUDUL', $idJudul)
+                ->where('TAHAPAN_SIDANG', $tahapanSidang)
+                ->update([
+                    'STATUS_LULUS' => $statusLulus,
+                    'TGL_UPDATE' => now(),
+                ]);
+
             TPenilaian::where('ID_JUDUL', $idJudul)
                 ->where('TAHAPAN_SIDANG', $tahapanSidang)
-                ->where('ID_TIM_SIDANG', $idTimSidang)
-                ->update(['STATUS_LULUS' => $request->input('status_lulus')]);
+                ->where(function ($query) {
+                    $query->whereNull('STATUS_LULUS')->orWhere('STATUS_LULUS', '');
+                })
+                ->update(['STATUS_LULUS' => $statusLulus, 'TGL_UPDATE' => now()]);
         }
 
         return response()->json([
@@ -234,11 +276,6 @@ class PenilaianController extends Controller
     public function update(Request $request, $id)
     {
         $user = session('auth_user');
-        
-        $request->validate([
-            'nilai' => 'required|numeric|min:1|max:5',
-            'catatan' => 'nullable|string',
-        ]);
 
         $penilaian = TPenilaian::find($id);
         if (!$penilaian) {
@@ -248,6 +285,26 @@ class PenilaianController extends Controller
         if ($this->strataAjuan($penilaian->ID_JUDUL, $penilaian->TAHAPAN_SIDANG) === 'S2') {
             return $this->updateS2($request, $user, $penilaian);
         }
+
+        $ajuan = TAjuanSidang::where('ID_JUDUL', $penilaian->ID_JUDUL)
+            ->where('TAHAPAN_SIDANG', $penilaian->TAHAPAN_SIDANG)
+            ->latest('id')
+            ->first();
+        $kodeProdi = trim((string) ($ajuan?->KODE_PRODI ?? $ajuan?->kode_prodi ?? ''));
+        $isProdi123 = \App\Services\NilaiSidang::isHuruf($kodeProdi);
+
+        $nilaiRule = \App\Services\NilaiSidang::rule($kodeProdi, true);
+        $nilaiMessage = \App\Services\NilaiSidang::message($kodeProdi);
+
+        $request->validate([
+            'nilai' => $nilaiRule,
+            'catatan' => 'nullable|string',
+        ], [
+            'nilai.in' => $nilaiMessage,
+            'nilai.numeric' => $nilaiMessage,
+            'nilai.min' => $nilaiMessage,
+            'nilai.max' => $nilaiMessage,
+        ]);
 
         // Validate that user owns this penilaian
         if ($penilaian->ID_USER_PENILAI != $user['id']) {
@@ -263,7 +320,8 @@ class PenilaianController extends Controller
         }
 
         $penilaian->update([
-            'NILAI' => $request->nilai,
+            'NILAI' => $isProdi123 ? null : $request->nilai,
+            'NILAI_HURUF' => $isProdi123 ? strtoupper((string) $request->nilai) : null,
             'CATATAN' => $request->catatan,
             'TGL_UPDATE' => now(),
         ]);
@@ -689,6 +747,20 @@ class PenilaianController extends Controller
                 return response()->json(['error' => 'Nilai sudah dikunci. Hanya Ketua Sidang yang ditugaskan dapat membukanya kembali.'], 403);
             }
 
+            $kodeProdi = trim((string) $ajuan->KODE_PRODI);
+            $nilaiMode = \App\Services\NilaiSidang::mode($kodeProdi);
+            $nilaiMessage = \App\Services\NilaiSidang::message($kodeProdi);
+
+            foreach ($request->penilaian as $item) {
+                $nilai = \App\Services\NilaiSidang::normalize($item['nilai'] ?? null);
+                if ($nilai !== null && !\App\Services\NilaiSidang::isValid($kodeProdi, $nilai)) {
+                    return response()->json(['error' => $nilaiMessage], 422);
+                }
+                if (!empty($item['status_lulus']) && !in_array($item['status_lulus'], ['LULUS', 'TIDAK LULUS'], true)) {
+                    return response()->json(['error' => 'Status lulus baris harus LULUS atau TIDAK LULUS.'], 422);
+                }
+            }
+
             $points = $this->s2Points($ajuan)->whereIn('id', array_column($request->penilaian, 'id_penilaian'))->get()->keyBy('id');
             foreach ($request->penilaian as $item) {
                 if (!$points->has($item['id_penilaian'])) {
@@ -698,20 +770,15 @@ class PenilaianController extends Controller
 
             $penilai = $tim->userPenilai;
             foreach ($request->penilaian as $item) {
-                $nilai = ($item['nilai'] ?? '') !== '' ? ($item['nilai'] ?? null) : null;
+                $nilai = \App\Services\NilaiSidang::normalize($item['nilai'] ?? null);
                 $catatan = $item['catatan'] ?? null;
-                if ($nilai === null && trim((string) $catatan) === '') {
+                $statusLulus = $item['status_lulus'] ?? null;
+                if ($nilai === null && trim((string) $catatan) === '' && empty($statusLulus)) {
                     continue;
                 }
                 $point = $points->get($item['id_penilaian']);
-                TPenilaian::updateOrCreate([
-                    'ID_AJUAN' => $ajuan->id,
-                    'ID_JUDUL' => $ajuan->ID_JUDUL,
-                    'TAHAPAN_SIDANG' => $ajuan->TAHAPAN_SIDANG,
-                    'ID_TIM_SIDANG' => $tim->id,
-                    'ID_USER_PENILAI' => $tim->ID_USER_PENILAI,
-                    'ID_PENILAIAN' => $point->id,
-                ], [
+
+                $values = [
                     'JUDUL' => $ajuan->JUDUL,
                     'NIM' => $ajuan->NIM,
                     'NAMA_MHS' => $ajuan->NAMA_MHS,
@@ -719,7 +786,12 @@ class PenilaianController extends Controller
                     'NIP' => $penilai->NIP_NIM ?? $tim->NIP,
                     'NAMA' => $penilai->NAMA_LENGKAP ?? $tim->NAMA,
                     'NAMA_PENILAIAN' => $point->PENILAIAN,
-                    'NILAI' => $nilai,
+                    'NILAI' => ($nilaiMode !== \App\Services\NilaiSidang::MODE_HURUF && $nilai !== null)
+                        ? str_replace(',', '.', $nilai)
+                        : null,
+                    'NILAI_HURUF' => ($nilaiMode === \App\Services\NilaiSidang::MODE_HURUF && $nilai !== null)
+                        ? strtoupper($nilai)
+                        : null,
                     'CATATAN' => $catatan,
                     'NO_FORM' => $point->NO_FORM,
                     'STATUS_SUBMIT' => 't',
@@ -727,7 +799,19 @@ class PenilaianController extends Controller
                     'TGL_UPDATE' => now(),
                     'ID_USER_CREATE' => $user['id'],
                     'NAMA_USER_CREATE' => $user['nama_lengkap'] ?? $tim->NAMA,
-                ]);
+                ];
+                if (array_key_exists('status_lulus', $item)) {
+                    $values['STATUS_LULUS'] = $statusLulus ?: null;
+                }
+
+                TPenilaian::updateOrCreate([
+                    'ID_AJUAN' => $ajuan->id,
+                    'ID_JUDUL' => $ajuan->ID_JUDUL,
+                    'TAHAPAN_SIDANG' => $ajuan->TAHAPAN_SIDANG,
+                    'ID_TIM_SIDANG' => $tim->id,
+                    'ID_USER_PENILAI' => $tim->ID_USER_PENILAI,
+                    'ID_PENILAIAN' => $point->id,
+                ], $values);
             }
 
             // A score submission must never write a draft or final graduation decision.
@@ -764,8 +848,20 @@ class PenilaianController extends Controller
                 return response()->json(['error' => $validator->errors()->first(), 'errors' => $validator->errors()], 422);
             }
 
+            $kodeProdi = trim((string) $ajuan->KODE_PRODI);
+            $nilaiMode = \App\Services\NilaiSidang::mode($kodeProdi);
+            $nilai = \App\Services\NilaiSidang::normalize($request->nilai);
+            if ($nilai !== null && !\App\Services\NilaiSidang::isValid($kodeProdi, $nilai)) {
+                return response()->json(['error' => \App\Services\NilaiSidang::message($kodeProdi)], 422);
+            }
+
             $this->s2Scores($ajuan)->where('id', $penilaian->id)->update([
-                'NILAI' => $request->nilai,
+                'NILAI' => ($nilaiMode !== \App\Services\NilaiSidang::MODE_HURUF && $nilai !== null)
+                    ? str_replace(',', '.', $nilai)
+                    : null,
+                'NILAI_HURUF' => ($nilaiMode === \App\Services\NilaiSidang::MODE_HURUF && $nilai !== null)
+                    ? strtoupper($nilai)
+                    : null,
                 'CATATAN' => $request->catatan,
                 'TGL_UPDATE' => now(),
             ]);
@@ -798,7 +894,15 @@ class PenilaianController extends Controller
                 return response()->json(['error' => 'Belum ada penilaian pada ajuan terbaru untuk menyimpan keputusan.'], 422);
             }
 
-            $this->s2Scores($ajuan)->update(['STATUS_LULUS' => $request->status_lulus, 'TGL_UPDATE' => now()]);
+            // Prodi bernilai huruf (123/223) punya status per baris; keputusan
+            // final tidak menimpa baris yang sudah punya status sendiri.
+            $scores = $this->s2Scores($ajuan);
+            if (\App\Services\NilaiSidang::isHuruf($ajuan->KODE_PRODI)) {
+                $scores->where(function ($q) {
+                    $q->whereNull('STATUS_LULUS')->orWhere('STATUS_LULUS', '');
+                });
+            }
+            $scores->update(['STATUS_LULUS' => $request->status_lulus, 'TGL_UPDATE' => now()]);
             if ($locked) {
                 $ajuan->STATUS_LULUS = $request->status_lulus;
                 $ajuan->TGL_UPDATE = now();
@@ -823,13 +927,18 @@ class PenilaianController extends Controller
         }
 
         $scores = $this->s2Scores($ajuan)->get()->groupBy('ID_TIM_SIDANG');
+        $kodeProdi = trim((string) $ajuan->KODE_PRODI);
         foreach ($evaluators as $evaluator) {
             $own = $scores->get($evaluator->id, collect())->where('ID_USER_PENILAI', $evaluator->ID_USER_PENILAI)->keyBy('ID_PENILAIAN');
             foreach ($points as $point) {
                 $score = $own->get($point->id);
-                $complete = strtolower(trim((string) $point->STATUS_CATATAN)) === 'y'
-                    ? trim((string) ($score->CATATAN ?? '')) !== ''
-                    : is_numeric($score->NILAI ?? null) && $score->NILAI >= 1 && $score->NILAI <= 5;
+                $complete = \App\Services\NilaiSidang::isComplete(
+                    $kodeProdi,
+                    $score->NILAI ?? null,
+                    $score->NILAI_HURUF ?? null,
+                    $score->CATATAN ?? null,
+                    $point->STATUS_CATATAN
+                );
                 if (!$complete) {
                     return 'Nilai ajuan terbaru belum lengkap: ' . $evaluator->NAMA . ' (' . $evaluator->STATUS_TIM_SIDANG . ').';
                 }
@@ -871,7 +980,15 @@ class PenilaianController extends Controller
             }
 
             $values = ['NILAI_TERKUNCI' => $locking ? 1 : 0, 'TGL_UPDATE' => now()];
-            if ($locking) {
+            if ($locking && \App\Services\NilaiSidang::isHuruf($ajuan->KODE_PRODI)) {
+                // Status per baris (prodi 123/223) dipertahankan; keputusan final
+                // hanya mengisi baris yang belum punya status sendiri.
+                $values['STATUS_LULUS'] = DB::raw(
+                    "CASE WHEN STATUS_LULUS IS NULL OR STATUS_LULUS = '' THEN "
+                    . DB::getPdo()->quote($request->status_lulus)
+                    . ' ELSE STATUS_LULUS END'
+                );
+            } elseif ($locking) {
                 $values['STATUS_LULUS'] = $request->status_lulus;
             }
             $this->s2Scores($ajuan)->update($values);

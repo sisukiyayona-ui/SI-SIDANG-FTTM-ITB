@@ -27,6 +27,7 @@ class TPointPenilaian extends Model
         'NO_FORM',
         'STATUS_CATATAN',
         'KETERANGAN',
+        'BOBOT',
     ];
 
     protected $casts = [

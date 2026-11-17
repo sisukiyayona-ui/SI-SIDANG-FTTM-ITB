@@ -34,6 +34,8 @@ class PenilaianSelesai
                 'lulus sidang magister',
                 'tidak lulus sidang magister',
                 'mengulangi sidang magister',
+                'lulus',
+                'tidak lulus',
             ], true);
         }
 

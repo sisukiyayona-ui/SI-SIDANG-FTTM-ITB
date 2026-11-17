@@ -51,11 +51,15 @@ class KelengkapanNilaiSidang
         $rows = DB::table('t_penilaian')
             ->where('ID_JUDUL', $idJudul)
             ->where('TAHAPAN_SIDANG', $tahapan)
-            ->get(['ID_TIM_SIDANG', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'CATATAN']);
+            ->get(['ID_TIM_SIDANG', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'NILAI_HURUF', 'CATATAN']);
 
         $filledByTim = [];
         foreach ($rows as $r) {
-            $nilai = $r->NILAI === null ? '' : trim((string) $r->NILAI);
+            // Prodi 123 menyimpan nilai di NILAI_HURUF, bukan NILAI.
+            $nilai = trim((string) ($r->NILAI_HURUF ?? $r->NILAI ?? ''));
+            if ($nilai === '') {
+                $nilai = $r->NILAI === null ? '' : trim((string) $r->NILAI);
+            }
             $catatan = $r->CATATAN === null ? '' : trim((string) $r->CATATAN);
             if ($nilai === '' && $catatan === '') {
                 continue;
@@ -169,8 +173,10 @@ class KelengkapanNilaiSidang
                 ->where('ID_AJUAN', $ajuan->id)
                 ->where('ID_JUDUL', $ajuan->ID_JUDUL)
                 ->where('TAHAPAN_SIDANG', $ajuan->TAHAPAN_SIDANG)
-                ->get(['ID_TIM_SIDANG', 'ID_USER_PENILAI', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'CATATAN']);
+                ->get(['ID_TIM_SIDANG', 'ID_USER_PENILAI', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'NILAI_HURUF', 'CATATAN']);
         }
+
+        $kodeProdi = trim((string) $ajuan?->KODE_PRODI);
 
         $perTim = $rows->groupBy('ID_TIM_SIDANG');
         $forms = [];
@@ -187,9 +193,13 @@ class KelengkapanNilaiSidang
             // Setiap penilai wajib melengkapi seluruh point aktif, bukan gabungan nilai tim.
             foreach ($points as $point) {
                 $score = $own->get($point->id);
-                $complete = strtolower(trim((string) $point->STATUS_CATATAN)) === 'y'
-                    ? trim((string) ($score->CATATAN ?? '')) !== ''
-                    : is_numeric($score->NILAI ?? null) && $score->NILAI >= 1 && $score->NILAI <= 5;
+                $complete = \App\Services\NilaiSidang::isComplete(
+                    $kodeProdi,
+                    $score->NILAI ?? null,
+                    $score->NILAI_HURUF ?? null,
+                    $score->CATATAN ?? null,
+                    $point->STATUS_CATATAN
+                );
                 if (! $complete) {
                     $belumOwn[] = $point->NO_FORM;
                 }
