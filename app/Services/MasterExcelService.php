@@ -292,6 +292,7 @@ class MasterExcelService
         } else {
             [$programStudi, $nama, $tahapan, $strata] = $values + array_fill(0, 4, '');
             $noForm = $statusCatatan = $keterangan = '';
+            $bobot = '';
         }
 
         $clean = [
@@ -304,7 +305,9 @@ class MasterExcelService
             'status_aktif' => 'AKTIF',
             'status_catatan' => self::canonicalStatusCatatan($statusCatatan),
             'keterangan' => trim((string) $keterangan),
-            'bobot' => trim((string) $bobot),
+            // Bobot kosong harus jadi NULL, bukan '' — kolom DECIMAL MySQL strict
+            // menolak string kosong saat insert.
+            'bobot' => trim((string) $bobot) === '' ? null : trim((string) $bobot),
         ];
 
         // Nilai status catatan yang tidak dikenal ditolak, bukan dipaksa jadi default,

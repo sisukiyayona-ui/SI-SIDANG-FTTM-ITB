@@ -567,7 +567,11 @@
             var show = !kode || kode.charAt(0) === digit;
             opt.hidden = !show;
             opt.disabled = !show;
-            if (show) {
+            // Placeholder (value kosong) tidak ikut hitungan: kalau ikut, `first`
+            // selalu '' dan option terpilih yang ter-disable tidak pernah diganti —
+            // browser tetap menampilkannya padahal field disabled tidak terkirim
+            // saat submit (validasi "id prodi required").
+            if (show && opt.value !== '') {
                 visible++;
                 if (first === null) first = opt.value;
             }
@@ -579,8 +583,11 @@
             Array.prototype.forEach.call(select.options, function (opt) { opt.hidden = false; opt.disabled = false; });
             return;
         }
-        if (!current && !keepIfCompatible && first) {
-            select.value = first;
+        // Pilihan lama tidak cocok strata → ganti ke prodi compatible pertama
+        // (atau placeholder kalau tidak ada). Jangan biarkan select menunjuk
+        // option yang sudah disabled.
+        if (select.value !== current) {
+            select.value = current || first || '';
         }
     }
 
