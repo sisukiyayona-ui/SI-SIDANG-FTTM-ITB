@@ -705,24 +705,24 @@ class CetakController extends Controller
      * Isi placeholder ${signature} (atau placeholder lain) dengan gambar tanda tangan
      * dari t_user.SIGNATURE. Mendukung placeholder yang terpecah antar XML run.
      */
-    private function fillSignaturePlaceholder(string $docxPath, $idUser, string $placeholder = 'signature'): void
+    private function fillSignaturePlaceholder(string $docxPath, $idUser, string $placeholder = 'signature', string $gantiKosong = '.............'): void
     {
         try {
             $signature = $idUser ? TUser::where('id', (int) $idUser)->value('SIGNATURE') : null;
             if (empty($signature)) {
-                $this->removePlaceholderText($docxPath, $placeholder, '.............');
+                $this->removePlaceholderText($docxPath, $placeholder, $gantiKosong);
                 return;
             }
 
             $binary = base64_decode($signature, true);
             if ($binary === false || strlen($binary) < 100) {
-                $this->removePlaceholderText($docxPath, $placeholder, '.............');
+                $this->removePlaceholderText($docxPath, $placeholder, $gantiKosong);
                 return;
             }
 
             $validImage = (substr($binary, 0, 4) === "\x89PNG" || substr($binary, 0, 3) === "\xFF\xD8\xFF");
             if (!$validImage) {
-                $this->removePlaceholderText($docxPath, $placeholder, '.............');
+                $this->removePlaceholderText($docxPath, $placeholder, $gantiKosong);
                 return;
             }
 
@@ -875,6 +875,68 @@ class CetakController extends Controller
         }
         $idUser = $tim->id_user_penilai ?? null;
         return $this->signatureBinaryOfUser($idUser);
+    }
+
+    /**
+     * Sisipkan tanda tangan (gambar dari t_user.SIGNATURE) ke template BA S2 yang
+     * tidak punya placeholder ${signature} (BA Tesis I prodi 221 & 225).
+     * Placeholder gambar ${s2ba_ttd_N} disisipkan sebelum tiap paragraf yang
+     * isinya hanya titik-titik di kolom "Tanda Tangan" (urutan kemunculan =
+     * Tim Penilai), dan ${s2ba_ttd_kaprodi} setelah paragraf "Ketua Program Studi".
+     * Tanpa ttd tersimpan -> placeholder dikosongkan (garis titik template tetap ada).
+     */
+    private function embedS2BaSignaturesByDots(string $docxPath, array $penilaiIds, $kaprodiId): void
+    {
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($docxPath) !== true) {
+                return;
+            }
+            $xml = $zip->getFromName('word/document.xml');
+            if ($xml === false) {
+                $zip->close();
+                return;
+            }
+
+            // 1) ${s2ba_ttd_N} sebelum tiap paragraf murni titik-titik (urutan kemunculan)
+            $n = count($penilaiIds);
+            $idx = 0;
+            $xml = preg_replace_callback('/<w:p\b[^>]*>.*?<\/w:p>/us', function ($m) use (&$idx, $n) {
+                if ($idx >= $n) {
+                    return $m[0];
+                }
+                $text = trim(strip_tags($m[0]));
+                if ($text === '' || !preg_match('/^[.\x{2026}\x{00B7}\s]+$/u', $text)) {
+                    return $m[0];
+                }
+                $idx++;
+                return '<w:p><w:r><w:t>${s2ba_ttd_' . $idx . '}</w:t></w:r></w:p>' . $m[0];
+            }, $xml);
+
+            // 2) ${s2ba_ttd_kaprodi} setelah paragraf "Ketua Program Studi"
+            //    (teks bisa terpecah antar run, jadi pakai "Program Studi" = kemunculan terakhir).
+            $pos = strrpos($xml, 'Program Studi');
+            if ($pos !== false) {
+                $pEnd = strpos($xml, '</w:p>', $pos);
+                if ($pEnd !== false) {
+                    $ph = '<w:p><w:r><w:t>${s2ba_ttd_kaprodi}</w:t></w:r></w:p>';
+                    $insertAt = $pEnd + strlen('</w:p>');
+                    $xml = substr($xml, 0, $insertAt) . $ph . substr($xml, $insertAt);
+                }
+            }
+
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $xml);
+            $zip->close();
+
+            // 3) Isi tiap placeholder dengan gambar tanda tangan orang yang bersangkutan
+            foreach ($penilaiIds as $i => $uid) {
+                $this->fillSignaturePlaceholder($docxPath, $uid, 's2ba_ttd_' . ($i + 1), '');
+            }
+            $this->fillSignaturePlaceholder($docxPath, $kaprodiId, 's2ba_ttd_kaprodi', '');
+        } catch (\Exception $e) {
+            \Log::warning('Gagal sisipkan tanda tangan BA S2: ' . $e->getMessage());
+        }
     }
 
     private function signatureBinaryOfUser($idUser): ?string
@@ -1770,6 +1832,14 @@ class CetakController extends Controller
                 $tp->setValue('nama_penguji_i',     $penguji1?->NAMA ?? '-');
                 $tp->setValue('nip_penguji_i',      $penguji1?->NIP ?? '-');
 
+                // BA Tesis I prodi 221: baris Penilai 3 diisi Ketua Sidang (ketua penguji),
+                // bukan penguji biasa. Ketua Sidang tidak menginput nilai -> nilai_3 = '-'.
+                if (trim((string) $kodeProdi) === '221' && $ketuaSidang) {
+                    $tp->setValue('nama_penguji_i', $ketuaSidang->NAMA ?? '-');
+                    $tp->setValue('nip_penguji_i',  $ketuaSidang->NIP ?? '-');
+                    $tp->setValue('nilai_3', '-');
+                }
+
                 // BA Tesis I/II 223 TG: 6 baris tim penilai (Pembimbing, Ko-Pem 1, Ko-Pem 2, Ketua Sidang, Penguji 1, Penguji 2)
                 if ($isS2Prodi223) {
                     $pembimbingUtama223 = $ketuaPembimbing ?? $pembimbings->get(0);
@@ -1883,6 +1953,18 @@ class CetakController extends Controller
                 $this->signatureBinary($penguji1_223),
                 $this->signatureBinary($penguji2_223),
             ]);
+        } elseif ($isS2) {
+            // Template BA S2 tanpa ${signature} (221 & 225): tanda tangan disisipkan
+            // sebagai gambar sebelum tiap baris titik-titik kolom "Tanda Tangan"
+            // (urutan = Tim Penilai) dan di blok Ketua Program Studi sebelum nama kaprodi.
+            $penilaiTtd = [$p1, $p2];
+            // Baris Penilai 3 template 221 = Ketua Sidang (sama seperti pengisian nama di atas).
+            $penilaiTtd[] = (trim((string) $kodeProdi) === '221' && $ketuaSidang) ? $ketuaSidang : $penguji1;
+            $this->embedS2BaSignaturesByDots(
+                $docxPath,
+                array_map(fn($t) => $t?->id_user_penilai, $penilaiTtd),
+                $kaprodiBA?->id
+            );
         } elseif ($ketuaSidang) {
             $this->fillSignaturePlaceholder($docxPath, $ketuaSidang->id_user_penilai);
         } elseif ($ketuaPembimbing) {
