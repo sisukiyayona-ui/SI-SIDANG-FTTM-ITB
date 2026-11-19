@@ -185,8 +185,15 @@
 
 @push('scripts')
 <script>
+    // Form diambil dari dropdown Form di halaman (bukan dipilih ulang di modal).
+    window.__sidangCurrentForm = function () {
+        var visible = document.getElementById('formTahap2');
+        if (visible && visible.value) { return visible.value; }
+        var hidden = document.getElementById('selectedNoFormTahap2');
+        return hidden ? (hidden.value || '') : '';
+    };
+
     // Modal pilih MK — prodi 225, dipakai BA Sidang maupun Cetak Penilaian.
-    // Form tidak dipilih di modal; memakai nilai dari dropdown Form di halaman.
     window.openBaSidangModal = function (mode) {
         window.__sidangCetakMode = mode === 'form' ? 'form' : 'ba';
         var label = document.getElementById('baSidangModeLabel');
@@ -203,9 +210,7 @@
         var mk = document.getElementById('baMkSelect').value;
         if (!mk) { alert('Pilih Mata Kuliah terlebih dahulu.'); return; }
 
-        var current = document.getElementById('selectedNoFormTahap2')
-                   || document.getElementById('formTahap2');
-        var form = current ? current.value : '';
+        var form = window.__sidangCurrentForm();
         if (!form) { alert('Pilih Form terlebih dahulu di halaman.'); return; }
 
         var f = document.querySelector('#tahapFormContent #penilaianFormTahap2Form')
