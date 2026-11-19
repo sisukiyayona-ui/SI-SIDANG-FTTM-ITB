@@ -549,7 +549,15 @@ class PrepareTemplate extends Command
                     'Diisi total nilai angka' => '${total_nilai}',
                     'Bandung, tgl sidang' => 'Bandung, ${tgl_sidang}',
                     '(nip)'         => '${nip_penilai}',
-                ]
+
+                    // Tanda tangan penguji: teks "(ttd)" di dokumen sumber diganti
+                    // placeholder gambar ${signature} (diisi dari t_user.SIGNATURE saat cetak).
+                    '(ttd)'         => '${signature}',
+                ],
+                // Sel "Nilai Huruf" pada 7 baris kriteria kosong di dokumen sumber.
+                // Sisipkan placeholder berulang ${indeks_penilaian} agar saat cetak
+                // diisi indeks huruf yang dihitung dari nilai angka tiap kriteria.
+                'fillS2Form222NilaiHuruf' => true,
             ],
             [
                 // Berita Acara Sidang Magister prodi 222 (Teknik Perminyakan) â€” S2.
@@ -869,6 +877,12 @@ class PrepareTemplate extends Command
             $xml = $zip->getFromName('word/document.xml');
 
             $xml = $this->fuzzyReplaceAll($xml, $replacements);
+
+            // Penilaian Sidang Tesis I & II prodi 222: isi sel "Nilai Huruf" yang kosong
+            // dengan placeholder ${indeks_penilaian} (satu per baris kriteria).
+            if (!empty($template['fillS2Form222NilaiHuruf'])) {
+                $xml = $this->fillS2Form222NilaiHurufSlots($xml);
+            }
 
             // "(catatan)" pada baris Catatan pembimbing I/II/III -> token per pembimbing,
             // lalu sisa "(catatan)" lain (mis. baris "dengan catatan") menjadi ${catatan}.
@@ -1200,6 +1214,68 @@ class PrepareTemplate extends Command
         }
 
         return $xml;
+    }
+
+    /**
+     * Khusus Penilaian Sidang Tesis I & II prodi 222 (Lembar Penguji):
+     * tabel kriteria memiliki kolom "Nilai Huruf" yang sel-selnya masih kosong
+     * pada dokumen sumber. Sisipkan placeholder berulang ${indeks_penilaian}
+     * tepat di sel kosong tersebut (satu per baris kriteria), sehingga saat
+     * cetak tiap placeholder diganti indeks huruf hasil konversi nilai angka
+     * kriteria yang bersangkutan.
+     */
+    private function fillS2Form222NilaiHurufSlots(string $xml): string
+    {
+        $result = preg_replace_callback('/<w:tbl\b[^>]*>.*?<\/w:tbl>/us', function ($m) {
+            $tbl = $m[0];
+
+            // Hanya proses tabel kriteria yang dimaksud.
+            $plain = html_entity_decode(strip_tags($tbl), ENT_QUOTES, 'UTF-8');
+            $plain = preg_replace('/\s+/', ' ', $plain);
+            if (stripos($plain, 'Nilai Huruf') === false || stripos($plain, 'Nilai Angka') === false) {
+                return $tbl;
+            }
+
+            if (!preg_match_all('/<w:tr\b[^>]*>.*?<\/w:tr>/us', $tbl, $rm)) {
+                return $tbl;
+            }
+
+            $newTbl = $tbl;
+            foreach ($rm[0] as $row) {
+                // Baris kriteria dikenali dari placeholder ${nama_penilaian} di sel pertama.
+                if (strpos($row, '${nama_penilaian}') === false) {
+                    continue;
+                }
+
+                $cellIdx = 0;
+                $newRow = preg_replace_callback('/<w:tc\b[^>]*>.*?<\/w:tc>/us', function ($cm) use (&$cellIdx) {
+                    $cellIdx++;
+                    if ($cellIdx !== 2) {
+                        return $cm[0];
+                    }
+                    // Jangan timpa apabila sel ternyata sudah berisi text node.
+                    if (preg_match('/<w:t(?:\s|>)/', $cm[0])) {
+                        return $cm[0];
+                    }
+                    // Sisipkan run placeholder sebelum penutup paragraf terakhir di sel.
+                    $pos = strrpos($cm[0], '</w:p>');
+                    if ($pos === false) {
+                        return $cm[0];
+                    }
+                    $run = '<w:r><w:rPr><w:color w:val="202429"/><w:sz w:val="20"/></w:rPr>'
+                         . '<w:t>${indeks_penilaian}</w:t></w:r>';
+                    return substr($cm[0], 0, $pos) . $run . substr($cm[0], $pos);
+                }, $row);
+
+                if ($newRow !== null && $newRow !== $row) {
+                    $newTbl = str_replace($row, $newRow, $newTbl);
+                }
+            }
+
+            return $newTbl;
+        }, $xml);
+
+        return $result === null ? $xml : $result;
     }
 
     /**

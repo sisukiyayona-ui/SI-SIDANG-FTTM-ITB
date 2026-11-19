@@ -810,6 +810,152 @@ class CetakController extends Controller
     }
 
     /**
+     * BA prodi 222: hasilkan baris tabel "Nama Penguji / Peran / Tanda Tangan"
+     * secara dinamis dari $penilaiList (urutan: pembimbing lalu penguji; ketua sidang
+     * tidak diikutsertakan). Setiap baris memakai placeholder ttd unik
+     * ${ba222_ttd_1}..${ba222_ttd_N} untuk disisipkan gambar tanda tangan per orang.
+     *
+     * Cara kerja: cari 3 baris prototype di tabel (baris dengan ${nama_pembimbing_i},
+     * ${nama_pembimbing_ii}, ${nama_ketua_penguji}), ganti dengan N baris hasil generate.
+     */
+    private function buildBa222DynamicTimTable(string $docxPath, array $penilaiList): int
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return 0;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+            return 0;
+        }
+
+        // Susun entri penilai (abaikan ketua sidang)
+        $entries = [];
+        foreach ($penilaiList as $t) {
+            $sts = strtolower(trim((string) ($t->status_tim_sidang ?? '')));
+            if (str_contains($sts, 'ketua sidang')) {
+                continue;
+            }
+            $nama = trim((string) ($t->NAMA ?? ''));
+            $nip  = trim((string) ($t->NIP ?? ''));
+            if ($nama === '') {
+                continue;
+            }
+
+            if (str_contains($sts, 'pembimbing')) {
+                $no = count(array_filter($entries, fn($e) => str_starts_with($e['peran'], 'Pembimbing'))) + 1;
+                $peran = 'Pembimbing ' . $no;
+            } elseif (str_contains($sts, 'penguji')) {
+                $no = count(array_filter($entries, fn($e) => str_starts_with($e['peran'], 'Penguji'))) + 1;
+                $peran = 'Penguji ' . $no;
+            } else {
+                $peran = 'Penilai';
+            }
+
+            $entries[] = [
+                'nama'  => $nama,
+                'nip'   => $nip !== '' ? $nip : '-',
+                'peran' => $peran,
+                'tim'   => $t,
+                'ttd'   => 'ba222_ttd_' . (count($entries) + 1),
+            ];
+        }
+        if (empty($entries)) {
+            $zip->close();
+            return 0;
+        }
+
+        // Cari 3 baris prototype di XML. Dikenali dari kombinasi lebar kolom khas
+        // tabel (4800/1935/2880) + keberadaan ${signature} di baris tersebut
+        // (header row tidak punya ${signature}; setValue tidak menyentuh token ini).
+        preg_match_all('/<w:tr\b[^>]*>.*?<\/w:tr>/us', $xml, $mm);
+        $rows = $mm[0] ?? [];
+        $dataRows = [];
+        foreach ($rows as $r) {
+            if (str_contains($r, 'w:w="4800"') && str_contains($r, 'w:w="1935"')
+                && str_contains($r, 'w:w="2880"') && str_contains($r, '${signature}')) {
+                $dataRows[] = $r;
+            }
+        }
+
+        $generated = '';
+        $idx = 1;
+        foreach ($entries as $e) {
+            $generated .= $this->buildBa222TableRow($e['nama'], $e['nip'], $e['peran'], '${' . $e['ttd'] . '}', $idx);
+            $idx++;
+        }
+
+        // Ganti baris prototype dengan baris hasil generate
+        if (!empty($dataRows)) {
+            $firstProto = $dataRows[0];
+            $lastProto  = $dataRows[count($dataRows) - 1];
+            $start = strpos($xml, $firstProto);
+            $end   = strpos($xml, $lastProto) + strlen($lastProto);
+            if ($start !== false && $end >= $start) {
+                $xml = substr($xml, 0, $start) . $generated . substr($xml, $end);
+            }
+        }
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $xml);
+        $zip->close();
+
+        // Isi placeholder ttd per baris dengan gambar tanda tangan (atau titik-titik)
+        $tp = new TemplateProcessor($docxPath);
+        $tmpFiles = [];
+        foreach ($entries as $e) {
+            $binary = $this->signatureBinary($e['tim']);
+            if (empty($binary)) {
+                $tp->setValue($e['ttd'], '.............');
+                continue;
+            }
+            $ext = substr($binary, 0, 4) === "\x89PNG" ? 'png' : 'jpg';
+            $tmp = storage_path('app/uploads/ttd_ba222_' . uniqid() . '.' . $ext);
+            file_put_contents($tmp, $binary);
+            if ($ext === 'png' && function_exists('imagecreatefrompng')) {
+                $fixed = $this->addWhiteBackgroundToPng($tmp);
+                if ($fixed && $fixed !== $tmp) { @unlink($tmp); $tmp = $fixed; }
+            }
+            $tmpFiles[] = $tmp;
+            $tp->setImageValue($e['ttd'], ['path' => $tmp, 'width' => 110, 'height' => 55]);
+        }
+        $tp->saveAs($docxPath);
+        foreach ($tmpFiles as $f) { @unlink($f); }
+
+        return count($entries);
+    }
+
+    /**
+     * Bangun satu baris <w:tr> untuk tabel Tim Penilai BA 222.
+     */
+    private function buildBa222TableRow(string $nama, string $nip, string $peran, string $ttdPlaceholder, int $no): string
+    {
+        $nama  = htmlspecialchars($nama, ENT_XML1, 'UTF-8');
+        $nip   = htmlspecialchars($nip, ENT_XML1, 'UTF-8');
+        $peran = htmlspecialchars($peran, ENT_XML1, 'UTF-8');
+
+        return '<w:tr><w:trPr><w:trHeight w:val="900"/></w:trPr>'
+            . '<w:tc><w:tcPr><w:tcW w:w="4800" w:type="dxa"/></w:tcPr>'
+            . '<w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:spacing w:before="154"/><w:rPr><w:b/></w:rPr></w:pPr>'
+            . '<w:r><w:rPr><w:b/><w:color w:val="202429"/></w:rPr><w:t>' . $nama . '</w:t></w:r></w:p>'
+            . '<w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:spacing w:before="105"/><w:rPr><w:sz w:val="19"/></w:rPr></w:pPr>'
+            . '<w:r><w:rPr><w:color w:val="333333"/><w:sz w:val="19"/></w:rPr><w:t>NIP: ' . $nip . '</w:t></w:r></w:p>'
+            . '</w:tc>'
+            . '<w:tc><w:tcPr><w:tcW w:w="1935" w:type="dxa"/></w:tcPr>'
+            . '<w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:spacing w:before="66"/></w:pPr></w:p>'
+            . '<w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:jc w:val="center"/></w:pPr>'
+            . '<w:r><w:rPr><w:color w:val="202429"/></w:rPr><w:t>' . $peran . '</w:t></w:r></w:p>'
+            . '</w:tc>'
+            . '<w:tc><w:tcPr><w:tcW w:w="2880" w:type="dxa"/></w:tcPr>'
+            . '<w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:spacing w:before="93"/></w:pPr></w:p>'
+            . '<w:p><w:pPr><w:pStyle w:val="TableParagraph"/><w:rPr><w:sz w:val="20"/></w:rPr></w:pPr>'
+            . '<w:r><w:rPr><w:color w:val="202429"/><w:sz w:val="20"/></w:rPr><w:t>' . $no . '. </w:t></w:r>'
+            . '<w:r><w:rPr><w:color w:val="202429"/><w:sz w:val="20"/></w:rPr><w:t>' . $ttdPlaceholder . '</w:t></w:r></w:p>'
+            . '</w:tc></w:tr>';
+    }
+
+    /**
      * Sisipkan gambar tanda tangan untuk SETIAP baris evaluator di tabel BA SK.
      * $roleSignatures: array berurutan (indeks 0..N mengikuti urutan baris tabel)
      * yang berisi binary gambar ttd (string) atau null bila peran tidak ada / tanpa ttd.
@@ -1110,8 +1256,11 @@ class CetakController extends Controller
      *
      * Template memuat DUA bagian:
      *  - 3 blok kriteria teks (saran perbaikan): ${nama_penilaian_text} + ${catatan}
-     *  - tabel 7 baris kriteria nilai: ${nama_penilaian} + ${nilai}
+     *  - tabel 7 baris kriteria nilai: ${nama_penilaian} + ${indeks_penilaian} + ${nilai}
      * plus ${indeks_nilai}, ${nilai_rata2}, dan ${total_nilai}.
+     *
+     * ${indeks_penilaian} diisi Nilai Huruf per kriteria dari Nilai Angka kriteria
+     * bersangkutan; ${indeks_nilai} diisi indeks dari nilai rata-rata.
      *
      * Baris penilaian dipisah: STATUS_CATATAN='y' -> bagian teks, sisanya -> tabel nilai.
      */
@@ -1146,13 +1295,16 @@ class CetakController extends Controller
             $xml  = preg_replace('/\$\{catatan\}/', $esc($cat), $xml, 1);
         }
 
-        // Tabel nilai: tiap baris -> ${nama_penilaian} & ${nilai} (urut).
+        // Tabel nilai: tiap baris -> ${nama_penilaian}, ${indeks_penilaian} & ${nilai} (urut).
+        // Nilai Huruf per kriteria dihitung dari Nilai Angka kriteria itu sendiri
+        // (mis. NA 4,50 -> indeks A) sesuai bobot indeks prodi 222.
         $total       = 0.0;
         $jumlahNilai = 0;
         foreach ($nilaiRows as $arr) {
             $nama  = $arr['NAMA_PENILAIAN'] ?? $arr['nama_penilaian'] ?? $arr['PENILAIAN'] ?? '';
             $nilai = $arr['NILAI'] ?? $arr['nilai'] ?? '';
             $xml   = preg_replace('/\$\{nama_penilaian\}/', $esc($nama), $xml, 1);
+            $xml   = preg_replace('/\$\{indeks_penilaian\}/', $esc($this->calculateIndeksNilai222($nilai)), $xml, 1);
             $xml   = preg_replace('/\$\{nilai\}/', $esc($nilai), $xml, 1);
             if ($nilai !== '' && $nilai !== null && is_numeric($nilai)) {
                 $total += (float) $nilai;
@@ -1162,7 +1314,7 @@ class CetakController extends Controller
 
         // Ringkasan: rata-rata, indeks huruf, total skor.
         $rata     = (string) $rataNilai;
-        $indeks   = ($rata !== '' && is_numeric($rata)) ? $this->calculateIndeks((float) $rata) : '';
+        $indeks   = $this->calculateIndeksNilai222($rata);
         $totalStr = $jumlahNilai > 0 ? number_format($total, 2) : '';
 
         $xml = preg_replace('/\$\{nilai_rata2\}/', $esc($rata), $xml, 1);
@@ -1172,6 +1324,7 @@ class CetakController extends Controller
         // Bersihkan sisa placeholder yang belum terisi (kecuali ${signature}).
         $xml = preg_replace('/\$\{nama_penilaian_text\}/', '', $xml);
         $xml = preg_replace('/\$\{nama_penilaian\}/', '', $xml);
+        $xml = preg_replace('/\$\{indeks_penilaian\}/', '', $xml);
         $xml = preg_replace('/\$\{nilai\}/', '', $xml);
         $xml = preg_replace('/\$\{catatan\}/', '', $xml);
         $xml = preg_replace('/\$\{indeks_nilai\}/', '', $xml);
@@ -2024,14 +2177,18 @@ class CetakController extends Controller
 
         // Sisipkan tanda tangan penilai ke BA
         if ($isS2Prodi222) {
-            // BA prodi 222: 5 slot tanda tangan berurutan â€” Pembimbing 1, Pembimbing 2,
-            // Ketua Penguji, Penguji, lalu Pembimbing 1 lagi di Form Pengeluaran Nilai.
+            // Bangun tabel Tim Penilai dinamis (baris mengikuti jumlah pembimbing/penguji).
+            // Tanda tangan per baris sudah disisipkan di buildBa222DynamicTimTable().
+            $this->buildBa222DynamicTimTable($docxPath, $penilaiList->all());
+
+            // Sisa 3 slot ${signature}:
+            //   1 = Kaprodi (blok "Ketua Program Studi Magister" sebelum Form Pengeluaran Nilai)
+            //   2 = Pembimbing 1 di Form Pengeluaran Nilai ("Tanda Tangan Pembimbing")
+            //   3 = Kaprodi (blok tanda tangan bawah)
             $this->embedAllSkSignatures($docxPath, [
+                $this->signatureBinaryOfUser($kaprodiBA?->id),
                 $this->signatureBinary($p1),
-                $this->signatureBinary($p2),
-                $this->signatureBinary($ketuaPenguji),
-                $this->signatureBinary($penguji1),
-                $this->signatureBinary($p1),
+                $this->signatureBinaryOfUser($kaprodiBA?->id),
             ]);
         } elseif ($isS2Prodi223) {
             // BA Tesis I/II 223 TG: 6 baris (Pembimbing, Ko-Pem 1, Ko-Pem 2, Ketua Sidang, Penguji 1, Penguji 2)
@@ -3357,6 +3514,41 @@ class CetakController extends Controller
         } else {
             return 'BC';
         }
+    }
+
+    /**
+     * Indeks Nilai Huruf pada Lembar Penguji Sidang Magister prodi 222.
+     * Dihitung dari Nilai Angka (NA), baik per kriteria maupun nilai rata-rata:
+     *   A        jika NA >= 4,5
+     *   AB       jika 4,0 <= NA < 4,5
+     *   B        jika 3,5 <= NA < 4,0
+     *   BC       jika 3,0 <= NA < 3,5
+     *   C        jika 2,5 <= NA < 3,0
+     *   Mengulang jika NA < 2,5
+     */
+    private function calculateIndeksNilai222($na): string
+    {
+        if ($na === null || $na === '' || !is_numeric($na)) {
+            return '';
+        }
+
+        $score = (float) $na;
+        if ($score >= 4.5) {
+            return 'A';
+        }
+        if ($score >= 4.0) {
+            return 'AB';
+        }
+        if ($score >= 3.5) {
+            return 'B';
+        }
+        if ($score >= 3.0) {
+            return 'BC';
+        }
+        if ($score >= 2.5) {
+            return 'C';
+        }
+        return 'Mengulang';
     }
 
     public function suratKesediaanPenelaah(Request $request, $idJudul, $tahapan)
