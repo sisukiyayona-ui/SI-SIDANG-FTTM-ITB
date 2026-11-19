@@ -442,6 +442,11 @@ class PrepareTemplate extends Command
                 'src' => base_path('template/S2/BA Tesis I prodi 225.docx'),
                 'dst' => base_path('template/S2/BA Tesis I prodi 225 TEMPLATE.docx'),
                 'replacements' => [
+                    // Header dinamis: nomor form & judul MK diambil dari pilihan di modal BA Sidang.
+                    // Harus diproses SEBELUM '(kode mk)' agar tidak terpotong.
+                    'BERITA ACARA (KODE MK) PROPOSAL TESIS' => 'BERITA ACARA ${kode_mk} (${no_form})',
+                    'FORM #205.2' => 'FORM #${no_form}',
+
                     '(alamat)' => '${alamat_prodi}',
                     '(tlp)' => '${tlp_prodi}',
                     '(fax)' => '${fax_prodi}',
@@ -504,6 +509,9 @@ class PrepareTemplate extends Command
                     '(email)' => '${email_prodi}',
                     '(web)' => '${website_prodi}',
                     '(status tim sidang)' => '${status_tim_sidang}',
+                    // Form Penilaian 225: judul MK saja (tanpa "PROPOSAL TESIS").
+                    // Diproses lebih dulu agar '(kode mk)' tidak terpotong.
+                    '(Kode mk) PROPOSAL TESIS' => '${kode_mk}',
                     '(kode mk)' => '${kode_mk}',
                     '(no form)' => '${no_form}',
                     '(judul)' => '${judul}',

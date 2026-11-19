@@ -4959,6 +4959,13 @@ function cetakForm() {
     if (!idTimSidang) { alert('Pilih penilai terlebih dahulu.'); return; }
     var noForm = document.getElementById('selectedNoFormTahap2').value;
     if (!noForm) { alert('Pilih Form terlebih dahulu.'); return; }
+
+    // Prodi 225: pilih Mata Kuliah lewat modal sebelum cetak form penilaian.
+    if (String(kodeProdi).trim() === '225' && typeof window.openBaSidangModal === 'function') {
+        window.openBaSidangModal('form');
+        return;
+    }
+
     var idJudul = document.querySelector('#penilaianFormTahap2Form [name="id_judul"]').value;
     var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
     var url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
@@ -4972,6 +4979,13 @@ function cetakBeritaAcara() {
     var idJudul = document.querySelector('#penilaianFormTahap2Form [name="id_judul"]').value;
     var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
     if (!idJudul) { alert('ID Judul tidak ditemukan.'); return; }
+
+    // Prodi 225: wajib pilih Mata Kuliah & Form lewat modal sebelum cetak BA.
+    if (String(kodeProdi).trim() === '225' && typeof window.openBaSidangModal === 'function') {
+        window.openBaSidangModal();
+        return;
+    }
+
     var url = '{{ route("sidang.cetak-berita-acara", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
     url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
     window.open(url, '_blank');

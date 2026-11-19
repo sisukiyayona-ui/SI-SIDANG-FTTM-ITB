@@ -393,9 +393,16 @@ class CetakController extends Controller
 
                 $prodiS2 = \App\Models\TProdi::where('KODE_PRODI', $kodeProdi)->first();
 
+                // Prodi 225: MK diambil dari pilihan di modal Cetak Penilaian.
+                $kodeMkForm = trim((string) $request->input('kode_mk', ''));
+                if (trim((string) $kodeProdi) === '225' && $kodeMkForm !== '') {
+                    $kodeMk = $kodeMkForm;
+                }
+
                 $tp->setValue('status_tim_sidang',     $statusTimSidang);
                 $tp->setValue('no_form',               $noForm ?? '');
                 $tp->setValue('kode_mk',               $kodeMk ?? '');
+                $tp->setValue('kode mk',               $kodeMk ?? '');
                 $tp->setValue('nama_pembimbing_i',     $p1?->NAMA ?? '-');
                 $tp->setValue('nama_pembimbing_ii',    $p2?->NAMA ?? '-');
                 $tp->setValue('judul',           $namaJudul);
@@ -488,6 +495,11 @@ class CetakController extends Controller
         }
 
         $tp->saveAs($docxPath);
+
+        // Prodi 225: header form penilaian memakai judul MK saja (tanpa "PROPOSAL TESIS").
+        if ($isS2 && trim((string) $kodeProdi) === '225') {
+            $this->postProcessForm225Header($docxPath, (string) ($kodeMk ?? ''));
+        }
 
         // Isi baris penilaian via manipulasi XML
         if ($isSk) {
@@ -1633,6 +1645,77 @@ class CetakController extends Controller
     }
 
     /**
+     * BA Tesis I prodi 225: samakan header dengan pilihan MK & Form di modal BA Sidang.
+     *
+     * Menangani dua kondisi template:
+     *  - sudah di-regenerate: memakai ${kode_mk} / ${no_form}
+     *  - template lama: teks literal "FORM #205.2" dan "PROPOSAL TESIS"
+     * Contoh hasil: FORM #204.2 / BERITA ACARA MG5093 STUDI MANDIRI (204.2)
+     */
+    private function postProcessBa225Header(string $docxPath, string $kodeMk, string $noForm): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+            return;
+        }
+
+        $esc  = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
+        $mk   = $esc($kodeMk);
+        $form = $esc($noForm);
+
+        // Placeholder hasil regenerate template:prepare.
+        $xml = str_replace('${no_form}', $form, $xml);
+        $xml = str_replace('${kode_mk}', $mk, $xml);
+
+        // Teks literal pada template yang belum di-regenerate (run Word terpecah).
+        $xml = $this->fuzzyReplaceOnce($xml, 'FORM #205.2', 'FORM #' . $form);
+        $xml = $this->fuzzyReplaceOnce($xml, 'PROPOSAL TESIS', '(' . $form . ')');
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $xml);
+        $zip->close();
+    }
+
+    /**
+     * Form Penilaian Tesis I prodi 225: header cukup judul MK saja, tanpa
+     * "PROPOSAL TESIS" dan tanpa nomor form (berbeda dengan BA Sidang).
+     * Contoh: MG5093 STUDI MANDIRI
+     */
+    private function postProcessForm225Header(string $docxPath, string $kodeMk): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+            return;
+        }
+
+        $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
+        $mk  = $esc($kodeMk);
+
+        // Template lama yang belum di-regenerate: "(Kode mk) PROPOSAL TESIS".
+        $xml = $this->fuzzyReplaceOnce($xml, '(Kode mk) PROPOSAL TESIS', $mk);
+        // Teks literal setelah ${kode_mk} terisi TemplateProcessor.
+        if ($kodeMk !== '') {
+            $xml = $this->fuzzyReplaceOnce($xml, $kodeMk . ' PROPOSAL TESIS', $mk);
+        }
+        // Placeholder belum terisi (jaga-jaga).
+        $xml = $this->fuzzyReplaceOnce($xml, '${kode_mk} PROPOSAL TESIS', '${kode_mk}');
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $xml);
+        $zip->close();
+    }
+
+    /**
      * Expand baris detail penilaian pada template SK.
      * Template hanya memiliki 3 baris, sedangkan database bisa > 3 record,
      * sehingga blok baris disalin otomatis (clone) per record.
@@ -1707,6 +1790,10 @@ class CetakController extends Controller
     {
         $user    = session('auth_user');
         $tahapan = str_replace('_', ' ', $tahapan);
+
+        // Prodi 225: MK & nomor form dipilih lewat modal saat klik "BA Sidang".
+        $kodeMkPilih = trim((string) $request->input('kode_mk', ''));
+        $noFormBA    = trim((string) $request->input('no_form', ''));
 
         if (!$idJudul) {
             return response()->json(['error' => 'ID Judul diperlukan.'], 400);
@@ -1942,8 +2029,14 @@ class CetakController extends Controller
                         $kodeMkBA = trim((string) ($mkRecBA->KODE_MK ?? ''));
                     }
                 }
+                // Prodi 225: pakai MK yang dipilih di modal BA Sidang (daftar tetap).
+                if (trim((string) $kodeProdi) === '225' && $kodeMkPilih !== '') {
+                    $kodeMkBA = $kodeMkPilih;
+                }
                 $tp->setValue('kode mk',   $kodeMkBA);
                 $tp->setValue('KODE MK',   $kodeMkBA);
+                $tp->setValue('kode_mk',   $kodeMkBA);
+                $tp->setValue('no_form',   $noFormBA);
 
                 // Kaprodi for prodi
                 $kaprodiBA = null;
@@ -2126,6 +2219,16 @@ class CetakController extends Controller
         }
 
         $tp->saveAs($docxPath);
+
+        // Prodi 225: header "FORM #..." dan "BERITA ACARA ... (...)" mengikuti
+        // pilihan MK & Form di modal BA Sidang.
+        if ($isS2 && trim((string) $kodeProdi) === '225') {
+            $this->postProcessBa225Header(
+                $docxPath,
+                $kodeMkPilih !== '' ? $kodeMkPilih : $kodeMkBA,
+                $noFormBA !== '' ? $noFormBA : '205.2'
+            );
+        }
 
         // Manual replacement for penilai values - replace one occurrence at a time
         $this->replacePenilaiValuesInDocx($docxPath, $penilaiAverages, $rataRataKeseluruhan, $indeks);

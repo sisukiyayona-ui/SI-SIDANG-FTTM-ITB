@@ -67,6 +67,38 @@
         </div>
     </div>
 
+    {{-- Modal pilih Mata Kuliah untuk cetak BA/Cetak Penilaian (khusus prodi 225).
+         Form tidak dipilih di sini — sudah diambil dari dropdown Form di halaman. --}}
+    <div class="modal fade" id="baSidangModal" tabindex="-1" role="dialog" aria-labelledby="baSidangModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="baSidangModalLabel"><i class="fas fa-file-signature mr-2"></i>Pilih Mata Kuliah — <span id="baSidangModeLabel">BA Sidang</span></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-0">
+                        <label for="baMkSelect">Mata Kuliah</label>
+                        <select id="baMkSelect" class="form-control">
+                            <option value="MG5093 STUDI MANDIRI">MG5093 STUDI MANDIRI</option>
+                            <option value="MG5091 PENULISAN KARYA ILMIAH">MG5091 PENULISAN KARYA ILMIAH</option>
+                            <option value="MG5090 PROPOSAL TESIS">MG5090 PROPOSAL TESIS</option>
+                            <option value="MG5095 SEMINAR KEMAJUAN I">MG5095 SEMINAR KEMAJUAN I</option>
+                            <option value="MG6092 SEMINAR KEMAJUAN II">MG6092 SEMINAR KEMAJUAN II</option>
+                        </select>
+                        <small class="form-text text-muted mt-2">
+                            Form yang dipakai: <b id="baFormInfo">-</b> <span class="text-muted">(diambil dari dropdown Form di halaman)</span>
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="cetakSidangTerpilih()"><i class="fas fa-print mr-1"></i> Cetak</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if(session('auth_user.role') === 'TU Prodi')
     <div class="modal fade" id="tambahJudulModal" tabindex="-1" role="dialog" aria-labelledby="tambahJudulModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
@@ -153,6 +185,57 @@
 
 @push('scripts')
 <script>
+    // Modal pilih MK — prodi 225, dipakai BA Sidang maupun Cetak Penilaian.
+    // Form tidak dipilih di modal; memakai nilai dari dropdown Form di halaman.
+    window.openBaSidangModal = function (mode) {
+        window.__sidangCetakMode = mode === 'form' ? 'form' : 'ba';
+        var label = document.getElementById('baSidangModeLabel');
+        if (label) { label.textContent = window.__sidangCetakMode === 'form' ? 'Cetak Penilaian' : 'BA Sidang'; }
+
+        var current = window.__sidangCurrentForm();
+        var info = document.getElementById('baFormInfo');
+        if (info) { info.textContent = current || '-'; }
+
+        $('#baSidangModal').modal('show');
+    };
+
+    window.cetakSidangTerpilih = function () {
+        var mk = document.getElementById('baMkSelect').value;
+        if (!mk) { alert('Pilih Mata Kuliah terlebih dahulu.'); return; }
+
+        var current = document.getElementById('selectedNoFormTahap2')
+                   || document.getElementById('formTahap2');
+        var form = current ? current.value : '';
+        if (!form) { alert('Pilih Form terlebih dahulu di halaman.'); return; }
+
+        var f = document.querySelector('#tahapFormContent #penilaianFormTahap2Form')
+             || document.getElementById('penilaianFormTahap2Form');
+        if (!f) { alert('Form tahapan tidak ditemukan.'); return; }
+        var idJudul = f.querySelector('[name="id_judul"]').value;
+        var tahapan = f.querySelector('[name="tahapan_sidang"]').value;
+        var url;
+
+        if (window.__sidangCetakMode === 'form') {
+            var idTim = document.getElementById('selectedTimSidangTahap2');
+            if (!idTim || !idTim.value) { alert('Pilih penilai terlebih dahulu.'); return; }
+            url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+            url = url.replace(':idJudul', encodeURIComponent(idJudul)).replace(':tahapan', encodeURIComponent(tahapan));
+            url += '?id_tim_sidang=' + encodeURIComponent(idTim.value)
+                 + '&no_form=' + encodeURIComponent(form)
+                 + '&kode_mk=' + encodeURIComponent(mk);
+        } else {
+            url = '{{ route("sidang.cetak-berita-acara", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+            url = url.replace(':idJudul', encodeURIComponent(idJudul)).replace(':tahapan', encodeURIComponent(tahapan));
+            url += '?kode_mk=' + encodeURIComponent(mk) + '&no_form=' + encodeURIComponent(form);
+        }
+
+        window.open(url, '_blank');
+        $('#baSidangModal').modal('hide');
+    };
+
+    // Alias lama (dipakai jika ada view lain yang memanggilnya).
+    window.cetakBaSidangTerpilih = function () { window.cetakSidangTerpilih(); };
+
     function getTahapLabelJS(tahapan) {
         var labels = {
             'Tesis I': 'Tesis I',
