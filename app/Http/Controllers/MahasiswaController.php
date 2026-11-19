@@ -352,13 +352,12 @@ class MahasiswaController extends Controller
             return $persyaratan->get();
         };
 
-        // Prioritas data persyaratan:
-        // 1. Jika sudah ada data di t_cek_persyaratan (mahasiswa upload/mencentang),
-        //    tampilkan data tersebut (status ceklis & file tetap muncul), apapun
-        //    status lulus/layak-nya.
-        // 2. Jika belum ada data cek sama sekali: tampilkan daftar aktif dari
-        //    t_syarat_sidang — termasuk untuk yang sudah lulus, supaya masih
-        //    bisa upload/ubah file persyaratan setelah status lulus.
+        // Persyaratan untuk semua strata (S1/S2/S3):
+        // - Sudah selesai (status lulus/tidak lulus/keputusan ditentukan):
+        //   data diambil dari t_cek_persyaratan (hasil ceklis & upload mahasiswa).
+        // - Belum selesai: digabung dengan daftar persyaratan AKTIF dari
+        //   t_syarat_sidang, supaya semua syarat tetap tampil walau belum
+        //   pernah dicek/diupload.
         $persyaratanQuery = \App\Models\TCekPersyaratan::where('ID_JUDUL', $idJudul)
             ->where('TAHAPAN_SIDANG', $tahapan);
         if ($strataView === 'S2' || $syaratIdsForProdi->isNotEmpty()) {
@@ -366,11 +365,12 @@ class MahasiswaController extends Controller
         }
         $persyaratan = $persyaratanQuery->get();
 
-        if ($strataView === 'S2') {
+        $sudahSelesai = \App\Services\PenilaianSelesai::statusDitentukan($ajuan);
+        if (! $sudahSelesai) {
             $tersimpan = $persyaratan->pluck('ID_SYARAT_SIDANG');
-            $persyaratan = $persyaratan->concat($syaratSidangList()->reject(fn ($syarat) => $tersimpan->contains($syarat->id)))->values();
-        } elseif ($persyaratan->isEmpty()) {
-            $persyaratan = collect($syaratSidangList());
+            $persyaratan = $persyaratan->concat(
+                $syaratSidangList()->reject(fn ($syarat) => $tersimpan->contains($syarat->id))
+            )->values();
         }
 
         // Table penilaian - filter by user for Pembimbing/Penguji

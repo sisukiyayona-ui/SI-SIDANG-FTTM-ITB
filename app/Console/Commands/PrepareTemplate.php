@@ -413,6 +413,10 @@ class PrepareTemplate extends Command
                 'nilaiSequence' => 6,
                 // Ganti titik-titik di kolom Tanda Tangan menjadi placeholder signature per baris.
                 'replaceSignatureDots' => true,
+                // BA Tesis I 223: pastikan token nama di tabel Tim Penilai sesuai peran baris.
+                'fixBa223TimPenilaiTokens' => true,
+                // BA Tesis I 223: perbaiki field literal (nama mhs, nim, predikat, penilai) + sel kosong NA/Indeks.
+                'fixBa223LiteralFields' => true,
             ],
             [
                 // Form Penilaian Sidang Magister S2 â€” form penilaian tabel komponen
@@ -640,6 +644,7 @@ class PrepareTemplate extends Command
                     '(catatan)' => '${catatan}',
                     '(nama penilai)' => '${nama_penilai}',
                     '(nip)' => '${nip_penilai}',
+                    '(ttd)' => '${signature}',
                     '(alamat)' => '${alamat_prodi}',
                     '(tlp)' => '${tlp_prodi}',
                     '(fax)' => '${fax_prodi}',
@@ -906,6 +911,17 @@ class PrepareTemplate extends Command
             // (3 pembimbing lalu 3 penguji) menjadi placeholder per peran.
             if (!empty($template['asalInstansiSlots'])) {
                 $xml = $this->replaceAsalInstansiSlots($xml);
+            }
+
+            // BA Tesis I 223: normalisasi token nama di tabel Tim Penilai
+            // (baris Pembimbing wajib ${nama_pembimbing_i}, Penguji 2 wajib ${nama_penguji_ii})
+            if (!empty($template['fixBa223TimPenilaiTokens'])) {
+                $xml = $this->fixBa223TimPenilaiTokens($xml);
+            }
+
+            // BA Tesis I 223: perbaiki field literal & sel kosong NA/Indeks
+            if (!empty($template['fixBa223LiteralFields'])) {
+                $xml = $this->fixBa223LiteralFields($xml);
             }
 
             // Jika ada flag replaceSignatureDots, ganti pola titik-titik
@@ -1215,6 +1231,98 @@ class PrepareTemplate extends Command
      * - .......... (10 titik) - signature penguji
      * - ........... (11 titik) - signature penguji
      */
+    /**
+     * BA Tesis I 223 (Teknik Geofisika): normalisasi token ${nama_*} pada tabel
+     * "Tim Penilai" agar tiap baris memakai token sesuai perannya:
+     *   (Pembimbing) → nama_pembimbing_i, (Ko-Pembimbing 1) → nama_pembimbing_ii,
+     *   (Ko-Pembimbing 2) → nama_pembimbing_iii, (Ketua Sidang) → nama_ketua_sidang,
+     *   (Penguji 1) → nama_penguji_i, (Penguji 2) → nama_penguji_ii.
+     *
+     *sequenceReplacements generik bersifat case/space-insensitive sehingga bisa
+     * menimpa dua marker "( Nama tim sidang )" sekaligus. Method ini memperbaiki
+     * hasil akhir dengan mencocokkan label peran di tiap baris tabel.
+     */
+    private function fixBa223TimPenilaiTokens(string $xml): string
+    {
+        $roleToken = [
+            'Pembimbing'      => 'nama_pembimbing_i',
+            'Ko-Pembimbing 1' => 'nama_pembimbing_ii',
+            'Ko-Pembimbing 2' => 'nama_pembimbing_iii',
+            'Ketua Sidang'    => 'nama_ketua_sidang',
+            'Penguji 1'       => 'nama_penguji_i',
+            'Penguji 2'       => 'nama_penguji_ii',
+        ];
+
+        // Split per baris tabel (<w:tr> ... </w:tr>)
+        return preg_replace_callback('/<w:tr\b[^>]*>.*?<\/w:tr>/us', function ($m) use ($roleToken) {
+            $row = $m[0];
+            // Teks polos baris (tanpa tag), untuk mendeteksi label peran
+            $plain = html_entity_decode(strip_tags($row), ENT_QUOTES, 'UTF-8');
+            $plain = preg_replace('/\s+/', ' ', $plain);
+
+            foreach ($roleToken as $label => $token) {
+                if (strpos($plain, '(' . $label . ')') !== false) {
+                    // Ganti token nama apa pun di baris ini dengan token sesuai peran
+                    $row = preg_replace(
+                        '/\$\{nama_(?:pembimbing_(?:i|ii|iii)|ketua_sidang|penguji_(?:i|ii))\}/',
+                        '${' . $token . '}',
+                        $row
+                    );
+                    break;
+                }
+            }
+            return $row;
+        }, $xml);
+    }
+
+    /**
+     * BA Tesis I 223: beberapa field di source .docx berupa teks literal / sel kosong
+     * yang tidak terkonversi oleh replacements biasa. Perbaiki di sini:
+     *  - "nama mhs)"  -> ${nama_mhs}   (teks pada baris "Nama :")
+     *  - "(nim)"      -> ${nim}        (baris "NIM :")
+     *  - "(Nama penilai)" -> ${nama_penilai}
+     *  - ": ______________" (Predikat) -> ": ${predikat}"
+     *  - sel kosong Nilai Akhir Rata-Rata (NA) -> ${nilai_akhir_rata_rata}
+     *  - sel kosong Indeks Nilai -> ${nilai_akhir_indeks}
+     */
+    private function fixBa223LiteralFields(string $xml): string
+    {
+        // 1. "nama mhs)" (+= sisa kurung) -> placeholder. Source memecah "(" dan "nama mhs)".
+        $xml = str_replace('>nama mhs)<', '>${nama_mhs}<', $xml);
+        $xml = str_replace('>nama mhs<', '>${nama_mhs}<', $xml);
+
+        // 2. "(nim)" pada baris NIM: run "(" + "nim" + ")"
+        $xml = str_replace('>nim<', '>${nim}<', $xml);
+
+        // 3. "(Nama penilai)" pada blok tanda tangan Pembimbing (hapus kurung sisa)
+        $xml = str_replace('>Nama penilai<', '>${nama_penilai}<', $xml);
+        $xml = str_replace('(${nama_penilai})', '${nama_penilai}', $xml);
+        // Kurung "(" / ")" berada di run terpisah: <w:t>(</w:t>...<w:t>${nama_penilai}</w:t>...<w:t>)</w:t>
+        $xml = preg_replace(
+            '/<w:t[^>]*>\(<\/w:t>((?:(?!<w:t[^>]*>\)\s*<\/w:t>).)*?<w:t[^>]*>\$\{nama_penilai\}<\/w:t>)((?:(?!<w:t[^>]*>\)\s*<\/w:t>).)*?)<w:t[^>]*>\)\s*<\/w:t>/us',
+            '$1$2',
+            $xml,
+            1
+        );
+
+        // 4. Predikat: ": ______________" -> ": ${predikat}"
+        $xml = str_replace(': ______________', ': ${predikat}', $xml);
+
+        // 5 & 6. Sel kosong NA / Indeks (dikenali dari paraId unik di source)
+        $emptyCellAfter = [
+            '3C4E791B' => '${nilai_akhir_rata_rata}', // Nilai Akhir Rata-Rata (NA)
+            '6C2C8E80' => '${nilai_akhir_indeks}',    // Indeks Nilai
+        ];
+        foreach ($emptyCellAfter as $paraId => $placeholder) {
+            // Pola: <w:p ... w14:paraId="XXXX" ...><w:pPr>...</w:pPr></w:p>  (tanpa <w:r> / tanpa <w:t>)
+            $pattern = '/(<w:p\b[^>]*w14:paraId="' . $paraId . '"[^>]*>)(<w:pPr>.*?<\/w:pPr>)(\s*<\/w:p>)/us';
+            $replacement = '$1$2<w:r><w:t>' . $placeholder . '</w:t></w:r>$3';
+            $xml = preg_replace($pattern, $replacement, $xml, 1);
+        }
+
+        return $xml;
+    }
+
     private function replaceSignatureDots(string $xml): string
     {
         // Ganti rangkaian titik-titik/ellipsis (pendek atau panjang) di kolom tanda tangan

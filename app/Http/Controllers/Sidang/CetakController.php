@@ -318,10 +318,17 @@ class CetakController extends Controller
         // Selalu dipakai (mengalahkan deteksi isTextForm) karena satu template memuat keduanya.
         $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222' && !$isSk && !$isSidangDoktor;
 
+        // S2 tipe teks/catatan: pakai template Lembar Saran Perbaikan Tesis (S2),
+        // bukan template tipe text generik S3/Diskertasi.
+        $isS2TextForm = $isS2 && !$isSk && !$isSidangDoktor && $isTextForm && ! $isS2Prodi222;
+
         if ($isS2Prodi222) {
             $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan);
         } elseif ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
             $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan);
+        } elseif ($isS2TextForm) {
+            // Semua S2 (termasuk 223) memakai Lembar Saran Perbaikan (form penilaian catatan).
+            $templatePath = base_path('template/S2/form penilaian catatan TEMPLATE.docx');
         } else {
             $templatePath = $isSk
                 ? base_path('template/SK-1/form penilaian sk I sd sk III TEMPLATE.docx')
@@ -331,7 +338,7 @@ class CetakController extends Controller
                         ? base_path('template/cetak form penilain tipe text TEMPLATE.docx')
                         : base_path('template/pROPOSAL/cetak form penilaian proposal tipe nilai TEMPLATE.docx')));
         }
-        if (!file_exists($templatePath) && $isTextForm) {
+        if (!file_exists($templatePath) && $isTextForm && ! $isS2TextForm) {
             // Fallback jika template tipe text belum ada
             $templatePath = base_path('template/pROPOSAL/cetak form penilaian proposal tipe nilai TEMPLATE.docx');
         }
@@ -431,6 +438,37 @@ class CetakController extends Controller
                 $tp->setValue('judul',       $namaJudul);
                 $tp->setValue('no_form',     $noForm ?? '');
                 $tp->setValue('nip_penilai', $penilaiNip);
+                if ($isS2TextForm) {
+                    // Lembar Saran Perbaikan S2: satu ${catatan} berisi gabungan catatan penilai.
+                    // Gunakan toArray()/akses properti langsung — (array) cast pada model Eloquent
+                    // TIDAK mengekspos atribut (tersimpan di protected $attributes).
+                    $allCatatan = [];
+                    foreach ($penilaianRows as $row) {
+                        $isiCatatan = '';
+                        if (is_object($row) && method_exists($row, 'toArray')) {
+                            $rowArr = $row->toArray();
+                            $isiCatatan = $rowArr['CATATAN'] ?? $rowArr['catatan'] ?? '';
+                        } elseif (is_object($row)) {
+                            $isiCatatan = $row->CATATAN ?? $row->catatan ?? '';
+                        } else {
+                            $isiCatatan = $row['CATATAN'] ?? $row['catatan'] ?? '';
+                        }
+                        if (trim((string) $isiCatatan) !== '') {
+                            $allCatatan[] = trim((string) $isiCatatan);
+                        }
+                    }
+                    $tp->setValue('catatan',    implode("\n", $allCatatan));
+                    $tp->setValue('tgl_sidang', $tglSidang);
+
+                    // Identitas prodi untuk blok footer Lembar Saran Perbaikan
+                    $prodiCatatan = \App\Models\TProdi::where('KODE_PRODI', $kodeProdi)->first();
+                    $tp->setValue('nama_prodi',    $prodiCatatan?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+                    $tp->setValue('alamat_prodi',  $prodiCatatan?->ALAMAT ?? '-');
+                    $tp->setValue('tlp_prodi',     $prodiCatatan?->TLP ?? '-');
+                    $tp->setValue('fax_prodi',     $prodiCatatan?->FAX ?? '-');
+                    $tp->setValue('email_prodi',   $prodiCatatan?->EMAIL ?? '-');
+                    $tp->setValue('website_prodi', $prodiCatatan?->WEB ?? '-');
+                }
             } else {
                 $tp->setValue('nama_judul',           $namaJudul);
                 $tp->setValue('nip',                  $penilaiNip);
@@ -1676,6 +1714,18 @@ class CetakController extends Controller
             $tp->setValue('nama_ketua_sidang',      $ketuaSidang?->NAMA ?? $ketuaPembimbing?->NAMA ?? '-');
             $tp->setValue('nip_ketua_sidang',       $ketuaSidang?->NIP ?? $ketuaPembimbing?->NIP ?? '-');
             
+            // Hari sidang (Tesis I 223: "hari ${hari_sidang}")
+            $tp->setValue('hari_sidang', $ajuan->tgl_sidang
+                ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y')
+                : '-');
+
+            // Nilai akhir rata-rata (Tesis I 223: "dengan nilai: ${nilai_akhir_rata2}")
+            $tp->setValue('nilai_akhir_rata2', $rataRataKeseluruhan);
+
+            // Nama/NIP penilai pada blok tanda tangan Pembimbing
+            $tp->setValue('nama_penilai', $ketuaPembimbing?->NAMA ?? '-');
+            $tp->setValue('nip_penilai', $ketuaPembimbing?->NIP ?? '-');
+
             // Set overall average for header field (Nilai Rata-rata)
             $tp->setValue('nilai_rata_rata', $rataRataKeseluruhan);
             $tp->setValue('nilai rata rata', $rataRataKeseluruhan);
@@ -1777,25 +1827,62 @@ class CetakController extends Controller
                 $tp->setValue('predikat',      $indeks);
                 $tp->setValue('status lulus',  $statusLulusBA);
 
-                // Catatan pembimbing (ambil dari penilai per pembimbing)
+                // Catatan perbaikan diambil dari t_penilaian baris "Catatan Perbaikan"
+                // (STATUS_CATATAN point = y), yang isinya ada di kolom CATATAN.
+                $catatanRows = TPenilaian::where('ID_JUDUL', $idJudul)
+                    ->where('TAHAPAN_SIDANG', $tahapan)
+                    ->where(function ($q) {
+                        $q->whereRaw("LOWER(TRIM(COALESCE(NAMA_PENILAIAN, ''))) LIKE '%catatan%'")
+                          ->orWhereRaw("LOWER(TRIM(COALESCE(NAMA_PENILAIAN, ''))) LIKE '%perbaikan%'");
+                    })
+                    ->whereNotNull('CATATAN')
+                    ->whereRaw("TRIM(COALESCE(CATATAN, '')) <> ''")
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                // Catatan dikelompokkan per penilai (NAMA). Urut: pembimbing dulu, lalu penguji.
+                $catatanByNama = [];
+                foreach ($catatanRows as $cr) {
+                    $nama = trim((string) ($cr->NAMA ?? ''));
+                    $isi = trim((string) ($cr->CATATAN ?? ''));
+                    if ($nama === '' || $isi === '') {
+                        continue;
+                    }
+                    if (!isset($catatanByNama[$nama])) {
+                        $catatanByNama[$nama] = [];
+                    }
+                    $catatanByNama[$nama][] = $isi;
+                }
+
+                // Urutan sesuai tim sidang: pembimbing (I,II,III), ketua sidang, penguji
                 $catatanPembimbing = [];
+                $seenNama = [];
                 foreach ($allTimSidang as $ts) {
-                    $sts = strtolower(trim((string) ($ts->status_tim_sidang ?? '')));
-                    if (str_contains($sts, 'pembimbing')) {
-                        $nilaiRow = TPenilaian::where('ID_JUDUL', $idJudul)
-                            ->where('TAHAPAN_SIDANG', $tahapan)
-                            ->where('ID_TIM_SIDANG', $ts->id)
-                            ->orderByDesc('TGL_UPDATE')
-                            ->first();
-                        $catatanPembimbing[] = $nilaiRow->CATATAN ?? '-';
+                    $namaTim = trim((string) ($ts->NAMA ?? ''));
+                    if ($namaTim !== '' && isset($catatanByNama[$namaTim]) && !isset($seenNama[$namaTim])) {
+                        $catatanPembimbing[] = implode(' ', $catatanByNama[$namaTim]);
+                        $seenNama[$namaTim] = true;
+                    }
+                }
+                // Sisa catatan dari penilai yang tidak ada di tim sidang
+                foreach ($catatanByNama as $nama => $isiArr) {
+                    if (!isset($seenNama[$nama])) {
+                        $catatanPembimbing[] = implode(' ', $isiArr);
                     }
                 }
                 while (count($catatanPembimbing) < 3) {
                     $catatanPembimbing[] = '-';
                 }
+
+                $tp->setValue('catatan_pembimbing_i',   $catatanPembimbing[0] ?? '-');
+                $tp->setValue('catatan_pembimbing_ii',  $catatanPembimbing[1] ?? '-');
+                $tp->setValue('catatan_pembimbing_iii', $catatanPembimbing[2] ?? '-');
+                // Versi spasi (kompatibilitas template lama)
                 $tp->setValue('catatan pembimbing I', $catatanPembimbing[0] ?? '-');
                 $tp->setValue('catatan pembimbing II', $catatanPembimbing[1] ?? '-');
                 $tp->setValue('catatan pembimbing III', $catatanPembimbing[2] ?? '-');
+                // Baris "dengan catatan: ${nama_pembimbing_i} : ${catatan}" -> catatan pembimbing utama
+                $tp->setValue('catatan', $catatanPembimbing[0] ?? '-');
 
                 $tp->setValue('nama kaprodi',    $kaprodiBA?->NAMA_LENGKAP ?? '-');
                 $tp->setValue('nip kaprodi',     $kaprodiBA?->NIP_NIM ?? '-');
@@ -1903,6 +1990,22 @@ class CetakController extends Controller
         ];
         $this->replaceInDocx($docxPath, $replacements);
 
+        // Final safety net: replace any remaining literal placeholders directly in XML
+        // (mengatasi kasus setValue tidak menemukan token karena pecahan run Word / cache).
+        $finalReplacements = [
+            'hari_sidang'              => $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') : '-',
+            'nilai_akhir_rata2'        => $rataRataKeseluruhan,
+            'nip_penilai'              => $ketuaPembimbing?->NIP ?? '-',
+            'nama_penilai'             => $ketuaPembimbing?->NAMA ?? '-',
+            'predikat'                 => $indeks,
+            'nilai_akhir_indeks'       => $indeks,
+            'catatan_pembimbing_i'     => $catatanPembimbing[0] ?? '-',
+            'catatan_pembimbing_ii'    => $catatanPembimbing[1] ?? '-',
+            'catatan_pembimbing_iii'   => $catatanPembimbing[2] ?? '-',
+            'catatan'                  => $catatanPembimbing[0] ?? '-',
+        ];
+        $this->replaceInDocx($docxPath, $finalReplacements);
+
         // Pusatkan nilai di cell tabel BA (kolom Nilai = center align)
         $this->centerValueCellsInBaProposal($docxPath);
 
@@ -1945,13 +2048,23 @@ class CetakController extends Controller
             $penguji1_223 = $pengujisOnly223->get(0);
             $penguji2_223 = $pengujisOnly223->get(1);
 
+            // Template 223 punya 11 slot ${signature}:
+            //   1-3 : tabel header (Pembimbing 1/2/3)
+            //   4-9 : tabel Tim Penilai (Pembimbing, Ko1, Ko2, Ketua Sidang, Penguji 1, Penguji 2)
+            //   10  : Ketua Program Studi (blok tanda tangan bawah)
+            //   11  : Ketua Sidang (blok tanda tangan bawah)
+            $ttdPembimbingUtama = $this->signatureBinary($pembimbingUtama223);
+            $ttdKo1 = $this->signatureBinary($ko1_223);
+            $ttdKo2 = $this->signatureBinary($ko2_223);
+            $ttdKetuaSidang = $this->signatureBinary($ketuaSidang223);
             $this->embedAllSkSignatures($docxPath, [
-                $this->signatureBinary($pembimbingUtama223),
-                $this->signatureBinary($ko1_223),
-                $this->signatureBinary($ko2_223),
-                $this->signatureBinary($ketuaSidang223),
-                $this->signatureBinary($penguji1_223),
-                $this->signatureBinary($penguji2_223),
+                $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 1-3 header table
+                $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 4-6 Tim Penilai: Pembimbing, Ko1, Ko2
+                $ttdKetuaSidang,                           // 7 Tim Penilai: Ketua Sidang
+                $this->signatureBinary($penguji1_223),     // 8 Tim Penilai: Penguji 1
+                $this->signatureBinary($penguji2_223),     // 9 Tim Penilai: Penguji 2
+                $this->signatureBinaryOfUser($kaprodiBA?->id), // 10 Ketua Program Studi
+                $ttdKetuaSidang,                           // 11 Ketua Sidang
             ]);
         } elseif ($isS2) {
             // Template BA S2 tanpa ${signature} (221 & 225): tanda tangan disisipkan
@@ -4689,6 +4802,37 @@ class CetakController extends Controller
     }
 
     /**
+     * Tandai opsi checkbox pada paragraf yang teksnya terpecah antar <w:r>.
+     * Mencari paragraf yang teks polosnya cocok dengan $labelRegex, lalu
+     * menyisipkan simbol checkbox di awal <w:t> pertama pada paragraf tersebut.
+     */
+    private function markSplitCheckboxOption(string $xml, string $labelRegex, string $mark): string
+    {
+        if ($mark === '') {
+            return $xml;
+        }
+
+        return preg_replace_callback('/<w:p\b[^>]*>.*?<\/w:p>/us', function ($m) use ($labelRegex, $mark) {
+            $para = $m[0];
+            // Teks polos paragraf (tanpa tag XML), sudah di-decode entity
+            $plain = html_entity_decode(strip_tags($para), ENT_QUOTES, 'UTF-8');
+            $plain = preg_replace('/\s+/', ' ', $plain);
+
+            if (preg_match($labelRegex, $plain) !== 1) {
+                return $para;
+            }
+
+            // Jangan menandai dua kali (idempoten)
+            if (str_contains($plain, '☑') || str_contains($plain, '☐')) {
+                return $para;
+            }
+
+            // Sisipkan simbol di awal <w:t> pertama yang berisi teks (bukan yang kosong)
+            return preg_replace('/(<w:t[^>]*>)(?=[^<])/', '$1' . $mark, $para, 1);
+        }, $xml);
+    }
+
+    /**
      * Tandai checkbox/opsi LULUS & Status Publikasi pada semua template BA S2 (Tesis I & Tesis II).
      * Template memakai teks/shape (bukan ${placeholder}), sehingga ditandai via
      * penyisipan simbol ☐/☑ pada teks yang sesuai. Pola yang tidak ada di template
@@ -4725,24 +4869,11 @@ class CetakController extends Controller
             );
         }
 
-        // --- Opsi kelulusan: LULUS Sidang Magister (terpisah) ---
-        if (preg_match('/>LULUS Sidang Magister/u', $xml)) {
-            $xml = preg_replace(
-                '/>LULUS Sidang Magister(?! dan Mengulangi)/u',
-                '>' . $cb($isLulus && !$isTidak) . 'LULUS Sidang Magister',
-                $xml,
-                1
-            );
-        }
-
-        // --- Opsi kelulusan: TIDAK LULUS Sidang Magister dan Mengulangi Sidang Magister ---
-        if (preg_match('/>TIDAK LULUS Sidang Magister/u', $xml)) {
-            $xml = str_replace(
-                '>TIDAK LULUS Sidang Magister',
-                '>' . $cb($isTidak) . 'TIDAK LULUS Sidang Magister',
-                $xml
-            );
-        }
+        // --- Opsi kelulusan: label teks terpecah antar <w:r> (LULUS / TIDAK LULUS Sidang Magister) ---
+        // Template memecah "LULUS" + " " + "Sidang Magister" ke run berbeda, jadi
+        // pencocokan harus berbasis teks paragraf, bukan string XML kontigu.
+        $xml = $this->markSplitCheckboxOption($xml, '/^\s*LULUS\s+Sidang\s+Magister/iu', $cb($isLulus && !$isTidak));
+        $xml = $this->markSplitCheckboxOption($xml, '/^\s*TIDAK\s+LULUS\s+Sidang\s+Magister/iu', $cb($isTidak));
 
         // --- Kombinasi LULUS / TIDAK LULUS dengan strike (BA Tesis I gaya) ---
         if (str_contains($xml, '>LULUS / </w:t>')) {
