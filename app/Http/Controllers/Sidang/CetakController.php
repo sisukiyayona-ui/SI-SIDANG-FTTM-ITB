@@ -92,10 +92,10 @@ class CetakController extends Controller
 
     /**
      * Pilih template Form Penilaian S2 berdasarkan KODE_PRODI dan tahapan:
-     * 221 -> form penilaian prodi 221
+     * 221 -> form penilaian prodi 221 / penilaian tesis 2 prodi 221,225,226 (Tesis II)
      * 222 -> Penilaian Sidang Tesis I dan II prodi 222 (Teknik Perminyakan)
      * 223 -> form penilaian Tesis I 223 TG / form penilaian Tesis 2 prodi 223 TG
-     * 225 atau lainnya -> form penilaian Tesis I prodi 225
+     * 225, 226 -> form penilaian Tesis I prodi 225 / penilaian tesis 2 prodi 221,225,226 (Tesis II)
      */
     private function getS2FormTemplate($kodeProdi, $tahapan = null): string
     {
@@ -103,7 +103,9 @@ class CetakController extends Controller
         $tahapanNorm = strtolower(trim((string) $tahapan));
         $isTesisII = $tahapanNorm === 'tesis ii' || $tahapanNorm === 'tesis 2';
 
-        if ($kp === '221') {
+        if ($isTesisII && in_array($kp, ['221', '225', '226'], true)) {
+            return base_path('template/S2/penilaian tesis 2 prodi 221,225,226 TEMPLATE.docx');
+        } elseif ($kp === '221') {
             return base_path('template/S2/form penilaian prodi 221 TEMPLATE.docx');
         } elseif ($kp === '222') {
             return base_path('template/S2/Penilaian Sidang Tesis I dan II prodi 222 TEMPLATE.docx');
@@ -254,11 +256,12 @@ class CetakController extends Controller
         $isSk          = preg_match('/^sk\s+(i{1,3}|iv)$/', $tNormal, $skMatch) === 1;
         $skRomawi      = $isSk ? strtoupper($skMatch[1]) : '';
         $isSidangDoktor = preg_match('/^tahap\s+iv$/', $tNormal) === 1;
+        $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
 
         // Kode MK dari Data Master Mata Kuliah Prodi (t_mk_prodi):
-        // dicocokkan dengan prodi mahasiswa + tahapan yang dicetak (SK I / SK II / SK III)
+        // dicocokkan dengan prodi mahasiswa + tahapan yang dicetak (SK/S2).
         $kodeMk = '';
-        if ($isSk && $kodeProdi) {
+        if (($isSk || $isS2) && $kodeProdi) {
             $mkRecord = TMkProdi::query()
                 ->whereRaw('TRIM(KODE_PRODI) = ?', [trim((string) $kodeProdi)])
                 ->whereRaw('UPPER(TRIM(TAHAPAN_SIDANG)) = ?', [strtoupper(trim($tahapan))])
@@ -311,8 +314,7 @@ class CetakController extends Controller
             return $row;
         });
 
-        // Template: S2 pakai template per-KODE_PRODI (221/222/223 TG/225), kecuali SK dan Text Form
-        $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
+        // Template: S2 pakai template per-KODE_PRODI (221/222/223 TG/225/226), kecuali SK dan Text Form
 
         // Prodi 222 (Teknik Perminyakan): template Lembar Penguji gabungan (teks + tabel nilai).
         // Selalu dipakai (mengalahkan deteksi isTextForm) karena satu template memuat keduanya.
@@ -518,7 +520,7 @@ class CetakController extends Controller
         }
 
         // Sisipkan tanda tangan penilai (base64 dari t_user.SIGNATURE)
-        $this->embedSignature($docxPath, $timSidangRecord?->id_user_penilai, $penilaiNip, $penilaiNama);
+        $this->embedSignature($docxPath, $timSidangRecord?->id_user_penilai, $penilaiNip, $penilaiNama, $isS2 ? 90 : 110, $isS2 ? 40 : 55);
 
         // Bila penilai tidak punya tanda tangan tersimpan, buang sisa ${signature}
         // agar tidak tampil sebagai teks literal di dokumen.
@@ -534,7 +536,7 @@ class CetakController extends Controller
      *         yang memuat anchor (NIP penilai, fallback nama penilai).
      * Pass 2: isi placeholder dengan gambar via TemplateProcessor::setImageValue.
      */
-    private function embedSignature(string $docxPath, $idUserPenilai, string $anchorNip = '', string $anchorNama = ''): void
+    private function embedSignature(string $docxPath, $idUserPenilai, string $anchorNip = '', string $anchorNama = '', int $width = 110, int $height = 55): void
     {
         $signature = null;
         if ($idUserPenilai) {
@@ -575,7 +577,7 @@ class CetakController extends Controller
             
             // Jika ${signature} ada dan posisinya SETELAH nama_penilai, pindahkan ke depan
             if ($hasSignaturePlaceholder) {
-                $xml = $this->moveSignatureBeforeName($xml);
+                $xml = $this->moveSignatureBeforeName($xml, $anchorNip, $anchorNama);
                 // Simpan XML yang sudah di-reorder ke dalam ZIP
                 $zip->deleteName('word/document.xml');
                 $zip->addFromString('word/document.xml', $xml);
@@ -615,16 +617,16 @@ class CetakController extends Controller
                 $tp2 = new TemplateProcessor($docxPath);
                 $tp2->setImageValue('signature', [
                     'path'   => $tmpPath,
-                    'width'  => 110,
-                    'height' => 55,
+                    'width'  => $width,
+                    'height' => $height,
                 ]);
                 $tp2->saveAs($docxPath);
             } elseif ($pos !== false && strpos($xml, '${ttd_penilai}') !== false) {
                 $tp2 = new TemplateProcessor($docxPath);
                 $tp2->setImageValue('ttd_penilai', [
                     'path'   => $tmpPath,
-                    'width'  => 110,
-                    'height' => 55,
+                    'width'  => $width,
+                    'height' => $height,
                 ]);
                 $tp2->saveAs($docxPath);
             }
@@ -638,23 +640,24 @@ class CetakController extends Controller
     }
 
     /**
-     * Pindahkan paragraf ${signature} ke depan paragraf yang memuat nama_penilai
-     * atau 'Tanda Tangan' agar urutan di dokumen:
-     *   1. Tanda Tangan
-     *   2. ${signature} (gambar)
-     *   3. $(Nama Penilai)
-     *   4. NIP $(nip)
+     * Pindahkan paragraf ${signature} ke depan paragraf nama/NIP penilai
+     * dan samakan indentasinya agar gambar inline sejajar dengan nama.
      */
-    private function moveSignatureBeforeName(string $xml): string
+    private function moveSignatureBeforeName(string $xml, string $anchorNip = '', string $anchorNama = ''): string
     {
-        // Cari paragraf yang memuat ${signature}
         $sigPara = $this->extractParagraph($xml, '${signature}');
         if ($sigPara === false) {
             return $xml;
         }
 
-        // Cari paragraf yang memuat nama_penilai atau $(Nama Penilai) atau 'Tanda Tangan'
         $nameMarkers = ['nama_penilai', 'Nama Penilai', 'Nama_Penilai'];
+        foreach ([$anchorNip, $anchorNama] as $anchor) {
+            $anchor = trim($anchor);
+            if ($anchor !== '' && $anchor !== '-') {
+                $nameMarkers[] = $anchor;
+            }
+        }
+
         $namePos = false;
         foreach ($nameMarkers as $marker) {
             $pos = strpos($xml, $marker);
@@ -668,18 +671,14 @@ class CetakController extends Controller
             return $xml;
         }
 
-        // Jika signature sudah sebelum nama, tidak perlu diubah
         if ($sigPara['start'] < $namePos) {
-            return $xml;
+            return $this->alignSignatureWithName($xml, $namePos);
         }
 
-        // Hapus paragraf signature dari posisi lama
         $before = substr($xml, 0, $sigPara['start']);
         $after  = substr($xml, $sigPara['start'] + strlen($sigPara['xml']));
         $xml    = $before . $after;
 
-        // Recalculate $namePos setelah penghapusan (mungkin berkurang jika setelah signature)
-        // Cari ulang posisi paragraf nama setelah signature dihapus
         $namePos2 = false;
         foreach ($nameMarkers as $marker) {
             $pos = strpos($xml, $marker);
@@ -690,20 +689,55 @@ class CetakController extends Controller
         }
 
         if ($namePos2 === false) {
-            // Fallback: kembalikan ke posisi semula
             return $before . $sigPara['xml'] . $after;
         }
 
-        // Cari awal paragraf sebelum marker nama
         $paraStart = $this->findParagraphStart($xml, $namePos2);
         if ($paraStart === false) {
             return $before . $sigPara['xml'] . $after;
         }
 
-        // Sisipkan paragraf signature SEBELUM paragraf nama
         $xml = substr($xml, 0, $paraStart) . $sigPara['xml'] . substr($xml, $paraStart);
 
-        return $xml;
+        return $this->alignSignatureWithName($xml, $namePos2);
+    }
+
+    private function alignSignatureWithName(string $xml, int $namePos): string
+    {
+        $sigPara = $this->extractParagraph($xml, '${signature}');
+        $nameStart = $this->findParagraphStart($xml, $namePos);
+        if ($sigPara === false || $nameStart === false) {
+            return $xml;
+        }
+
+        $nameEnd = strpos($xml, '</w:p>', $nameStart);
+        if ($nameEnd === false) {
+            return $xml;
+        }
+        $nameEnd += strlen('</w:p>');
+        $namePara = substr($xml, $nameStart, $nameEnd - $nameStart);
+
+        if (!preg_match('/<w:ind\b[^>]*\/>/', $namePara, $indentMatch)) {
+            return $xml;
+        }
+
+        $alignedSigPara = preg_replace_callback('/<w:pPr>.*?<\/w:pPr>/s', function ($m) use ($indentMatch) {
+            $ppr = $m[0];
+            if (preg_match('/<w:ind\b[^>]*\/>/', $ppr)) {
+                return preg_replace('/<w:ind\b[^>]*\/>/', $indentMatch[0], $ppr, 1);
+            }
+            if (preg_match('/<w:rPr\b/', $ppr)) {
+                return preg_replace('/(<w:rPr\b)/', $indentMatch[0] . '$1', $ppr, 1);
+            }
+            return str_replace('</w:pPr>', $indentMatch[0] . '</w:pPr>', $ppr);
+        }, $sigPara['xml'], 1);
+
+        if ($alignedSigPara === null || $alignedSigPara === $sigPara['xml']) {
+            return $xml;
+        }
+
+        return substr($xml, 0, $sigPara['start']) . $alignedSigPara
+            . substr($xml, $sigPara['start'] + strlen($sigPara['xml']));
     }
 
     /**
@@ -1393,7 +1427,7 @@ class CetakController extends Controller
         ];
 
         // Build comprehensive patterns for each field to handle all variations
-        foreach ($rows as $row) {
+        foreach ($rows as $rowIndex => $row) {
             $rowArr = is_object($row) ? (array) $row : $row;
             
             // Get values for each field
@@ -1415,6 +1449,9 @@ class CetakController extends Controller
                 $safe = $values[$ph];
 
                 $variants = [$ph];
+                if ($ph === 'nilai') {
+                    $variants[] = 'nilai_' . ($rowIndex + 1);
+                }
                 if (isset($extraPatterns[$ph])) {
                     $variants = array_merge($variants, $extraPatterns[$ph]);
                 }

@@ -527,7 +527,9 @@ class PrepareTemplate extends Command
                     '(nilai)' => '${nilai}',
                     '(nama penilai)' => '${nama_penilai}',
                     '(nip)' => '${nip_penilai}',
-                ]
+                    '(ttd)' => '${signature}',
+                ],
+                'trimTrailingEmptyParagraph' => true,
             ],
             [
                 // Penilaian Sidang Tesis I & II prodi 222 (Teknik Perminyakan) â€” S2.
@@ -845,6 +847,7 @@ class PrepareTemplate extends Command
                     '(nilai rata2)' => '${nilai_rata2}',
                     '(nama penilai)' => '${nama_penilai}',
                     '(nip)' => '${nip_penilai}',
+                    '(ttd)' => '${signature}',
                 ],
                 // 5 baris penilaian: 3x "( nilai )" + 2x "(nilai)" -> ${nilai_1}..${nilai_5}
                 'sequenceReplacements' => [
@@ -999,6 +1002,10 @@ class PrepareTemplate extends Command
                 }
             }
 
+            if (!empty($template['trimTrailingEmptyParagraph'])) {
+                $xml = $this->trimTrailingEmptyParagraph($xml);
+            }
+
             // Proses juga file header dan footer jika memuat placeholder (alamat, tlp, email, dsb)
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $entryName = $zip->getNameIndex($i);
@@ -1023,6 +1030,39 @@ class PrepareTemplate extends Command
         }
 
         return 0;
+    }
+
+    private function trimTrailingEmptyParagraph(string $xml): string
+    {
+        $sectPrPos = strpos($xml, '<w:sectPr');
+        if ($sectPrPos === false) {
+            return $xml;
+        }
+
+        $beforeSectPr = substr($xml, 0, $sectPrPos);
+        $paragraphEnd = strrpos($beforeSectPr, '</w:p>');
+        if ($paragraphEnd === false) {
+            return $xml;
+        }
+        $paragraphEnd += strlen('</w:p>');
+
+        preg_match_all(
+            '/<w:p(?:\s[^>]*)?>/',
+            substr($beforeSectPr, 0, $paragraphEnd - strlen('</w:p>')),
+            $paragraphStarts,
+            PREG_OFFSET_CAPTURE
+        );
+        if ($paragraphStarts[0] === []) {
+            return $xml;
+        }
+
+        $start = $paragraphStarts[0][count($paragraphStarts[0]) - 1][1];
+        $paragraph = substr($xml, $start, $paragraphEnd - $start);
+        if (!preg_match('/^<w:p\b[^>]*>\s*(?:<w:pPr\b[^>]*>.*?<\/w:pPr>\s*)?<\/w:p>$/s', $paragraph)) {
+            return $xml;
+        }
+
+        return substr($xml, 0, $start) . substr($xml, $paragraphEnd);
     }
 
     /**
