@@ -4978,16 +4978,22 @@ function cetakForm() {
 function cetakBeritaAcara() {
     var idJudul = document.querySelector('#penilaianFormTahap2Form [name="id_judul"]').value;
     var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
+    var noForm = document.getElementById('selectedNoFormTahap2').value;
+    var isTesisII = String(tahapan).trim().toLowerCase() === 'tesis ii';
     if (!idJudul) { alert('ID Judul tidak ditemukan.'); return; }
+    if (isS2 && !noForm) { alert('Pilih Form terlebih dahulu.'); return; }
 
-    // Prodi 225: wajib pilih Mata Kuliah & Form lewat modal sebelum cetak BA.
-    if (String(kodeProdi).trim() === '225' && typeof window.openBaSidangModal === 'function') {
+    // Tesis II prodi 225 langsung cetak; MK-nya ditentukan oleh tahapan sidang.
+    if (String(kodeProdi).trim() === '225' && !isTesisII && typeof window.openBaSidangModal === 'function') {
         window.openBaSidangModal();
         return;
     }
 
     var url = '{{ route("sidang.cetak-berita-acara", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
     url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
+    if (isS2) {
+        url += '?no_form=' + encodeURIComponent(noForm);
+    }
     window.open(url, '_blank');
 }
 

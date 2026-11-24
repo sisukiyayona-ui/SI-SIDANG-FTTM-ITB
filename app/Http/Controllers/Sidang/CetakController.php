@@ -2094,9 +2094,14 @@ class CetakController extends Controller
                         $kodeMkBA = trim((string) ($mkRecBA->KODE_MK ?? ''));
                     }
                 }
-                // Prodi 225: pakai MK yang dipilih di modal BA Sidang (daftar tetap).
-                if (trim((string) $kodeProdi) === '225' && $kodeMkPilih !== '') {
-                    $kodeMkBA = $kodeMkPilih;
+                // Prodi 225: Tesis II selalu MG5093; tahapan lain memakai MK pilihan modal.
+                if (trim((string) $kodeProdi) === '225') {
+                    if (strtolower(trim($tahapan)) === 'tesis ii' && $kodeMkPilih === '') {
+                        $kodeMkPilih = 'MG5093 STUDI MANDIRI';
+                    }
+                    if ($kodeMkPilih !== '') {
+                        $kodeMkBA = $kodeMkPilih;
+                    }
                 }
                 $tp->setValue('kode mk',   $kodeMkBA);
                 $tp->setValue('KODE MK',   $kodeMkBA);

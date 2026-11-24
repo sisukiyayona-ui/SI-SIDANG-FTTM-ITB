@@ -446,6 +446,8 @@ class PrepareTemplate extends Command
                     // Harus diproses SEBELUM '(kode mk)' agar tidak terpotong.
                     'BERITA ACARA (KODE MK) PROPOSAL TESIS' => 'BERITA ACARA ${kode_mk}',
                     'FORM #205.2' => 'FORM #${no_form}',
+                    'Dari Form #205.1' => 'Dari Form #${no_form}',
+                    'Dari Form #206.1' => 'Dari Form #${no_form}',
 
                     '(alamat)' => '${alamat_prodi}',
                     '(tlp)' => '${tlp_prodi}',
@@ -757,6 +759,9 @@ class PrepareTemplate extends Command
                 'src' => base_path('template/S2/BA tesis 2 prodi 221,225,226.docx'),
                 'dst' => base_path('template/S2/BA tesis 2 prodi 221,225,226 TEMPLATE.docx'),
                 'replacements' => [
+                    'FORM#208.2' => 'FORM #${no_form}',
+                    'Dari Form#208.1' => 'Dari Form #${no_form}',
+
                     // Identitas mahasiswa
                     '(nama mhs)' => '${nama_mhs}',
                     '(nim)' => '${nim}',
