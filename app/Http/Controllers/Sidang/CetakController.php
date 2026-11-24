@@ -2388,24 +2388,34 @@ class CetakController extends Controller
             $penguji1_223 = $pengujisOnly223->get(0);
             $penguji2_223 = $pengujisOnly223->get(1);
 
-            // Template 223 punya 11 slot ${signature}:
-            //   1-3 : tabel header (Pembimbing 1/2/3)
-            //   4-9 : tabel Tim Penilai (Pembimbing, Ko1, Ko2, Ketua Sidang, Penguji 1, Penguji 2)
-            //   10  : Ketua Program Studi (blok tanda tangan bawah)
-            //   11  : Ketua Sidang (blok tanda tangan bawah)
             $ttdPembimbingUtama = $this->signatureBinary($pembimbingUtama223);
             $ttdKo1 = $this->signatureBinary($ko1_223);
             $ttdKo2 = $this->signatureBinary($ko2_223);
             $ttdKetuaSidang = $this->signatureBinary($ketuaSidang223);
-            $this->embedAllSkSignatures($docxPath, [
-                $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 1-3 header table
-                $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 4-6 Tim Penilai: Pembimbing, Ko1, Ko2
-                $ttdKetuaSidang,                           // 7 Tim Penilai: Ketua Sidang
-                $this->signatureBinary($penguji1_223),     // 8 Tim Penilai: Penguji 1
-                $this->signatureBinary($penguji2_223),     // 9 Tim Penilai: Penguji 2
-                $this->signatureBinaryOfUser($kaprodiBA?->id), // 10 Ketua Program Studi
-                $ttdKetuaSidang,                           // 11 Ketua Sidang
-            ]);
+            $ttdKaprodi = $this->signatureBinaryOfUser($kaprodiBA?->id);
+
+            if (strtolower(trim((string) $tahapan)) === 'tesis ii') {
+                // BA Tesis II 223: 6 baris Tim Penilai + kaprodi + ketua sidang.
+                $this->embedAllSkSignatures($docxPath, [
+                    $ttdPembimbingUtama, $ttdKo1, $ttdKo2,
+                    $ttdKetuaSidang,
+                    $this->signatureBinary($penguji1_223),
+                    $this->signatureBinary($penguji2_223),
+                    $ttdKaprodi,
+                    $ttdKetuaSidang,
+                ]);
+            } else {
+                // BA Tesis I 223: 3 slot header + 6 baris Tim Penilai + 2 pejabat.
+                $this->embedAllSkSignatures($docxPath, [
+                    $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 1-3 header table
+                    $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 4-6 Tim Penilai: Pembimbing, Ko1, Ko2
+                    $ttdKetuaSidang,                           // 7 Tim Penilai: Ketua Sidang
+                    $this->signatureBinary($penguji1_223),     // 8 Tim Penilai: Penguji 1
+                    $this->signatureBinary($penguji2_223),     // 9 Tim Penilai: Penguji 2
+                    $ttdKaprodi,                               // 10 Ketua Program Studi
+                    $ttdKetuaSidang,                           // 11 Ketua Sidang
+                ]);
+            }
         } elseif ($isS2) {
             // BA S2 221 & 225: tanda tangan penilai disisipkan sebelum baris
             // titik-titik, sedangkan slot kaprodi mengikuti ${signature} template.

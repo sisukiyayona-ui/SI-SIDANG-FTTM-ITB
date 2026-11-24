@@ -737,11 +737,19 @@ class PrepareTemplate extends Command
 
                     // Kaprodi
                     '( Nama kaprodi )' => '${nama_kaprodi}',
+                    '(Nama kaprodi)' => '${nama_kaprodi}',
                     '( nip )' => '${nip_kaprodi}',
 
                     // Ketua Sidang
                     '( Nama ketua sidang )' => '${nama_ketua_sidang}',
+                    '(Nama ketua sidang)' => '${nama_ketua_sidang}',
                     '( nip ketua sidan g )' => '${nip_ketua_sidang}', // typo di template: "sidan g"
+                    '(nip ketua sidang)' => '${nip_ketua_sidang}',
+                    '(nip)' => '${nip_kaprodi}',
+
+                    // Tanda tangan kaprodi dan ketua sidang pada blok paling bawah.
+                    // Keduanya memakai ${signature} agar diisi berurutan oleh controller.
+                    '(ttd)' => '${signature}',
                 ],
                 // Jika template memakai "( Nama tim sidang )" berulang per baris, isi berurutan sesuai peran.
                 'sequenceReplacements' => [
