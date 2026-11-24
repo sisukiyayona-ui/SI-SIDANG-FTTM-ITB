@@ -67,7 +67,7 @@
         </div>
     </div>
 
-    {{-- Modal pilih jenis cetak untuk prodi 221 Tesis II: Sidang atau Mata Kuliah --}}
+    {{-- Modal pilih jenis cetak BA untuk prodi 221 Tesis II: Sidang atau Mata Kuliah --}}
     <div class="modal fade" id="jenisCetakModal" tabindex="-1" role="dialog" aria-labelledby="jenisCetakModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -213,7 +213,8 @@
 
 @push('scripts')
 <script>
-    // Modal pilih jenis (Sidang / Mata Kuliah) — prodi 221 Tesis II.
+    // Modal pilih jenis cetak (Sidang / Mata Kuliah) — prodi 221 Tesis II.
+    // Dipakai oleh tombol Cetak Penilaian (mode='form') maupun BA Sidang (mode='ba').
     window.__jenisCetakMode = 'form';
     window.openJenisCetakModal = function (mode) {
         window.__jenisCetakMode = mode === 'ba' ? 'ba' : 'form';
@@ -243,12 +244,12 @@
         } else {
             var idTim = document.getElementById('selectedTimSidangTahap2');
             if (!idTim || !idTim.value) { alert('Pilih penilai terlebih dahulu.'); return; }
-            var form = window.__sidangCurrentForm();
-            if (!form) { alert('Pilih Form terlebih dahulu di halaman.'); return; }
+            var noForm = window.__sidangCurrentForm();
+            if (!noForm) { alert('Pilih Form terlebih dahulu di halaman.'); return; }
             url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
             url = url.replace(':idJudul', encodeURIComponent(idJudul)).replace(':tahapan', encodeURIComponent(tahapan));
             url += '?id_tim_sidang=' + encodeURIComponent(idTim.value)
-                 + '&no_form=' + encodeURIComponent(form);
+                 + '&no_form=' + encodeURIComponent(noForm);
         }
         url += (url.indexOf('?') === -1 ? '?' : '&') + 'jenis=' + encodeURIComponent(jenis);
 

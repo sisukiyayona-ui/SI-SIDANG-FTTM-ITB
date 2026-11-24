@@ -659,6 +659,11 @@ class PrepareTemplate extends Command
                 'src' => base_path('template/S2/BA penilaian tesis 2 MK kode prodi 221.docx'),
                 'dst' => base_path('template/S2/BA penilaian tesis 2 MK kode prodi 221 TEMPLATE.docx'),
                 'replacements' => [
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)'    => '${tlp_prodi}',
+                    '(fax)'    => '${fax_prodi}',
+                    '(email)'  => '${email_prodi}',
+                    '(web)'    => '${website_prodi}',
                     // '(waktu slsai)' sebelum '(waktu)'.
                     '(waktu slsai)' => '${waktu_selesai}',
                     '(waktu)'       => '${waktu}',
@@ -1576,19 +1581,53 @@ class PrepareTemplate extends Command
         // 4. Predikat: ": ______________" -> ": ${predikat}"
         $xml = str_replace(': ______________', ': ${predikat}', $xml);
 
-        // 5 & 6. Sel kosong NA / Indeks (dikenali dari paraId unik di source)
-        $emptyCellAfter = [
-            '3C4E791B' => '${nilai_akhir_rata_rata}', // Nilai Akhir Rata-Rata (NA)
-            '6C2C8E80' => '${nilai_akhir_indeks}',    // Indeks Nilai
-        ];
-        foreach ($emptyCellAfter as $paraId => $placeholder) {
-            // Pola: <w:p ... w14:paraId="XXXX" ...><w:pPr>...</w:pPr></w:p>  (tanpa <w:r> / tanpa <w:t>)
-            $pattern = '/(<w:p\b[^>]*w14:paraId="' . $paraId . '"[^>]*>)(<w:pPr>.*?<\/w:pPr>)(\s*<\/w:p>)/us';
-            $replacement = '$1$2<w:r><w:t>' . $placeholder . '</w:t></w:r>$3';
-            $xml = preg_replace($pattern, $replacement, $xml, 1);
-        }
+        // 5 & 6. Sel kosong NA / Indeks pada template yang memilikinya.
+        // Dipetakan per label baris (bukan paraId, yang bisa berubah saat source disimpan ulang).
+        $xml = $this->fillBa223EmptyNaIndeksCells($xml);
 
         return $xml;
+    }
+
+    /**
+     * Isi sel nilai kosong pada baris "Nilai Akhir Rata-Rata (NA)" / "Indeks Nilai".
+     * Aman dipanggil pada template yang tidak punya baris tersebut (mis. BA Tesis I 223
+     * versi terbaru yang hanya memuat blok "Berdasarkan nilai yang diperoleh").
+     */
+    private function fillBa223EmptyNaIndeksCells(string $xml): string
+    {
+        $labels = [
+            'Nilai Akhir Rata-Rata' => '${nilai_akhir_rata_rata}',
+            'Indeks Nilai'          => '${nilai_akhir_indeks}',
+        ];
+
+        return preg_replace_callback('/<w:tr\b[^>]*>.*?<\/w:tr>/us', function ($m) use ($labels) {
+            $row = $m[0];
+            $plain = html_entity_decode(strip_tags($row), ENT_QUOTES, 'UTF-8');
+            $plain = preg_replace('/\s+/', ' ', $plain);
+            $placeholder = null;
+            foreach ($labels as $label => $token) {
+                if (stripos($plain, $label) !== false) {
+                    $placeholder = $token;
+                    break;
+                }
+            }
+            if ($placeholder === null || !preg_match_all('/<w:tc\b[^>]*>.*?<\/w:tc>/us', $row, $cm)) {
+                return $row;
+            }
+            // Kolom nilai = cell ketiga (indeks 2).
+            if (!isset($cm[0][2]) || preg_match('/<w:t(?:\s|>)/', $cm[0][2])) {
+                return $row;
+            }
+            $cell = $cm[0][2];
+            $pos = strrpos($cell, '</w:p>');
+            if ($pos === false) {
+                return $row;
+            }
+            $run = '<w:r><w:t>' . $placeholder . '</w:t></w:r>';
+            $newCell = substr($cell, 0, $pos) . $run . substr($cell, $pos);
+
+            return str_replace($cell, $newCell, $row);
+        }, $xml) ?? $xml;
     }
 
     private function replaceSignatureDots(string $xml): string

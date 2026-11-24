@@ -928,7 +928,7 @@ class CetakController extends Controller
                 $tmp = storage_path('app/uploads/ttd_ba221mk_' . uniqid() . '.' . $ext);
                 file_put_contents($tmp, $binary);
                 $tmpFiles[] = $tmp;
-                $tp->setImageValue($name, ['path' => $tmp, 'width' => 110, 'height' => 55]);
+                $tp->setImageValue($name, ['path' => $tmp, 'width' => 90, 'height' => 40]);
             }
             $tp->saveAs($docxPath);
         } catch (\Exception $e) {
@@ -1100,6 +1100,31 @@ class CetakController extends Controller
             . '<w:r><w:rPr><w:color w:val="202429"/><w:sz w:val="20"/></w:rPr><w:t>' . $no . '. </w:t></w:r>'
             . '<w:r><w:rPr><w:color w:val="202429"/><w:sz w:val="20"/></w:rPr><w:t>' . $ttdPlaceholder . '</w:t></w:r></w:p>'
             . '</w:tc></w:tr>';
+    }
+
+    /**
+     * Sama seperti embedAllSkSignatures(), tetapi jumlah slot disesuaikan dengan
+     * jumlah placeholder ${signature} yang benar-benar ada di dokumen.
+     * Menghindari error saat template punya slot lebih sedikit dari daftar ttd.
+     */
+    private function embedAllSkSignaturesAvailable(string $docxPath, array $signatures): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        if ($xml === false) {
+            return;
+        }
+        $count = preg_match_all('/\$\{signature\}/', $xml);
+        if ($count > 0) {
+            $signatures = array_slice($signatures, 0, $count);
+        }
+        if (!empty($signatures)) {
+            $this->embedAllSkSignatures($docxPath, $signatures);
+        }
     }
 
     /**
@@ -2333,6 +2358,14 @@ class CetakController extends Controller
                 $ketuaPenguji = $ketuaSidang ?? $pengujis->get(0);
                 $penguji1 = $pengujis->first(fn($t) => $t->id !== ($ketuaPenguji?->id)) ?? $pengujis->get(0);
 
+                if ($isBa221Mk) {
+                    $pengujisBa221 = $allTimSidang->filter(fn($t) =>
+                        str_contains(strtolower((string) $t->status_tim_sidang ?? ''), 'penguji')
+                    )->values();
+                    $penguji1 = $pengujisBa221->get(0);
+                    $penguji2 = $pengujisBa221->get(1);
+                }
+
                 $tp->setValue('nama_pembimbing_i',  $p1?->NAMA ?? '-');
                 $tp->setValue('nama_pembimbing_ii', $p2?->NAMA ?? '-');
                 $tp->setValue('nip_pembimbing_i',   $p1?->NIP ?? '-');
@@ -2342,9 +2375,14 @@ class CetakController extends Controller
                 $tp->setValue('nama_penguji_i',     $penguji1?->NAMA ?? '-');
                 $tp->setValue('nip_penguji_i',      $penguji1?->NIP ?? '-');
 
+                if ($isBa221Mk) {
+                    $tp->setValue('nama_penguji_ii', $penguji2?->NAMA ?? '-');
+                    $tp->setValue('nip_penguji_ii',  $penguji2?->NIP ?? '-');
+                }
+
                 // BA Tesis I prodi 221: baris Penilai 3 diisi Ketua Sidang (ketua penguji),
                 // bukan penguji biasa. Ketua Sidang tidak menginput nilai -> nilai_3 = '-'.
-                if (trim((string) $kodeProdi) === '221' && $ketuaSidang) {
+                if (trim((string) $kodeProdi) === '221' && $ketuaSidang && ! $isBa221Mk) {
                     $tp->setValue('nama_penguji_i', $ketuaSidang->NAMA ?? '-');
                     $tp->setValue('nip_penguji_i',  $ketuaSidang->NIP ?? '-');
                     $tp->setValue('nilai_3', '-');
@@ -2449,6 +2487,12 @@ class CetakController extends Controller
             'catatan_pembimbing_iii'   => $catatanPembimbing[2] ?? '-',
             'catatan'                  => $catatanPembimbing[0] ?? '-',
         ];
+        if ($isBa221Mk) {
+            $finalReplacements['nama_pembimbing_i']  = $p1?->NAMA ?? '-';
+            $finalReplacements['nama_pembimbing_ii'] = $p2?->NAMA ?? '-';
+            $finalReplacements['nama_penguji_i']     = $penguji1?->NAMA ?? '-';
+            $finalReplacements['nama_penguji_ii']    = $penguji2?->NAMA ?? '-';
+        }
         $this->replaceInDocx($docxPath, $finalReplacements);
 
         // Pusatkan nilai di cell tabel BA (kolom Nilai = center align)
@@ -2514,15 +2558,17 @@ class CetakController extends Controller
                     $ttdKetuaSidang,
                 ]);
             } else {
-                // BA Tesis I 223: 3 slot header + 6 baris Tim Penilai + 2 pejabat.
-                $this->embedAllSkSignatures($docxPath, [
-                    $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 1-3 header table
-                    $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 4-6 Tim Penilai: Pembimbing, Ko1, Ko2
-                    $ttdKetuaSidang,                           // 7 Tim Penilai: Ketua Sidang
-                    $this->signatureBinary($penguji1_223),     // 8 Tim Penilai: Penguji 1
-                    $this->signatureBinary($penguji2_223),     // 9 Tim Penilai: Penguji 2
-                    $ttdKaprodi,                               // 10 Ketua Program Studi
-                    $ttdKetuaSidang,                           // 11 Ketua Sidang
+                // BA Tesis I 223: 3 slot di tabel "Penguji" + 1 slot di blok
+                // tanda tangan "Pembimbing," (nama_penilai = ketua pembimbing).
+                // Jumlah slot disesuaikan otomatis dengan isi template.
+                $this->embedAllSkSignaturesAvailable($docxPath, [
+                    $ttdPembimbingUtama, $ttdKo1, $ttdKo2,     // 1-3: Pembimbing 1, 2, 3
+                    $ttdPembimbingUtama,                       // 4: Pembimbing (footer)
+                    $ttdKetuaSidang,
+                    $this->signatureBinary($penguji1_223),
+                    $this->signatureBinary($penguji2_223),
+                    $ttdKaprodi,
+                    $ttdKetuaSidang,
                 ]);
             }
         } elseif ($isS2 && ! $isBa221Mk) {

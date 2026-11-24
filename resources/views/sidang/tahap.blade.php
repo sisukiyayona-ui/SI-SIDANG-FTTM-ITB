@@ -4957,6 +4957,8 @@ function cetakPedomanKetuaSidang(idJudul, tahapan) {
 function cetakForm() {
     var idTimSidang = document.getElementById('selectedTimSidangTahap2').value;
     if (!idTimSidang) { alert('Pilih penilai terlebih dahulu.'); return; }
+    // Deklarasi awal (dipakai pengecekan 221 Tesis II di bawah) — hindari undefined akibat hoisting.
+    var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
     var noForm = document.getElementById('selectedNoFormTahap2').value;
     if (!noForm) { alert('Pilih Form terlebih dahulu.'); return; }
 
@@ -4975,7 +4977,6 @@ function cetakForm() {
     }
 
     var idJudul = document.querySelector('#penilaianFormTahap2Form [name="id_judul"]').value;
-    var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
     var url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
     url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
     url += '?id_tim_sidang=' + encodeURIComponent(idTimSidang);
