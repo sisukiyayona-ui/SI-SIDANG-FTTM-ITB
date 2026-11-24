@@ -2532,7 +2532,7 @@
                     <li class="nav-item">
                         <a href="{{ route('report.index') }}" class="nav-link {{ request()->routeIs('report.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-file-export"></i>
-                            <p>Report Sidang S3</p>
+                            <p>Report Sidang</p>
                         </a>
                     </li>
                     @endif
@@ -2576,7 +2576,7 @@
                     <li class="nav-item">
                         <a href="{{ route('report.index') }}" class="nav-link {{ request()->routeIs('report.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-file-export"></i>
-                            <p>Report Sidang S3</p>
+                            <p>Report Sidang</p>
                         </a>
                     </li>
                     @endif
@@ -2586,7 +2586,7 @@
                     <li class="nav-item">
                         <a href="{{ route('report.index') }}" class="nav-link {{ request()->routeIs('report.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-file-export"></i>
-                            <p>Report Sidang S3</p>
+                            <p>Report Sidang</p>
                         </a>
                     </li>
                     @endif

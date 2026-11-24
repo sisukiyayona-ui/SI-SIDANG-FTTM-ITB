@@ -1,0 +1,64 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Report Sidang: view tidak lagi dibatasi S3 saja, agar filter S1/S2/S3
+ * (atau Semua strata) bisa ditampilkan dari satu halaman yang sama.
+ */
+return new class extends Migration
+{
+    private function viewSql(): string
+    {
+        return "
+            CREATE VIEW v_report_tipe_i AS
+            SELECT 
+                a.id,
+                j.id as id_judul,
+                YEAR(a.tgl_create) as tahun,
+                j.NIM,
+                u.NAMA_LENGKAP as nama_mahasiswa,
+                j.JUDUL,
+                ts.NIP,
+                ts.NAMA as pembimbing_penguji,
+                ts.STATUS_TIM_SIDANG,
+                a.tahapan_sidang,
+                a.status_lulus,
+                a.strata,
+                a.kode_prodi,
+                ts.URUTAN,
+                a.tgl_sidang,
+                a.waktu_sidang,
+                a.ruang_sidang,
+                a.tgl_create,
+                a.tgl_update,
+                (SELECT ROUND(AVG(p.NILAI), 2) 
+                 FROM t_penilaian p 
+                 WHERE p.ID_TIM_SIDANG = ts.id 
+                   AND p.TAHAPAN_SIDANG = a.tahapan_sidang) AS nilai_rata2
+            FROM t_ajuan_sidang a
+            INNER JOIN t_judul j ON a.id_judul = j.id
+            INNER JOIN t_user u ON j.id_user_mhs = u.id
+            INNER JOIN t_tim_sidang ts ON ts.id_judul = j.id 
+                AND ts.TAHAPAN_SIDANG = a.tahapan_sidang
+            ORDER BY j.id, a.tahapan_sidang, ts.URUTAN
+        ";
+    }
+
+    public function up(): void
+    {
+        DB::statement("DROP VIEW IF EXISTS v_report_tipe_i");
+        DB::statement($this->viewSql());
+    }
+
+    public function down(): void
+    {
+        DB::statement("DROP VIEW IF EXISTS v_report_tipe_i");
+        DB::statement(str_replace(
+            'ORDER BY j.id, a.tahapan_sidang, ts.URUTAN',
+            "WHERE a.strata = 'S3'\n            ORDER BY j.id, a.tahapan_sidang, ts.URUTAN",
+            $this->viewSql()
+        ));
+    }
+};
