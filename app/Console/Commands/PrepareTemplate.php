@@ -444,7 +444,7 @@ class PrepareTemplate extends Command
                 'replacements' => [
                     // Header dinamis: nomor form & judul MK diambil dari pilihan di modal BA Sidang.
                     // Harus diproses SEBELUM '(kode mk)' agar tidak terpotong.
-                    'BERITA ACARA (KODE MK) PROPOSAL TESIS' => 'BERITA ACARA ${kode_mk} (${no_form})',
+                    'BERITA ACARA (KODE MK) PROPOSAL TESIS' => 'BERITA ACARA ${kode_mk}',
                     'FORM #205.2' => 'FORM #${no_form}',
 
                     '(alamat)' => '${alamat_prodi}',
@@ -463,9 +463,11 @@ class PrepareTemplate extends Command
                     '(nama prodi)' => '${nama_prodi}',
                     '(nama kaprodi)' => '${nama_kaprodi}',
                     '(nip)' => '${nip_kaprodi}',
+                    '(ttd)' => '${signature}',
                 ],
                 // Kolom nilai Pembimbing 1 & 2: 2 sel "(Nilai)" -> ${nilai_1}, ${nilai_2}.
                 'nilaiSequence' => 2,
+                'widenBa225DateCell' => true,
             ],
             [
                 // Daftar Hadir Sidang Magister S2
@@ -529,7 +531,7 @@ class PrepareTemplate extends Command
                     '(nip)' => '${nip_penilai}',
                     '(ttd)' => '${signature}',
                 ],
-                'trimTrailingEmptyParagraph' => true,
+                'trimTrailingEmptyParagraphs' => true,
             ],
             [
                 // Penilaian Sidang Tesis I & II prodi 222 (Teknik Perminyakan) â€” S2.
@@ -1002,8 +1004,12 @@ class PrepareTemplate extends Command
                 }
             }
 
-            if (!empty($template['trimTrailingEmptyParagraph'])) {
-                $xml = $this->trimTrailingEmptyParagraph($xml);
+            if (!empty($template['widenBa225DateCell'])) {
+                $xml = $this->widenBa225DateCell($xml);
+            }
+
+            if (!empty($template['trimTrailingEmptyParagraphs'])) {
+                $xml = $this->trimTrailingEmptyParagraphs($xml);
             }
 
             // Proses juga file header dan footer jika memuat placeholder (alamat, tlp, email, dsb)
@@ -1032,37 +1038,85 @@ class PrepareTemplate extends Command
         return 0;
     }
 
-    private function trimTrailingEmptyParagraph(string $xml): string
+    private function widenBa225DateCell(string $xml): string
     {
-        $sectPrPos = strpos($xml, '<w:sectPr');
-        if ($sectPrPos === false) {
+        $tokenPos = strpos($xml, '${tgl_sidang}');
+        if ($tokenPos === false) {
             return $xml;
         }
 
-        $beforeSectPr = substr($xml, 0, $sectPrPos);
-        $paragraphEnd = strrpos($beforeSectPr, '</w:p>');
-        if ($paragraphEnd === false) {
+        $cellStart = strrpos(substr($xml, 0, $tokenPos), '<w:tc>');
+        $cellEnd = strpos($xml, '</w:tc>', $tokenPos);
+        if ($cellStart === false || $cellEnd === false) {
             return $xml;
         }
-        $paragraphEnd += strlen('</w:p>');
+        $cellEnd += strlen('</w:tc>');
 
-        preg_match_all(
-            '/<w:p(?:\s[^>]*)?>/',
-            substr($beforeSectPr, 0, $paragraphEnd - strlen('</w:p>')),
-            $paragraphStarts,
-            PREG_OFFSET_CAPTURE
+        $cell = substr($xml, $cellStart, $cellEnd - $cellStart);
+        $updatedCell = str_replace(
+            '<w:tcW w:w="2573" w:type="dxa"/>',
+            '<w:tcW w:w="3173" w:type="dxa"/>',
+            $cell
         );
-        if ($paragraphStarts[0] === []) {
+        if ($updatedCell === $cell) {
             return $xml;
         }
 
-        $start = $paragraphStarts[0][count($paragraphStarts[0]) - 1][1];
-        $paragraph = substr($xml, $start, $paragraphEnd - $start);
-        if (!preg_match('/^<w:p\b[^>]*>\s*(?:<w:pPr\b[^>]*>.*?<\/w:pPr>\s*)?<\/w:p>$/s', $paragraph)) {
+        $tableStart = strrpos(substr($xml, 0, $cellStart), '<w:tbl>');
+        $tableEnd = strpos($xml, '</w:tbl>', $cellEnd);
+        if ($tableStart === false || $tableEnd === false) {
+            return $xml;
+        }
+        $tableEnd += strlen('</w:tbl>');
+
+        $table = substr($xml, $tableStart, $tableEnd - $tableStart);
+        $updatedTable = str_replace(
+            '<w:gridCol w:w="2573"/>',
+            '<w:gridCol w:w="3173"/>',
+            $table
+        );
+        $updatedTable = str_replace(
+            '<w:tcW w:w="2573" w:type="dxa"/>',
+            '<w:tcW w:w="3173" w:type="dxa"/>',
+            $updatedTable
+        );
+        if ($updatedTable === $table) {
             return $xml;
         }
 
-        return substr($xml, 0, $start) . substr($xml, $paragraphEnd);
+        return substr($xml, 0, $tableStart) . $updatedTable . substr($xml, $tableEnd);
+    }
+
+    private function trimTrailingEmptyParagraphs(string $xml): string
+    {
+        while (($sectPrPos = strpos($xml, '<w:sectPr')) !== false) {
+            $beforeSectPr = substr($xml, 0, $sectPrPos);
+            $paragraphEnd = strrpos($beforeSectPr, '</w:p>');
+            if ($paragraphEnd === false) {
+                return $xml;
+            }
+            $paragraphEnd += strlen('</w:p>');
+
+            preg_match_all(
+                '/<w:p(?:\s[^>]*)?>/',
+                substr($beforeSectPr, 0, $paragraphEnd - strlen('</w:p>')),
+                $paragraphStarts,
+                PREG_OFFSET_CAPTURE
+            );
+            if ($paragraphStarts[0] === []) {
+                return $xml;
+            }
+
+            $start = $paragraphStarts[0][count($paragraphStarts[0]) - 1][1];
+            $paragraph = substr($xml, $start, $paragraphEnd - $start);
+            if (!preg_match('/^<w:p\b[^>]*>\s*(?:<w:pPr\b[^>]*>.*?<\/w:pPr>\s*)?<\/w:p>$/s', $paragraph)) {
+                return $xml;
+            }
+
+            $xml = substr($xml, 0, $start) . substr($xml, $paragraphEnd);
+        }
+
+        return $xml;
     }
 
     /**

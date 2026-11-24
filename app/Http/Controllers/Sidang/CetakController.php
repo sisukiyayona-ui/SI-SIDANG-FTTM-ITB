@@ -1108,12 +1108,13 @@ class CetakController extends Controller
     }
 
     /**
-     * Sisipkan tanda tangan (gambar dari t_user.SIGNATURE) ke template BA S2 yang
-     * tidak punya placeholder ${signature} (BA Tesis I prodi 221 & 225).
+     * Sisipkan tanda tangan (gambar dari t_user.SIGNATURE) ke template BA S2.
      * Placeholder gambar ${s2ba_ttd_N} disisipkan sebelum tiap paragraf yang
      * isinya hanya titik-titik di kolom "Tanda Tangan" (urutan kemunculan =
-     * Tim Penilai), dan ${s2ba_ttd_kaprodi} setelah paragraf "Ketua Program Studi".
-     * Tanpa ttd tersimpan -> placeholder dikosongkan (garis titik template tetap ada).
+     * Tim Penilai). Slot kaprodi memakai ${signature} dari template; template
+     * lama dengan ${s2ba_ttd_kaprodi} tetap didukung. Jika belum ada slot,
+     * ${signature} disisipkan setelah paragraf "Ketua Program Studi".
+     * Tanpa ttd tersimpan -> placeholder dikosongkan.
      */
     private function embedS2BaSignaturesByDots(string $docxPath, array $penilaiIds, $kaprodiId): void
     {
@@ -1143,15 +1144,23 @@ class CetakController extends Controller
                 return '<w:p><w:r><w:t>${s2ba_ttd_' . $idx . '}</w:t></w:r></w:p>' . $m[0];
             }, $xml);
 
-            // 2) ${s2ba_ttd_kaprodi} setelah paragraf "Ketua Program Studi"
-            //    (teks bisa terpecah antar run, jadi pakai "Program Studi" = kemunculan terakhir).
-            $pos = strrpos($xml, 'Program Studi');
-            if ($pos !== false) {
-                $pEnd = strpos($xml, '</w:p>', $pos);
-                if ($pEnd !== false) {
-                    $ph = '<w:p><w:r><w:t>${s2ba_ttd_kaprodi}</w:t></w:r></w:p>';
-                    $insertAt = $pEnd + strlen('</w:p>');
-                    $xml = substr($xml, 0, $insertAt) . $ph . substr($xml, $insertAt);
+            // 2) Slot kaprodi mengikuti posisi ${signature} pada template.
+            //    Template lama memakai ${s2ba_ttd_kaprodi}; jika keduanya tidak ada,
+            //    sisipkan ${signature} setelah paragraf "Ketua Program Studi".
+            $kaprodiPlaceholder = 'signature';
+            if (strpos($xml, '${signature}') === false) {
+                if (strpos($xml, '${s2ba_ttd_kaprodi}') !== false) {
+                    $kaprodiPlaceholder = 's2ba_ttd_kaprodi';
+                } else {
+                    $pos = strrpos($xml, 'Program Studi');
+                    if ($pos !== false) {
+                        $pEnd = strpos($xml, '</w:p>', $pos);
+                        if ($pEnd !== false) {
+                            $ph = '<w:p><w:r><w:t>${signature}</w:t></w:r></w:p>';
+                            $insertAt = $pEnd + strlen('</w:p>');
+                            $xml = substr($xml, 0, $insertAt) . $ph . substr($xml, $insertAt);
+                        }
+                    }
                 }
             }
 
@@ -1163,7 +1172,7 @@ class CetakController extends Controller
             foreach ($penilaiIds as $i => $uid) {
                 $this->fillSignaturePlaceholder($docxPath, $uid, 's2ba_ttd_' . ($i + 1), '');
             }
-            $this->fillSignaturePlaceholder($docxPath, $kaprodiId, 's2ba_ttd_kaprodi', '');
+            $this->fillSignaturePlaceholder($docxPath, $kaprodiId, $kaprodiPlaceholder, '');
         } catch (\Exception $e) {
             \Log::warning('Gagal sisipkan tanda tangan BA S2: ' . $e->getMessage());
         }
@@ -1686,8 +1695,8 @@ class CetakController extends Controller
      *
      * Menangani dua kondisi template:
      *  - sudah di-regenerate: memakai ${kode_mk} / ${no_form}
-     *  - template lama: teks literal "FORM #205.2" dan "PROPOSAL TESIS"
-     * Contoh hasil: FORM #204.2 / BERITA ACARA MG5093 STUDI MANDIRI (204.2)
+     *  - template lama: teks literal "FORM #205.2" dan "BERITA ACARA (KODE MK) PROPOSAL TESIS"
+     * Contoh hasil: FORM #204.1 / BERITA ACARA MG5090 PROPOSAL TESIS
      */
     private function postProcessBa225Header(string $docxPath, string $kodeMk, string $noForm): void
     {
@@ -1711,7 +1720,26 @@ class CetakController extends Controller
 
         // Teks literal pada template yang belum di-regenerate (run Word terpecah).
         $xml = $this->fuzzyReplaceOnce($xml, 'FORM #205.2', 'FORM #' . $form);
-        $xml = $this->fuzzyReplaceOnce($xml, 'PROPOSAL TESIS', '(' . $form . ')');
+        $xml = $this->fuzzyReplaceOnce(
+            $xml,
+            'BERITA ACARA (KODE MK) PROPOSAL TESIS',
+            'BERITA ACARA ' . $mk
+        );
+        $xml = $this->fuzzyReplaceOnce(
+            $xml,
+            'BERITA ACARA ' . $mk . ' (' . $form . ')',
+            'BERITA ACARA ' . $mk
+        );
+        $xml = str_replace(
+            '<w:tcW w:w="2573" w:type="dxa"/>',
+            '<w:tcW w:w="3173" w:type="dxa"/>',
+            $xml
+        );
+        $xml = str_replace(
+            '<w:gridCol w:w="2573"/>',
+            '<w:gridCol w:w="3173"/>',
+            $xml
+        );
 
         $zip->deleteName('word/document.xml');
         $zip->addFromString('word/document.xml', $xml);
@@ -2257,7 +2285,7 @@ class CetakController extends Controller
 
         $tp->saveAs($docxPath);
 
-        // Prodi 225: header "FORM #..." dan "BERITA ACARA ... (...)" mengikuti
+        // Prodi 225: header "FORM #..." dan "BERITA ACARA ..." mengikuti
         // pilihan MK & Form di modal BA Sidang.
         if ($isS2 && trim((string) $kodeProdi) === '225') {
             $this->postProcessBa225Header(
@@ -2364,9 +2392,8 @@ class CetakController extends Controller
                 $ttdKetuaSidang,                           // 11 Ketua Sidang
             ]);
         } elseif ($isS2) {
-            // Template BA S2 tanpa ${signature} (221 & 225): tanda tangan disisipkan
-            // sebagai gambar sebelum tiap baris titik-titik kolom "Tanda Tangan"
-            // (urutan = Tim Penilai) dan di blok Ketua Program Studi sebelum nama kaprodi.
+            // BA S2 221 & 225: tanda tangan penilai disisipkan sebelum baris
+            // titik-titik, sedangkan slot kaprodi mengikuti ${signature} template.
             $penilaiTtd = [$p1, $p2];
             // Baris Penilai 3 template 221 = Ketua Sidang (sama seperti pengisian nama di atas).
             $penilaiTtd[] = (trim((string) $kodeProdi) === '221' && $ketuaSidang) ? $ketuaSidang : $penguji1;
