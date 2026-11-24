@@ -480,6 +480,100 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
+        /* --- Entrance motion ------------------------------------------------ */
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.985); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes drift {
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            50%      { transform: translate3d(18px, -22px, 0) scale(1.08); }
+        }
+
+        .login-box {
+            animation: cardIn 0.7s cubic-bezier(0.22, 0.72, 0.24, 1) both;
+        }
+
+        .login-panel {
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+        }
+
+        /* Two soft light orbs that slowly drift behind the panel content */
+        .login-panel::before,
+        .login-panel::after {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .login-panel::before {
+            width: 320px;
+            height: 320px;
+            top: -120px;
+            right: -110px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 68%);
+            animation: drift 16s ease-in-out infinite;
+        }
+
+        .login-panel::after {
+            width: 260px;
+            height: 260px;
+            bottom: -110px;
+            left: -80px;
+            background: radial-gradient(circle, rgba(0, 152, 219, 0.32), transparent 70%);
+            animation: drift 19s ease-in-out infinite reverse;
+        }
+
+        .login-brand         { animation: riseIn 0.6s 0.08s both; }
+        .login-panel-copy    { animation: riseIn 0.6s 0.18s both; }
+        .login-panel-footer  { animation: riseIn 0.6s 0.28s both; }
+        .login-form-head     { animation: riseIn 0.55s 0.12s both; }
+
+        /* Stagger the form blocks (form groups, remember row, submit, SSO) */
+        .login-content form > * { animation: riseIn 0.5s both; }
+        .login-content form > *:nth-child(1) { animation-delay: 0.18s; }
+        .login-content form > *:nth-child(2) { animation-delay: 0.25s; }
+        .login-content form > *:nth-child(3) { animation-delay: 0.32s; }
+        .login-content form > *:nth-child(4) { animation-delay: 0.39s; }
+        .login-content form > *:nth-child(5) { animation-delay: 0.46s; }
+        .login-content form > *:nth-child(6) { animation-delay: 0.53s; }
+
+        .input-wrap:focus-within i.icon-left { color: var(--accent); }
+
+        .btn-submit {
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-submit::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.2) 46%, transparent 68%);
+            transform: translateX(-130%);
+            transition: transform 0.65s ease;
+        }
+
+        .btn-submit:hover { transform: translateY(-2px); }
+        .btn-submit:hover::after { transform: translateX(130%); }
+        .btn-submit:active { transform: translateY(0); }
+        .btn-submit[disabled] { cursor: wait; opacity: 0.85; }
+
+        .btn-sso:hover { transform: translateY(-2px); }
+        .btn-sso:hover .sso-logo { transform: scale(1.1); }
+        .sso-logo { transition: transform 0.25s ease; }
+
         @media (max-width: 900px) {
             .login-wrapper { padding: 32px 22px 40px; }
             .login-box { max-width: 620px; grid-template-columns: 1fr; }
@@ -538,23 +632,23 @@
                     <img src="{{ asset('images/itb-logo.svg') }}" alt="Logo ITB" class="login-logo">
                     <div>
                         <div class="login-brand-name">SI SIDANG FTTM ITB</div>
-                        <div class="login-brand-sub">Fakultas Teknik Pertambangan dan Perminyakan</div>
+                        <div class="login-brand-sub">Fakultas Teknik Pertambangan dan Perminyakan — ITB</div>
                     </div>
                 </div>
                 <div class="login-panel-copy">
-                    <h1 id="loginTitle">Sistem Informasi Sidang</h1>
-                    <p>Kelola persyaratan, jadwal, dan penilaian sidang dalam satu tempat.</p>
+                    <h1 id="loginTitle">Satu ruang untuk seluruh sidang.</h1>
+                    <p>Pantau persyaratan, atur jadwal, dan kelola penilaian akademik dalam satu ruang kerja yang terpadu.</p>
                 </div>
                 <div class="login-panel-footer">
-                    <span>Layanan akademik Fakultas Teknik Pertambangan dan Perminyakan ITB.</span>
+                    <span>Layanan akademik FTTM ITB — untuk mahasiswa, dosen, dan staf program studi.</span>
                 </div>
             </section>
 
             <section class="login-content" aria-label="Formulir masuk">
                 <div class="login-form-head">
                     <div class="login-form-head-copy">
-                        <h2>Masuk ke akun Anda</h2>
-                        <p>Gunakan akun SI SIDANG untuk melanjutkan.</p>
+                        <h2>Selamat datang kembali</h2>
+                        <p>Masuk dengan akun SI SIDANG untuk melanjutkan aktivitas Anda.</p>
                     </div>
                     <button type="button" class="theme-toggle" id="darkModeToggle" onclick="toggleDarkMode()" title="Ganti tema" aria-label="Ganti tema">
                         <i class="fas fa-moon" id="darkModeIcon" aria-hidden="true"></i>
