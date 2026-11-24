@@ -659,11 +659,21 @@ class CetakController extends Controller
         }
 
         $namePos = false;
-        foreach ($nameMarkers as $marker) {
-            $pos = strpos($xml, $marker);
-            if ($pos !== false) {
+        foreach ([$anchorNip, $anchorNama] as $anchor) {
+            $anchor = trim($anchor);
+            if ($anchor !== '' && $anchor !== '-' && ($pos = strrpos($xml, $anchor)) !== false) {
                 $namePos = $pos;
                 break;
+            }
+        }
+
+        if ($namePos === false) {
+            foreach (['nama_penilai', 'Nama Penilai', 'Nama_Penilai'] as $marker) {
+                $pos = strpos($xml, $marker);
+                if ($pos !== false) {
+                    $namePos = $pos;
+                    break;
+                }
             }
         }
 
@@ -3434,10 +3444,16 @@ class CetakController extends Controller
         $xml = $zip->getFromName('word/document.xml');
         $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
 
+        // Nilai kolom (3) per baris 1-6: placeholder ${nilai_rata2} muncul
+        // berulang, jadi setiap kemunculan diisi sesuai penilai pada baris tersebut.
+        foreach ($data['nilai_rows'] as $v) {
+            $xml = $this->fuzzyReplaceOnce($xml, '${nilai_rata2}', $esc($v));
+        }
+        $xml = $this->fuzzyReplaceAll($xml, '${nilai_rata2}', '');
+
         // Nilai Rata-Rata (baris 7) & Nilai akhir Index (baris 8)
         // Handle multiple placeholder variants + split XML runs
         $rataValue = $esc($data['rata_rata'] ?? '');
-        $xml = str_replace('${nilai_rata2}', $rataValue, $xml);
         $xml = str_replace('${nilai_rata_rata}', $rataValue, $xml);
         $xml = str_replace('${nilai_akhir_rata_rata}', $rataValue, $xml);
         // Handle split-run placeholder: ${nilai_rata` + `2} or similar fragmentation

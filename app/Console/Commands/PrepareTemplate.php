@@ -227,6 +227,7 @@ class PrepareTemplate extends Command
                     'Nilai Rata-Rata : /skala 5 (jumlah skor detail dibagi 5)' => 'Nilai Rata-Rata : ${rata_nilai} /skala 5 (jumlah skor detail dibagi 5)',
 
                     // Placeholder tanda tangan
+                    '$Tanda Tangan' => '${signature}',
                     'Tanda Tangan' => '${signature}',
                 ]
             ],
