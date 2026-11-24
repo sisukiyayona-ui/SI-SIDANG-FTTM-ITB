@@ -653,6 +653,76 @@ class PrepareTemplate extends Command
                 'nilaiSequence' => 3,
             ],
             [
+                // BA Penilaian Tesis 2 — MK kode prodi 221 (Magister Rekayasa Pertambangan).
+                // Berita Acara Ujian Sidang Magister dengan tabel 4 penilai, NA & Indeks,
+                // serta blok tanda tangan Ketua Sidang dan Ketua Program Studi.
+                'src' => base_path('template/S2/BA penilaian tesis 2 MK kode prodi 221.docx'),
+                'dst' => base_path('template/S2/BA penilaian tesis 2 MK kode prodi 221 TEMPLATE.docx'),
+                'replacements' => [
+                    // '(waktu slsai)' sebelum '(waktu)'.
+                    '(waktu slsai)' => '${waktu_selesai}',
+                    '(waktu)'       => '${waktu}',
+                    '(nama mhs)'    => '${nama_mhs}',
+                    '(nim)'         => '${nim}',
+                    '(judul)'       => '${judul}',
+                    '(tgl sidang)'  => '${tgl_sidang}',
+                    '(nama ketua sidang)' => '${nama_ketua_sidang}',
+                    '(nip ketua sidang)'  => '${nip_ketua_sidang}',
+                    '(nama kaprodi)'      => '${nama_kaprodi}',
+                    '(nip kaprodi)'       => '${nip_kaprodi}',
+                ],
+                // Nama penilai & tanda tangan berurutan sesuai peran.
+                'sequenceReplacements' => [
+                    ['search' => '(nama penilai)', 'tokens' => [
+                        '${nama_pembimbing_i}', '${nama_pembimbing_ii}',
+                        '${nama_penguji_i}', '${nama_penguji_ii}',
+                    ]],
+                    ['search' => '(ttd)', 'tokens' => [
+                        '${signature_1}', '${signature_2}',
+                        '${signature_3}', '${signature_4}',
+                        '${signature_ketua_sidang}', '${signature_kaprodi}',
+                    ]],
+                ],
+                // 6 sel kosong kolom "Nilai TA6097 Tesis": nilai_1..4, NA, Indeks.
+                'fillEmptyNilaiCells' => [
+                    '${nilai_1}', '${nilai_2}', '${nilai_3}', '${nilai_4}',
+                    '${nilai_akhir_rata2}', '${nilai_akhir_indeks}',
+                ],
+            ],
+            [
+                // Form Penilaian Tesis 2 — MK kode prodi 221 (Magister Rekayasa Pertambangan).
+                // 10 detail penilaian per penilai + skor rata-rata & tanda tangan penilai.
+                'src' => base_path('template/S2/form penilaian tesis 2 MK kode prodi 221.docx'),
+                'dst' => base_path('template/S2/form penilaian tesis 2 MK kode prodi 221 TEMPLATE.docx'),
+                'replacements' => [
+                    '(no form)'            => '${no_form}',
+                    '(judul)'              => '${judul}',
+                    '(nama mhs)'           => '${nama_mhs}',
+                    '(nim)'                => '${nim}',
+                    // '(nama pembimbing II)' sebelum '(nama pembimbing I)'.
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing I)'  => '${nama_pembimbing_i}',
+                    '(tgl sidang)'         => '${tgl_sidang}',
+                    '(ruang)'              => '${ruang_sidang}',
+                    '(nilai rata2)'        => '${nilai_rata2}',
+                    '(nama penilai)'       => '${nama_penilai}',
+                    '(status tim sidang)'  => '${status_tim_sidang}',
+                    '(ttd)'                => '${signature}',
+                ],
+                // 10 baris detail: marker berulang -> token per baris.
+                'sequenceReplacements' => [
+                    ['search' => '(parameter)', 'tokens' => array_map(
+                        fn($i) => '${nama_penilaian_' . $i . '}', range(1, 10)
+                    )],
+                    ['search' => '(keterangan)', 'tokens' => array_map(
+                        fn($i) => '${keterangan_' . $i . '}', range(1, 10)
+                    )],
+                    ['search' => '(nilai)', 'tokens' => array_map(
+                        fn($i) => '${nilai_' . $i . '}', range(1, 10)
+                    )],
+                ],
+            ],
+            [
                 // Lembar Saran Perbaikan (form penilaian catatan) â€” sumber asli .doc.
                 // Konversi dulu ke .docx sebelum menjalankan command.
                 'src' => base_path('template/S2/form penilaian catatan.docx'),
@@ -937,6 +1007,12 @@ class PrepareTemplate extends Command
                     $tokens[] = '${nilai_' . $i . '}';
                 }
                 $xml = $this->fuzzyReplaceSequential($xml, $template['nilaiSearch'] ?? '(nilai)', $tokens);
+            }
+
+            // Sel nilai kosong pada tabel penilaian (mis. BA Tesis 2 MK prodi 221):
+            // isi berurutan dengan token yang sudah ditentukan.
+            if (!empty($template['fillEmptyNilaiCells'])) {
+                $xml = $this->fillEmptyNilaiCells($xml, $template['fillEmptyNilaiCells']);
             }
 
             // Penggantian berurutan generik (mis. "(nama penguji)" x2 -> ketua penguji & penguji).
@@ -1795,6 +1871,58 @@ class PrepareTemplate extends Command
                 return $paragraph;
             }
             return $this->fuzzyReplaceOnce($paragraph, $search, $replace);
+        }, $xml);
+
+        return $result ?? $xml;
+    }
+
+    /**
+     * Isi sel kosong pada kolomNilai tabel "Komponen Penilaian" dengan token berurutan.
+     * Dipakai template yang tidak memakai marker "(Nilai)" di sel-selnya
+     * (mis. BA Penilaian Tesis 2 MK kode prodi 221).
+     */
+    private function fillEmptyNilaiCells(string $xml, array $tokens): string
+    {
+        $idx = 0;
+        $result = preg_replace_callback('/<w:tbl\b[^>]*>.*?<\/w:tbl>/us', function ($m) use ($tokens, &$idx) {
+            $tbl = $m[0];
+            $plain = html_entity_decode(strip_tags($tbl), ENT_QUOTES, 'UTF-8');
+            $plain = preg_replace('/\s+/', ' ', $plain);
+            if (stripos($plain, 'Komponen Penilaian') === false) {
+                return $tbl;
+            }
+            if (!preg_match_all('/<w:tr\b[^>]*>.*?<\/w:tr>/us', $tbl, $rm)) {
+                return $tbl;
+            }
+
+            $newTbl = $tbl;
+            foreach ($rm[0] as $row) {
+                if (!preg_match_all('/<w:tc\b[^>]*>.*?<\/w:tc>/us', $row, $cm)) {
+                    continue;
+                }
+                // Kolom nilai adalah cell ketiga (indeks 2).
+                if (!isset($cm[0][2]) || !array_key_exists($idx, $tokens)) {
+                    continue;
+                }
+                $cell = $cm[0][2];
+                // Jangan timpa sel yang sudah berisi text node.
+                if (preg_match('/<w:t(?:\s|>)/', $cell)) {
+                    continue;
+                }
+
+                $run = '<w:r><w:rPr><w:color w:val="202429"/><w:sz w:val="20"/></w:rPr>'
+                     . '<w:t>' . $tokens[$idx] . '</w:t></w:r>';
+                $pos = strrpos($cell, '</w:p>');
+                if ($pos !== false) {
+                    $newCell = substr($cell, 0, $pos) . $run . substr($cell, $pos);
+                } else {
+                    $newCell = str_replace('</w:tc>', '<w:p>' . $run . '</w:p></w:tc>', $cell);
+                }
+
+                $newTbl = str_replace($row, str_replace($cell, $newCell, $row), $newTbl);
+                $idx++;
+            }
+            return $newTbl;
         }, $xml);
 
         return $result ?? $xml;

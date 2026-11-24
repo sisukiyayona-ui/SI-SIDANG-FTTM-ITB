@@ -4960,6 +4960,14 @@ function cetakForm() {
     var noForm = document.getElementById('selectedNoFormTahap2').value;
     if (!noForm) { alert('Pilih Form terlebih dahulu.'); return; }
 
+    // Prodi 221 Tesis II: pilih Sidang / Mata Kuliah sebelum cetak penilaian.
+    if (String(kodeProdi).trim() === '221'
+        && String(tahapan).trim().toLowerCase() === 'tesis ii'
+        && typeof window.openJenisCetakModal === 'function') {
+        window.openJenisCetakModal('form');
+        return;
+    }
+
     // Prodi 225: pilih Mata Kuliah lewat modal sebelum cetak form penilaian.
     if (String(kodeProdi).trim() === '225' && typeof window.openBaSidangModal === 'function') {
         window.openBaSidangModal('form');
@@ -4982,6 +4990,13 @@ function cetakBeritaAcara() {
     var isTesisII = String(tahapan).trim().toLowerCase() === 'tesis ii';
     if (!idJudul) { alert('ID Judul tidak ditemukan.'); return; }
     if (isS2 && !noForm) { alert('Pilih Form terlebih dahulu.'); return; }
+
+    // Prodi 221 Tesis II: pilih Sidang / Mata Kuliah sebelum cetak BA.
+    if (String(kodeProdi).trim() === '221' && isTesisII
+        && typeof window.openJenisCetakModal === 'function') {
+        window.openJenisCetakModal('ba');
+        return;
+    }
 
     // Tesis II prodi 225 langsung cetak; MK-nya ditentukan oleh tahapan sidang.
     if (String(kodeProdi).trim() === '225' && !isTesisII && typeof window.openBaSidangModal === 'function') {

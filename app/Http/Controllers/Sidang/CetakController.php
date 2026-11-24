@@ -72,13 +72,17 @@ class CetakController extends Controller
      * 223 -> BA Tesis I 223 TG / BA Tesis 2 223 TG (Tesis II)
      * 225 atau lainnya -> BA Tesis I prodi 225
      */
-    private function getS2BeritaAcaraTemplate($kodeProdi, $tahapan = null): string
+    private function getS2BeritaAcaraTemplate($kodeProdi, $tahapan = null, string $jenis = ''): string
     {
         $kp = trim((string) $kodeProdi);
         $tahapanNorm = strtolower(trim((string) $tahapan));
         $isTesisII = $tahapanNorm === 'tesis ii' || $tahapanNorm === 'tesis 2';
 
         if ($kp === '221') {
+            // Tesis II prodi 221: pilihan "Mata Kuliah" memakai BA MK khusus.
+            if ($isTesisII && strtolower(trim($jenis)) === 'mata_kuliah') {
+                return base_path('template/S2/BA penilaian tesis 2 MK kode prodi 221 TEMPLATE.docx');
+            }
             return base_path('template/S2/BA Tesis I prodi 221 TEMPLATE.docx');
         } elseif ($kp === '222') {
             return base_path('template/S2/Berita Acara Sidang prodi 222 TEMPLATE.docx');
@@ -97,11 +101,16 @@ class CetakController extends Controller
      * 223 -> form penilaian Tesis I 223 TG / form penilaian Tesis 2 prodi 223 TG
      * 225, 226 -> form penilaian Tesis I prodi 225 / penilaian tesis 2 prodi 221,225,226 (Tesis II)
      */
-    private function getS2FormTemplate($kodeProdi, $tahapan = null): string
+    private function getS2FormTemplate($kodeProdi, $tahapan = null, string $jenis = ''): string
     {
         $kp = trim((string) $kodeProdi);
         $tahapanNorm = strtolower(trim((string) $tahapan));
         $isTesisII = $tahapanNorm === 'tesis ii' || $tahapanNorm === 'tesis 2';
+
+        // Tesis II prodi 221: pilihan "Mata Kuliah" memakai form penilaian MK khusus.
+        if ($kp === '221' && $isTesisII && strtolower(trim($jenis)) === 'mata_kuliah') {
+            return base_path('template/S2/form penilaian tesis 2 MK kode prodi 221 TEMPLATE.docx');
+        }
 
         if ($isTesisII && in_array($kp, ['221', '225', '226'], true)) {
             return base_path('template/S2/penilaian tesis 2 prodi 221,225,226 TEMPLATE.docx');
@@ -143,6 +152,8 @@ class CetakController extends Controller
 
         $idTimSidang = $request->input('id_tim_sidang');
         $noForm      = $request->input('no_form');
+        // 221 Tesis II: 'sidang' (template lama) atau 'mata_kuliah' (template MK baru).
+        $jenisCetak  = strtolower(trim((string) $request->input('jenis', '')));
 
         if (!$idTimSidang) {
             return response()->json(['error' => 'id_tim_sidang diperlukan.'], 400);
@@ -316,6 +327,11 @@ class CetakController extends Controller
 
         // Template: S2 pakai template per-KODE_PRODI (221/222/223 TG/225/226), kecuali SK dan Text Form
 
+        // 221 Tesis II dengan pilihan "Mata Kuliah": form penilaian MK khusus.
+        $isForm221Mk = $isS2 && trim((string) $kodeProdi) === '221'
+            && strtolower(trim($tahapan)) === 'tesis ii'
+            && $jenisCetak === 'mata_kuliah';
+
         // Prodi 222 (Teknik Perminyakan): template Lembar Penguji gabungan (teks + tabel nilai).
         // Selalu dipakai (mengalahkan deteksi isTextForm) karena satu template memuat keduanya.
         $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222' && !$isSk && !$isSidangDoktor;
@@ -325,9 +341,9 @@ class CetakController extends Controller
         $isS2TextForm = $isS2 && !$isSk && !$isSidangDoktor && $isTextForm && ! $isS2Prodi222;
 
         if ($isS2Prodi222) {
-            $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan);
+            $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan, $jenisCetak);
         } elseif ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
-            $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan);
+            $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan, $jenisCetak);
         } elseif ($isS2TextForm) {
             // Semua S2 (termasuk 223) memakai Lembar Saran Perbaikan (form penilaian catatan).
             $templatePath = base_path('template/S2/form penilaian catatan TEMPLATE.docx');
@@ -405,6 +421,11 @@ class CetakController extends Controller
                 $tp->setValue('no_form',               $noForm ?? '');
                 $tp->setValue('kode_mk',               $kodeMk ?? '');
                 $tp->setValue('kode mk',               $kodeMk ?? '');
+                if ($isForm221Mk) {
+                    // Template MK memakai ${nilai_rata2} sekali di ringkasan;
+                    // tidak diisi oleh fillPenilaianRows (baris detail memakai token ber-indeks).
+                    $tp->setValue('nilai_rata2', $rataNilai);
+                }
                 $tp->setValue('nama_pembimbing_i',     $p1?->NAMA ?? '-');
                 $tp->setValue('nama_pembimbing_ii',    $p2?->NAMA ?? '-');
                 $tp->setValue('judul',           $namaJudul);
@@ -515,6 +536,9 @@ class CetakController extends Controller
         } elseif ($isS2Prodi222) {
             // Prodi 222: Lembar Penguji gabungan (3 kriteria teks + 7 kriteria nilai).
             $this->postProcessS2Form222($docxPath, $penilaianRows->values()->toArray(), $rataNilai);
+        } elseif ($isForm221Mk) {
+            // 221 Tesis II MK: 10 baris detail penilaian dengan token ber-indeks.
+            $this->postProcessForm221MkRows($docxPath, $penilaianRows->values()->toArray());
         } else {
             $this->fillPenilaianRows($docxPath, $penilaianRows->values()->toArray(), $rataNilai, $tanggal);
         }
@@ -846,6 +870,73 @@ class CetakController extends Controller
             }
         } catch (\Exception $e) {
             \Log::warning('Gagal isi placeholder signature: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Form Penilaian Tesis 2 MK prodi 221: isi 10 baris detail penilaian
+     * yang memakai token ber-indeks ${nama_penilaian_N}, ${keterangan_N}, ${nilai_N}.
+     */
+    private function postProcessForm221MkRows(string $docxPath, array $rows): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        $esc = fn($v) => htmlspecialchars((string) $v, ENT_XML1, 'UTF-8');
+
+        foreach ($rows as $i => $row) {
+            $no = $i + 1;
+            if ($no > 10) {
+                break;
+            }
+            $arr   = is_object($row) ? (array) $row : $row;
+            $nama  = $arr['NAMA_PENILAIAN'] ?? $arr['nama_penilaian'] ?? $arr['PENILAIAN'] ?? $arr['PENILAIAN_PARAMETER'] ?? '';
+            $ket   = $arr['KETERANGAN'] ?? $arr['keterangan'] ?? '';
+            $nilai = $arr['NILAI'] ?? $arr['nilai'] ?? '';
+
+            $xml = preg_replace('/\$\{nama_penilaian_' . $no . '\}/', $esc($nama), $xml, 1);
+            $xml = preg_replace('/\$\{keterangan_' . $no . '\}/', $esc($ket), $xml, 1);
+            $xml = preg_replace('/\$\{nilai_' . $no . '\}/', $esc($nilai), $xml, 1);
+        }
+
+        // Bersihkan sisa token ber-indeks yang tidak terisi.
+        $xml = preg_replace('/\$\{(?:nama_penilaian|keterangan|nilai)_\d+\}/', '', $xml);
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $xml);
+        $zip->close();
+    }
+
+    /**
+     * BA Penilaian Tesis 2 MK prodi 221: isi slot tanda tangan bernama
+     * ${signature_1}..${signature_4}, ${signature_ketua_sidang}, ${signature_kaprodi}.
+     * Tanpa tanda tangan tersimpan, slot diisi titik-titik.
+     */
+    private function fillBa221MkSignatures(string $docxPath, array $signatures): void
+    {
+        try {
+            $tp = new TemplateProcessor($docxPath);
+            $tmpFiles = [];
+            foreach ($signatures as $name => $binary) {
+                if (empty($binary)) {
+                    $tp->setValue($name, '.............');
+                    continue;
+                }
+                $ext = substr($binary, 0, 4) === "\x89PNG" ? 'png' : 'jpg';
+                $tmp = storage_path('app/uploads/ttd_ba221mk_' . uniqid() . '.' . $ext);
+                file_put_contents($tmp, $binary);
+                $tmpFiles[] = $tmp;
+                $tp->setImageValue($name, ['path' => $tmp, 'width' => 110, 'height' => 55]);
+            }
+            $tp->saveAs($docxPath);
+        } catch (\Exception $e) {
+            \Log::warning('Gagal isi tanda tangan BA MK 221: ' . $e->getMessage());
+        } finally {
+            foreach ($tmpFiles ?? [] as $f) {
+                @unlink($f);
+            }
         }
     }
 
@@ -1869,6 +1960,8 @@ class CetakController extends Controller
         // Prodi 225: MK & nomor form dipilih lewat modal saat klik "BA Sidang".
         $kodeMkPilih = trim((string) $request->input('kode_mk', ''));
         $noFormBA    = trim((string) $request->input('no_form', ''));
+        // 221 Tesis II: 'sidang' (template lama) atau 'mata_kuliah' (template MK baru).
+        $jenisCetak  = strtolower(trim((string) $request->input('jenis', '')));
 
         if (!$idJudul) {
             return response()->json(['error' => 'ID Judul diperlukan.'], 400);
@@ -1990,8 +2083,12 @@ class CetakController extends Controller
         $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
         $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222';
         $isS2Prodi223 = $isS2 && trim((string) $kodeProdi) === '223';
+        // 221 Tesis II dengan pilihan "Mata Kuliah": template BA MK khusus.
+        $isBa221Mk = $isS2 && trim((string) $kodeProdi) === '221'
+            && strtolower(trim($tahapan)) === 'tesis ii'
+            && $jenisCetak === 'mata_kuliah';
         if ($isS2) {
-            $templatePath = $this->getS2BeritaAcaraTemplate($kodeProdi, $tahapan);
+            $templatePath = $this->getS2BeritaAcaraTemplate($kodeProdi, $tahapan, $jenisCetak);
         } else {
             $templatePath = base_path('template/pROPOSAL/BA proposal TEMPLATE.docx');
         }
@@ -2310,6 +2407,18 @@ class CetakController extends Controller
             );
         }
 
+        // BA MK 221: isi slot tanda tangan bernama (4 penilai + ketua sidang + kaprodi).
+        if ($isBa221Mk) {
+            $this->fillBa221MkSignatures($docxPath, [
+                'signature_1'            => $this->signatureBinary($p1),
+                'signature_2'            => $this->signatureBinary($p2),
+                'signature_3'            => $this->signatureBinary($penguji1),
+                'signature_4'            => $this->signatureBinary($penguji2),
+                'signature_ketua_sidang' => $this->signatureBinary($ketuaSidang),
+                'signature_kaprodi'      => $this->signatureBinaryOfUser($kaprodiBA?->id),
+            ]);
+        }
+
         // Manual replacement for penilai values - replace one occurrence at a time
         $this->replacePenilaiValuesInDocx($docxPath, $penilaiAverages, $rataRataKeseluruhan, $indeks);
         
@@ -2416,7 +2525,7 @@ class CetakController extends Controller
                     $ttdKetuaSidang,                           // 11 Ketua Sidang
                 ]);
             }
-        } elseif ($isS2) {
+        } elseif ($isS2 && ! $isBa221Mk) {
             // BA S2 221 & 225: tanda tangan penilai disisipkan sebelum baris
             // titik-titik, sedangkan slot kaprodi mengikuti ${signature} template.
             $penilaiTtd = [$p1, $p2];

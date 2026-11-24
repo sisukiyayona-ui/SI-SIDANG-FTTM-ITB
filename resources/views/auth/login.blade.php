@@ -26,8 +26,8 @@
                 <input type="password" name="password" id="password"
                        class="form-control @error('password') is-invalid @enderror"
                        placeholder="Masukkan password" required>
-                <button type="button" class="btn-toggle-pass" id="togglePassBtn">
-                    <i class="fas fa-eye" id="eyeIcon"></i>
+                <button type="button" class="btn-toggle-pass" id="togglePassBtn" aria-label="Tampilkan password" aria-pressed="false">
+                    <i class="fas fa-eye" id="eyeIcon" aria-hidden="true"></i>
                 </button>
             </div>
             @error('password')
@@ -48,32 +48,28 @@
         </button>
 
         @if(config('sso.enabled'))
-        <div class="sso-section" style="margin-top: 12px;">
+        <div class="sso-section">
+            <div class="sso-divider"><span>atau</span></div>
             <a href="{{ route('sso.redirect') }}" class="btn-sso">
-                <img src="{{ asset('images/itb-logo.svg') }}" alt="ITB" class="sso-logo">
+                <img src="{{ asset('images/itb-logo.svg') }}" alt="" class="sso-logo">
                 Masuk dengan SSO ITB
             </a>
         </div>
         @endif
 
-
     </form>
 
     @push('scripts')
-    <script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') ?? '' }}">
         document.getElementById('togglePassBtn').addEventListener('click', function() {
-            var p = document.getElementById('password');
-            var e = document.getElementById('eyeIcon');
-            if (p.type === 'password') {
-                p.type = 'text';
-                e.className = 'fas fa-eye-slash';
-            } else {
-                p.type = 'password';
-                e.className = 'fas fa-eye';
-            }
+            var password = document.getElementById('password');
+            var icon = document.getElementById('eyeIcon');
+            var showPassword = password.type === 'password';
+            password.type = showPassword ? 'text' : 'password';
+            icon.className = showPassword ? 'fas fa-eye-slash' : 'fas fa-eye';
+            this.setAttribute('aria-label', showPassword ? 'Sembunyikan password' : 'Tampilkan password');
+            this.setAttribute('aria-pressed', showPassword ? 'true' : 'false');
         });
-
-
     </script>
     @endpush
 @endsection

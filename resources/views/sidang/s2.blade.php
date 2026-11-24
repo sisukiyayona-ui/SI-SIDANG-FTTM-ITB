@@ -67,6 +67,34 @@
         </div>
     </div>
 
+    {{-- Modal pilih jenis cetak untuk prodi 221 Tesis II: Sidang atau Mata Kuliah --}}
+    <div class="modal fade" id="jenisCetakModal" tabindex="-1" role="dialog" aria-labelledby="jenisCetakModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jenisCetakModalLabel"><i class="fas fa-file-signature mr-2"></i>Pilih Jenis Cetak — <span id="jenisCetakModeLabel">Cetak Penilaian</span></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-0">
+                        <label for="jenisCetakSelect">Jenis</label>
+                        <select id="jenisCetakSelect" class="form-control">
+                            <option value="sidang">Sidang</option>
+                            <option value="mata_kuliah">Mata Kuliah</option>
+                        </select>
+                        <small class="form-text text-muted mt-2">
+                            <b>Sidang</b> memakai form/BA yang sekarang. <b>Mata Kuliah</b> memakai form/BA TA6097 Tesis.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="cetakDenganJenis()"><i class="fas fa-print mr-1"></i> Cetak</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Modal pilih Mata Kuliah untuk cetak BA/Cetak Penilaian (khusus prodi 225).
          Form tidak dipilih di sini — sudah diambil dari dropdown Form di halaman. --}}
     <div class="modal fade" id="baSidangModal" tabindex="-1" role="dialog" aria-labelledby="baSidangModalLabel" aria-hidden="true">
@@ -185,6 +213,49 @@
 
 @push('scripts')
 <script>
+    // Modal pilih jenis (Sidang / Mata Kuliah) — prodi 221 Tesis II.
+    window.__jenisCetakMode = 'form';
+    window.openJenisCetakModal = function (mode) {
+        window.__jenisCetakMode = mode === 'ba' ? 'ba' : 'form';
+        var label = document.getElementById('jenisCetakModeLabel');
+        if (label) {
+            label.textContent = window.__jenisCetakMode === 'ba' ? 'BA Sidang' : 'Cetak Penilaian';
+        }
+        $('#jenisCetakModal').modal('show');
+    };
+
+    window.cetakDenganJenis = function () {
+        var jenis = document.getElementById('jenisCetakSelect').value;
+        var f = document.querySelector('#tahapFormContent #penilaianFormTahap2Form')
+             || document.getElementById('penilaianFormTahap2Form');
+        if (!f) { alert('Form tahapan tidak ditemukan.'); return; }
+        var idJudul = f.querySelector('[name="id_judul"]').value;
+        var tahapan = f.querySelector('[name="tahapan_sidang"]').value;
+        var url;
+
+        if (window.__jenisCetakMode === 'ba') {
+            url = '{{ route("sidang.cetak-berita-acara", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+            url = url.replace(':idJudul', encodeURIComponent(idJudul)).replace(':tahapan', encodeURIComponent(tahapan));
+            var noFormBa = window.__sidangCurrentForm();
+            if (noFormBa) {
+                url += '?no_form=' + encodeURIComponent(noFormBa);
+            }
+        } else {
+            var idTim = document.getElementById('selectedTimSidangTahap2');
+            if (!idTim || !idTim.value) { alert('Pilih penilai terlebih dahulu.'); return; }
+            var form = window.__sidangCurrentForm();
+            if (!form) { alert('Pilih Form terlebih dahulu di halaman.'); return; }
+            url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+            url = url.replace(':idJudul', encodeURIComponent(idJudul)).replace(':tahapan', encodeURIComponent(tahapan));
+            url += '?id_tim_sidang=' + encodeURIComponent(idTim.value)
+                 + '&no_form=' + encodeURIComponent(form);
+        }
+        url += (url.indexOf('?') === -1 ? '?' : '&') + 'jenis=' + encodeURIComponent(jenis);
+
+        window.open(url, '_blank');
+        $('#jenisCetakModal').modal('hide');
+    };
+
     // Form diambil dari dropdown Form di halaman (bukan dipilih ulang di modal).
     window.__sidangCurrentForm = function () {
         var visible = document.getElementById('formTahap2');
