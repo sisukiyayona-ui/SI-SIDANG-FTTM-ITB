@@ -392,7 +392,9 @@
         }
 
         .btn-sso {
-            min-height: 46px;
+            width: 100%;
+            min-height: 48px;
+            box-sizing: border-box;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -402,15 +404,16 @@
             border: 1px solid var(--border);
             border-radius: 9px;
             color: var(--text);
-            font-size: 0.82rem;
+            font-size: 0.88rem;
             font-weight: 600;
             text-decoration: none;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
+            transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .btn-sso:hover {
             background: var(--page-bg);
             border-color: var(--accent);
+            box-shadow: 0 8px 20px rgba(20, 98, 173, 0.12);
         }
 
         .sso-logo {
