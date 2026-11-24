@@ -32,11 +32,6 @@
             --button-bg: #1462ad;
             --button-hover: #0d4e93;
             --focus-ring: rgba(0, 152, 219, 0.18);
-            --nav-bg: #1462ad;
-            --nav-border: rgba(255, 255, 255, 0.18);
-            --nav-text: rgba(255, 255, 255, 0.78);
-            --nav-text-strong: #ffffff;
-            --nav-hover: rgba(255, 255, 255, 0.12);
             --panel-from: #1462ad;
             --panel-to: #0d4e93;
             --panel-text: #ffffff;
@@ -59,11 +54,6 @@
             --button-bg: #1676b8;
             --button-hover: #0f659e;
             --focus-ring: rgba(56, 189, 248, 0.2);
-            --nav-bg: #13243e;
-            --nav-border: rgba(148, 163, 184, 0.14);
-            --nav-text: rgba(226, 232, 240, 0.72);
-            --nav-text-strong: #f8fafc;
-            --nav-hover: rgba(148, 163, 184, 0.12);
             --panel-from: #13243e;
             --panel-to: #0b1424;
             --panel-text: #f8fafc;
@@ -89,96 +79,6 @@
         input:focus-visible {
             outline: 3px solid var(--accent);
             outline-offset: 3px;
-        }
-
-        .top-nav {
-            flex: 0 0 auto;
-            background: var(--nav-bg);
-            border-bottom: 1px solid var(--nav-border);
-        }
-
-        .nav-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 28px;
-            min-height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-        }
-
-        .nav-brand {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .nav-brand-logo {
-            width: 38px;
-            height: 38px;
-            flex: 0 0 auto;
-            background: #ffffff;
-            border-radius: 50%;
-            padding: 5px;
-        }
-
-        .nav-brand-text {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .nav-brand-name {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--nav-text-strong);
-            letter-spacing: 0.2px;
-            line-height: 1.15;
-        }
-
-        .nav-brand-sub {
-            font-size: 0.7rem;
-            font-weight: 400;
-            color: var(--nav-text);
-            line-height: 1.15;
-        }
-
-        .nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-nav {
-            min-height: 38px;
-            padding: 8px 13px;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            background: transparent;
-            color: var(--nav-text);
-            font-size: 0.82rem;
-            font-weight: 500;
-            text-decoration: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
-        }
-
-        .btn-nav:hover {
-            background: var(--nav-hover);
-            color: var(--nav-text-strong);
-        }
-
-        .btn-nav-theme {
-            width: 38px;
-            padding: 0;
-            font-size: 0.95rem;
         }
 
         .login-wrapper {
@@ -288,6 +188,33 @@
 
         .login-form-head {
             margin-bottom: 30px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .login-form-head-copy { min-width: 0; }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--page-bg);
+            border-color: var(--accent);
+            color: var(--text);
         }
 
         .login-form-head h2 {
@@ -569,14 +496,6 @@
         }
 
         @media (max-width: 560px) {
-            .nav-inner { min-height: 60px; padding: 0 16px; gap: 10px; }
-            .nav-brand { gap: 9px; }
-            .nav-brand-logo { width: 34px; height: 34px; }
-            .nav-brand-name { font-size: 0.78rem; }
-            .nav-brand-sub { font-size: 0.62rem; }
-            .nav-actions { gap: 2px; }
-            .btn-nav { padding: 8px 10px; }
-            .btn-nav-home span { display: none; }
             .login-wrapper { padding: 20px 14px 28px; }
             .login-box { border-radius: 16px; }
             .login-panel {
@@ -595,7 +514,6 @@
         }
 
         @media (max-width: 360px) {
-            .nav-brand-sub { display: none; }
             .login-panel, .login-content { padding-left: 20px; padding-right: 20px; }
             .remember-row { align-items: flex-start; flex-direction: column; gap: 12px; }
         }
@@ -610,26 +528,6 @@
     </style>
 </head>
 <body>
-    <nav class="top-nav" aria-label="Navigasi utama">
-        <div class="nav-inner">
-            <a href="{{ url('/') }}" class="nav-brand">
-                <img src="{{ asset('images/itb-logo.svg') }}" alt="Logo ITB" class="nav-brand-logo">
-                <div class="nav-brand-text">
-                    <span class="nav-brand-name">SI SIDANG FTTM ITB</span>
-                    <span class="nav-brand-sub">Sistem Informasi Sidang</span>
-                </div>
-            </a>
-            <div class="nav-actions">
-                <button type="button" class="btn-nav btn-nav-theme" id="darkModeToggle" onclick="toggleDarkMode()" title="Ganti tema" aria-label="Ganti tema">
-                    <i class="fas fa-moon" id="darkModeIcon" aria-hidden="true"></i>
-                </button>
-                <a href="{{ url('/') }}" class="btn-nav btn-nav-home">
-                    <i class="fas fa-home" aria-hidden="true"></i><span>Beranda</span>
-                </a>
-            </div>
-        </div>
-    </nav>
-
     <main class="login-wrapper">
         <div class="login-box">
             <section class="login-panel" aria-labelledby="loginTitle">
@@ -651,8 +549,13 @@
 
             <section class="login-content" aria-label="Formulir masuk">
                 <div class="login-form-head">
-                    <h2>Masuk ke akun Anda</h2>
-                    <p>Gunakan akun SI SIDANG untuk melanjutkan.</p>
+                    <div class="login-form-head-copy">
+                        <h2>Masuk ke akun Anda</h2>
+                        <p>Gunakan akun SI SIDANG untuk melanjutkan.</p>
+                    </div>
+                    <button type="button" class="theme-toggle" id="darkModeToggle" onclick="toggleDarkMode()" title="Ganti tema" aria-label="Ganti tema">
+                        <i class="fas fa-moon" id="darkModeIcon" aria-hidden="true"></i>
+                    </button>
                 </div>
                 @yield('auth-content')
             </section>
