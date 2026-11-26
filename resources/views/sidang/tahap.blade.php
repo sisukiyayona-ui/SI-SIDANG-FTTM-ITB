@@ -1543,7 +1543,7 @@
                                             @endunless
                                             @foreach($existingRecords as $existing)
                                                 @php $rowNum++; @endphp
-                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
+                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}" data-nilai-huruf="{{ strtoupper(trim((string) $existing->getAttribute('NILAI_HURUF'))) }}" data-status-lulus-row="{{ strtoupper(trim((string) $existing->getAttribute('STATUS_LULUS'))) }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     @if($showKeterangan)
@@ -1592,6 +1592,28 @@
                                 </tbody>
                             </table>
                             {{-- STATUS KELULUSAN --}}
+                            @php
+                                // Status kelulusan di t_ajuan_sidang bisa kosong meskipun status
+                                // per baris penilaian sudah tersimpan. Pakai status baris sbg fallback
+                                // supaya dropdown tidak tampil "Pilih Status" lagi.
+                                $statusAjuanTahap2 = strtolower(trim((string) ($ajuan->status_lulus ?? '')));
+                                // STATUS_LULUS di t_ajuan_sidang kadang berisi status pengajuan
+                                // (mis. "diajukan"), bukan status kelulusan — jangan dipakai.
+                                if (! in_array($statusAjuanTahap2, ['lulus', 'tidak lulus'], true)) {
+                                    $statusAjuanTahap2 = '';
+                                }
+                                $statusBarisFallback = '';
+                                if (isset($penilaian)) {
+                                    foreach ($penilaian as $pl) {
+                                        $sRow = strtoupper(trim((string) $pl->getAttribute('STATUS_LULUS')));
+                                        if ($sRow === 'LULUS' || $sRow === 'TIDAK LULUS') {
+                                            $statusBarisFallback = strtolower($sRow);
+                                            break;
+                                        }
+                                    }
+                                }
+                                $statusKelulusanTahap2 = $statusAjuanTahap2 ?: $statusBarisFallback;
+                            @endphp
                             <div class="mt-4 d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3 mr-3" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
@@ -1600,8 +1622,8 @@
                                     <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                         <option value="">Pilih Status</option>
                                         @if($isProdi123)
-                                            <option value="LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : ($ajuan->status_lulus ?? '')))) === 'lulus' ? 'selected' : '' }}>LULUS</option>
-                                            <option value="TIDAK LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : ($ajuan->status_lulus ?? '')))) === 'tidak lulus' ? 'selected' : '' }}>TIDAK LULUS</option>
+                                            <option value="LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : $statusKelulusanTahap2))) === 'lulus' ? 'selected' : '' }}>LULUS</option>
+                                            <option value="TIDAK LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : $statusKelulusanTahap2))) === 'tidak lulus' ? 'selected' : '' }}>TIDAK LULUS</option>
                                         @elseif($strataView === 'S2')
                                             <option value="Lulus Sidang Magister" {{ in_array(strtolower(trim((string) $statusKelulusanS2)), ['lulus sidang magister', 'lulus'], true) ? 'selected' : '' }}>LULUS Sidang Magister</option>
                                             <option value="Tidak Lulus Sidang Magister" {{ in_array(strtolower(trim((string) $statusKelulusanS2)), ['tidak lulus sidang magister', 'tidak lulus'], true) ? 'selected' : '' }}>TIDAK LULUS Sidang Magister</option>
@@ -2905,12 +2927,21 @@ function clearReferenceRows(tbodyId) {
         });
     });
     
-    // 2. Kembalikan baris existing ke nilai awal dari database (defaultValue)
+    // 2. Kembalikan baris existing ke nilai awal dari database.
+    // CATATAN: <select> tidak punya properti defaultValue — mengisi inp.value dengan
+    // defaultValue akan menghasilkan "undefined" dan membuat pilihan Nilai Huruf hilang.
+    // Untuk select, ambil nilai tersimpan dari data attribute baris (lihat restoreSavedPenilaianValues).
     tbody.querySelectorAll('tr[data-id-penilai]:not([data-id-penilai=""])').forEach(function (row) {
         row.querySelectorAll('.nilai-input, .catatan-input').forEach(function (inp) {
+            if (inp.tagName === 'SELECT') return; // ditangani restoreSavedPenilaianValues()
             inp.value = inp.defaultValue;
         });
     });
+
+    // Pulihkan kembali nilai select (nilai huruf & status lulus) dari database
+    if (typeof restoreSavedPenilaianValues === 'function') {
+        restoreSavedPenilaianValues();
+    }
 }
 
 function filterPenilaianTahap2() {
@@ -2996,6 +3027,11 @@ function filterPenilaianTahap2() {
     renumberColumn('penilaianTahap2Body');
     toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
     syncLockNilaiGate('penilaiTahap2', 'lockNilaiTahap2Btn');
+
+    // Pastikan nilai huruf/status lulus tersimpan tetap tampil setelah filter
+    if (typeof restoreSavedPenilaianValues === 'function') {
+        restoreSavedPenilaianValues();
+    }
 }
 
 function renumberColumn(tbodyId) {
@@ -4899,6 +4935,37 @@ if (tahap2Body) {
     var er3 = document.getElementById('penilaianTahap2EmptyRow');
     if (er3) er3.style.display = '';
     filterPenilaianTahap2();
+}
+
+// Pulihkan nilai tersimpan (nilai huruf & status lulus per baris) dari data attribute
+// untuk tabel Tahap II. Mengatasi kasus value select tidak tampil setelah render/filter.
+function restoreSavedPenilaianValues() {
+    ['penilaianTahap2Body', 'penilaianReportBody'].forEach(function(tbodyId) {
+        var tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.querySelectorAll('tr[data-nilai-huruf]').forEach(function(row) {
+            var nilaiEl = row.querySelector('.nilai-input');
+            var huruf = row.getAttribute('data-nilai-huruf') || '';
+            if (nilaiEl && huruf && nilaiEl.tagName === 'SELECT') {
+                nilaiEl.value = huruf;
+            }
+            var stEl = row.querySelector('.status-lulus-input');
+            var statusRow = (row.getAttribute('data-status-lulus-row') || '').toUpperCase();
+            if (stEl && statusRow && statusRow !== 'LULUS' && statusRow !== 'TIDAK LULUS') {
+                // tempo map lama
+                statusRow = '';
+            }
+            if (stEl && statusRow) {
+                stEl.value = statusRow;
+            }
+        });
+    });
+}
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(restoreSavedPenilaianValues, 400);
+    });
+    window.restoreSavedPenilaianValues = restoreSavedPenilaianValues;
 }
 
 // Input listeners for dynamic lock button validation
