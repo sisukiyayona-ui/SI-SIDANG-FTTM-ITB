@@ -6,7 +6,7 @@ namespace App\Services;
  * Aturan input nilai per prodi (khusus strata S1).
  *
  * - 123 (Teknik Geofisika S1): nilai huruf A, AB, B, BC, C, D + status per baris.
- * - 124 (Metalurgi S1): angka 1 - 100.
+ * - 125 (Teknik Metalurgi S1): angka 1 - 100.
  * - Prodi lain (termasuk S2/S3): angka 1 - 5.
  */
 class NilaiSidang
@@ -25,7 +25,7 @@ class NilaiSidang
             return self::MODE_HURUF;
         }
 
-        if ($kode === '124') {
+        if ($kode === '124' || $kode === '125') {
             return self::MODE_100;
         }
 

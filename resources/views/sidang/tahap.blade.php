@@ -251,6 +251,13 @@
         $isProdi123 = $nilaiMode === \App\Services\NilaiSidang::MODE_HURUF; // nilai huruf + status per baris
         $isProdi124 = $nilaiMode === \App\Services\NilaiSidang::MODE_100;   // nilai 1 - 100
 
+        // Kolom tabel penilaian per prodi:
+        //  - 123 (Geofisika): keterangan & bobot di-hide, catatan diperlebar
+        //  - 125 (Metalurgi): tampilkan parameter, bobot, nilai (1-100), catatan (keterangan di-hide)
+        //  - lainnya: parameter, keterangan, nilai (1-5), catatan
+        $showKeterangan = ! $isProdi123 && ! $isProdi124;
+        $showBobot = $isProdi124;
+
         $jadwalReadonlyRoles = ['Pembimbing', 'Penguji', 'Ketua Sidang'];
         if ($isFsViewOnlyS2) {
             $jadwalReadonlyRoles[] = 'FS';
@@ -533,6 +540,10 @@
                                                 <option value="Ketua Pembimbing">Ketua Pembimbing</option>
                                                 <option value="Pembimbing I">Pembimbing I</option>
                                                 <option value="Pembimbing II">Pembimbing II</option>
+                                                @if(in_array($strataView, ['S1', 'S2'], true))
+                                                <option value="Pembimbing III">Pembimbing III</option>
+                                                <option value="Ketua Penguji">Ketua Penguji</option>
+                                                @endif
                                                 <option value="Penguji I">Penguji I</option>
                                                 <option value="Penguji II">Penguji II</option>
                                                 <option value="Penguji III">Penguji III</option>
@@ -662,22 +673,24 @@
                         <table class="table table-bordered table-sm text-center">
                             <thead style="background-color: #6998d3; color: white;">
                                 <tr>
-                                    <th style="width: 8%;">No</th>
-                                    <th style="width: {{ ($isProdi123 || $isProdi124) ? '22%' : '40%' }};"><span class="text-danger text-decoration-underline">Parameter Nilai</span></th>
-                                    @if($isProdi123 || $isProdi124)
+                                    <th style="width: 6%;">No</th>
+                                    <th style="width: {{ $showKeterangan ? '30%' : '24%' }};"><span class="text-danger text-decoration-underline">Parameter Nilai</span></th>
+                                    @if($showKeterangan)
                                     <th style="width: 22%;"><span class="text-danger text-decoration-underline">Keterangan</span></th>
-                                    <th style="width: 9%;"><span class="text-danger text-decoration-underline">Bobot (dalam %)</span></th>
+                                    @endif
+                                    @if($showBobot)
+                                    <th style="width: 10%;"><span class="text-danger text-decoration-underline">Bobot (dalam %)</span></th>
                                     @endif
                                     <th style="width: 12%;"><span class="text-danger text-decoration-underline">{{ $isProdi123 ? 'Nilai Huruf' : ($isProdi124 ? 'Nilai (Range 1 - 100)' : 'Nilai (Range 1 - 5)') }}</span></th>
                                     @if($isProdi123)
-                                    <th style="width: 12%;"><span class="text-danger text-decoration-underline">Status Lulus</span></th>
+                                    <th style="width: 10%;"><span class="text-danger text-decoration-underline">Status Lulus</span></th>
                                     @endif
-                                    <th style="width: {{ ($isProdi123 || $isProdi124) ? '15%' : '35%' }};"><span class="text-danger text-decoration-underline">Catatan</span></th>
+                                    <th style="width: {{ $isProdi123 ? '40%' : '35%' }};"><span class="text-danger text-decoration-underline">Catatan</span></th>
                                 </tr>
                             </thead>
                                  <tbody id="penilaianReportBody">
                                     <tr id="penilaianEmptyRow" style="background-color: #dbe5f1;">
-                                        <td colspan="{{ 4 + (($isProdi123 || $isProdi124) ? 2 : 0) + ($isProdi123 ? 1 : 0) }}" class="text-center text-muted">Pilih No Form untuk melihat parameter penilaian</td>
+                                        <td colspan="{{ 4 + ($showKeterangan ? 1 : 0) + ($showBobot ? 1 : 0) + ($isProdi123 ? 1 : 0) }}" class="text-center text-muted">Pilih No Form untuk melihat parameter penilaian</td>
                                     </tr>
                                     @if(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
                                         @php $rowNum = 0; @endphp
@@ -690,8 +703,10 @@
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
-                                                @if($isProdi123 || $isProdi124)
+                                                @if($showKeterangan)
                                                 <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                @endif
+                                                @if($showBobot)
                                                 <td class="text-center">{{ $point->bobot ?? '-' }}</td>
                                                 @endif
                                                 <td>
@@ -725,8 +740,10 @@
                                                 <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
-                                                    @if($isProdi123 || $isProdi124)
+                                                    @if($showKeterangan)
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                    @endif
+                                                    @if($showBobot)
                                                     <td class="text-center">{{ $point->bobot ?? '-' }}</td>
                                                     @endif
                                                     <td>
@@ -1032,6 +1049,10 @@
                                                 <option value="Ketua Pembimbing">Ketua Pembimbing</option>
                                                 <option value="Pembimbing I">Pembimbing I</option>
                                                 <option value="Pembimbing II">Pembimbing II</option>
+                                                @if(in_array($strataView, ['S1', 'S2'], true))
+                                                <option value="Pembimbing III">Pembimbing III</option>
+                                                <option value="Ketua Penguji">Ketua Penguji</option>
+                                                @endif
                                                 <option value="Penguji I">Penguji I</option>
                                                 <option value="Penguji II">Penguji II</option>
                                                 <option value="Penguji III">Penguji III</option>
@@ -1442,11 +1463,13 @@
                             <table class="table table-bordered table-sm text-center">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
-                                        <th style="width: 8%;">No</th>
-                                        <th style="width: 22%;">Parameter Penilaian</th>
-                                        <th style="width: 26%;">Keterangan</th>
-                                        @if($isProdi123 || $isProdi124)
-                                        <th style="width: 9%;">Bobot (dalam %)</th>
+                                        <th style="width: 6%;">No</th>
+                                        <th style="width: 24%;">Parameter Penilaian</th>
+                                        @if($showKeterangan)
+                                        <th style="width: 22%;">Keterangan</th>
+                                        @endif
+                                        @if($showBobot)
+                                        <th style="width: 10%;">Bobot (dalam %)</th>
                                         @endif
                                         @php
                                             $nilaiHeader = 'Nilai (Range 1 - 5)';
@@ -1455,13 +1478,13 @@
                                             } elseif ($isProdi124) {
                                                 $nilaiHeader = 'Nilai (Range 1 - 100)';
                                             }
-                                            $colCount = 5 + (($isProdi123 || $isProdi124) ? 1 : 0) + ($isProdi123 ? 1 : 0);
+                                            $colCount = 4 + ($showKeterangan ? 1 : 0) + ($showBobot ? 1 : 0) + ($isProdi123 ? 1 : 0);
                                         @endphp
                                         <th style="width: 12%;">{{ $nilaiHeader }}</th>
                                         @if($isProdi123)
-                                        <th style="width: 12%;">Status Lulus</th>
+                                        <th style="width: 10%;">Status Lulus</th>
                                         @endif
-                                        <th style="width: 11%;">Catatan</th>
+                                        <th style="width: {{ $isProdi123 ? '40%' : '25%' }};">Catatan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="penilaianTahap2Body">
@@ -1480,8 +1503,10 @@
                                              <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
+                                                @if($showKeterangan)
                                                 <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
-                                                @if($isProdi123 || $isProdi124)
+                                                @endif
+                                                @if($showBobot)
                                                 <td class="text-center">{{ $point->bobot ?? '-' }}</td>
                                                 @endif
                                                 <td>
@@ -1521,8 +1546,10 @@
                                                 <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
+                                                    @if($showKeterangan)
                                                     <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
-                                                    @if($isProdi123 || $isProdi124)
+                                                    @endif
+                                                    @if($showBobot)
                                                     <td class="text-center">{{ $point->bobot ?? '-' }}</td>
                                                     @endif
                                                     <td>
@@ -2309,6 +2336,10 @@
                                                 <option value="Ketua Pembimbing">Ketua Pembimbing</option>
                                                 <option value="Pembimbing I">Pembimbing I</option>
                                                 <option value="Pembimbing II">Pembimbing II</option>
+                                                @if(in_array($strataView, ['S1', 'S2'], true))
+                                                <option value="Pembimbing III">Pembimbing III</option>
+                                                <option value="Ketua Penguji">Ketua Penguji</option>
+                                                @endif
                                                 <option value="Penguji I">Penguji I</option>
                                                 <option value="Penguji II">Penguji II</option>
                                                 <option value="Penguji III">Penguji III</option>
@@ -2987,11 +3018,15 @@ function applyStatusCatatan(row) {
     var sc = row.getAttribute('data-status-catatan');
     var catatanInput = row.querySelector('.catatan-input');
     var nilaiInput = row.querySelector('.nilai-input');
+    // Prodi 123 (S1 nilai huruf): status catatan = y tetap mengaktifkan catatan,
+    // tetapi nilai huruf TIDAK boleh di-disable (harus tetap bisa diisi).
+    var hurufMode = (typeof isProdi123 !== 'undefined' && isProdi123);
     if (sc === 'y') {
         if (catatanInput) catatanInput.disabled = false;
-        if (nilaiInput) nilaiInput.disabled = true;
+        if (nilaiInput) nilaiInput.disabled = hurufMode ? false : true;
     } else {
-        if (catatanInput) catatanInput.disabled = true;
+        // S1: catatan selalu aktif (bisa diisi walau status catatan = t)
+        if (catatanInput) catatanInput.disabled = false;
         if (nilaiInput) nilaiInput.disabled = false;
     }
 }
