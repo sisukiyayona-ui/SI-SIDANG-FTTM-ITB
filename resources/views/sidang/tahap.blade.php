@@ -644,10 +644,17 @@
                                     <select class="form-control select2-search penilaian-select" id="penilaianSelect" onchange="document.getElementById('selectedTimSidangTahap1').value=this.value;clearReferenceRows('penilaianReportBody');filterPenilaian();">
                                         <option value="">-- Pilih Penilai --</option>
                                         @if(isset($timSidang) && $timSidang->count() > 0)
+                                            {{-- Penilai biasa dulu; Ketua Sidang diletakkan paling bawah --}}
                                             @foreach($timSidang as $tim)
-                                                @if(! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
                                                 <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ($tim->nip ? ' ('.$tim->nip.')' : '') . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                             @endforeach
+                                            @if($isTuProdiAtauAdmin)
+                                                @foreach($timSidang as $tim)
+                                                    @if(strtolower(trim($tim->status_tim_sidang ?? '')) !== 'ketua sidang') @continue @endif
+                                                    <option value="{{ $tim->id }}" {{ $tim->id_user_penilai == session('auth_user.id') ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ($tim->nip ? ' ('.$tim->nip.')' : '') . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
+                                                @endforeach
+                                            @endif
                                         @endif
                                     </select>
                                     <input type="hidden" id="selectedTimSidangTahap1" value="">
@@ -1412,10 +1419,17 @@
                                             <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="penilaiTahap2" name="id_user_penilai" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'disabled' : '' }}>
                                                 <option value="">Pilih Penilai</option>
                                                 @if(isset($timSidang) && $timSidang->count() > 0)
+                                                    {{-- Penilai biasa dulu; Ketua Sidang diletakkan paling bawah --}}
                                                     @foreach($timSidang as $tim)
-                                                        @if(! $isTuProdiAtauAdmin && strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
+                                                        @if(strtolower(trim($tim->status_tim_sidang ?? '')) === 'ketua sidang') @continue @endif
                                                         <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
                                                     @endforeach
+                                                    @if($isTuProdiAtauAdmin)
+                                                        @foreach($timSidang as $tim)
+                                                            @if(strtolower(trim($tim->status_tim_sidang ?? '')) !== 'ketua sidang') @continue @endif
+                                                            <option value="{{ $tim->id }}" data-user-id="{{ $tim->id_user_penilai }}" {{ (string)$tim->id === (string)$preselectedPenilai2 ? 'selected' : '' }} data-keterangan="{{ $tim->keterangan ?? $tim->status_tim_sidang }}">{{ trim(($tim->Nama . ((($ket = trim((string)($tim->keterangan ?? $tim->status_tim_sidang ?? ''))) !== '') ? ' - '.$ket : ''))) }}</option>
+                                                        @endforeach
+                                                    @endif
                                                 @endif
                                             </select>
                                         </div>
