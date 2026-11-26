@@ -194,6 +194,8 @@
                                                                      'waktu' => $ev->waktu_sidang ?? '-',
                                                                      'ruang' => $ev->ruang_sidang ?? '-',
                                                                      'tahapan' => tahapLabel($ev->tahapan_sidang),
+                                                                    'tahapan_raw' => $ev->tahapan_sidang,
+                                                                    'id_judul' => $ev->id_judul,
                                                                       'status' => getAjuanDisplayStatus($ev),
                                                                      'strata' => $ev->Strata ?? '-',
                                                                      'prodi' => $ev->NAMA_PRODI ?? '-',
@@ -435,9 +437,11 @@
                     '</div>' +
                 '</div>' +
                 
-                // Link to Jadwal Table - Task #17
+                // Link langsung ke Form Tahapan (auto-open modal di halaman S1/S2/S3)
                 '<div class="detail-action-section">' +
-                    '<a href="' + (currentUserRole === 'Mahasiswa' ? '/mahasiswa/dashboard' : '/sidang/' + data.strata.toLowerCase()) + '" class="btn btn-primary btn-block btn-lg">' +
+                    '<a href="' + (currentUserRole === 'Mahasiswa'
+                        ? '/mahasiswa/tahap/' + encodeURIComponent(data.tahapan_raw || '') + '?id_judul=' + encodeURIComponent(data.id_judul || '')
+                        : '/sidang/' + data.strata.toLowerCase() + '?id_judul=' + encodeURIComponent(data.id_judul || '') + '&tahapan=' + encodeURIComponent(data.tahapan_raw || '') + '&tab=jadwal') + '" class="btn btn-primary btn-block btn-lg">' +
                         '<i class="fas fa-table mr-2"></i>Lihat Tabel Jadwal Sidang ' + data.tahapan +
                     '</a>' +
                 '</div>' +

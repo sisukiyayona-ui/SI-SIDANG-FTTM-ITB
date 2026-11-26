@@ -298,20 +298,34 @@ class MahasiswaController extends Controller
         $timSidangQuery = \App\Models\TTimSidang::where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan);
 
-        if (in_array($strataView, ['S2', 'S3'], true)) {
+        // Urutan tampil TIM. S1/S2 memakai urutan status tim terbaru:
+        // 1 Ketua Sidang, 2 Ketua Pembimbing, 3 Pembimbing I, 4 Pembimbing II,
+        // 5 Pembimbing III, 6 Ketua Penguji, 7 Penguji I, 8 Penguji II, 9 Penguji III.
+        // S3 tetap memakai urutan lama.
+        if (in_array($strataView, ['S1', 'S2'], true)) {
+            $timSidangQuery->orderByRaw("CASE
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'KETUA SIDANG' THEN 1
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'KETUA PEMBIMBING' THEN 2
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'PEMBIMBING I' THEN 3
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'PEMBIMBING II' THEN 4
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'PEMBIMBING III' THEN 5
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'KETUA PENGUJI' THEN 6
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'PENGUJI I' THEN 7
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'PENGUJI II' THEN 8
+                WHEN UPPER(TRIM(STATUS_TIM_SIDANG)) = 'PENGUJI III' THEN 9
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 1
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 2
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 3
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PENGUJI%' THEN 6
+                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 7
+                ELSE 10 END");
+        } else {
             $timSidangQuery->orderByRaw("CASE
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 5
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 1
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 2
                 WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 3
                 ELSE 4 END");
-        } else {
-            $timSidangQuery->orderByRaw("CASE
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA SIDANG%' THEN 1
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%KETUA PEMBIMBING%' THEN 2
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PEMBIMBING%' THEN 3
-                WHEN UPPER(STATUS_TIM_SIDANG) LIKE '%PENGUJI%' THEN 4
-                ELSE 5 END");
         }
 
         $timSidangQuery->orderByRaw("CASE

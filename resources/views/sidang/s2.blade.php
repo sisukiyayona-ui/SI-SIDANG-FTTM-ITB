@@ -747,5 +747,19 @@
             $select.select2('open');
         }
     });
+
+    // Auto-open Form Tahapan bila halaman dibuka dengan ?id_judul=..&tahapan=..
+    // (dipakai tautan "Lihat Tabel Jadwal Sidang" dari halaman Jadwal Sidang)
+    (function () {
+        var params = new URLSearchParams(window.location.search);
+        var autoId = params.get('id_judul');
+        var autoTahapan = params.get('tahapan');
+        var autoTab = params.get('tab') || 'jadwal';
+        if (autoId && autoTahapan && typeof showTahapForm === 'function') {
+            setTimeout(function () {
+                showTahapForm(autoTahapan, autoId, autoTab);
+            }, 300);
+        }
+    })();
 </script>
 @endpush
