@@ -946,6 +946,333 @@ class PrepareTemplate extends Command
                     ['search' => '(nilai)', 'tokens' => ['${nilai_4}', '${nilai_5}']],
                 ],
             ],
+
+            // ================================================================
+            // TEMPLATE S1 (Sarjana: Prodi 122, 123, 125, dan Daftar Hadir)
+            // ================================================================
+            [
+                // Daftar Hadir Sidang S1 (umum)
+                'src' => base_path('template/S1/daftar hadir.docx'),
+                'dst' => base_path('template/S1/daftar hadir TEMPLATE.docx'),
+                'replacements' => [
+                    '(NAMA TAHAPAN)' => '${nama_tahapan}',
+                    '(NAMA PRODI)' => '${nama_prodi}',
+                    '(nama)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(ruang)' => '${ruang_sidang}',
+                    '(judul)' => '${judul}',
+                    '(nama ketua sidang)' => '${nama_ketua_sidang}',
+                    '(nip ketua sidang)' => '${nip_ketua_sidang}',
+                ],
+                'sequenceReplacements' => [
+                    ['search' => '(nama tim sidang)', 'tokens' => ['${nama_tim_1}', '${nama_tim_2}', '${nama_tim_3}', '${nama_tim_4}', '${nama_tim_5}', '${nama_tim_6}']],
+                    ['search' => '(status tim)', 'tokens' => ['${status_tim_1}', '${status_tim_2}', '${status_tim_3}', '${status_tim_4}', '${status_tim_5}', '${status_tim_6}']],
+                ],
+            ],
+            [
+                // Form Penilaian TA I & TA II Prodi 122 (Teknik Perminyakan) — S1
+                'src' => base_path('template/S1/Lembar Penilai an TA1 TA 2 prodi 122.docx'),
+                'dst' => base_path('template/S1/Lembar Penilai an TA1 TA 2 prodi 122 TEMPLATE.docx'),
+                'replacements' => [
+                    '(NAMA PRODI)' => '${nama_prodi}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(nama penilai)' => '${nama_penilai}',
+                    '(jml nilai)' => '${jml_nilai}',
+                    '(nilai huruf dr nilai rata2)' => '${nilai_huruf_rata2}',
+                    '(nilai rata2)' => '${nilai_rata2}',
+                    '(tgl) sidang' => '${tgl_sidang}',
+                    '(nip penilai)' => '${nip_penilai}',
+                ],
+                'sequenceReplacements' => [
+                    [
+                        'search' => '(parameter penilaian)',
+                        'tokens' => [
+                            '${param_text_1}', '${param_text_2}', '${param_text_3}',
+                            '${param_nilai_1}', '${param_nilai_2}', '${param_nilai_3}',
+                            '${param_nilai_4}', '${param_nilai_5}', '${param_nilai_6}', '${param_nilai_7}',
+                        ],
+                    ],
+                    [
+                        'search' => '(catatan)(catatan)',
+                        'tokens' => ['${catatan_text_1}', '${catatan_text_2}', '${catatan_text_3}'],
+                    ],
+                    [
+                        'search' => '(nilai huruf dari nilai)',
+                        'tokens' => [
+                            '${nilai_huruf_1}', '${nilai_huruf_2}', '${nilai_huruf_3}',
+                            '${nilai_huruf_4}', '${nilai_huruf_5}', '${nilai_huruf_6}', '${nilai_huruf_7}',
+                        ],
+                    ],
+                    [
+                        'search' => '(nilai)',
+                        'tokens' => [
+                            '${nilai_1}', '${nilai_2}', '${nilai_3}',
+                            '${nilai_4}', '${nilai_5}', '${nilai_6}', '${nilai_7}',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                // Form Penilaian Skripsi/Sidang Prodi 125 (Teknik Metalurgi) — S1
+                'src' => base_path('template/S1/Lembar Penilaian Skripsi prodi 125 Metalurgi.docx'),
+                'dst' => base_path('template/S1/Lembar Penilaian Skripsi prodi 125 Metalurgi TEMPLATE.docx'),
+                'replacements' => [
+                    '(NAMA PRODI)' => '${nama_prodi}',
+                    '(SKRIPSI/SIDANG sesuai pilihan report)' => '${jenis_penilaian}',
+                    '(STATUS TIM SIDANG)' => '${status_tim_sidang}',
+                    '(nama penilai)' => '${nama_penilai}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                ],
+                'sequenceReplacements' => [
+                    [
+                        'search' => '(parameter penilaian)',
+                        'tokens' => [
+                            '${param_1}', '${param_2}', '${param_3}', '${param_4}',
+                            '${param_5}', '${param_6}', '${param_7}', '${param_8}',
+                        ],
+                    ],
+                    [
+                        'search' => '(nilai)',
+                        'tokens' => [
+                            '${nilai_1}', '${nilai_2}', '${nilai_3}', '${nilai_4}',
+                            '${nilai_5}', '${nilai_6}', '${nilai_7}', '${nilai_8}',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                // Form Penilaian TA I & II Prodi 123 (Teknik Geofisika) — S1
+                'src' => base_path('template/S1/penilaian TA I dan II prodi 123 TG.docx'),
+                'dst' => base_path('template/S1/penilaian TA I dan II prodi 123 TG TEMPLATE.docx'),
+                'replacements' => [
+                    '(jika TA I diisi 1,TA II diisi 2)' => '${tahap_angka}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(hari sidang)' => '${hari_sidang}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(judul)' => '${judul}',
+                    '(STATUS LULUS dari tabel t peniaian)' => '${status_lulus_skripsi}',
+                    '(NILAI HURUF dari nama parameter penilaian ‘Skripsi‘)' => '${nilai_huruf_skripsi}',
+                    '(STATUS LULUS dari tabel t penilaian)' => '${status_lulus_umum}',
+                    '(NILAI HURUF dari nama parameter penilaian ‘%Umum%‘)' => '${nilai_huruf_umum}',
+                    '(status tim sidang)' => '${status_tim_sidang}',
+                    '(nama penilai)' => '${nama_penilai}',
+                    '(ttd)' => '${signature}',
+                ],
+                'sequenceReplacements' => [
+                    ['search' => '(catatan)', 'tokens' => ['${catatan_1}', '${catatan_2}']],
+                ],
+            ],
+            [
+                // BA TA 1 Prodi 122 (Teknik Perminyakan) — S1
+                'src' => base_path('template/S1/BA TA 1  prodi 122.docx'),
+                'dst' => base_path('template/S1/BA TA 1  prodi 122 TEMPLATE.docx'),
+                'replacements' => [
+                    '(NAMA PRODI)' => '${nama_prodi}',
+                    '(nama prodi)' => '${nama_prodi}',
+                    '(semester)' => '${semester}',
+                    '(tahun akademik)' => '${tahun_akademik}',
+                    '(thn akademik)' => '${tahun_akademik}',
+                    '(nama)' => '${nama_mhs}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim mhs)' => '${nim}',
+                    '(nim)' => '${nim}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(judul)' => '${judul}',
+                    '(nilai huruf dari rata2 semua penilai)' => '${nilai_huruf}',
+                    '(nilai huruf dari rata2)' => '${nilai_huruf}',
+                    '(nilai rata2 dari semua penilai)' => '${nilai_rata2}',
+                    '(STATUS LULUS)' => '${status_lulus}',
+                    '(nama kaprodi)' => '${nama_kaprodi}',
+                    '(nip kaprodi)' => '${nip_kaprodi}',
+                    '(KODE MK)' => '${kode_mk}',
+                    '(nip pembimbing I)' => '${nip_pembimbing_i}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(ttd)' => '${signature}',
+                ],
+                'sequenceReplacements' => [
+                    ['search' => '(nama penilai)', 'tokens' => ['${nama_penilai_1}', '${nama_penilai_2}', '${nama_penilai_3}']],
+                    ['search' => '(nip)', 'tokens' => ['${nip_penilai_1}', '${nip_penilai_2}', '${nip_penilai_3}']],
+                    ['search' => '(status tim sidang)', 'tokens' => ['${status_tim_1}', '${status_tim_2}', '${status_tim_3}']],
+                ],
+            ],
+            [
+                // BA Sidang TA 2 Prodi 122 (Teknik Perminyakan) — S1
+                'src' => base_path('template/S1/BA Sidang TA 2 prodi 122.docx'),
+                'dst' => base_path('template/S1/BA Sidang TA 2 prodi 122 TEMPLATE.docx'),
+                'replacements' => [
+                    '…………………….' => '${hari_sidang}',
+                    '……………….' => '${nama_mhs}',
+                    '……………' => '${nim}',
+                    'Bandung, ..............................' => 'Bandung, ${tgl_sidang}',
+                    '………………………………………..' => '${nama_ketua_sidang}',
+                    'NIP. ....................................' => 'NIP. ${nip_ketua_sidang}',
+                    'Nama/NIM:' => 'Nama/NIM: ${nama_mhs}/${nim}',
+                    'Tanggal:' => 'Tanggal: ${tgl_sidang}',
+                    'Waktu: Pkl. 15.00 - selesai' => 'Waktu: Pkl. ${waktu} - selesai',
+                    'Judul:' => 'Judul: ${judul}',
+                    '____________________________ NIP. ........................' => '${nama_ketua_sidang} NIP. ${nip_ketua_sidang}',
+                ],
+            ],
+            [
+                // BA TA-1 Prodi 123 (Teknik Geofisika) — S1
+                'src' => base_path('template/S1/BA TA-1 prodi 123.docx'),
+                'dst' => base_path('template/S1/BA TA-1 prodi 123 TEMPLATE.docx'),
+                'replacements' => [
+                    '(NAMA PRODI)' => '${nama_prodi}',
+                    '(nama prodi)' => '${nama_prodi}',
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(KODE MK)' => '${kode_mk}',
+                    '(hari sidang)' => '${hari_sidang}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(STATUS LULUS dari t ajuan sidang)' => '${status_lulus}',
+                    '(NILAI HURUF)' => '${nilai_huruf}',
+                    'Predikat: ______________' => 'Predikat: ${predikat}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(judul)' => '${judul}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                ],
+                'sequenceReplacements' => [
+                    [
+                        'search' => '(nama penilai)',
+                        'tokens' => [
+                            '${nama_penilai_1}', '${nama_penilai_2}', '${nama_penilai_3}',
+                            '${cat_nama_1}', '${cat_nama_2}', '${cat_nama_3}',
+                            '${nama_pembimbing_ttd}',
+                            '${dh_nama_1}', '${dh_nama_2}', '${dh_nama_3}',
+                        ],
+                    ],
+                    [
+                        'search' => '(status tim)',
+                        'tokens' => [
+                            '${status_tim_1}', '${status_tim_2}', '${status_tim_3}',
+                            '${dh_status_1}', '${dh_status_2}', '${dh_status_3}',
+                        ],
+                    ],
+                    [
+                        'search' => '(catatan)',
+                        'tokens' => ['${catatan_1}', '${catatan_2}', '${catatan_3}'],
+                    ],
+                    [
+                        'search' => '(nip)',
+                        'tokens' => ['${nip_pembimbing_i}', '${dh_nip_pembimbing_i}'],
+                    ],
+                    [
+                        'search' => '(ttd)',
+                        'tokens' => [
+                            '${ttd_1}', '${ttd_2}', '${ttd_3}',
+                            '${dh_ttd_1}', '${dh_ttd_2}', '${dh_ttd_3}',
+                            '${dh_ttd_pembimbing}',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                // BA Sidang TA 2 Prodi 123 (Teknik Geofisika) — S1
+                'src' => base_path('template/S1/BA Sidang TA 2 prodi 123.docx'),
+                'dst' => base_path('template/S1/BA Sidang TA 2 prodi 123 TEMPLATE.docx'),
+                'replacements' => [
+                    '(NAMA PRODI)' => '${nama_prodi}',
+                    '(nama prodi)' => '${nama_prodi}',
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(hari sidang)' => '${hari_sidang}',
+                    '(nama pembimbing I)' => '${nama_pembimbing_i}',
+                    '(nama pembimbing II)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing III)' => '${nama_pembimbing_iii}',
+                    '(nama pembimbing 1)' => '${nama_pembimbing_i}',
+                    '(nama pembimbing 2)' => '${nama_pembimbing_ii}',
+                    '(nama pembimbing 3)' => '${nama_pembimbing_iii}',
+                    '(nama ketua sidang)' => '${nama_ketua_sidang}',
+                    '(nip ketua sidang)' => '${nip_ketua_sidang}',
+                    '(nama penguji I)' => '${nama_penguji_i}',
+                    '(nama penguji II)' => '${nama_penguji_ii}',
+                    '(nama penguji 1)' => '${nama_penguji_i}',
+                    '(nama penguji 2)' => '${nama_penguji_ii}',
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nama)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(STATUS LULUS dari t ajuan sidang)' => '${status_lulus}',
+                    '(NILAI HURUF dari t ajuan sidang)' => '${nilai_huruf}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(judul)' => '${judul}',
+                ],
+                'sequenceReplacements' => [
+                    [
+                        'search' => '(N)',
+                        'tokens' => [
+                            '${skripsi_n_1}', '${umum_n_1}',
+                            '${skripsi_n_2}', '${umum_n_2}',
+                            '${skripsi_n_3}', '${umum_n_3}',
+                            '${skripsi_n_4}', '${umum_n_4}',
+                            '${skripsi_n_5}', '${umum_n_5}',
+                        ],
+                    ],
+                    [
+                        'search' => '(L)',
+                        'tokens' => [
+                            '${skripsi_l_1}', '${umum_l_1}',
+                            '${skripsi_l_2}', '${umum_l_2}',
+                            '${skripsi_l_3}', '${umum_l_3}',
+                            '${skripsi_l_4}', '${umum_l_4}',
+                            '${skripsi_l_5}', '${umum_l_5}',
+                        ],
+                    ],
+                    [
+                        'search' => '(nama penilai)',
+                        'tokens' => ['${cat_nama_1}', '${cat_nama_2}', '${cat_nama_3}', '${cat_nama_4}', '${cat_nama_5}'],
+                    ],
+                    [
+                        'search' => '(catatan)',
+                        'tokens' => ['${catatan_1}', '${catatan_2}', '${catatan_3}', '${catatan_4}', '${catatan_5}'],
+                    ],
+                    [
+                        'search' => '(ttd)',
+                        'tokens' => [
+                            '${ttd_1}', '${ttd_2}', '${ttd_3}', '${ttd_4}', '${ttd_5}', '${ttd_6}',
+                            '${dh_ttd_1}', '${dh_ttd_2}', '${dh_ttd_3}', '${dh_ttd_4}', '${dh_ttd_5}', '${dh_ttd_6}',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                // BA TA 1 & TA 2 Prodi 125 (Teknik Metalurgi) — S1
+                'src' => base_path('template/S1/BA TA 1 TA 2 prodi 125 MG.docx'),
+                'dst' => base_path('template/S1/BA TA 1 TA 2 prodi 125 MG TEMPLATE.docx'),
+                'replacements' => [
+                    '(nama mhs)' => '${nama_mhs}',
+                    '(nim)' => '${nim}',
+                    '(tempat lahir)' => '${tempat_lahir}',
+                    '(tgl lahir)' => '${tgl_lahir}',
+                    '(tgl sidang)' => '${tgl_sidang}',
+                    '(waktu)' => '${waktu}',
+                    '(judul)' => '${judul}',
+                    '(ip)' => '${ip}',
+                    '(sebelum nilai ujian sidang)' => '',
+                    '(nilai rata2 form skripsi)' => '${nilai_skripsi}',
+                    '(nilai rata2 form sidang)' => '${nilai_sidang}',
+                    '(nama penilai)' => '${cat_nama_1}',
+                    '(catatan)' => '${catatan}',
+                    '(nama ketua sidang:' => '${nama_ketua_sidang}',
+                    '(nama ketua sidang)' => '${nama_ketua_sidang}',
+                ],
+                'sequenceReplacements' => [
+                    ['search' => '(nama pembimbing)', 'tokens' => ['${nama_pembimbing_i}', '${nama_pembimbing_ii}']],
+                    ['search' => '(nama penguji)', 'tokens' => ['${nama_penguji_i}', '${nama_penguji_ii}', '${nama_penguji_iii}']],
+                ],
+            ],
         ];
 
         foreach ($templates as $template) {

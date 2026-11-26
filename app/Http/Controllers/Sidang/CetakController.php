@@ -127,6 +127,54 @@ class CetakController extends Controller
     }
 
     /**
+     * Pilih template Berita Acara S1 berdasarkan KODE_PRODI dan tahapan (TA I / TA II):
+     * 122 -> BA TA 1  prodi 122 / BA Sidang TA 2 prodi 122
+     * 123 -> BA TA-1 prodi 123 / BA Sidang TA 2 prodi 123
+     * 125 -> BA TA 1 TA 2 prodi 125 MG
+     */
+    private function getS1BeritaAcaraTemplate($kodeProdi, $tahapan = null): string
+    {
+        $kp = trim((string) $kodeProdi);
+        $tahapanNorm = strtolower(trim((string) $tahapan));
+        $isTa2 = in_array($tahapanNorm, ['ta ii', 'ta 2', 'ta-2'], true);
+
+        if ($kp === '122') {
+            return $isTa2
+                ? base_path('template/S1/BA Sidang TA 2 prodi 122 TEMPLATE.docx')
+                : base_path('template/S1/BA TA 1  prodi 122 TEMPLATE.docx');
+        } elseif ($kp === '123') {
+            return $isTa2
+                ? base_path('template/S1/BA Sidang TA 2 prodi 123 TEMPLATE.docx')
+                : base_path('template/S1/BA TA-1 prodi 123 TEMPLATE.docx');
+        } elseif ($kp === '125') {
+            return base_path('template/S1/BA TA 1 TA 2 prodi 125 MG TEMPLATE.docx');
+        }
+
+        return base_path('template/pROPOSAL/BA proposal TEMPLATE.docx');
+    }
+
+    /**
+     * Pilih template Form Penilaian S1 berdasarkan KODE_PRODI:
+     * 122 -> Lembar Penilai an TA1 TA 2 prodi 122
+     * 123 -> penilaian TA I dan II prodi 123 TG
+     * 125 -> Lembar Penilaian Skripsi prodi 125 Metalurgi
+     */
+    private function getS1FormTemplate($kodeProdi): string
+    {
+        $kp = trim((string) $kodeProdi);
+
+        if ($kp === '122') {
+            return base_path('template/S1/Lembar Penilai an TA1 TA 2 prodi 122 TEMPLATE.docx');
+        } elseif ($kp === '123') {
+            return base_path('template/S1/penilaian TA I dan II prodi 123 TG TEMPLATE.docx');
+        } elseif ($kp === '125') {
+            return base_path('template/S1/Lembar Penilaian Skripsi prodi 125 Metalurgi TEMPLATE.docx');
+        }
+
+        return base_path('template/pROPOSAL/cetak form penilaian proposal tipe nilai TEMPLATE.docx');
+    }
+
+    /**
      * Cetak form penilaian untuk penilai yang dipilih.
      * Menggunakan template: cetak form penilaian proposal tipe nilai TEMPLATE.docx
      * Mengisi data per-baris (nama_penilaian, keterangan, nilai, catatan) dari DB.
@@ -267,7 +315,9 @@ class CetakController extends Controller
         $isSk          = preg_match('/^sk\s+(i{1,3}|iv)$/', $tNormal, $skMatch) === 1;
         $skRomawi      = $isSk ? strtoupper($skMatch[1]) : '';
         $isSidangDoktor = preg_match('/^tahap\s+iv$/', $tNormal) === 1;
+        $isS1 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S1';
         $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
+        $isS1Form = $isS1 && !$isSk && !$isSidangDoktor && in_array(trim((string) $kodeProdi), ['122', '123', '125'], true);
 
         // Kode MK dari Data Master Mata Kuliah Prodi (t_mk_prodi):
         // dicocokkan dengan prodi mahasiswa + tahapan yang dicetak (SK/S2).
@@ -340,7 +390,9 @@ class CetakController extends Controller
         // bukan template tipe text generik S3/Diskertasi.
         $isS2TextForm = $isS2 && !$isSk && !$isSidangDoktor && $isTextForm && ! $isS2Prodi222;
 
-        if ($isS2Prodi222) {
+        if ($isS1Form) {
+            $templatePath = $this->getS1FormTemplate($kodeProdi);
+        } elseif ($isS2Prodi222) {
             $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan, $jenisCetak);
         } elseif ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
             $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan, $jenisCetak);
@@ -499,6 +551,82 @@ class CetakController extends Controller
                     $tp->setValue('email_prodi',   $prodiCatatan?->EMAIL ?? '-');
                     $tp->setValue('website_prodi', $prodiCatatan?->WEB ?? '-');
                 }
+            } elseif ($isS1Form) {
+                $prodiS1 = \App\Models\TProdi::where('KODE_PRODI', $kodeProdi)->first();
+                $kpS1 = trim((string) $kodeProdi);
+                $hariSidangS1 = $ajuan->tgl_sidang
+                    ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l')
+                    : '-';
+                $tglSidangS1 = $ajuan->tgl_sidang
+                    ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('d F Y')
+                    : '-';
+                $waktuS1 = $ajuan->waktu_sidang
+                    ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H:i')
+                    : '-';
+                $statusTimS1 = strtoupper((string) ($timSidangRecord?->status_tim_sidang ?? ''));
+
+                $tp->setValue('nama_prodi',        $prodiS1?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+                $tp->setValue('judul',             $namaJudul);
+                $tp->setValue('hari_sidang',       $hariSidangS1);
+                $tp->setValue('tgl_sidang',        $tglSidangS1);
+                $tp->setValue('waktu',             $waktuS1);
+                $tp->setValue('ruang_sidang',      $ajuan->ruang_sidang ?? '-');
+                $tp->setValue('status_tim_sidang', $statusTimS1);
+
+                if ($kpS1 === '122') {
+                    $textRows122 = [];
+                    $nilaiRows122 = [];
+                    foreach ($penilaianRows as $r) {
+                        $sc = strtolower(trim((string) ($r->STATUS_CATATAN ?? $r->status_catatan ?? '')));
+                        if ($sc === 'y') {
+                            $textRows122[] = $r;
+                        } else {
+                            $nilaiRows122[] = $r;
+                        }
+                    }
+                    for ($i = 0; $i < 3; $i++) {
+                        $rowT = $textRows122[$i] ?? null;
+                        $tp->setValue('param_text_' . ($i + 1),   $rowT ? ($rowT->NAMA_PENILAIAN ?? $rowT->PENILAIAN ?? '') : '');
+                        $tp->setValue('catatan_text_' . ($i + 1), $rowT ? ($rowT->CATATAN ?? '') : '');
+                    }
+                    $jmlNilai122 = 0.0;
+                    for ($i = 0; $i < 7; $i++) {
+                        $rowN = $nilaiRows122[$i] ?? null;
+                        $nVal = $rowN ? ($rowN->NILAI ?? '') : '';
+                        $hVal = '';
+                        if ($rowN && $nVal !== '' && $nVal !== null && is_numeric($nVal)) {
+                            $jmlNilai122 += (float) $nVal;
+                            $hVal = $this->calculateIndeksNilai222((float) $nVal);
+                        }
+                        $tp->setValue('param_nilai_' . ($i + 1), $rowN ? ($rowN->NAMA_PENILAIAN ?? $rowN->PENILAIAN ?? '') : '');
+                        $tp->setValue('nilai_' . ($i + 1),       $nVal !== '' && $nVal !== null ? (string) $nVal : '');
+                        $tp->setValue('nilai_huruf_' . ($i + 1), $hVal);
+                    }
+                    $rataNum122 = is_numeric($rataNilai) ? (float) $rataNilai : 0.0;
+                    $tp->setValue('jml_nilai',         $jmlNilai122 > 0 ? (string) $jmlNilai122 : '');
+                    $tp->setValue('nilai_rata2',       $rataNilai);
+                    $tp->setValue('nilai_huruf_rata2', $rataNilai !== '' ? $this->calculateIndeksNilai222($rataNum122) : '');
+                } elseif ($kpS1 === '123') {
+                    $isTa2 = in_array(strtolower(trim($tahapan)), ['ta ii', 'ta 2', 'ta-2'], true);
+                    $tp->setValue('tahap_angka', $isTa2 ? '2' : '1');
+                    $rowSkripsi = $penilaianRows->first(fn($r) => str_contains(strtolower((string) ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? '')), 'skripsi'));
+                    $rowUmum    = $penilaianRows->first(fn($r) => str_contains(strtolower((string) ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? '')), 'umum'));
+                    $tp->setValue('status_lulus_skripsi', $rowSkripsi?->STATUS_LULUS ?? '-');
+                    $tp->setValue('nilai_huruf_skripsi',  $rowSkripsi?->NILAI_HURUF  ?? '-');
+                    $tp->setValue('status_lulus_umum',    $rowUmum?->STATUS_LULUS    ?? '-');
+                    $tp->setValue('nilai_huruf_umum',     $rowUmum?->NILAI_HURUF     ?? '-');
+                    $tp->setValue('catatan_1',            $rowSkripsi?->CATATAN      ?? '');
+                    $tp->setValue('catatan_2',            $rowUmum?->CATATAN         ?? '');
+                } elseif ($kpS1 === '125') {
+                    $jenis125 = strtoupper(trim((string) $request->input('jenis', $noForm ?: 'SKRIPSI')));
+                    $tp->setValue('jenis_penilaian', $jenis125 !== '' ? $jenis125 : 'SKRIPSI');
+                    $rows125 = $penilaianRows->values();
+                    for ($i = 0; $i < 8; $i++) {
+                        $r = $rows125->get($i);
+                        $tp->setValue('param_' . ($i + 1), $r ? ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? '') : '');
+                        $tp->setValue('nilai_' . ($i + 1), $r && ($r->NILAI ?? '') !== '' ? (string) $r->NILAI : '');
+                    }
+                }
             } else {
                 $tp->setValue('nama_judul',           $namaJudul);
                 $tp->setValue('nip',                  $penilaiNip);
@@ -539,6 +667,8 @@ class CetakController extends Controller
         } elseif ($isForm221Mk) {
             // 221 Tesis II MK: 10 baris detail penilaian dengan token ber-indeks.
             $this->postProcessForm221MkRows($docxPath, $penilaianRows->values()->toArray());
+        } elseif ($isS1Form) {
+            // S1 Prodi 122/123/125 sudah diisi melalui token spesifik prodi di atas.
         } else {
             $this->fillPenilaianRows($docxPath, $penilaianRows->values()->toArray(), $rataNilai, $tanggal);
         }
@@ -2104,7 +2234,9 @@ class CetakController extends Controller
         $tanggal = $latestPenilaian?->TGL_UPDATE ?? $latestPenilaian?->TGL_CREATE ?? null;
         $tanggalFormat = $tanggal ? \Carbon\Carbon::parse($tanggal)->translatedFormat('d F Y') : '';
 
-        // Template: S2 pakai template BA per-KODE_PRODI (221/222/223 TG/225)
+        // Template: S1 pakai template BA per-KODE_PRODI (122/123/125), S2 pakai template BA per-KODE_PRODI (221/222/223 TG/225)
+        $isS1 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S1';
+        $isS1Ba = $isS1 && in_array(trim((string) $kodeProdi), ['122', '123', '125'], true);
         $isS2 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S2';
         $isS2Prodi222 = $isS2 && trim((string) $kodeProdi) === '222';
         $isS2Prodi223 = $isS2 && trim((string) $kodeProdi) === '223';
@@ -2112,7 +2244,9 @@ class CetakController extends Controller
         $isBa221Mk = $isS2 && trim((string) $kodeProdi) === '221'
             && strtolower(trim($tahapan)) === 'tesis ii'
             && $jenisCetak === 'mata_kuliah';
-        if ($isS2) {
+        if ($isS1Ba) {
+            $templatePath = $this->getS1BeritaAcaraTemplate($kodeProdi, $tahapan);
+        } elseif ($isS2) {
             $templatePath = $this->getS2BeritaAcaraTemplate($kodeProdi, $tahapan, $jenisCetak);
         } else {
             $templatePath = base_path('template/pROPOSAL/BA proposal TEMPLATE.docx');
@@ -2190,6 +2324,186 @@ class CetakController extends Controller
             // Set overall average (for the summary field)
             $tp->setValue('nilai_rata2_keseluruhan', $rataRataKeseluruhan);
             $tp->setValue('nilai_akhir_indeks', $indeks);
+
+            // S1: set Berita Acara Sarjana placeholders (prodi 122, 123, 125)
+            $s1TtdMap = [];
+            if ($isS1Ba) {
+                $kpS1 = trim((string) $kodeProdi);
+                $isTa2S1 = in_array(strtolower(trim((string) $tahapan)), ['ta ii', 'ta 2', 'ta-2'], true);
+                $prodiS1BA = \App\Models\TProdi::where('KODE_PRODI', $kodeProdi)->first();
+
+                $hariSidangS1 = $ajuan->tgl_sidang
+                    ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l')
+                    : '-';
+                $tglSidangS1 = $ajuan->tgl_sidang
+                    ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('d F Y')
+                    : '-';
+
+                $kodeMkS1 = '';
+                if ($kodeProdi) {
+                    $mkRecS1 = TMkProdi::whereRaw('TRIM(KODE_PRODI) = ?', [$kpS1])
+                        ->whereRaw('UPPER(TRIM(TAHAPAN_SIDANG)) = ?', [strtoupper(trim($tahapan))])
+                        ->first()
+                        ?? TMkProdi::whereRaw('TRIM(KODE_PRODI) = ?', [$kpS1])->first();
+                    $kodeMkS1 = trim((string) ($mkRecS1->KODE_MK ?? ''));
+                }
+
+                $kaprodiS1 = null;
+                if (!empty($ajuan->ID_PRODI)) {
+                    $kaprodiUid = DB::table('t_user_prodi')
+                        ->join('t_user', 't_user_prodi.ID_USER', '=', 't_user.id')
+                        ->where('t_user_prodi.ID_PRODI', $ajuan->ID_PRODI)
+                        ->where('t_user.STATUS_KAPRODI', 'y')
+                        ->value('t_user_prodi.ID_USER');
+                    if ($kaprodiUid) {
+                        $kaprodiS1 = TUser::find($kaprodiUid);
+                    }
+                }
+                if (!$kaprodiS1 && $kpS1 !== '') {
+                    $kaprodiS1 = TUser::where('KODE_PRODI', $kpS1)->where('STATUS_KAPRODI', 'y')->first();
+                }
+
+                $catatanRowsS1 = TPenilaian::where('ID_JUDUL', $idJudul)
+                    ->where('TAHAPAN_SIDANG', $tahapan)
+                    ->whereNotNull('CATATAN')
+                    ->whereRaw("TRIM(COALESCE(CATATAN, '')) <> ''")
+                    ->orderBy('id', 'asc')
+                    ->get();
+                $catatanByNamaS1 = [];
+                foreach ($catatanRowsS1 as $cr) {
+                    $nm = trim((string) ($cr->NAMA ?? ''));
+                    $isi = trim((string) ($cr->CATATAN ?? ''));
+                    if ($nm !== '' && $isi !== '') {
+                        $catatanByNamaS1[$nm][] = $isi;
+                    }
+                }
+
+                $pembS1 = $allTimSidang->filter(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing'))->values();
+                $pengS1 = $allTimSidang->filter(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji'))->values();
+                $p1S1 = $ketuaPembimbing ?? $pembS1->get(0);
+                $p2S1 = $pembS1->first(fn($t) => $t->id !== ($p1S1?->id));
+                $p3S1 = $pembS1->first(fn($t) => $t->id !== ($p1S1?->id) && $t->id !== ($p2S1?->id));
+
+                $statusLulusS1 = strtoupper(trim((string) ($ajuan->STATUS_LULUS ?? '')));
+                $tp->setValue('nama_prodi',     $prodiS1BA?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+                $tp->setValue('alamat_prodi',   $prodiS1BA?->ALAMAT ?? '-');
+                $tp->setValue('tlp_prodi',      $prodiS1BA?->TLP ?? '-');
+                $tp->setValue('email_prodi',    $prodiS1BA?->EMAIL ?? '-');
+                $tp->setValue('hari_sidang',    $hariSidangS1);
+                $tp->setValue('tgl_sidang',     $tglSidangS1);
+                $tp->setValue('waktu',          $waktuMulai !== '' ? $waktuMulai : '-');
+                $tp->setValue('kode_mk',        $kodeMkS1 !== '' ? $kodeMkS1 : '-');
+                $tp->setValue('status_lulus',   $statusLulusS1 !== '' ? $statusLulusS1 : '-');
+                $tp->setValue('nama_kaprodi',   $kaprodiS1?->NAMA_LENGKAP ?? '-');
+                $tp->setValue('nip_kaprodi',    $kaprodiS1?->NIP_NIM ?? '-');
+                $tp->setValue('nama_pembimbing_i',   $p1S1?->NAMA ?? '-');
+                $tp->setValue('nip_pembimbing_i',    $p1S1?->NIP ?? '-');
+                $tp->setValue('dh_nip_pembimbing_i', $p1S1?->NIP ?? '-');
+                $tp->setValue('nama_pembimbing_ii',  $p2S1?->NAMA ?? '-');
+                $tp->setValue('nama_pembimbing_iii', $p3S1?->NAMA ?? '-');
+                $tp->setValue('nama_penguji_i',      $pengS1->get(0)?->NAMA ?? '-');
+                $tp->setValue('nama_penguji_ii',     $pengS1->get(1)?->NAMA ?? '-');
+                $tp->setValue('nama_penguji_iii',    $pengS1->get(2)?->NAMA ?? '-');
+
+                if ($kpS1 === '122' && !$isTa2S1) {
+                    $tp->setValue('semester',        $ajuan->SEMESTER ?? '-');
+                    $tp->setValue('tahun_akademik',  $ajuan->THN_AKADEMIK ?? '-');
+                    $tp->setValue('nilai_huruf',     $indeks);
+                    $tp->setValue('nilai_rata2',     $rataRataKeseluruhan);
+                    for ($i = 0; $i < 3; $i++) {
+                        $t = $penilaiList->get($i);
+                        $tp->setValue('nama_penilai_' . ($i + 1), $t?->NAMA ?? '-');
+                        $tp->setValue('nip_penilai_' . ($i + 1),  $t?->NIP ?? '-');
+                        $tp->setValue('status_tim_' . ($i + 1),   $t?->status_tim_sidang ?? '-');
+                    }
+                    $s1TtdMap['signature'] = $this->signatureBinary($p1S1);
+                } elseif ($kpS1 === '123' && !$isTa2S1) {
+                    $huruf123 = TPenilaian::where('ID_JUDUL', $idJudul)
+                        ->where('TAHAPAN_SIDANG', $tahapan)
+                        ->whereNotNull('NILAI_HURUF')
+                        ->whereRaw("TRIM(COALESCE(NILAI_HURUF, '')) <> ''")
+                        ->value('NILAI_HURUF') ?? $indeks;
+                    $predikatMap = ['A' => 'Sangat Memuaskan', 'AB' => 'Memuaskan', 'B' => 'Memuaskan', 'BC' => 'Cukup', 'C' => 'Cukup', 'D' => 'Tidak Lulus'];
+                    $tp->setValue('nilai_huruf', $huruf123);
+                    $tp->setValue('predikat', $predikatMap[strtoupper(trim((string) $huruf123))] ?? '-');
+                    $tp->setValue('nama_pembimbing_ttd', $p1S1?->NAMA ?? '-');
+                    for ($i = 0; $i < 3; $i++) {
+                        $t = $penilaiList->get($i);
+                        $tp->setValue('nama_penilai_' . ($i + 1), $t?->NAMA ?? '-');
+                        $tp->setValue('status_tim_' . ($i + 1),   $t?->status_tim_sidang ?? '-');
+                        $tp->setValue('dh_nama_' . ($i + 1),      $t?->NAMA ?? '-');
+                        $tp->setValue('dh_status_' . ($i + 1),    $t?->status_tim_sidang ?? '-');
+                        $bin = $this->signatureBinary($t);
+                        $s1TtdMap['ttd_' . ($i + 1)] = $bin;
+                        $s1TtdMap['dh_ttd_' . ($i + 1)] = $bin;
+                    }
+                    $s1TtdMap['dh_ttd_pembimbing'] = $this->signatureBinary($p1S1);
+                    $catKeys = array_keys($catatanByNamaS1);
+                    for ($i = 0; $i < 3; $i++) {
+                        $nm = $catKeys[$i] ?? '';
+                        $tp->setValue('cat_nama_' . ($i + 1), $nm !== '' ? $nm : '-');
+                        $tp->setValue('catatan_' . ($i + 1),  $nm !== '' ? implode('; ', $catatanByNamaS1[$nm]) : '-');
+                    }
+                } elseif ($kpS1 === '123' && $isTa2S1) {
+                    $huruf123 = TPenilaian::where('ID_JUDUL', $idJudul)
+                        ->where('TAHAPAN_SIDANG', $tahapan)
+                        ->whereNotNull('NILAI_HURUF')
+                        ->whereRaw("TRIM(COALESCE(NILAI_HURUF, '')) <> ''")
+                        ->value('NILAI_HURUF') ?? $indeks;
+                    $tp->setValue('nilai_huruf', $huruf123);
+
+                    $slots123 = [$p1S1, $p2S1, $p3S1, $pengS1->get(0), $pengS1->get(1)];
+                    foreach ($slots123 as $idx => $slotTim) {
+                        $num = $idx + 1;
+                        $skN = '-'; $skL = '-'; $umN = '-'; $umL = '-';
+                        if ($slotTim) {
+                            $rowsSlot = TPenilaian::where('ID_JUDUL', $idJudul)
+                                ->where('TAHAPAN_SIDANG', $tahapan)
+                                ->where('ID_TIM_SIDANG', $slotTim->id)
+                                ->get();
+                            $rSk = $rowsSlot->first(fn($r) => str_contains(strtolower((string) ($r->NAMA_PENILAIAN ?? '')), 'skripsi'));
+                            $rUm = $rowsSlot->first(fn($r) => str_contains(strtolower((string) ($r->NAMA_PENILAIAN ?? '')), 'umum'));
+                            if ($rSk) {
+                                $skN = $rSk->NILAI_HURUF ?? (string) ($rSk->NILAI ?? '-');
+                                $skL = $rSk->STATUS_LULUS ?? '-';
+                            }
+                            if ($rUm) {
+                                $umN = $rUm->NILAI_HURUF ?? (string) ($rUm->NILAI ?? '-');
+                                $umL = $rUm->STATUS_LULUS ?? '-';
+                            }
+                        }
+                        $tp->setValue('skripsi_n_' . $num, $skN ?: '-');
+                        $tp->setValue('skripsi_l_' . $num, $skL ?: '-');
+                        $tp->setValue('umum_n_' . $num,    $umN ?: '-');
+                        $tp->setValue('umum_l_' . $num,    $umL ?: '-');
+                    }
+                    $ttdOrder123 = [$p1S1, $p2S1, $p3S1, $ketuaSidang, $pengS1->get(0), $pengS1->get(1)];
+                    foreach ($ttdOrder123 as $idx => $t) {
+                        $bin = $this->signatureBinary($t);
+                        $s1TtdMap['ttd_' . ($idx + 1)] = $bin;
+                        $s1TtdMap['dh_ttd_' . ($idx + 1)] = $bin;
+                    }
+                    $catKeys = array_keys($catatanByNamaS1);
+                    for ($i = 0; $i < 5; $i++) {
+                        $nm = $catKeys[$i] ?? '';
+                        $tp->setValue('cat_nama_' . ($i + 1), $nm !== '' ? $nm : '-');
+                        $tp->setValue('catatan_' . ($i + 1),  $nm !== '' ? implode('; ', $catatanByNamaS1[$nm]) : '-');
+                    }
+                } elseif ($kpS1 === '125') {
+                    $tp->setValue('tempat_lahir', '-');
+                    $tp->setValue('tgl_lahir',    '-');
+                    $tp->setValue('ip',           $ajuan->IP !== null ? (string) $ajuan->IP : '-');
+                    $tp->setValue('nilai_skripsi', $rataRataKeseluruhan);
+                    $tp->setValue('nilai_sidang',  $rataRataKeseluruhan);
+                    $firstCatNama = array_key_first($catatanByNamaS1) ?? '-';
+                    $allCatStr = [];
+                    foreach ($catatanByNamaS1 as $nm => $items) {
+                        $allCatStr[] = $nm . ': ' . implode('; ', $items);
+                    }
+                    $tp->setValue('cat_nama_1', $firstCatNama);
+                    $tp->setValue('catatan',    !empty($allCatStr) ? implode("\n", $allCatStr) : '-');
+                }
+            }
 
             // S2: set Berita Acara Magister placeholders (prodi, jadwal, nilai, status, catatan)
             if ($isS2) {
@@ -2499,20 +2813,36 @@ class CetakController extends Controller
         $this->centerValueCellsInBaProposal($docxPath);
 
         // Checkbox LULUS/TIDAK LULUS & Status Publikasi untuk semua template BA S2 (Tesis I & Tesis II)
-        $publikasiBa = ['Submitt' => 't', 'Under Review' => 't', 'Publish' => 't'];
-        try {
-            $rowsPub = DB::table('t_publikasi')->where('ID_AJUAN_SIDANG', $ajuan->id)->get();
-            foreach ($rowsPub as $rp) {
-                $k = (string) ($rp->PUBLIKASI ?? '');
-                if ($k !== '') {
-                    $publikasiBa[$k] = (string) ($rp->STATUS ?? 't');
+        if ($isS2) {
+            $publikasiBa = ['Submitt' => 't', 'Under Review' => 't', 'Publish' => 't'];
+            try {
+                $rowsPub = DB::table('t_publikasi')->where('ID_AJUAN_SIDANG', $ajuan->id)->get();
+                foreach ($rowsPub as $rp) {
+                    $k = (string) ($rp->PUBLIKASI ?? '');
+                    if ($k !== '') {
+                        $publikasiBa[$k] = (string) ($rp->STATUS ?? 't');
+                    }
                 }
-            }
-        } catch (\Throwable $e) {}
-        $this->applyS2BaCheckboxes($docxPath, $ajuan->STATUS_LULUS ?? '', $publikasiBa);
+            } catch (\Throwable $e) {}
+            $this->applyS2BaCheckboxes($docxPath, $ajuan->STATUS_LULUS ?? '', $publikasiBa);
+        }
 
         // Sisipkan tanda tangan penilai ke BA
-        if ($isS2Prodi222) {
+        if ($isS1Ba) {
+            if (!empty($s1TtdMap)) {
+                $this->fillBa221MkSignatures($docxPath, $s1TtdMap);
+            }
+            if (trim((string) $kodeProdi) === '122' && in_array(strtolower(trim((string) $tahapan)), ['ta ii', 'ta 2', 'ta-2'], true)) {
+                $this->postProcessS1Ba122Ta2(
+                    $docxPath,
+                    $allTimSidang,
+                    $penilaiAverages,
+                    (string) ($ajuan->STATUS_LULUS ?? ''),
+                    $indeks,
+                    $catatanByNamaS1 ?? []
+                );
+            }
+        } elseif ($isS2Prodi222) {
             // Bangun tabel Tim Penilai dinamis (baris mengikuti jumlah pembimbing/penguji).
             // Tanda tangan per baris sudah disisipkan di buildBa222DynamicTimTable().
             $this->buildBa222DynamicTimTable($docxPath, $penilaiList->all());
@@ -5456,5 +5786,211 @@ class CetakController extends Controller
         $zip->deleteName("word/document.xml");
         $zip->addFromString("word/document.xml", $xml);
         $zip->close();
+    }
+
+    /**
+     * Isi tabel tim penilai, keputusan LULUS/TIDAK LULUS, catatan perbaikan,
+     * dan tabel daftar hadir pada BA Sidang TA 2 prodi 122.
+     */
+    private function postProcessS1Ba122Ta2(
+        string $docxPath,
+        $allTimSidang,
+        array $penilaiAverages,
+        string $statusLulus,
+        string $indeks,
+        array $catatanByNama
+    ): void {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+            return;
+        }
+
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        $dom->formatOutput = false;
+        if (!@$dom->loadXML($xml)) {
+            $zip->close();
+            return;
+        }
+
+        $xp = new \DOMXPath($dom);
+        $xp->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+        $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+
+        $pembS1 = $allTimSidang->filter(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing'))->values();
+        $pengS1 = $allTimSidang->filter(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'penguji'))->values();
+        $ketuaS1 = $allTimSidang->first(fn($t) => strtolower(trim($t->status_tim_sidang ?? '')) === 'ketua sidang');
+
+        $roleSlots = [
+            $pembS1->get(0),
+            $pembS1->get(1),
+            $pembS1->get(2),
+            $ketuaS1,
+            $pengS1->get(0),
+            $pengS1->get(1),
+        ];
+
+        $avgByNama = [];
+        foreach ($penilaiAverages as $pa) {
+            $avgByNama[strtolower(trim((string) ($pa['nama'] ?? '')))] = $pa['rata_nilai'] ?? '';
+        }
+
+        $setCellText = function (\DOMElement $tc, string $text) use ($xp, $dom, $wNs): void {
+            $p = $xp->query('./w:p', $tc)->item(0);
+            if (!$p) {
+                $p = $dom->createElementNS($wNs, 'w:p');
+                $tc->appendChild($p);
+            }
+            foreach ($xp->query('./w:r', $p) as $oldRun) {
+                $p->removeChild($oldRun);
+            }
+            $r = $dom->createElementNS($wNs, 'w:r');
+            $t = $dom->createElementNS($wNs, 'w:t', $text);
+            $r->appendChild($t);
+            $p->appendChild($r);
+        };
+
+        $tables = $xp->query('//w:body/w:tbl');
+        // Tabel 0: Tim Penguji (baris 2..7 = 6 peran)
+        if ($tables->length > 0) {
+            $rows0 = $xp->query('./w:tr', $tables->item(0));
+            for ($i = 0; $i < 6; $i++) {
+                $tr = $rows0->item($i + 2);
+                if (!$tr) {
+                    continue;
+                }
+                $cells = $xp->query('./w:tc', $tr);
+                $tim = $roleSlots[$i] ?? null;
+                $nama = $tim?->NAMA ?? '-';
+                if ($cells->item(1)) {
+                    $setCellText($cells->item(1), $nama);
+                }
+                $nilai = $tim ? ($avgByNama[strtolower(trim((string) $nama))] ?? '') : '';
+                if ($nilai !== '' && $cells->item(3) && trim($cells->item(3)->textContent) === '') {
+                    $setCellText($cells->item(3), (string) $nilai);
+                }
+            }
+        }
+
+        // Tabel 2 (Daftar Hadir): baris 1..6 = 6 peran
+        if ($tables->length > 2) {
+            $rows2 = $xp->query('./w:tr', $tables->item(2));
+            for ($i = 0; $i < 6; $i++) {
+                $tr = $rows2->item($i + 1);
+                if (!$tr) {
+                    continue;
+                }
+                $cells = $xp->query('./w:tc', $tr);
+                $tim = $roleSlots[$i] ?? null;
+                if ($cells->item(1)) {
+                    $setCellText($cells->item(1), $tim?->NAMA ?? '-');
+                }
+            }
+        }
+
+        $outXml = $dom->saveXML();
+
+        // Tandai status lulus & nilai huruf pada teks keputusan
+        $stUp = strtoupper(trim($statusLulus));
+        if ($stUp === 'LULUS') {
+            $outXml = str_replace('LULUS / TIDAK LULUS', 'LULUS', $outXml);
+        } elseif ($stUp === 'TIDAK LULUS') {
+            $outXml = str_replace('LULUS / TIDAK LULUS', 'TIDAK LULUS', $outXml);
+        }
+        if (trim($indeks) !== '') {
+            $outXml = str_replace('A  /  AB  /  B  /  BC  /  C  /  D  /  E', trim($indeks), $outXml);
+        }
+
+        // Isi catatan perbaikan 1..3 jika ada
+        $catFlat = [];
+        foreach ($catatanByNama as $nm => $items) {
+            $catFlat[] = $nm . ': ' . implode('; ', $items);
+        }
+        for ($i = 0; $i < 3; $i++) {
+            if (!isset($catFlat[$i])) {
+                break;
+            }
+            $num = $i + 1;
+            $outXml = preg_replace(
+                '/' . $num . '\.\s*\.{10,}/u',
+                $num . '. ' . htmlspecialchars($catFlat[$i], ENT_XML1 | ENT_QUOTES, 'UTF-8'),
+                $outXml,
+                1
+            );
+        }
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $outXml);
+        $zip->close();
+    }
+
+    /**
+     * Cetak Daftar Hadir Sidang S1 / S2 langsung dari database.
+     */
+    public function cetakDaftarHadir(Request $request, $idJudul, $tahapan)
+    {
+        $tahapan = str_replace('_', ' ', $tahapan);
+        $judul = TJudul::find($idJudul);
+        if (!$judul) {
+            return response()->json(['error' => 'Judul tidak ditemukan.'], 404);
+        }
+        $ajuan = $this->resolveAjuan($idJudul, $tahapan);
+        if (!$ajuan) {
+            return response()->json(['error' => 'Data judul/ajuan tidak ditemukan.'], 404);
+        }
+
+        $isS1 = strtoupper((string) ($ajuan->STRATA ?? '')) === 'S1';
+        $templatePath = $isS1
+            ? base_path('template/S1/daftar hadir TEMPLATE.docx')
+            : base_path('template/S2/daftar hadir TEMPLATE.docx');
+        if (!file_exists($templatePath)) {
+            return response()->json(['error' => 'Template daftar hadir tidak ditemukan.'], 500);
+        }
+
+        $kodeProdi = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? $judul->KODE_PRODI ?? null;
+        $prodi = \App\Models\TProdi::where('KODE_PRODI', $kodeProdi)->first();
+        $allTimSidang = TTimSidang::where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->orderBy('id')
+            ->get();
+        $ketuaSidang = $allTimSidang->first(fn($t) => strtolower(trim($t->status_tim_sidang ?? '')) === 'ketua sidang');
+        $ketuaPembimbing = $allTimSidang->first(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing'));
+
+        $tp = new TemplateProcessor($templatePath);
+        $tp->setValue('nama_tahapan', strtoupper($tahapan));
+        $tp->setValue('nama_prodi',   $prodi?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
+        $tp->setValue('alamat_prodi', $prodi?->ALAMAT ?? '-');
+        $tp->setValue('tlp_prodi',    $prodi?->TLP ?? '-');
+        $tp->setValue('email_prodi',  $prodi?->EMAIL ?? '-');
+        $tp->setValue('nama_mhs',     $ajuan->NAMA_MHS ?? '-');
+        $tp->setValue('nim',          $ajuan->NIM ?? '-');
+        $tp->setValue('tgl_sidang',   $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') : '-');
+        $tp->setValue('waktu',        $ajuan->waktu_sidang ? \Carbon\Carbon::parse($ajuan->waktu_sidang)->format('H:i') : '-');
+        $tp->setValue('ruang_sidang', $ajuan->ruang_sidang ?? '-');
+        $tp->setValue('judul',        $ajuan->JUDUL ?? $judul->JUDUL ?? '-');
+        $tp->setValue('nama_ketua_sidang', $ketuaSidang?->NAMA ?? $ketuaPembimbing?->NAMA ?? '-');
+        $tp->setValue('nip_ketua_sidang',  $ketuaSidang?->NIP ?? $ketuaPembimbing?->NIP ?? '-');
+        $tp->setValue('nama_pembimbing_i', $ketuaPembimbing?->NAMA ?? '-');
+        $tp->setValue('nip_pembimbing_i',  $ketuaPembimbing?->NIP ?? '-');
+
+        for ($i = 0; $i < 6; $i++) {
+            $t = $allTimSidang->get($i);
+            $tp->setValue('nama_tim_' . ($i + 1),   $t?->NAMA ?? '-');
+            $tp->setValue('status_tim_' . ($i + 1), $t?->status_tim_sidang ?? '-');
+        }
+
+        $filename = 'Daftar_Hadir_' . str_replace(' ', '_', $tahapan) . '_' . $idJudul . '_' . time() . '.docx';
+        $docxPath = storage_path('app/uploads/' . $filename);
+        if (!is_dir(dirname($docxPath))) {
+            \Illuminate\Support\Facades\File::makeDirectory(dirname($docxPath), 0775, true);
+        }
+        $tp->saveAs($docxPath);
+
+        return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
 }
