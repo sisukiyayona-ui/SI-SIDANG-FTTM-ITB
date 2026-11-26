@@ -1762,7 +1762,7 @@
                                 Form <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Tambah</span>/ Edit <span class="text-danger" style="text-decoration: underline; text-decoration-color: red;">Jadwal Sidang {{ getTahapLabel($tahapan) }}</span>
                             </div>
                             <div>
-                                @if(!in_array(strtolower($tahapan), ['tesis i', 'tesis ii', 'tahap iv']))
+                                @if(!in_array(strtolower($tahapan), ['ta i', 'ta ii', 'tesis i', 'tesis ii', 'tahap iv']))
                                 <button type="button" class="btn btn-sm btn-outline-primary mr-2" onclick="cetakSuratKesediaan()"><i class="fas fa-file-alt mr-1"></i> Surat Kesediaan Penelaah</button>
                                 @endif
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="cetakUndangan()"><i class="fas fa-print mr-1"></i> Cetak Undangan</button>

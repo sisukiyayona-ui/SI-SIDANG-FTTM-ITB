@@ -326,7 +326,7 @@ class SidangS1Controller extends Controller
             }
 
             $this->insertAjuanTahap1FromTuProdi($judulId, $existingJudul->JUDUL ?? $request->judul, $mhs, $prodi, $user);
-            return redirect()->back()->with('success', 'Judul sudah ada; pengajuan TA I dilengkapi dan langsung Diproses di TU Prodi.');
+            return redirect()->back()->with('success', 'Judul sudah ada; pengajuan TA I dilengkapi dengan status Belum Diajukan.');
         }
 
         try {
@@ -348,12 +348,13 @@ class SidangS1Controller extends Controller
             return redirect()->back()->with('error', 'Gagal menambah judul: ' . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Judul berhasil ditambahkan dan langsung Diproses di TU Prodi.');
+        return redirect()->back()->with('success', 'Judul berhasil ditambahkan dengan status Belum Diajukan.');
     }
 
     /**
      * Insert ajuan TA I saat judul S1 dibuat oleh TU Prodi / FS.
-     * STATUS_AJUKAN_MHS = 'y' agar status langsung "Diproses di TU Prodi".
+     * STATUS_AJUKAN_MHS = 't' agar status tetap "Belum Diajukan" sampai
+     * mahasiswa klik Ajukan (baru jadi "Diproses di TU Prodi").
      */
     private function insertAjuanTahap1FromTuProdi(int $judulId, string $judul, $mhs, $prodi, array $user): void
     {
@@ -366,7 +367,7 @@ class SidangS1Controller extends Controller
             'JUDUL'               => $judul,
             'TAHAPAN_SIDANG'      => 'TA I',
             'STRATA'              => 'S1',
-            'STATUS_AJUKAN_MHS'   => 'y',
+            'STATUS_AJUKAN_MHS'   => 't',
             'STATUS_AJUKAN_PRODI' => 't',
             'STATUS_LULUS'        => null,
             'TGL_SIDANG'          => null,
