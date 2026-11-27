@@ -1746,9 +1746,9 @@
                                         @elseif($strataView === 'S2')
                                             <option value="Lulus Sidang Magister" {{ in_array(strtolower(trim((string) $statusKelulusanS2)), ['lulus sidang magister', 'lulus'], true) ? 'selected' : '' }}>LULUS Sidang Magister</option>
                                             <option value="Tidak Lulus Sidang Magister" {{ in_array(strtolower(trim((string) $statusKelulusanS2)), ['tidak lulus sidang magister', 'tidak lulus'], true) ? 'selected' : '' }}>TIDAK LULUS Sidang Magister</option>
-                                        @elseif(in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
-                                            <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>Lulus</option>
-                                            <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
+                                        @elseif($strataView === 'S1' || in_array(strtolower($tahapan), ['tahap iii', 'tahap iv', 'sk i', 'sk ii', 'sk iii', 'sk iv', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
+                                            <option value="lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'lulus') ? 'selected' : '' }}>{{ $strataView === 'S1' ? 'LULUS' : 'Lulus' }}</option>
+                                            <option value="tidak lulus" {{ (isset($ajuan) && strtolower($ajuan->status_lulus ?? '') === 'tidak lulus') ? 'selected' : '' }}>{{ $strataView === 'S1' ? 'TIDAK LULUS' : 'Tidak Lulus' }}</option>
                                         @else
                                             <option value="Layak tanpa perbaikan" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak tanpa perbaikan') ? 'selected' : '' }}>1. Layak tanpa perbaikan</option>
                                             <option value="Layak dengan perbaikan minor tanpa harus dibaca kembali" {{ (isset($ajuan) && $ajuan->status_lulus === 'Layak dengan perbaikan minor tanpa harus dibaca kembali') ? 'selected' : '' }}>2. Layak dengan perbaikan minor tanpa harus dibaca kembali</option>
@@ -3256,7 +3256,12 @@ function applyStatusCatatan(row, isPub) {
     var catatanInput = row.querySelector('.catatan-input');
     var nilaiInput = row.querySelector('.nilai-input');
     if (isPub) {
+        var cekInput = row.querySelector('.cek-makalah-input');
         if (catatanInput) catatanInput.disabled = (sc !== 'y');
+        if (cekInput) {
+            cekInput.disabled = (sc === 'y');
+            if (sc === 'y') cekInput.checked = false;
+        }
         return;
     }
     // Prodi 123 (S1 nilai huruf): status catatan = y tetap mengaktifkan catatan,
@@ -4568,7 +4573,7 @@ async function savePenilaianTahap2() {
         if (statusLulusInput) {
             item.status_lulus = statusLulusInput.value;
         }
-        if (cekMakalahInput) {
+        if (cekMakalahInput && isPublikasiFormNo(document.getElementById('selectedNoFormTahap2')?.value)) {
             item.cek_makalah = cekMakalahInput.checked ? 'y' : '';
         }
         penilaian.push(item);

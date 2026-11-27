@@ -198,7 +198,7 @@ class PenilaianController extends Controller
 
         // Save each penilaian
         foreach ($request->penilaian as $item) {
-            if (empty($item['nilai']) && empty($item['catatan']) && empty($item['status_lulus']) && empty($item['cek_makalah'])) {
+            if (empty($item['nilai']) && empty($item['catatan']) && empty($item['status_lulus']) && ! array_key_exists('cek_makalah', $item)) {
                 continue;
             }
             $pointPenilaian = TPointPenilaian::find($item['id_penilaian']);

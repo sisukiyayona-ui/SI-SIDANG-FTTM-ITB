@@ -98,6 +98,15 @@ class KelengkapanNilaiSidang
             $own = $filledByTim[$t->id] ?? [];
             $belumOwn = [];
             foreach ($pointPerForm as $form => $pointIds) {
+                if (stripos((string) $form, 'publikasi') !== false) {
+                    $hasAnyForForm = ($perTim[$t->id] ?? collect())->contains(
+                        fn ($r) => strcasecmp(trim((string) ($r->NO_FORM ?? '')), trim((string) $form)) === 0
+                    );
+                    if (! $hasAnyForForm) {
+                        $belumOwn[] = $form;
+                    }
+                    continue;
+                }
                 foreach ($pointIds as $pointId) {
                     if (! in_array($pointId, $own, true)) {
                         $belumOwn[] = $form;
