@@ -417,12 +417,6 @@
         animation: appShimmerSlide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
 
-    @if($loaderMode === 'app' && !$isDashboardSplash)
-    body.master-ui .content-wrapper > .content {
-        animation: appPageEnter 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    @endif
-
     @keyframes appFluidRise {
         from { opacity: 0; transform: translateY(12px) scale(0.95); }
         to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -562,6 +556,7 @@
         if (text) labelEl.textContent = text;
         if (!overlay.classList.contains('is-visible')) {
             shownAt = Date.now();
+            overlay.style.pointerEvents = '';
             overlay.setAttribute('aria-hidden', 'false');
             overlay.classList.add('is-visible');
         }
@@ -593,6 +588,8 @@
         }
         activeCount = Math.max(0, activeCount - 1);
         if (activeCount === 0) {
+            // Lepas pointer-events segera supaya UI/modal di bawahnya langsung bisa diklik
+            overlay.style.pointerEvents = 'none';
             var elapsed = Date.now() - shownAt;
             var wait = Math.max(0, MIN_VISIBLE_MS - elapsed);
             clearTimeout(hideTimer);

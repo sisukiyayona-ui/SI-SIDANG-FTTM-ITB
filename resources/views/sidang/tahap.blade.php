@@ -250,6 +250,8 @@
         $nilaiMode = \App\Services\NilaiSidang::mode($kodeProdi);
         $isProdi123 = $nilaiMode === \App\Services\NilaiSidang::MODE_HURUF; // nilai huruf + status per baris
         $isProdi124 = $nilaiMode === \App\Services\NilaiSidang::MODE_100;   // nilai 1 - 100
+        $ajuanNilaiHuruf = strtoupper(trim((string) ($ajuan->NILAI_HURUF ?? $ajuan->nilai_huruf ?? '')));
+        $nilaiHurufOptions = ['A', 'AB', 'B', 'BC', 'C', 'CD', 'D'];
 
         // Kolom tabel penilaian per prodi:
         //  - 123 (Geofisika): keterangan & bobot di-hide, catatan diperlebar
@@ -790,10 +792,22 @@
                     </div>
                     {{-- STATUS LULUS --}}
                     <div class="mt-4 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
-                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
-                            <span class="font-weight-bold">Status Lulus</span>
-                            @if(!in_array(session('auth_user.role'), ['FS']))
-                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px; max-width: 100%;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
+                        <div class="d-flex flex-column" style="gap: 8px;">
+                            @if($isProdi123 && !in_array(session('auth_user.role'), ['FS']))
+                            <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                <span class="font-weight-bold" style="min-width: 90px;">Nilai</span>
+                                <select class="form-control form-control-sm border-dark rounded-0" id="nilaiHurufDisplay" style="width: 150px; max-width: 100%;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
+                                    <option value="">Pilih Nilai</option>
+                                    @foreach($nilaiHurufOptions as $nh)
+                                        <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endif
+                            <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                <span class="font-weight-bold" style="min-width: 90px;">Status Lulus</span>
+                                @if(!in_array(session('auth_user.role'), ['FS']))
+                                <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px; max-width: 100%;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
                                 <option value="" {{ (!isset($ajuan) || !$ajuan->status_lulus) ? 'selected' : '' }}>Pilih status</option>
                                 @if($isProdi123)
                                 <option value="LULUS" {{ (isset($ajuan) && strtolower(trim((string) $ajuan->status_lulus)) === 'lulus') ? 'selected' : '' }}>LULUS</option>
@@ -806,6 +820,7 @@
                             @else
                             <span class="font-weight-bold ml-2 text-uppercase" style="color: {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? '#28a745' : ((isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? '#dc3545' : '#6c757d') }};">{{ isset($ajuan) && $ajuan->status_lulus ? getAjuanDisplayStatus($ajuan) : 'Belum ditentukan' }}</span>
                             @endif
+                            </div>
                         </div>
                         {{-- TU Prodi: tombol Kunci Nilai tersembunyi sampai penilai
                              terpilih ber-keterangan "Ketua Sidang" (data-lock-gate +
@@ -1640,11 +1655,24 @@
                                 $statusKelulusanTahap2 = $statusAjuanTahap2 ?: $statusBarisFallback;
                             @endphp
                             <div class="mt-4 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
-                                <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                <div class="d-flex align-items-start flex-wrap" style="gap: 14px;">
                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                                    <span class="font-weight-bold">Status Kelulusan</span>
-                                    @if(!in_array(session('auth_user.role'), ['FS']))
-                                    <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
+                                    <div class="d-flex flex-column" style="gap: 8px;">
+                                        @if($isProdi123 && !in_array(session('auth_user.role'), ['FS']))
+                                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                            <span class="font-weight-bold" style="min-width: 118px;">Nilai</span>
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="nilaiHurufTahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
+                                                <option value="">Pilih Nilai</option>
+                                                @foreach($nilaiHurufOptions as $nh)
+                                                    <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        @endif
+                                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                            <span class="font-weight-bold" style="min-width: 118px;">Status Kelulusan</span>
+                                            @if(!in_array(session('auth_user.role'), ['FS']))
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                         <option value="">Pilih Status</option>
                                         @if($isProdi123)
                                             <option value="LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : $statusKelulusanTahap2))) === 'lulus' ? 'selected' : '' }}>LULUS</option>
@@ -1666,6 +1694,8 @@
                                     @else
                             <span class="badge bg-{{ getStatusColor(getAjuanDisplayStatus($ajuan)) }}">{{ getAjuanDisplayStatus($ajuan) }}</span>
                                     @endif
+                                        </div>
+                                    </div>
                                 </div>
                                 {{-- Kunci Nilai: Ketua Sidang selalu tampil; Admin
                                      tampil (untuk koreksi); TU Prodi hanya tampil saat
@@ -2133,18 +2163,31 @@
                                     </div>
 
                                     @if($canManageKelulusan)
-                                    <div class="d-flex align-items-center mb-2 mt-3">
-                                        <span class="mr-2 font-weight-bold" style="font-size: 13px;">Status Kelulusan</span>
-                                        <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;">
+                                    <div class="d-flex flex-column mb-2 mt-3" style="gap: 8px;">
+                                        @if($isProdi123)
+                                        <div class="d-flex align-items-center">
+                                            <span class="mr-2 font-weight-bold" style="font-size: 13px; min-width: 112px;">Nilai</span>
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="nilaiHurufPembimbing" style="width: 150px;" {{ $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                <option value="">Pilih Nilai</option>
+                                                @foreach($nilaiHurufOptions as $nh)
+                                                    <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        @endif
+                                        <div class="d-flex align-items-center">
+                                            <span class="mr-2 font-weight-bold" style="font-size: 13px; min-width: 112px;">Status Kelulusan</span>
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusPembimbing" style="width: 150px;">
                                             <option value="">Pilih Status</option>
                                             @if($isProdi123)
                                             <option value="LULUS" {{ strtolower(trim((string) ($ajuan->status_lulus ?? ''))) === 'lulus' ? 'selected' : '' }}>LULUS</option>
                                             <option value="TIDAK LULUS" {{ strtolower(trim((string) ($ajuan->status_lulus ?? ''))) === 'tidak lulus' ? 'selected' : '' }}>TIDAK LULUS</option>
                                             @else
                                             <option value="lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'lulus') ? 'selected' : '' }}>Lulus</option>
-                                            <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
-                                            @endif
-                                        </select>
+                                                <option value="tidak lulus" {{ (isset($ajuan) && $ajuan->status_lulus === 'tidak lulus') ? 'selected' : '' }}>Tidak Lulus</option>
+                                                @endif
+                                            </select>
+                                        </div>
                                     </div>
                                     @endif
 
@@ -4037,14 +4080,18 @@ function syncLockNilaiGate(selectId, btnId) {
         if (sb) sb.style.display = tampil ? 'none' : '';
     });
 
-    // S2: aktifkan Status Kelulusan saat TU Prodi memilih Ketua Sidang di dropdown
+    // S2: aktifkan Status Kelulusan & Nilai Huruf saat TU Prodi memilih Ketua Sidang di dropdown
     if (isS2 && tampil) {
         var statusEl = document.getElementById('statusLulusTahap2');
         if (statusEl) statusEl.disabled = false;
+        var nilaiEl = document.getElementById('nilaiHurufTahap2');
+        if (nilaiEl) nilaiEl.disabled = false;
     } else if (isS2 && !tampil) {
         // Ketika bukan Ketua Sidang, kembalikan ke disabled (non-editable untuk TU Prodi S2)
         var statusEl = document.getElementById('statusLulusTahap2');
         if (statusEl) statusEl.disabled = true;
+        var nilaiEl = document.getElementById('nilaiHurufTahap2');
+        if (nilaiEl) nilaiEl.disabled = true;
     }
 }
 
@@ -4055,16 +4102,25 @@ function statusLulusIdForTbody(tbodyId) {
     return '';
 }
 
-// S3: Status Kelulusan hanya aktif saat penilai = Ketua Sidang (atau user
+function nilaiHurufIdForStatus(statusLulusId) {
+    if (statusLulusId === 'statusLulusDisplay') return 'nilaiHurufDisplay';
+    if (statusLulusId === 'statusLulusTahap2') return 'nilaiHurufTahap2';
+    if (statusLulusId === 'statusLulusPembimbing') return 'nilaiHurufPembimbing';
+    return '';
+}
+
+// S3/S1: Status Kelulusan & Nilai hanya aktif saat penilai = Ketua Sidang (atau user
 // login memang Ketua Sidang). Pembimbing/Penguji tidak mengatur kelulusan.
 // S2 tetap mengikuti atribut disabled dari server (canEditS2Status).
 function syncStatusKelulusanForPenilai(statusLulusId, isKetuaDipilih) {
     var statusEl = document.getElementById(statusLulusId);
-    if (!statusEl || isS2) return;
-    // TU Prodi/Admin selalu boleh edit Status Kelulusan di S3,
+    var nilaiEl = document.getElementById(nilaiHurufIdForStatus(statusLulusId));
+    if (isS2) return;
+    // TU Prodi/Admin selalu boleh edit Status Kelulusan & Nilai,
     // tanpa tergantung apakah penilai terpilih = Ketua Sidang.
     var bolehEdit = isTUPandi || ((isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2);
-    statusEl.disabled = !bolehEdit;
+    if (statusEl) statusEl.disabled = !bolehEdit;
+    if (nilaiEl) nilaiEl.disabled = !bolehEdit;
 }
 
 function toggleLockButton(tbodyId, btnId) {
@@ -4179,6 +4235,8 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     if (!ok) return;
     var statusLulus = document.getElementById(statusLulusId);
     var statusLulusVal = statusLulus ? statusLulus.value : '';
+    var nilaiHurufEl = document.getElementById(nilaiHurufIdForStatus(statusLulusId));
+    var nilaiHurufVal = nilaiHurufEl ? nilaiHurufEl.value : '';
     var idJudul = '{{ $idJudul }}';
 
     var idTimSidang = '';
@@ -4214,6 +4272,10 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
         showToast('Pilih Status Kelulusan terlebih dahulu sebelum mengunci nilai.', 'error');
         return;
     }
+    if (isProdi123 && kunciSebagaiKetua && nilaiHurufEl && !String(nilaiHurufVal || '').trim()) {
+        showToast('Pilih Nilai terlebih dahulu sebelum mengunci nilai.', 'error');
+        return;
+    }
 
     // Loading state pada tombol Kunci Nilai
     var lockLabel = btnEl ? btnEl.innerHTML : '';
@@ -4230,6 +4292,7 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
             nilai_terkunci: 'y',
             tahapan_sidang: tahapan,
             status_lulus: statusLulusVal,
+            nilai_huruf: nilaiHurufVal || null,
             id_tim_sidang: idTimSidang,
             keterangan: keterangan
         })
@@ -4379,6 +4442,8 @@ async function savePenilaianTahap2() {
 function saveStatusLulusFrom(selectId) {
     const select = document.getElementById(selectId);
     const statusLulus = select ? select.value : '';
+    const nilaiHurufEl = document.getElementById(nilaiHurufIdForStatus(selectId));
+    const nilaiHuruf = nilaiHurufEl ? nilaiHurufEl.value : '';
     if (!statusLulus) {
         showToast('Pilih status kelulusan terlebih dahulu', 'error');
         return;
@@ -4395,6 +4460,7 @@ function saveStatusLulusFrom(selectId) {
         },
         body: JSON.stringify({
             status_lulus: statusLulus,
+            nilai_huruf: nilaiHuruf || null,
             tahapan_sidang: tahapan
         })
     })

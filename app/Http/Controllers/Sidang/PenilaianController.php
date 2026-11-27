@@ -342,6 +342,7 @@ class PenilaianController extends Controller
         
         $request->validate([
             'status_lulus' => 'required|in:' . implode(',', $allowedStatusLulus),
+            'nilai_huruf' => 'nullable|in:A,AB,B,BC,C,CD,D',
         ]);
 
         $ajuan = TAjuanSidang::where('ID_JUDUL', $id)
@@ -375,13 +376,18 @@ class PenilaianController extends Controller
             return response()->json(['error' => 'Hanya Pembimbing, Ketua Sidang atau TU Prodi yang dapat mengubah status kelulusan'], 403);
         }
 
+        $ajuanUpdate = [
+            'STATUS_LULUS' => $request->input('status_lulus'),
+            'TGL_UPDATE' => now(),
+        ];
+        if ($request->filled('nilai_huruf')) {
+            $ajuanUpdate['NILAI_HURUF'] = strtoupper((string) $request->input('nilai_huruf'));
+        }
+
         DB::table('t_ajuan_sidang')
             ->where('ID_JUDUL', $id)
             ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
-            ->update([
-                'STATUS_LULUS' => $request->input('status_lulus'),
-                'TGL_UPDATE' => now(),
-            ]);
+            ->update($ajuanUpdate);
 
         // Status kelulusan adalah keputusan bersama seluruh tim, jadi seluruh
         // baris nilai penilai pada judul + tahapan ini ikut diisi.
@@ -411,6 +417,7 @@ class PenilaianController extends Controller
                 'tahapan_sidang' => 'required|string',
                 'id_tim_sidang' => 'nullable|integer',
                 'status_lulus' => 'nullable|in:' . implode(',', self::STATUS_LULUS_ALLOWED),
+                'nilai_huruf' => 'nullable|in:A,AB,B,BC,C,CD,D',
             ]);
 
             $idTimSidang = $request->filled('id_tim_sidang') ? $request->id_tim_sidang : null;
@@ -595,6 +602,9 @@ class PenilaianController extends Controller
 
                 if ($statusLulusFinal) {
                     $updateAjuan['STATUS_LULUS'] = $statusLulusFinal;
+                }
+                if ($request->filled('nilai_huruf')) {
+                    $updateAjuan['NILAI_HURUF'] = strtoupper((string) $request->input('nilai_huruf'));
                 }
 
                 $jumlahAjuan = DB::table('t_ajuan_sidang')
@@ -876,6 +886,7 @@ class PenilaianController extends Controller
             'tahapan_sidang' => 'required|string',
             'id_tim_sidang' => 'nullable|integer',
             'status_lulus' => 'required|in:' . implode(',', self::STATUS_LULUS_S2),
+            'nilai_huruf' => 'nullable|in:A,AB,B,BC,C,CD,D',
         ]);
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()->first(), 'errors' => $validator->errors()], 422);
@@ -905,6 +916,13 @@ class PenilaianController extends Controller
             $scores->update(['STATUS_LULUS' => $request->status_lulus, 'TGL_UPDATE' => now()]);
             if ($locked) {
                 $ajuan->STATUS_LULUS = $request->status_lulus;
+                if ($request->filled('nilai_huruf')) {
+                    $ajuan->NILAI_HURUF = strtoupper((string) $request->input('nilai_huruf'));
+                }
+                $ajuan->TGL_UPDATE = now();
+                $ajuan->save();
+            } elseif ($request->filled('nilai_huruf')) {
+                $ajuan->NILAI_HURUF = strtoupper((string) $request->input('nilai_huruf'));
                 $ajuan->TGL_UPDATE = now();
                 $ajuan->save();
             }
@@ -955,6 +973,7 @@ class PenilaianController extends Controller
             'tahapan_sidang' => 'required|string',
             'id_tim_sidang' => 'nullable|integer',
             'status_lulus' => 'required_if:nilai_terkunci,y|nullable|in:' . implode(',', self::STATUS_LULUS_S2),
+            'nilai_huruf' => 'nullable|in:A,AB,B,BC,C,CD,D',
         ]);
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()->first(), 'errors' => $validator->errors()], 422);
@@ -995,6 +1014,9 @@ class PenilaianController extends Controller
             $ajuan->NILAI_TERKUNCI = $request->nilai_terkunci;
             // Unlocking leaves the score-row decision as a draft, never a final ajuan status.
             $ajuan->STATUS_LULUS = $locking ? $request->status_lulus : null;
+            if ($locking && $request->filled('nilai_huruf')) {
+                $ajuan->NILAI_HURUF = strtoupper((string) $request->input('nilai_huruf'));
+            }
             $ajuan->TGL_UPDATE = now();
             $ajuan->save();
 
