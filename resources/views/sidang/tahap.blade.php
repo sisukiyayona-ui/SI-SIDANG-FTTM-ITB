@@ -1347,6 +1347,9 @@
                                             <div class="d-flex flex-nowrap align-items-center justify-content-center" style="gap: 6px;">
                                                 @php $penilaianBlocked = ($strataView === 'S2' && ($a->STATUS_AJUKAN_PRODI ?? 't') !== 'y') || ($a->status_lulus ?? '') === 'tidak lulus'; @endphp
                                                 <button type="button" class="btn btn-sm btn-outline-primary px-3" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ $penilaianBlocked ? 'disabled' : '' }} @if($strataView === 'S2' && ($a->STATUS_AJUKAN_PRODI ?? 't') !== 'y') title="Menunggu TU Prodi Approve" @endif><i class="fas fa-clipboard-check mr-1"></i> Penilaian</button>
+                                                @if($strataView === 'S1')
+                                                <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="cetakDaftarHadir({{ $idJudul }}, '{{ $tahapan }}')"><i class="fas fa-print mr-1"></i> (b) Daftar Hadir</button>
+                                                @endif
                                                 @if(strtolower($tahapan) === 'tahap iv')
                                                 <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="cetakPedomanKetuaSidang({{ $idJudul }}, '{{ $tahapan }}')"><i class="fas fa-book mr-1"></i> PED Ketua Sidang</button>
                                                 @endif
@@ -5066,6 +5069,12 @@ function cetakUndangan() {
 
 function cetakPedomanKetuaSidang(idJudul, tahapan) {
     var url = '{{ route("sidang.cetak-ped-ketua-sidang", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+    url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
+    window.open(url, '_blank');
+}
+
+function cetakDaftarHadir(idJudul, tahapan) {
+    var url = '{{ route("sidang.cetak-daftar-hadir", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
     url = url.replace(':idJudul', idJudul).replace(':tahapan', encodeURIComponent(tahapan));
     window.open(url, '_blank');
 }
