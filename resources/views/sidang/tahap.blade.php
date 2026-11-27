@@ -362,25 +362,25 @@
 
     <div class="mb-4" style="line-height: 1.2;">
         <div class="d-flex">
-            <div style="width: 70px;" class="font-weight-bold font-sm">Nama</div>
+            <div style="width: 70px; flex-shrink: 0;" class="font-weight-bold font-sm">Nama</div>
             <div class="mr-1"> :</div>
-            <div><span>{{ $nama }}</span></div>
+            <div class="flex-grow-1" style="min-width: 0; overflow-wrap: anywhere;"><span>{{ $nama }}</span></div>
         </div>
         <div class="d-flex mt-1">
-            <div style="width: 70px;" class="font-weight-bold font-sm">NIM</div>
+            <div style="width: 70px; flex-shrink: 0;" class="font-weight-bold font-sm">NIM</div>
             <div class="mr-1"> :</div>
-            <div><span>{{ $nim }}</span></div>
+            <div class="flex-grow-1" style="min-width: 0; overflow-wrap: anywhere;"><span>{{ $nim }}</span></div>
         </div>
         <div class="d-flex mt-1">
-            <div style="width: 70px;" class="font-weight-bold font-sm">Judul</div>
+            <div style="width: 70px; flex-shrink: 0;" class="font-weight-bold font-sm">Judul</div>
             <div class="mr-1"> :</div>
-            <div class="flex-grow-1"><span>{{ $judulText }}</span></div>
+            <div class="flex-grow-1" style="min-width: 0; overflow-wrap: anywhere;"><span>{{ $judulText }}</span></div>
         </div>
         @if($abstrakText)
         <div class="d-flex mt-1">
-            <div style="width: 70px;" class="font-weight-bold font-sm">Abstrak</div>
+            <div style="width: 70px; flex-shrink: 0;" class="font-weight-bold font-sm">Abstrak</div>
             <div class="mr-1"> :</div>
-            <div class="flex-grow-1">
+            <div class="flex-grow-1" style="min-width: 0;">
                 <a href="#" onclick="$('#abstrakModal').modal('show'); return false;" class="text-primary" style="font-size: 13px; text-decoration: underline;">
                     <i class="fas fa-file-alt mr-1"></i>Lihat Abstrak
                 </a>
@@ -389,7 +389,7 @@
         @endif
     </div>
 
-    <div style="padding: 30px;">
+    <div class="tahap-tabs-wrap">
         @if($isTahap1)
             {{-- VIEW TAHAP I - WITH TABS FOR TU PRODI/ADMIN/FS --}}
             @if((in_array(session('auth_user.role'), ['TU Prodi', 'Admin', 'FS']) && ! $isFsViewOnlyS2))
@@ -417,7 +417,8 @@
                         <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
                         <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>{{ $strataView === 'S2' ? '10MB' : '2MB' }}</strong></span>
                     </div>
-                    <table class="table table-bordered table-sm text-center mb-4">
+                    <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-sm text-center mb-0">
                         <thead class="bg-light text-dark">
                             <tr>
                                 <th style="width: 10%;">No</th>
@@ -460,6 +461,7 @@
                             @endif
                         </tbody>
                     </table>
+                    </div>
                     <div class="text-right mt-3">
                         @if(!in_array(session('auth_user.role'), ['FS']))
                         <button type="button" class="btn btn-primary" onclick="window.savePersyaratan('{{ $tahapan }}')">
@@ -676,7 +678,7 @@
                         </div>
                     </div>
                     {{-- REPORT PENILAIAN --}}
-                    <div class="mt-4">
+                    <div class="mt-4 table-responsive">
                         <table class="table table-bordered table-sm text-center">
                             <thead style="background-color: #6998d3; color: white;">
                                 <tr>
@@ -787,11 +789,11 @@
                         </table>
                     </div>
                     {{-- STATUS LULUS --}}
-                    <div class="mt-4 d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <span class="mr-4 font-weight-bold">Status Lulus</span>
+                    <div class="mt-4 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                            <span class="font-weight-bold">Status Lulus</span>
                             @if(!in_array(session('auth_user.role'), ['FS']))
-                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
+                            <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusDisplay" style="width: 150px; max-width: 100%;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
                                 <option value="" {{ (!isset($ajuan) || !$ajuan->status_lulus) ? 'selected' : '' }}>Pilih status</option>
                                 @if($isProdi123)
                                 <option value="LULUS" {{ (isset($ajuan) && strtolower(trim((string) $ajuan->status_lulus)) === 'lulus') ? 'selected' : '' }}>LULUS</option>
@@ -932,7 +934,8 @@
                         <span class="warning-file-upload-icon"><i class="fas fa-exclamation-triangle"></i></span>
                         <span class="warning-file-upload-text">File laporan penelitian disertasi tidak diupload di sistem, tipe file upload pdf max <strong>{{ $strataView === 'S2' ? '10MB' : '2MB' }}</strong></span>
                     </div>
-                    <table class="table table-bordered table-sm text-center mb-4">
+                    <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-sm text-center mb-0">
                         <thead style="background-color: #6998d3; color: white;">
                             <tr>
                                 <th style="width: 10%; color: #ffffff;">No</th>
@@ -975,6 +978,7 @@
                             @endif
                         </tbody>
                     </table>
+                    </div>
                     <div class="text-right mt-3">
                         @if(!in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']))
                         <button type="button" class="btn btn-primary" onclick="savePersyaratanTahap()">
@@ -1305,6 +1309,7 @@
                             </div>
                             <button type="button" class="btn btn-primary btn-sm px-3" {{ isset($ajuan) && $ajuan->status_lulus === 'lulus' ? 'disabled' : '' }} {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang', 'FS']) ? 'disabled' : '' }} onclick="openJadwalForm(null)"><i class="fas fa-plus mr-1"></i> Tambah</button>
                         </div>
+                        <div class="table-responsive">
                         <table class="table table-bordered table-sm text-center">
                             <thead>
                                 <tr>
@@ -1377,6 +1382,7 @@
                                 @endif
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     {{-- PENILAIAN FORM TAHAP II --}}
@@ -1477,6 +1483,7 @@
                             </div>
                             @endif
                             {{-- REPORT TABLE --}}
+                            <div class="table-responsive">
                             <table class="table table-bordered table-sm text-center">
                                 <thead style="background-color: #6998d3; color: white;">
                                     <tr>
@@ -1608,6 +1615,7 @@
                                     @endunless
                                 </tbody>
                             </table>
+                            </div>
                             {{-- STATUS KELULUSAN --}}
                             @php
                                 // Status kelulusan di t_ajuan_sidang bisa kosong meskipun status
@@ -1631,12 +1639,12 @@
                                 }
                                 $statusKelulusanTahap2 = $statusAjuanTahap2 ?: $statusBarisFallback;
                             @endphp
-                            <div class="mt-4 d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 mr-3" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                                    <span class="mr-4 font-weight-bold">Status Kelulusan</span>
+                            <div class="mt-4 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="document.getElementById('penilaianFormTahap2').style.display='none'; document.getElementById('jadwalListTahap2').style.display='block';"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                                    <span class="font-weight-bold">Status Kelulusan</span>
                                     @if(!in_array(session('auth_user.role'), ['FS']))
-                                    <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
+                                    <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                         <option value="">Pilih Status</option>
                                         @if($isProdi123)
                                             <option value="LULUS" {{ strtolower(trim((string) ($strataView === 'S2' ? $statusKelulusanS2 : $statusKelulusanTahap2))) === 'lulus' ? 'selected' : '' }}>LULUS</option>
@@ -2140,7 +2148,8 @@
                                     </div>
                                     @endif
 
-                                    <table class="table table-bordered table-sm text-center mt-3 mb-0" style="table-layout: fixed; border-color: #fff;">
+                                    <div class="table-responsive mt-3">
+                                    <table class="table table-bordered table-sm text-center mb-0" style="table-layout: fixed; border-color: #fff;">
                                         <thead style="background-color: #6998d3; color: white;">
                                             <tr>
                                                 <th style="width: 8%;">No</th>
@@ -2237,6 +2246,7 @@
                                             @endif
                                         </tbody>
                                     </table>
+                                    </div>
                                 </form>
                                 @else
                                 <div class="penilaian-toolbar mb-2">
@@ -2266,7 +2276,8 @@
                                     </div>
                                 </div>
                                 
-                                <table class="table table-bordered table-sm text-center mt-3 mb-0" style="table-layout: fixed; border-color: #fff;">
+                                <div class="table-responsive mt-3">
+                                <table class="table table-bordered table-sm text-center mb-0" style="table-layout: fixed; border-color: #fff;">
                                     <thead style="background-color: #6998d3; color: white;">
                                         <tr>
                                             <th style="width: 8%;">No</th>
@@ -2297,6 +2308,7 @@
                                         @endif
                                     </tbody>
                                 </table>
+                                </div>
                                 @endif
                             </div>
                         </div>

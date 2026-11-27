@@ -26,6 +26,7 @@
         --mui-danger: #f87171;
     }
 
+    body.master-ui,
     body.master-ui .content-wrapper {
         overflow-x: clip;
     }
@@ -823,6 +824,27 @@
     body.master-ui #tahapModal .modal-body {
         max-height: calc(100vh - 140px);
         overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    body.master-ui #tahapModal .tahap-container {
+        max-width: 100%;
+        overflow-x: hidden;
+        padding: 14px 16px !important;
+    }
+
+    body.master-ui #tahapModal .tahap-tabs-wrap {
+        padding: 12px 6px;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    body.master-ui #tahapModal .table-responsive {
+        max-width: 100%;
+    }
+
+    body.master-ui #tahapModal table thead th {
+        white-space: normal;
     }
 
     body.master-ui #tahapModal .select2-dropdown {
