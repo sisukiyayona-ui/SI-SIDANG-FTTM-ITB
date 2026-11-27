@@ -39,6 +39,7 @@ class TPenilaian extends Model
         'NILAI_HURUF',
         'STATUS_LULUS',
         'NILAI_TERKUNCI',
+        'CEK_MAKALAH',
     ];
 
     protected $casts = [

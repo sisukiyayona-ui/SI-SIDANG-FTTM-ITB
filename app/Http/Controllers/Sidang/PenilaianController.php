@@ -198,7 +198,7 @@ class PenilaianController extends Controller
 
         // Save each penilaian
         foreach ($request->penilaian as $item) {
-            if (empty($item['nilai']) && empty($item['catatan']) && empty($item['status_lulus'])) {
+            if (empty($item['nilai']) && empty($item['catatan']) && empty($item['status_lulus']) && empty($item['cek_makalah'])) {
                 continue;
             }
             $pointPenilaian = TPointPenilaian::find($item['id_penilaian']);
@@ -229,6 +229,10 @@ class PenilaianController extends Controller
             ];
             if (array_key_exists('status_lulus', $item)) {
                 $values['STATUS_LULUS'] = $item['status_lulus'] ?: null;
+            }
+            if (array_key_exists('cek_makalah', $item)) {
+                $cm = strtolower(trim((string) $item['cek_makalah']));
+                $values['CEK_MAKALAH'] = in_array($cm, ['y', '1', 'true', 'on'], true) ? 'y' : null;
             }
 
             TPenilaian::updateOrCreate(
@@ -342,7 +346,9 @@ class PenilaianController extends Controller
         
         $request->validate([
             'status_lulus' => 'required|in:' . implode(',', $allowedStatusLulus),
+            'ip' => 'nullable|numeric|min:0|max:4',
             'nilai_huruf' => 'nullable|in:A,AB,B,BC,C,CD,D',
+            'nilai_huruf2' => 'nullable|in:A,AB,B,BC,C,CD,D',
         ]);
 
         $ajuan = TAjuanSidang::where('ID_JUDUL', $id)
@@ -380,8 +386,14 @@ class PenilaianController extends Controller
             'STATUS_LULUS' => $request->input('status_lulus'),
             'TGL_UPDATE' => now(),
         ];
+        if ($request->filled('ip')) {
+            $ajuanUpdate['IP'] = $request->input('ip');
+        }
         if ($request->filled('nilai_huruf')) {
             $ajuanUpdate['NILAI_HURUF'] = strtoupper((string) $request->input('nilai_huruf'));
+        }
+        if ($request->filled('nilai_huruf2')) {
+            $ajuanUpdate['NILAI_HURUF2'] = strtoupper((string) $request->input('nilai_huruf2'));
         }
 
         DB::table('t_ajuan_sidang')
@@ -417,7 +429,9 @@ class PenilaianController extends Controller
                 'tahapan_sidang' => 'required|string',
                 'id_tim_sidang' => 'nullable|integer',
                 'status_lulus' => 'nullable|in:' . implode(',', self::STATUS_LULUS_ALLOWED),
+                'ip' => 'nullable|numeric|min:0|max:4',
                 'nilai_huruf' => 'nullable|in:A,AB,B,BC,C,CD,D',
+                'nilai_huruf2' => 'nullable|in:A,AB,B,BC,C,CD,D',
             ]);
 
             $idTimSidang = $request->filled('id_tim_sidang') ? $request->id_tim_sidang : null;
@@ -603,8 +617,14 @@ class PenilaianController extends Controller
                 if ($statusLulusFinal) {
                     $updateAjuan['STATUS_LULUS'] = $statusLulusFinal;
                 }
+                if ($request->filled('ip')) {
+                    $updateAjuan['IP'] = $request->input('ip');
+                }
                 if ($request->filled('nilai_huruf')) {
                     $updateAjuan['NILAI_HURUF'] = strtoupper((string) $request->input('nilai_huruf'));
+                }
+                if ($request->filled('nilai_huruf2')) {
+                    $updateAjuan['NILAI_HURUF2'] = strtoupper((string) $request->input('nilai_huruf2'));
                 }
 
                 $jumlahAjuan = DB::table('t_ajuan_sidang')

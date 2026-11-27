@@ -51,7 +51,7 @@ class KelengkapanNilaiSidang
         $rows = DB::table('t_penilaian')
             ->where('ID_JUDUL', $idJudul)
             ->where('TAHAPAN_SIDANG', $tahapan)
-            ->get(['ID_TIM_SIDANG', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'NILAI_HURUF', 'CATATAN']);
+            ->get(['ID_TIM_SIDANG', 'ID_PENILAIAN', 'NO_FORM', 'NILAI', 'NILAI_HURUF', 'CATATAN', 'CEK_MAKALAH']);
 
         $filledByTim = [];
         foreach ($rows as $r) {
@@ -61,7 +61,8 @@ class KelengkapanNilaiSidang
                 $nilai = $r->NILAI === null ? '' : trim((string) $r->NILAI);
             }
             $catatan = $r->CATATAN === null ? '' : trim((string) $r->CATATAN);
-            if ($nilai === '' && $catatan === '') {
+            $cekMakalah = trim((string) ($r->CEK_MAKALAH ?? ''));
+            if ($nilai === '' && $catatan === '' && $cekMakalah === '') {
                 continue;
             }
             $filledByTim[(int) $r->ID_TIM_SIDANG][] = (int) $r->ID_PENILAIAN;

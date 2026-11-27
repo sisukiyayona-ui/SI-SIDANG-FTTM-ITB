@@ -250,7 +250,11 @@
         $nilaiMode = \App\Services\NilaiSidang::mode($kodeProdi);
         $isProdi123 = $nilaiMode === \App\Services\NilaiSidang::MODE_HURUF; // nilai huruf + status per baris
         $isProdi124 = $nilaiMode === \App\Services\NilaiSidang::MODE_100;   // nilai 1 - 100
+        $isProdi125 = trim((string) $kodeProdi) === '125';
+        $isProdi125S1 = $isProdi125 && strtoupper(trim((string) $strataView)) === 'S1';
+        $ajuanIp = $ajuan->IP ?? $ajuan->ip ?? '';
         $ajuanNilaiHuruf = strtoupper(trim((string) ($ajuan->NILAI_HURUF ?? $ajuan->nilai_huruf ?? '')));
+        $ajuanNilaiHuruf2 = strtoupper(trim((string) ($ajuan->NILAI_HURUF2 ?? $ajuan->nilai_huruf2 ?? '')));
         $nilaiHurufOptions = ['A', 'AB', 'B', 'BC', 'C', 'CD', 'D'];
 
         // Kolom tabel penilaian per prodi:
@@ -715,12 +719,12 @@
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 @if($showKeterangan)
-                                                <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                 @endif
                                                 @if($showBobot)
-                                                <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                <td class="text-center col-bobot-reguler">{{ $point->bobot ?? '-' }}</td>
                                                 @endif
-                                                <td>
+                                                <td class="col-nilai-reguler">
                                                     @if($isProdi123)
                                                     <select class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;">
                                                         <option value="">Pilih</option>
@@ -752,12 +756,12 @@
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     @if($showKeterangan)
-                                                    <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                    <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     @endif
                                                     @if($showBobot)
-                                                    <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                    <td class="text-center col-bobot-reguler">{{ $point->bobot ?? '-' }}</td>
                                                     @endif
-                                                    <td>
+                                                    <td class="col-nilai-reguler">
                                                         @if($isProdi123)
                                                         @php $existingHuruf = strtoupper(trim((string) $existing->getAttribute('NILAI_HURUF'))); @endphp
                                                         <select class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;">
@@ -800,6 +804,30 @@
                                     <option value="">Pilih Nilai</option>
                                     @foreach($nilaiHurufOptions as $nh)
                                         <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @elseif($isProdi125 && !in_array(session('auth_user.role'), ['FS']))
+                            <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                <span class="font-weight-bold" style="min-width: 135px;">IP</span>
+                                <input type="number" step="0.01" min="0" max="4" class="form-control form-control-sm border-dark rounded-0" id="ip125Display" value="{{ $ajuanIp }}" placeholder="0.00" style="width: 150px; max-width: 100%;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
+                                <small class="text-muted">*IP sebelum ujian sidang</small>
+                            </div>
+                            <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                <span class="font-weight-bold" style="min-width: 135px;">Nilai Tugas Akhir</span>
+                                <select class="form-control form-control-sm border-dark rounded-0" id="nilaiTa125Display" style="width: 150px; max-width: 100%;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
+                                    <option value="">Pilih Nilai</option>
+                                    @foreach($nilaiHurufOptions as $nh)
+                                        <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                <span class="font-weight-bold" style="min-width: 135px;">Nilai Ujian Sarjana</span>
+                                <select class="form-control form-control-sm border-dark rounded-0" id="nilaiUs125Display" style="width: 150px; max-width: 100%;" {{ $isNilaiTerkunciUi ?? false ? 'disabled' : '' }}>
+                                    <option value="">Pilih Nilai</option>
+                                    @foreach($nilaiHurufOptions as $nh)
+                                        <option value="{{ $nh }}" {{ $ajuanNilaiHuruf2 === $nh ? 'selected' : '' }}>{{ $nh }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -1505,10 +1533,10 @@
                                         <th style="width: 6%;">No</th>
                                         <th style="width: 24%;">Parameter Penilaian</th>
                                         @if($showKeterangan)
-                                        <th style="width: 22%;">Keterangan</th>
+                                        <th class="col-ket-reguler" style="width: 22%;">Keterangan</th>
                                         @endif
                                         @if($showBobot)
-                                        <th style="width: 10%;">Bobot (dalam %)</th>
+                                        <th class="col-bobot-reguler" style="width: 10%;">Bobot (dalam %)</th>
                                         @endif
                                         @php
                                             $nilaiHeader = 'Nilai (Range 1 - 5)';
@@ -1519,9 +1547,12 @@
                                             }
                                             $colCount = 4 + ($showKeterangan ? 1 : 0) + ($showBobot ? 1 : 0) + ($isProdi123 ? 1 : 0);
                                         @endphp
-                                        <th style="width: 12%;">{{ $nilaiHeader }}</th>
+                                        <th class="col-nilai-reguler" style="width: 12%;">{{ $nilaiHeader }}</th>
                                         @if($isProdi123)
                                         <th style="width: 10%;">Status Lulus</th>
+                                        @endif
+                                        @if($isProdi125S1)
+                                        <th class="col-cek-makalah" style="width: 14%; display: none;">Cek Makalah</th>
                                         @endif
                                         <th style="width: {{ $isProdi123 ? '40%' : '25%' }};">Catatan</th>
                                     </tr>
@@ -1543,12 +1574,12 @@
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 @if($showKeterangan)
-                                                <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                 @endif
                                                 @if($showBobot)
-                                                <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                <td class="text-center col-bobot-reguler">{{ $point->bobot ?? '-' }}</td>
                                                 @endif
-                                                <td>
+                                                <td class="col-nilai-reguler">
                                                     <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
                                                     @if($isProdi123)
                                                         <select name="penilaian[{{ $rowNum }}][nilai]" class="form-control form-control-sm nilai-input" style="width: 80px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
@@ -1575,6 +1606,11 @@
                                                     </select>
                                                 </td>
                                                 @endif
+                                                @if($isProdi125S1)
+                                                <td class="col-cek-makalah text-center align-middle" style="display: none;">
+                                                    <input type="checkbox" class="cek-makalah-input" name="penilaian[{{ $rowNum }}][cek_makalah]" value="y" style="width: 16px; height: 16px; cursor: pointer;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                </td>
+                                                @endif
                                                 <td>
                                                     <textarea class="form-control form-control-sm catatan-input" name="penilaian[{{ $rowNum }}][catatan]" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}></textarea>
                                                 </td>
@@ -1586,12 +1622,12 @@
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     @if($showKeterangan)
-                                                    <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                    <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     @endif
                                                     @if($showBobot)
-                                                    <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                    <td class="text-center col-bobot-reguler">{{ $point->bobot ?? '-' }}</td>
                                                     @endif
-                                                    <td>
+                                                    <td class="col-nilai-reguler">
                                                         <input type="number" name="penilaian[{{ $rowNum }}][id_penilaian]" value="{{ $point->id }}" hidden>
                                                         @if($isProdi123)
                                                         @php $existingHuruf = strtoupper(trim((string) $existing->getAttribute('NILAI_HURUF'))); @endphp
@@ -1618,6 +1654,12 @@
                                                             <option value="LULUS" {{ $existingStatus === 'LULUS' ? 'selected' : '' }}>LULUS</option>
                                                             <option value="TIDAK LULUS" {{ $existingStatus === 'TIDAK LULUS' ? 'selected' : '' }}>TIDAK LULUS</option>
                                                         </select>
+                                                    </td>
+                                                    @endif
+                                                    @if($isProdi125S1)
+                                                    @php $cekMakalahExisting = strtoupper(trim((string) ($existing->CEK_MAKALAH ?? $existing->cek_makalah ?? ''))); @endphp
+                                                    <td class="col-cek-makalah text-center align-middle" style="display: none;">
+                                                        <input type="checkbox" class="cek-makalah-input" name="penilaian[{{ $rowNum }}][cek_makalah]" value="y" style="width: 16px; height: 16px; cursor: pointer;" {{ in_array($cekMakalahExisting, ['Y', '1'], true) ? 'checked' : '' }} {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     @endif
                                                     <td>
@@ -1665,6 +1707,30 @@
                                                 <option value="">Pilih Nilai</option>
                                                 @foreach($nilaiHurufOptions as $nh)
                                                     <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        @elseif($isProdi125 && !in_array(session('auth_user.role'), ['FS']))
+                                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                            <span class="font-weight-bold" style="min-width: 140px;">IP</span>
+                                            <input type="number" step="0.01" min="0" max="4" class="form-control form-control-sm border-dark rounded-0" id="ip125Tahap2" value="{{ $ajuanIp }}" placeholder="0.00" style="width: 160px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
+                                            <small class="text-muted">*IP sebelum ujian sidang</small>
+                                        </div>
+                                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                            <span class="font-weight-bold" style="min-width: 140px;">Nilai Tugas Akhir</span>
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="nilaiTa125Tahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
+                                                <option value="">Pilih Nilai</option>
+                                                @foreach($nilaiHurufOptions as $nh)
+                                                    <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                            <span class="font-weight-bold" style="min-width: 140px;">Nilai Ujian Sarjana</span>
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="nilaiUs125Tahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
+                                                <option value="">Pilih Nilai</option>
+                                                @foreach($nilaiHurufOptions as $nh)
+                                                    <option value="{{ $nh }}" {{ $ajuanNilaiHuruf2 === $nh ? 'selected' : '' }}>{{ $nh }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -2174,6 +2240,30 @@
                                                 @endforeach
                                             </select>
                                         </div>
+                                        @elseif($isProdi125)
+                                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                            <span class="mr-2 font-weight-bold" style="font-size: 13px; min-width: 130px;">IP</span>
+                                            <input type="number" step="0.01" min="0" max="4" class="form-control form-control-sm border-dark rounded-0" id="ip125Pembimbing" value="{{ $ajuanIp }}" placeholder="0.00" style="width: 150px;" {{ $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                            <small class="text-muted">*IP sebelum ujian sidang</small>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="mr-2 font-weight-bold" style="font-size: 13px; min-width: 130px;">Nilai Tugas Akhir</span>
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="nilaiTa125Pembimbing" style="width: 150px;" {{ $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                <option value="">Pilih Nilai</option>
+                                                @foreach($nilaiHurufOptions as $nh)
+                                                    <option value="{{ $nh }}" {{ $ajuanNilaiHuruf === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="mr-2 font-weight-bold" style="font-size: 13px; min-width: 130px;">Nilai Ujian Sarjana</span>
+                                            <select class="form-control form-control-sm border-dark rounded-0" id="nilaiUs125Pembimbing" style="width: 150px;" {{ $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                <option value="">Pilih Nilai</option>
+                                                @foreach($nilaiHurufOptions as $nh)
+                                                    <option value="{{ $nh }}" {{ $ajuanNilaiHuruf2 === $nh ? 'selected' : '' }}>{{ $nh }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                         @endif
                                         <div class="d-flex align-items-center">
                                             <span class="mr-2 font-weight-bold" style="font-size: 13px; min-width: 112px;">Status Kelulusan</span>
@@ -2197,13 +2287,16 @@
                                             <tr>
                                                 <th style="width: 8%;">No</th>
                                                 <th style="width: 24%;"><span class="text-danger text-decoration-underline" style="text-decoration-color: red;">Parameter Penilaian</span></th>
-                                                <th style="width: 24%;">Keterangan</th>
+                                                <th class="col-ket-reguler" style="width: 24%;">Keterangan</th>
                                                 @if($isProdi123 || $isProdi124)
-                                                <th style="width: 9%;">Bobot (dalam %)</th>
+                                                <th class="col-bobot-reguler" style="width: 9%;">Bobot (dalam %)</th>
                                                 @endif
-                                                <th style="width: 14%;">{{ $isProdi123 ? 'Nilai Huruf' : ($isProdi124 ? 'Nilai (1 - 100)' : 'Nilai') }}</th>
+                                                <th class="col-nilai-reguler" style="width: 14%;">{{ $isProdi123 ? 'Nilai Huruf' : ($isProdi124 ? 'Nilai (1 - 100)' : 'Nilai') }}</th>
                                                 @if($isProdi123)
                                                 <th style="width: 13%;">Status Lulus</th>
+                                                @endif
+                                                @if($isProdi125S1)
+                                                <th class="col-cek-makalah" style="width: 14%; display: none;">Cek Makalah</th>
                                                 @endif
                                                 <th style="width: 12%;">Catatan</th>
                                             </tr>
@@ -2217,11 +2310,11 @@
                                                  <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-tim="{{ $nilai->id_tim_sidang }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
-                                                    <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $nilai->pointPenilaian->keterangan ?? '-' }}</span></td>
+                                                    <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $nilai->pointPenilaian->keterangan ?? '-' }}</span></td>
                                                     @if($isProdi123 || $isProdi124)
-                                                    <td class="text-center">{{ $nilai->pointPenilaian->bobot ?? '-' }}</td>
+                                                    <td class="text-center col-bobot-reguler">{{ $nilai->pointPenilaian->bobot ?? '-' }}</td>
                                                     @endif
-                                                    <td>
+                                                    <td class="col-nilai-reguler">
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $nilai->id_penilaian }}" hidden>
                                                         @if($isProdi123)
                                                         @php $existingHuruf = strtoupper(trim((string) $nilai->getAttribute('NILAI_HURUF'))); @endphp
@@ -2245,6 +2338,12 @@
                                                         </select>
                                                     </td>
                                                     @endif
+                                                    @if($isProdi125S1)
+                                                    @php $cekMakalahNilai = strtoupper(trim((string) ($nilai->CEK_MAKALAH ?? $nilai->cek_makalah ?? ''))); @endphp
+                                                    <td class="col-cek-makalah text-center align-middle" style="display: none;">
+                                                        <input type="checkbox" class="cek-makalah-input" name="penilaian[{{ $idx }}][cek_makalah]" value="y" style="width: 16px; height: 16px; cursor: pointer;" {{ in_array($cekMakalahNilai, ['Y', '1'], true) ? 'checked' : '' }} {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
+                                                    </td>
+                                                    @endif
                                                     <td>
                                                         <textarea name="penilaian[{{ $idx }}][catatan]" class="form-control form-control-sm catatan-input" style="font-size: 12px;" rows="2" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>{{ $nilai->catatan }}</textarea>
                                                     </td>
@@ -2255,11 +2354,11 @@
                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
-                                                    <td class="text-left"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
+                                                    <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
                                                     @if($isProdi123 || $isProdi124)
-                                                    <td class="text-center">{{ $point->bobot ?? '-' }}</td>
+                                                    <td class="text-center col-bobot-reguler">{{ $point->bobot ?? '-' }}</td>
                                                     @endif
-                                                    <td>
+                                                    <td class="col-nilai-reguler">
                                                         <input type="number" name="penilaian[{{ $idx }}][id_penilaian]" value="{{ $point->id }}" hidden>
                                                         @if($isProdi123)
                                                         <select name="penilaian[{{ $idx }}][nilai]" class="form-control form-control-sm nilai-input" style="width: 70px; margin: auto;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
@@ -2279,6 +2378,11 @@
                                                             <option value="LULUS">LULUS</option>
                                                             <option value="TIDAK LULUS">TIDAK LULUS</option>
                                                         </select>
+                                                    </td>
+                                                    @endif
+                                                    @if($isProdi125S1)
+                                                    <td class="col-cek-makalah text-center align-middle" style="display: none;">
+                                                        <input type="checkbox" class="cek-makalah-input" name="penilaian[{{ $idx }}][cek_makalah]" value="y" style="width: 16px; height: 16px; cursor: pointer;" {{ $isS2ScoreReadOnly || $isS2PenilaianBlocked || $isNilaiTerkunciUi ? 'disabled' : '' }}>
                                                     </td>
                                                     @endif
                                                     <td>
@@ -2569,6 +2673,28 @@ var isS2ScoreReadOnly = @json($isS2ScoreReadOnly);
 var kodeProdi = @json($kodeProdi ?? null);
 var isProdi123 = {{ ($isProdi123 ?? false) ? 'true' : 'false' }};
 var isProdi124 = {{ ($isProdi124 ?? false) ? 'true' : 'false' }};
+var isProdi125 = {{ ($isProdi125 ?? false) ? 'true' : 'false' }};
+var isProdi125S1 = {{ ($isProdi125S1 ?? false) ? 'true' : 'false' }};
+
+function isPublikasiFormNo(noForm) {
+    return isProdi125S1 && /publikasi/i.test(String(noForm || ''));
+}
+
+function togglePublikasiColumns(tbodyId, noForm) {
+    if (!isProdi125S1) return;
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    var table = tbody.closest('table');
+    if (!table) return;
+    var isPub = isPublikasiFormNo(noForm);
+
+    table.querySelectorAll('.col-cek-makalah').forEach(function(el) {
+        el.style.display = isPub ? '' : 'none';
+    });
+    table.querySelectorAll('.col-nilai-reguler, .col-bobot-reguler, .col-ket-reguler').forEach(function(el) {
+        el.style.display = isPub ? 'none' : '';
+    });
+}
 
 // Ketua Sidang: form penilaian hanya untuk melihat nilai penilai lain.
 var isViewOnlyPenilai = {{ ($isKetuaSidangTim ?? false) ? 'true' : 'false' }};
@@ -3076,10 +3202,12 @@ function filterPenilaianTahap2() {
             row.querySelectorAll('input, textarea, select').forEach(function(inp) {
                 inp.disabled = false;
             });
-            applyStatusCatatan(row);
+            applyStatusCatatan(row, isPublikasiFormNo(noForm));
         }
         if (show) hasVisible = true;
     });
+
+    togglePublikasiColumns('penilaianTahap2Body', noForm);
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
@@ -3121,11 +3249,15 @@ function renumberColumn(tbodyId) {
     });
 }
 
-function applyStatusCatatan(row) {
+function applyStatusCatatan(row, isPub) {
     if (typeof isFsViewOnlyS2 !== 'undefined' && isFsViewOnlyS2) return;
     var sc = row.getAttribute('data-status-catatan');
     var catatanInput = row.querySelector('.catatan-input');
     var nilaiInput = row.querySelector('.nilai-input');
+    if (isPub) {
+        if (catatanInput) catatanInput.disabled = (sc !== 'y');
+        return;
+    }
     // Prodi 123 (S1 nilai huruf): status catatan = y tetap mengaktifkan catatan,
     // tetapi nilai huruf TIDAK boleh di-disable (harus tetap bisa diisi).
     var hurufMode = (typeof isProdi123 !== 'undefined' && isProdi123);
@@ -3187,10 +3319,12 @@ function filterPenilaian() {
             row.querySelectorAll('input, textarea, select').forEach(function(inp) {
                 inp.disabled = false;
             });
-            applyStatusCatatan(row);
+            applyStatusCatatan(row, isPublikasiFormNo(noForm));
         }
         if (show) hasVisible = true;
     });
+
+    togglePublikasiColumns('penilaianTableBody', noForm);
 
     if (emptyRow) {
         emptyRow.style.display = hasVisible ? 'none' : '';
@@ -4086,12 +4220,20 @@ function syncLockNilaiGate(selectId, btnId) {
         if (statusEl) statusEl.disabled = false;
         var nilaiEl = document.getElementById('nilaiHurufTahap2');
         if (nilaiEl) nilaiEl.disabled = false;
+        ['ip125Tahap2', 'nilaiTa125Tahap2', 'nilaiUs125Tahap2'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.disabled = false;
+        });
     } else if (isS2 && !tampil) {
         // Ketika bukan Ketua Sidang, kembalikan ke disabled (non-editable untuk TU Prodi S2)
         var statusEl = document.getElementById('statusLulusTahap2');
         if (statusEl) statusEl.disabled = true;
         var nilaiEl = document.getElementById('nilaiHurufTahap2');
         if (nilaiEl) nilaiEl.disabled = true;
+        ['ip125Tahap2', 'nilaiTa125Tahap2', 'nilaiUs125Tahap2'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.disabled = true;
+        });
     }
 }
 
@@ -4109,18 +4251,38 @@ function nilaiHurufIdForStatus(statusLulusId) {
     return '';
 }
 
+function prodi125FieldsForStatus(statusLulusId) {
+    if (statusLulusId === 'statusLulusDisplay') {
+        return { ip: 'ip125Display', ta: 'nilaiTa125Display', us: 'nilaiUs125Display' };
+    }
+    if (statusLulusId === 'statusLulusTahap2') {
+        return { ip: 'ip125Tahap2', ta: 'nilaiTa125Tahap2', us: 'nilaiUs125Tahap2' };
+    }
+    if (statusLulusId === 'statusLulusPembimbing') {
+        return { ip: 'ip125Pembimbing', ta: 'nilaiTa125Pembimbing', us: 'nilaiUs125Pembimbing' };
+    }
+    return null;
+}
+
 // S3/S1: Status Kelulusan & Nilai hanya aktif saat penilai = Ketua Sidang (atau user
 // login memang Ketua Sidang). Pembimbing/Penguji tidak mengatur kelulusan.
 // S2 tetap mengikuti atribut disabled dari server (canEditS2Status).
 function syncStatusKelulusanForPenilai(statusLulusId, isKetuaDipilih) {
     var statusEl = document.getElementById(statusLulusId);
     var nilaiEl = document.getElementById(nilaiHurufIdForStatus(statusLulusId));
+    var p125 = prodi125FieldsForStatus(statusLulusId);
     if (isS2) return;
     // TU Prodi/Admin selalu boleh edit Status Kelulusan & Nilai,
     // tanpa tergantung apakah penilai terpilih = Ketua Sidang.
     var bolehEdit = isTUPandi || ((isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2);
     if (statusEl) statusEl.disabled = !bolehEdit;
     if (nilaiEl) nilaiEl.disabled = !bolehEdit;
+    if (p125) {
+        [p125.ip, p125.ta, p125.us].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.disabled = !bolehEdit;
+        });
+    }
 }
 
 function toggleLockButton(tbodyId, btnId) {
@@ -4185,7 +4347,9 @@ function toggleLockButton(tbodyId, btnId) {
             }
         } else {
             var nilaiInput = row.querySelector('.nilai-input');
-            if (nilaiInput && !nilaiInput.value.trim()) {
+            var nilaiTd = nilaiInput ? nilaiInput.closest('td') : null;
+            var nilaiHidden = nilaiTd && nilaiTd.style.display === 'none';
+            if (nilaiInput && !nilaiHidden && !nilaiInput.value.trim()) {
                 allFilled = false;
                 break;
             }
@@ -4237,6 +4401,16 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
     var statusLulusVal = statusLulus ? statusLulus.value : '';
     var nilaiHurufEl = document.getElementById(nilaiHurufIdForStatus(statusLulusId));
     var nilaiHurufVal = nilaiHurufEl ? nilaiHurufEl.value : '';
+    var p125 = prodi125FieldsForStatus(statusLulusId);
+    var ip125El = p125 ? document.getElementById(p125.ip) : null;
+    var ta125El = p125 ? document.getElementById(p125.ta) : null;
+    var us125El = p125 ? document.getElementById(p125.us) : null;
+    var ip125Val = ip125El ? ip125El.value.trim() : '';
+    var ta125Val = ta125El ? ta125El.value : '';
+    var us125Val = us125El ? us125El.value : '';
+    if (isProdi125 && ta125El) {
+        nilaiHurufVal = ta125Val;
+    }
     var idJudul = '{{ $idJudul }}';
 
     var idTimSidang = '';
@@ -4276,6 +4450,20 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
         showToast('Pilih Nilai terlebih dahulu sebelum mengunci nilai.', 'error');
         return;
     }
+    if (isProdi125 && kunciSebagaiKetua) {
+        if (ip125El && !ip125Val) {
+            showToast('Isi IP sebelum ujian sidang terlebih dahulu sebelum mengunci nilai.', 'error');
+            return;
+        }
+        if (ta125El && !ta125Val) {
+            showToast('Pilih Nilai Tugas Akhir terlebih dahulu sebelum mengunci nilai.', 'error');
+            return;
+        }
+        if (us125El && !us125Val) {
+            showToast('Pilih Nilai Ujian Sarjana terlebih dahulu sebelum mengunci nilai.', 'error');
+            return;
+        }
+    }
 
     // Loading state pada tombol Kunci Nilai
     var lockLabel = btnEl ? btnEl.innerHTML : '';
@@ -4292,7 +4480,9 @@ async function lockNilai(tahapan, tbodyId, statusLulusId, btnId) {
             nilai_terkunci: 'y',
             tahapan_sidang: tahapan,
             status_lulus: statusLulusVal,
+            ip: ip125Val || null,
             nilai_huruf: nilaiHurufVal || null,
+            nilai_huruf2: us125Val || null,
             id_tim_sidang: idTimSidang,
             keterangan: keterangan
         })
@@ -4365,6 +4555,7 @@ async function savePenilaianTahap2() {
         const nilaiInput = row.querySelector('[name$="[nilai]"]');
         const catatanInput = row.querySelector('textarea[name$="[catatan]"]') || row.querySelector('.catatan-input');
         const statusLulusInput = row.querySelector('[name$="[status_lulus]"]');
+        const cekMakalahInput = row.querySelector('.cek-makalah-input');
         if (!idPenilaianInput) return;
 
         var item = {
@@ -4374,6 +4565,9 @@ async function savePenilaianTahap2() {
         };
         if (statusLulusInput) {
             item.status_lulus = statusLulusInput.value;
+        }
+        if (cekMakalahInput) {
+            item.cek_makalah = cekMakalahInput.checked ? 'y' : '';
         }
         penilaian.push(item);
     });
@@ -4443,7 +4637,16 @@ function saveStatusLulusFrom(selectId) {
     const select = document.getElementById(selectId);
     const statusLulus = select ? select.value : '';
     const nilaiHurufEl = document.getElementById(nilaiHurufIdForStatus(selectId));
-    const nilaiHuruf = nilaiHurufEl ? nilaiHurufEl.value : '';
+    let nilaiHuruf = nilaiHurufEl ? nilaiHurufEl.value : '';
+    const p125 = prodi125FieldsForStatus(selectId);
+    const ip125El = p125 ? document.getElementById(p125.ip) : null;
+    const ta125El = p125 ? document.getElementById(p125.ta) : null;
+    const us125El = p125 ? document.getElementById(p125.us) : null;
+    const ip125Val = ip125El ? ip125El.value.trim() : '';
+    const us125Val = us125El ? us125El.value : '';
+    if (isProdi125 && ta125El) {
+        nilaiHuruf = ta125El.value;
+    }
     if (!statusLulus) {
         showToast('Pilih status kelulusan terlebih dahulu', 'error');
         return;
@@ -4460,7 +4663,9 @@ function saveStatusLulusFrom(selectId) {
         },
         body: JSON.stringify({
             status_lulus: statusLulus,
+            ip: ip125Val || null,
             nilai_huruf: nilaiHuruf || null,
+            nilai_huruf2: us125Val || null,
             tahapan_sidang: tahapan
         })
     })
