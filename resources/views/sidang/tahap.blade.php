@@ -1396,7 +1396,7 @@
                                                 @php $penilaianBlocked = ($strataView === 'S2' && ($a->STATUS_AJUKAN_PRODI ?? 't') !== 'y') || ($a->status_lulus ?? '') === 'tidak lulus'; @endphp
                                                 <button type="button" class="btn btn-sm btn-outline-primary px-3" onclick="document.getElementById('jadwalListTahap2').style.display='none'; document.getElementById('penilaianFormTahap2').style.display='block';" {{ $penilaianBlocked ? 'disabled' : '' }} @if($strataView === 'S2' && ($a->STATUS_AJUKAN_PRODI ?? 't') !== 'y') title="Menunggu TU Prodi Approve" @endif><i class="fas fa-clipboard-check mr-1"></i> Penilaian</button>
                                                 @if($strataView === 'S1')
-                                                <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="cetakDaftarHadir({{ $idJudul }}, '{{ $tahapan }}')"><i class="fas fa-print mr-1"></i> (b) Daftar Hadir</button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="cetakDaftarHadir({{ $idJudul }}, '{{ $tahapan }}')"><i class="fas fa-print mr-1"></i> Daftar Hadir</button>
                                                 @endif
                                                 @if(strtolower($tahapan) === 'tahap iv')
                                                 <button type="button" class="btn btn-sm btn-outline-primary px-2" onclick="cetakPedomanKetuaSidang({{ $idJudul }}, '{{ $tahapan }}')"><i class="fas fa-book mr-1"></i> PED Ketua Sidang</button>
@@ -1702,7 +1702,7 @@
                                     <div class="d-flex flex-column" style="gap: 8px;">
                                         @if($isProdi123 && !in_array(session('auth_user.role'), ['FS']))
                                         <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
-                                            <span class="font-weight-bold" style="min-width: 118px;">Nilai</span>
+                                            <span class="font-weight-bold" style="font-size: 13px; min-width: 118px;">Nilai</span>
                                             <select class="form-control form-control-sm border-dark rounded-0" id="nilaiHurufTahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                                 <option value="">Pilih Nilai</option>
                                                 @foreach($nilaiHurufOptions as $nh)
@@ -1712,12 +1712,12 @@
                                         </div>
                                         @elseif($isProdi125 && !in_array(session('auth_user.role'), ['FS']))
                                         <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
-                                            <span class="font-weight-bold" style="min-width: 140px;">IP</span>
+                                            <span class="font-weight-bold" style="font-size: 13px; min-width: 135px;">IP</span>
                                             <input type="number" step="0.01" min="0" max="4" class="form-control form-control-sm border-dark rounded-0" id="ip125Tahap2" value="{{ $ajuanIp }}" placeholder="0.00" style="width: 160px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                             <small class="text-muted">*IP sebelum ujian sidang</small>
                                         </div>
                                         <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
-                                            <span class="font-weight-bold" style="min-width: 140px;">Nilai Tugas Akhir</span>
+                                            <span class="font-weight-bold" style="font-size: 13px; min-width: 135px;">Nilai Tugas Akhir</span>
                                             <select class="form-control form-control-sm border-dark rounded-0" id="nilaiTa125Tahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                                 <option value="">Pilih Nilai</option>
                                                 @foreach($nilaiHurufOptions as $nh)
@@ -1726,7 +1726,7 @@
                                             </select>
                                         </div>
                                         <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
-                                            <span class="font-weight-bold" style="min-width: 140px;">Nilai Ujian Sarjana</span>
+                                            <span class="font-weight-bold" style="font-size: 13px; min-width: 135px;">Nilai Ujian Sarjana</span>
                                             <select class="form-control form-control-sm border-dark rounded-0" id="nilaiUs125Tahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                                 <option value="">Pilih Nilai</option>
                                                 @foreach($nilaiHurufOptions as $nh)
@@ -1736,7 +1736,7 @@
                                         </div>
                                         @endif
                                         <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
-                                            <span class="font-weight-bold" style="min-width: 118px;">Status Kelulusan</span>
+                                            <span class="font-weight-bold" style="font-size: 13px; min-width: {{ $isProdi125 ? '135px' : '118px' }};">Status Kelulusan</span>
                                             @if(!in_array(session('auth_user.role'), ['FS']))
                                             <select class="form-control form-control-sm border-dark rounded-0" id="statusLulusTahap2" style="width: 340px; max-width: 100%;" @if($strataView === 'S2' && !$canEditS2Status) disabled @endif>
                                         <option value="">Pilih Status</option>
@@ -2668,6 +2668,7 @@ var PESAN_KELENGKAPAN = {!! json_encode($pesanKelengkapanNilai) !!};
 var isKppsGateBlocking = {{ ($isKppsGateBlocking ?? false) ? 'true' : 'false' }};
 // S2: FS hanya view-only, semua input nilai dikunci.
 var isFsViewOnlyS2 = {{ ($isFsViewOnlyS2 ?? false) ? 'true' : 'false' }};
+var isS1 = @json($strataView === 'S1');
 var isS2 = @json($strataView === 'S2');
 var isS2ScoreReadOnly = @json($isS2ScoreReadOnly);
 var kodeProdi = @json($kodeProdi ?? null);
@@ -4264,17 +4265,18 @@ function prodi125FieldsForStatus(statusLulusId) {
     return null;
 }
 
-// S3/S1: Status Kelulusan & Nilai hanya aktif saat penilai = Ketua Sidang (atau user
-// login memang Ketua Sidang). Pembimbing/Penguji tidak mengatur kelulusan.
-// S2 tetap mengikuti atribut disabled dari server (canEditS2Status).
+// S1: hanya aktif saat penilai = Ketua Sidang (atau user login Ketua Sidang);
+//     untuk penilai lain (Pembimbing/Penguji) selalu disabled.
+// S3: TU Prodi/Admin selalu boleh edit Status Kelulusan.
+// S2: tetap mengikuti atribut disabled dari server (canEditS2Status).
 function syncStatusKelulusanForPenilai(statusLulusId, isKetuaDipilih) {
     var statusEl = document.getElementById(statusLulusId);
     var nilaiEl = document.getElementById(nilaiHurufIdForStatus(statusLulusId));
     var p125 = prodi125FieldsForStatus(statusLulusId);
     if (isS2) return;
-    // TU Prodi/Admin selalu boleh edit Status Kelulusan & Nilai,
-    // tanpa tergantung apakah penilai terpilih = Ketua Sidang.
-    var bolehEdit = isTUPandi || ((isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2);
+    var bolehEdit = isS1
+        ? ((isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2)
+        : (isTUPandi || ((isKetuaDipilih || isViewOnlyPenilai) && !isNilaiTerkunciUi && !isFsViewOnlyS2));
     if (statusEl) statusEl.disabled = !bolehEdit;
     if (nilaiEl) nilaiEl.disabled = !bolehEdit;
     if (p125) {
@@ -4590,7 +4592,7 @@ async function savePenilaianTahap2() {
             penilaian: penilaian
         };
         const statusLulusEl = document.getElementById('statusLulusTahap2');
-        const statusLulus = statusLulusEl && statusLulusEl.tagName === 'SELECT' ? statusLulusEl.value : '';
+        const statusLulus = statusLulusEl && statusLulusEl.tagName === 'SELECT' && !statusLulusEl.disabled ? statusLulusEl.value : '';
         if (statusLulus) {
             body.status_lulus = statusLulus;
         }
