@@ -2492,9 +2492,11 @@ class CetakController extends Controller
                 } elseif ($kpS1 === '125') {
                     $tp->setValue('tempat_lahir', '-');
                     $tp->setValue('tgl_lahir',    '-');
-                    $tp->setValue('ip',           $ajuan->IP !== null ? (string) $ajuan->IP : '-');
-                    $tp->setValue('nilai_skripsi', $rataRataKeseluruhan);
-                    $tp->setValue('nilai_sidang',  $rataRataKeseluruhan);
+                    $nilaiTugasAkhir125 = trim((string) ($ajuan->NILAI_HURUF ?? $ajuan->nilai_huruf ?? ''));
+                    $nilaiUjianSarjana125 = trim((string) ($ajuan->NILAI_HURUF2 ?? $ajuan->nilai_huruf2 ?? ''));
+                    $tp->setValue('ip',            $ajuan->IP !== null && trim((string) $ajuan->IP) !== '' ? (string) $ajuan->IP : '-');
+                    $tp->setValue('nilai_skripsi', $nilaiTugasAkhir125 !== '' ? $nilaiTugasAkhir125 : $rataRataKeseluruhan);
+                    $tp->setValue('nilai_sidang',  $nilaiUjianSarjana125 !== '' ? $nilaiUjianSarjana125 : $rataRataKeseluruhan);
                     $firstCatNama = array_key_first($catatanByNamaS1) ?? '-';
                     $allCatStr = [];
                     foreach ($catatanByNamaS1 as $nm => $items) {
