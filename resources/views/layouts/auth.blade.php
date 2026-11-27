@@ -616,7 +616,8 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
+            body > *:not(#appGlobalLoader):not(#appNavProgress),
+            body > *:not(#appGlobalLoader):not(#appNavProgress) * {
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
@@ -625,6 +626,7 @@
     </style>
 </head>
 <body>
+    @include('layouts.partials.app-loader', ['loaderMode' => 'auth'])
     <main class="login-wrapper">
         <div class="login-box">
             <section class="login-panel" aria-labelledby="loginTitle">

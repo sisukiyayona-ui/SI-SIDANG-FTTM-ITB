@@ -71,7 +71,7 @@ class LoginController extends Controller
         Cache::forget($usernameKey . ':lock');
 
         $redirectUrl = ($user['role'] ?? '') === 'Mahasiswa' ? route('mahasiswa.dashboard') : route('dashboard');
-        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
+        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!')->with('just_logged_in', true);
     }
 
     // ──────────────────────────── SSO ──────────────────────────────
@@ -221,7 +221,7 @@ class LoginController extends Controller
         }
 
         $redirectUrl = ($userData['role'] ?? '') === 'Mahasiswa' ? route('mahasiswa.dashboard') : route('dashboard');
-        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $userData['nama_lengkap'] . '!');
+        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $userData['nama_lengkap'] . '!')->with('just_logged_in', true);
     }
 
     // ──────────────────────────── Legacy SSO (ITB) ──────────────────────────
@@ -259,7 +259,7 @@ class LoginController extends Controller
         }
 
         $redirectUrl = ($user['role'] ?? '') === 'Mahasiswa' ? route('mahasiswa.dashboard') : route('dashboard');
-        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!');
+        return redirect()->intended($redirectUrl)->with('success', 'Selamat datang, ' . $user['nama_lengkap'] . '!')->with('just_logged_in', true);
     }
 
     // ──────────────────────────── Logout ───────────────────────────

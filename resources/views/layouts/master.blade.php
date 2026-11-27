@@ -2286,6 +2286,7 @@
     @include('master._ui_theme')
 </head>
 <body class="hold-transition sidebar-mini layout-fixed @yield('body_class')">
+@include('layouts.partials.app-loader')
 <div class="wrapper">
 
     <nav class="main-header navbar navbar-expand navbar-dark">

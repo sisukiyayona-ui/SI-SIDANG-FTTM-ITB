@@ -160,9 +160,7 @@
         const content = document.getElementById('tahapFormContent');
 
         title.textContent = getTahapLabelJS(tahapan);
-        content.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 text-muted">Memuat...</p></div>';
-
-        $('#tahapModal').modal('show');
+        if (window.AppLoader) window.AppLoader.show('Memuat form tahapan...');
 
         fetch(`/sidang/tahap/${encodeURIComponent(tahapan)}?id_judul=${idJudul}&_=${new Date().getTime()}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -193,9 +191,13 @@
                 var tabLink = content.querySelector('a[href="#' + activeTab + '"]');
                 if (tabLink) $(tabLink).tab('show');
             }
+            if (window.AppLoader) window.AppLoader.hide();
+            $('#tahapModal').modal('show');
         })
         .catch(error => {
+            if (window.AppLoader) window.AppLoader.hide();
             content.innerHTML = '<p class="text-danger text-center py-4">Error loading form: ' + error + '</p>';
+            $('#tahapModal').modal('show');
         });
     }
 
