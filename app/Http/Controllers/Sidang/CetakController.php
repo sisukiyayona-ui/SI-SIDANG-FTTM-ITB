@@ -846,8 +846,11 @@ class CetakController extends Controller
             $this->fillPenilaianRows($docxPath, $penilaianRows->values()->toArray(), $rataNilai, $tanggal);
         }
 
-        // Sisipkan tanda tangan penilai (base64 dari t_user.SIGNATURE)
-        if (!$isForm125Publikasi) {
+        // Sisipkan tanda tangan penilai (base64 dari t_user.SIGNATURE).
+        // S1 Prodi 125 Publikasi sudah memakai 2 slot khusus ($pub125Signatures),
+        // sedangkan Lembar Penilaian Skripsi/Sidang Prodi 125 memang tidak memiliki tanda tangan.
+        $isS1Prodi125Form = $isS1Form && trim((string) $kodeProdi) === '125';
+        if (!$isForm125Publikasi && !$isS1Prodi125Form) {
             $this->embedSignature($docxPath, $timSidangRecord?->id_user_penilai, $penilaiNip, $penilaiNama, $isS2 ? 90 : 110, $isS2 ? 40 : 55);
             // Bila penilai tidak punya tanda tangan tersimpan, buang sisa ${signature}
             // agar tidak tampil sebagai teks literal di dokumen.
@@ -2688,13 +2691,7 @@ class CetakController extends Controller
                 $tp->setValue('dh_nip_pembimbing_i', $p1S1?->NIP ?? '-');
                 $tp->setValue('nama_pembimbing_ii',  $namaTimS1S2($p2S1));
                 $tp->setValue('nama_pembimbing_iii', $namaTimS1S2($p3S1));
-                // Prodi 123 TA II: bila tidak ada tim berstatus "penguji", Penguji-1
-                // diisi Ketua Sidang (setValue hanya bisa dipanggil sekali per token).
-                $penguji1S1 = $namaTimS1S2($pengS1->get(0));
-                if ($kpS1 === '123' && $isTa2S1 && ($penguji1S1 === '' || $penguji1S1 === '-')) {
-                    $penguji1S1 = $ketuaSidang ? $namaTimS1S2($ketuaSidang) : $penguji1S1;
-                }
-                $tp->setValue('nama_penguji_i',      $penguji1S1);
+                $tp->setValue('nama_penguji_i',      $namaTimS1S2($pengS1->get(0)));
                 $tp->setValue('nama_penguji_ii',     $namaTimS1S2($pengS1->get(1)));
                 $tp->setValue('nama_penguji_iii',    $namaTimS1S2($pengS1->get(2)));
 
@@ -2826,19 +2823,24 @@ class CetakController extends Controller
                     $tp->setValue('tempat_lahir', $tempatLahir125);
                     $tp->setValue('tgl_lahir',    $tglLahir125);
 
-                    $rataSkripsi125 = $this->calcProdi125FormAverage($idJudul, $tahapan, 'skripsi');
-                    $rataSidang125  = $this->calcProdi125FormAverage($idJudul, $tahapan, 'sidang');
-                    $ipVal125 = trim((string) ($ajuan->IP ?? $ajuan->ip ?? ''));
-                    if ($ipVal125 === '') {
-                        $ipVal125 = trim((string) (\App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
-                            ->whereNotNull('IP')
-                            ->whereRaw("TRIM(CAST(IP AS CHAR)) <> ''")
+                    $getAjuan125 = function (string $col) use ($ajuan, $idJudul): string {
+                        $lower = strtolower($col);
+                        $val = trim((string) ($ajuan->{$col} ?? $ajuan->{$lower} ?? ''));
+                        if ($val !== '') {
+                            return $val;
+                        }
+                        return trim((string) (\App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
+                            ->whereNotNull($col)
+                            ->whereRaw("TRIM(CAST($col AS CHAR)) <> ''")
                             ->orderByDesc('id')
-                            ->value('IP') ?? ''));
-                    }
+                            ->value($col) ?? ''));
+                    };
+                    $ipVal125 = $getAjuan125('IP');
+                    $nh1Ba125 = $getAjuan125('NILAI_HURUF');
+                    $nh2Ba125 = $getAjuan125('NILAI_HURUF2');
                     $tp->setValue('ip',            $ipVal125 !== '' ? $ipVal125 : '-');
-                    $tp->setValue('nilai_skripsi', $rataSkripsi125 !== null ? $rataSkripsi125 : ($rataRataKeseluruhan !== '0.00' ? $rataRataKeseluruhan : '-'));
-                    $tp->setValue('nilai_sidang',  $rataSidang125 !== null ? $rataSidang125 : '-');
+                    $tp->setValue('nilai_skripsi', $nh1Ba125 !== '' ? $nh1Ba125 : '-');
+                    $tp->setValue('nilai_sidang',  $nh2Ba125 !== '' ? $nh2Ba125 : '-');
                     $firstCatNama = array_key_first($catatanByNamaS1) ?? '-';
                     $allCatStr = [];
                     foreach ($catatanByNamaS1 as $nm => $items) {

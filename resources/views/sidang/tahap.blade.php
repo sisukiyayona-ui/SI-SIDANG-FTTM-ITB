@@ -4524,7 +4524,7 @@ function syncLockNilaiGate(selectId, btnId) {
     var simpanKetuaIds = ['saveStatusKetuaTahap2Btn', 'saveStatusKetuaBtn'];
     simpanKetuaIds.forEach(function(id) {
         var sk = document.getElementById(id);
-        if (sk) sk.style.display = tampil ? '' : 'none';
+        if (sk) sk.style.display = 'none';
     });
 
     // S2: aktifkan Status Kelulusan & Nilai Huruf saat TU Prodi memilih Ketua Sidang di dropdown

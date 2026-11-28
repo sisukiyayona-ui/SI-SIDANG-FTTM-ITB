@@ -180,7 +180,7 @@
             ? [
                 { value: 'SKRIPSI', label: 'SKRIPSI' },
                 { value: 'SIDANG', label: 'SIDANG' },
-                { value: 'PUBLIKASI', label: 'publikasi' }
+                { value: 'PUBLIKASI', label: 'PUBLIKASI' }
             ]
             : [
                 { value: 'SKRIPSI', label: 'SKRIPSI' },
