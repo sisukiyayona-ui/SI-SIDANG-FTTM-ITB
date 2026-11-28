@@ -360,18 +360,25 @@ class MasterExcelService
         $clean['tahapan'] = $tahapanVal;
 
         // Duplikat di dalam file yang sedang diupload
-        $dupKey = $prodi->id . '|' . mb_strtolower($tahapanVal) . '|' . mb_strtolower($clean['nama']);
+        $dupKey = self::dupKey($clean);
         if (isset($seen[$dupKey])) {
             return ['result' => 'duplicate', 'message' => 'Duplikat dari baris lain di file yang sama'] + $clean;
         }
 
-        // Duplikat di database (strata + prodi + tahapan + nama sama)
+        // Duplikat di database:
+        // - penilaian: strata + prodi + tahapan + parameter penilaian + no_form + keterangan
+        // - persyaratan: strata + prodi + tahapan + nama persyaratan
         $namaColumn = $type === 'penilaian' ? 'PENILAIAN' : 'NAMA_PERSYARATAN';
         $query = ($type === 'penilaian' ? TPointPenilaian::query() : TSyaratSidang::query())
             ->where('KODE_PRODI', $clean['kode_prodi'])
             ->where('STRATA', $strataVal)
             ->where('TAHAPAN_SIDANG', $tahapanVal)
             ->whereRaw('LOWER(' . $namaColumn . ') = ?', [mb_strtolower($clean['nama'])]);
+
+        if ($type === 'penilaian') {
+            $query->whereRaw("LOWER(TRIM(COALESCE(NO_FORM, ''))) = ?", [mb_strtolower($clean['no_form'])])
+                ->whereRaw("LOWER(TRIM(COALESCE(KETERANGAN, ''))) = ?", [mb_strtolower($clean['keterangan'])]);
+        }
 
         if ($ignoreId) {
             $query->where('id', '!=', (int) $ignoreId);
@@ -846,7 +853,11 @@ class MasterExcelService
     {
         $idProdi = $check['prodi']->id ?? $check['kode_prodi'];
 
-        return $idProdi . '|' . mb_strtolower($check['tahapan']) . '|' . mb_strtolower($check['nama']);
+        return $idProdi
+            . '|' . mb_strtolower((string) ($check['tahapan'] ?? ''))
+            . '|' . mb_strtolower((string) ($check['nama'] ?? ''))
+            . '|' . mb_strtolower(trim((string) ($check['no_form'] ?? '')))
+            . '|' . mb_strtolower(trim((string) ($check['keterangan'] ?? '')));
     }
 
     public static function canonicalStatus($value): string
