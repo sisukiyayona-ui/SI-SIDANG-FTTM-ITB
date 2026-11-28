@@ -403,9 +403,10 @@ class PenilaianController extends Controller
             ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
             ->update($ajuanUpdate);
 
-        // Status kelulusan adalah keputusan bersama seluruh tim, jadi seluruh
-        // baris nilai penilai pada judul + tahapan ini ikut diisi bila status_lulus dikirim.
-        if ($request->filled('status_lulus')) {
+        // Khusus S1: status kelulusan dari Ketua Sidang hanya disimpan ke t_ajuan_sidang
+        // (tidak menimpa STATUS_LULUS per baris pada t_penilaian).
+        $isS1Ajuan = strtoupper(trim((string) ($ajuan->STRATA ?? $ajuan->strata ?? ''))) === 'S1';
+        if (!$isS1Ajuan && $request->filled('status_lulus')) {
             DB::table('t_penilaian')
                 ->where('ID_JUDUL', $id)
                 ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
@@ -578,12 +579,14 @@ class PenilaianController extends Controller
                     ->value('STATUS_LULUS'));
             }
 
+            $isS1Strata = $this->strataAjuan($id, $request->tahapan_sidang) === 'S1';
             $nilaiTerkunciInt = $request->nilai_terkunci === 'y' ? 1 : 0;
             $updatePenilaian = [
                 'NILAI_TERKUNCI' => $nilaiTerkunciInt,
                 'TGL_UPDATE' => now(),
             ];
-            if ($statusLulusFinal) {
+            // Untuk S1: status_lulus hanya diupdate ke t_ajuan_sidang, bukan ke t_penilaian.
+            if (!$isS1Strata && $statusLulusFinal) {
                 $updatePenilaian['STATUS_LULUS'] = $statusLulusFinal;
             }
 

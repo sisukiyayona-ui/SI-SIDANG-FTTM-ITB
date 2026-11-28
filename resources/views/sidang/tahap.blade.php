@@ -185,7 +185,7 @@
         // Ketua Sidang pada tim sidang judul + tahapan ini) dan TU Prodi/Admin.
         // Pembimbing/Penguji hanya mengisi nilai, tanpa tombol Kunci Nilai.
         $isTuProdiAtauAdmin = in_array(session('auth_user.role'), ['TU Prodi', 'Admin']);
-        $isKetuaSidangTim = ($isKetuaSidangTim ?? false) || ($strataView !== 'S2' && session('auth_user.role') === 'Ketua Sidang');
+        $isKetuaSidangTim = ($isKetuaSidangTim ?? false) || (session('auth_user.role') === 'Ketua Sidang');
         $canManageKelulusan = $isKetuaSidangTim;
         $kelengkapanNilai = $kelengkapanNilai ?? ['lengkap' => false, 'ada_tim' => false, 'belum' => [], 'belum_parameter' => []];
         $pesanKelengkapanNilai = \App\Services\KelengkapanNilaiSidang::pesan($kelengkapanNilai);
@@ -1656,22 +1656,26 @@
                             @php
                                 $preselectedPenilai2 = '';
                                 if (isset($timSidang)) {
-                                    $mine2 = $timSidang->first(function ($t) {
-                                        return (string)($t->id_user_penilai ?? '') === (string)session('auth_user.id')
-                                            && strtolower(trim($t->status_tim_sidang ?? '')) !== 'ketua sidang';
-                                    });
-                                    $preselectedPenilai2 = $mine2->id ?? '';
+                                    if ($isKetuaSidangTim) {
+                                        $firstPenilai2 = $timSidang->first(fn($t) => strtolower(trim($t->status_tim_sidang ?? '')) !== 'ketua sidang');
+                                        $preselectedPenilai2 = $firstPenilai2->id ?? '';
+                                    } else {
+                                        $mine2 = $timSidang->first(function ($t) {
+                                            return (string)($t->id_user_penilai ?? '') === (string)session('auth_user.id')
+                                                && strtolower(trim($t->status_tim_sidang ?? '')) !== 'ketua sidang';
+                                        });
+                                        $preselectedPenilai2 = $mine2->id ?? '';
+                                    }
                                 }
                             @endphp
                             <input type="hidden" name="id_tim_sidang" id="selectedTimSidangTahap2" value="{{ $preselectedPenilai2 }}">
                             <input type="hidden" name="no_form" id="selectedNoFormTahap2">
                             <div class="penilaian-toolbar mb-2">
                                 <div class="penilaian-filters">
-                                    @unless($isKetuaSidangTim)
                                     <div class="penilaian-filter-field">
                                         <label class="text-danger mb-0 text-nowrap" for="penilaiTahap2" style="text-decoration: underline; text-decoration-color: red;">Penilai</label>
                                         <div class="penilaian-filter-control">
-                                            <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="penilaiTahap2" name="id_user_penilai" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ in_array(session('auth_user.role'), ['Pembimbing', 'Penguji', 'Ketua Sidang']) ? 'disabled' : '' }}>
+                                            <select class="form-control border-dark rounded-0 select2-search penilaian-select" id="penilaiTahap2" name="id_user_penilai" onchange="document.getElementById('selectedTimSidangTahap2').value=this.value;document.getElementById('selectedNoFormTahap2').value=document.getElementById('formTahap2').value;clearReferenceRows('penilaianTahap2Body');filterPenilaianTahap2();" {{ !$isKetuaSidangTim && in_array(session('auth_user.role'), ['Pembimbing', 'Penguji']) ? 'disabled' : '' }}>
                                                 <option value="">Pilih Penilai</option>
                                                 @if(isset($timSidang) && $timSidang->count() > 0)
                                                     {{-- Penilai biasa dulu; Ketua Sidang diletakkan paling bawah --}}
@@ -1702,7 +1706,6 @@
                                             </select>
                                         </div>
                                     </div>
-                                    @endunless
                                 </div>
                                 <div class="d-flex flex-wrap ml-auto">
                                     @if(strtolower($tahapan) === 'tesis ii')
@@ -1762,9 +1765,8 @@
                                 </thead>
                                 <tbody id="penilaianTahap2Body">
                                     <tr id="penilaianTahap2EmptyRow" style="background-color: #dbe5f1;">
-                                        <td colspan="{{ $colCount }}" class="text-center text-muted">{{ $isKetuaSidangTim ? 'Anda Ketua Sidang. Lihat rekap nilai seluruh penilai di atas, pilih Status Kelulusan, lalu kunci nilai.' : 'Pilih Form untuk melihat parameter penilaian' }}</td>
+                                        <td colspan="{{ $colCount }}" class="text-center text-muted">{{ $isKetuaSidangTim ? 'Pilih Penilai dan Form untuk melihat nilai penilai (hanya lihat), lalu pilih Status Kelulusan & Kunci Nilai.' : 'Pilih Form untuk melihat parameter penilaian' }}</td>
                                     </tr>
-                                    @unless($isKetuaSidangTim)
                                     @if(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
                                         @php $rowNum = 0; @endphp
                                         @foreach($allPointPenilaian as $point)
@@ -1872,7 +1874,6 @@
                                             @endforeach
                                         @endforeach
                                     @endif
-                                    @endunless
                                 </tbody>
                             </table>
                             </div>
@@ -2392,7 +2393,6 @@
                                     <input type="hidden" name="id_tim_sidang" id="selectedTimSidang">
                                     <input type="hidden" name="no_form" id="selectedNoForm">
                                     <div class="penilaian-toolbar mb-2">
-                                        @unless($isViewOnlyPenilai)
                                         <div class="penilaian-filters">
                                             <div class="penilaian-filter-field">
                                                 <label class="text-danger mb-0" for="penilaiSelect" style="text-decoration: underline;">Penilai</label>
@@ -2422,7 +2422,6 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        @endunless
                                         <div class="d-flex align-items-center">
                                             @if($isViewOnlyPenilai)
                                             {{-- Ketua Sidang: tidak ada tombol Simpan, cukup Kunci Nilai --}}
@@ -2518,7 +2517,7 @@
                                             <tr id="penilaianFormEmptyRow" style="background-color: #dbe5f1;">
                                                 <td colspan="{{ 5 + (($isProdi123 || $isProdi124) ? 1 : 0) + ($isProdi123 ? 1 : 0) }}" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Anda Ketua Sidang. Lihat rekap nilai seluruh penilai di atas, pilih Status Kelulusan, lalu kunci nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
                                             </tr>
-                                            @if(!$isViewOnlyPenilai && isset($penilaian) && $penilaian->count() > 0)
+                                            @if(isset($penilaian) && $penilaian->count() > 0)
                                                 @foreach($penilaian as $idx => $nilai)
                                                  <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-tim="{{ $nilai->id_tim_sidang }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}" data-bobot="{{ $nilai->pointPenilaian->bobot ?? '' }}">
                                                     <td>{{ $idx + 1 }}</td>
@@ -3375,7 +3374,7 @@ function filterPenilaianTahap2() {
         return;
     }
 
-    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isFsViewOnlyS2 || isS2ScoreReadOnly;
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isFsViewOnlyS2 || isS2ScoreReadOnly || !!isViewOnlyPenilai;
     var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilai);
     var penilaiId = selPenilai.value;
     var noForm = selForm.value;
@@ -3498,7 +3497,7 @@ function applyStatusCatatan(row, isPub) {
 }
 
 function filterPenilaian() {
-    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isFsViewOnlyS2 || isS2ScoreReadOnly;
+    var isLocked = !!isNilaiTerkunciUi || isKppsGateBlocking || isFsViewOnlyS2 || isS2ScoreReadOnly || !!isViewOnlyPenilai;
     var selPenilaiLaporan = document.getElementById('penilaianSelect');
     var isKetuaSidangDipilih = isPenilaiKetuaSidang(selPenilaiLaporan);
     var penilaiId = selPenilaiLaporan.value;

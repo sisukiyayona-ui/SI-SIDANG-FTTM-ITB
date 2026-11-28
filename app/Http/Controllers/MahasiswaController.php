@@ -415,7 +415,7 @@ class MahasiswaController extends Controller
             $penilaianQuery->where('ID_AJUAN', $ajuan?->id);
         }
         
-        if (in_array($user['role'], ['Pembimbing', 'Penguji']) && !$isKetuaSidangTim) {
+        if (in_array($user['role'], ['Pembimbing', 'Penguji']) && !$isKetuaSidangTim && ($user['role'] ?? '') !== 'Ketua Sidang') {
             $penilaianQuery->where('id_user_penilai', $user['id']);
         }
         
