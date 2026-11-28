@@ -616,7 +616,7 @@
         window.openJadwalForm = function(el) {
             var form = document.getElementById('jadwalFormTahap2Form');
             if (!form) return;
-            var fields = ['tgl_sidang','waktu_sidang','waktu_selesai','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_hasil_penelahan','email_surat','no_sk_kelulusan'];
+            var fields = ['tgl_sidang','waktu_sidang','waktu_selesai','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_hasil_penelahan','email_surat','no_sk_kelulusan','semester','thn_akademik'];
             var idInput = document.getElementById('id_ajuan_tahap2');
             var data = null;
             if (el && el.dataset) {
@@ -632,7 +632,9 @@
                     no_surat_penelaah: el.dataset.noSuratPenelaah || null,
                     tgl_hasil_penelahan: el.dataset.tglHasilPenelahan || null,
                     email_surat: el.dataset.emailSurat || null,
-                    no_sk_kelulusan: el.dataset.noSkKelulusan || null
+                    no_sk_kelulusan: el.dataset.noSkKelulusan || null,
+                    semester: el.dataset.semester || null,
+                    thn_akademik: el.dataset.thnAkademik || null
                 };
             }
             if (data && data.id) {

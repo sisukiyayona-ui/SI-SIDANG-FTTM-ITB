@@ -54,6 +54,8 @@ class TAjuanSidang extends Model
         'EMAIL_SURAT',
         'WAKTU_SELESAI',
         'TGL_HASIL_PENELAHAN',
+        'SEMESTER',
+        'THN_AKADEMIK',
     ];
 
     protected $casts = [

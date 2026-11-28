@@ -252,6 +252,8 @@ class MahasiswaController extends Controller
                 'tgl_hasil_penelahan' => $a->TGL_HASIL_PENELAHAN,
                 'email_surat' => $a->email_surat,
                 'no_sk_kelulusan' => $a->SK_LULUS,
+                'semester' => $a->SEMESTER ?? '',
+                'thn_akademik' => $a->THN_AKADEMIK ?? '',
             ];
         })->values();
 
@@ -1509,8 +1511,13 @@ class MahasiswaController extends Controller
         if ($request->filled('status_lulus')) {
             $ajuan->STATUS_LULUS = $request->status_lulus;
         }
-        // Semester & Tahun Akademik (hanya untuk S2 Tesis I/II)
-        if ($isS2) {
+        // Semester & Tahun Akademik (untuk S1 TA I/II dan S2 Tesis I/II)
+        $isS1 = in_array(strtolower(trim((string) $tahapan)), ['ta i', 'ta ii'], true);
+        if ($isS1 || $isS2) {
+            $request->validate([
+                'semester' => 'nullable|in:I,II',
+                'thn_akademik' => 'nullable|string|max:100',
+            ]);
             if ($request->filled('semester')) {
                 $ajuan->SEMESTER = $request->semester;
             }

@@ -159,7 +159,7 @@ class CetakController extends Controller
      * 123 -> penilaian TA I dan II prodi 123 TG
      * 125 -> Lembar Penilaian Skripsi prodi 125 Metalurgi
      */
-    private function getS1FormTemplate($kodeProdi): string
+    private function getS1FormTemplate($kodeProdi, string $jenis = '', string $noForm = ''): string
     {
         $kp = trim((string) $kodeProdi);
 
@@ -168,6 +168,9 @@ class CetakController extends Controller
         } elseif ($kp === '123') {
             return base_path('template/S1/penilaian TA I dan II prodi 123 TG TEMPLATE.docx');
         } elseif ($kp === '125') {
+            if (str_contains(strtolower($jenis), 'publikasi') || str_contains(strtolower($noForm), 'publikasi')) {
+                return base_path('template/S1/Form Penilaian Publikasi TA 2 prodi 125 TEMPLATE.docx');
+            }
             return base_path('template/S1/Lembar Penilaian Skripsi prodi 125 Metalurgi TEMPLATE.docx');
         }
 
@@ -212,12 +215,51 @@ class CetakController extends Controller
             ?? $judul->KODE_PRODI ?? $judul->kode_prodi
             ?? null;
 
+        // Prodi 125 S1: selaraskan $noForm dengan pilihan modal `jenis` (SKRIPSI / SIDANG / PUBLIKASI)
+        if (strtoupper((string) ($ajuan->STRATA ?? '')) === 'S1' && trim((string) $kodeProdi) === '125' && $jenisCetak !== '') {
+            $matchedForm125 = TPointPenilaian::where('KODE_PRODI', '125')
+                ->where('TAHAPAN_SIDANG', $tahapan)
+                ->whereRaw("LOWER(COALESCE(NO_FORM, '')) LIKE ?", ['%' . $jenisCetak . '%'])
+                ->value('NO_FORM');
+            if ($matchedForm125) {
+                $noForm = $matchedForm125;
+            } elseif (!$noForm) {
+                $noForm = $jenisCetak;
+            }
+        }
+
         // Data tim sidang (penilai yang dipilih)
         $timSidangRecord = TTimSidang::find($idTimSidang);
 
         // Semua tim sidang untuk header pembimbing
-        $allTimSidang = TTimSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)->get();
+        $allTimSidang = TTimSidang::with('userPenilai')
+            ->where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->orderByRaw("CASE
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'II$' THEN 2
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'I$' THEN 1
+                ELSE 0 END")
+            ->orderBy('URUTAN')
+            ->get();
+
+        // Fallback S1: bila Pembimbing hanya diinput di tahapan lain (mis. TA I saat cetak TA II), ambil dari judul yg sama
+        $hasPembCurrent = $allTimSidang->contains(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing'));
+        if (!$hasPembCurrent) {
+            $otherPemb = TTimSidang::with('userPenilai')
+                ->where('id_judul', $idJudul)
+                ->whereRaw("LOWER(COALESCE(STATUS_TIM_SIDANG, '')) LIKE '%pembimbing%'")
+                ->orderByRaw("CASE
+                    WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
+                    WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'II$' THEN 2
+                    WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'I$' THEN 1
+                    ELSE 0 END")
+                ->orderBy('URUTAN')
+                ->get();
+            if ($otherPemb->isNotEmpty()) {
+                $allTimSidang = $otherPemb->concat($allTimSidang)->values();
+            }
+        }
 
         $ketuaPembimbing = $allTimSidang->first(fn($t) =>
             in_array(strtolower(trim($t->status_tim_sidang ?? '')), ['ketua pembimbing', 'pembimbing (ketua)'])
@@ -236,7 +278,7 @@ class CetakController extends Controller
             ->where('tahapan_sidang', $tahapan)
             ->where('id_tim_sidang', $idTimSidang);
         if ($noForm) {
-            $query->where('no_form', $noForm);
+            $query->whereRaw('LOWER(TRIM(NO_FORM)) = ?', [strtolower(trim((string) $noForm))]);
         }
         $penilaianRows = $query->orderBy('id_penilaian')->get();
         
@@ -249,13 +291,14 @@ class CetakController extends Controller
                     // agar baris bertipe teks (STATUS_CATATAN='y') bisa dibedakan
                     // dari baris nilai saat cetak (mis. template prodi 222).
                     $row->STATUS_CATATAN = $row->pointPenilaian->STATUS_CATATAN ?? '';
+                    $row->BOBOT = $row->pointPenilaian->BOBOT ?? $row->pointPenilaian->bobot ?? null;
                 } else {
                     $row->KETERANGAN = '';
                 }
             }
         }
 
-        // Jika belum ada record, ambil point penilaian (baris kosong) â€” per prodi
+        // Jika belum ada record, ambil point penilaian (baris kosong) — per prodi
         if ($penilaianRows->isEmpty()) {
             $pointQuery = TPointPenilaian::where('tahapan_sidang', $tahapan)
                 ->whereIn('status_aktif', ['AKTIF', 'aktif', 'Aktif', 'y', 'Y', 't']);
@@ -263,13 +306,15 @@ class CetakController extends Controller
                 $pointQuery->where('KODE_PRODI', $kodeProdi);
             }
             if ($noForm) {
-                $pointQuery->where('no_form', $noForm);
+                $pointQuery->whereRaw('LOWER(TRIM(NO_FORM)) = ?', [strtolower(trim((string) $noForm))]);
             }
             $pointRows     = $pointQuery->orderBy('id')->get();
             $penilaianRows = $pointRows->map(fn($p) => (object)[
                 'NAMA_PENILAIAN' => $p->PENILAIAN  ?? '',
                 'KETERANGAN'     => $p->KETERANGAN ?? '',
+                'BOBOT'          => $p->BOBOT ?? $p->bobot ?? null,
                 'NILAI'          => '',
+                'CEK_MAKALAH'    => '',
                 'CATATAN'        => '',
                 'STATUS_CATATAN' => $p->STATUS_CATATAN ?? $p->status_catatan ?? '',
                 'NAMA'           => $timSidangRecord?->NAMA ?? '-',
@@ -293,9 +338,27 @@ class CetakController extends Controller
         $nilaiValues  = $detailRows
             ->pluck('NILAI')
             ->filter(fn($v) => $v !== '' && $v !== null);
-        $rataNilai    = $nilaiValues->count() > 0
-            ? number_format($nilaiValues->sum() / max(1, $jumlahDetail), 2)
-            : '';
+        $hasBobotDetail = $detailRows->contains(function ($r) {
+            $b = $r->BOBOT ?? $r->bobot ?? null;
+            return $b !== null && is_numeric($b) && (float) $b > 0;
+        });
+        if ($nilaiValues->count() > 0) {
+            if ($hasBobotDetail) {
+                $sumBobotNilai = $detailRows->sum(function ($r) {
+                    $v = $r->NILAI ?? null;
+                    $b = $r->BOBOT ?? $r->bobot ?? null;
+                    if ($v === '' || $v === null || !is_numeric($v) || !is_numeric($b)) {
+                        return 0.0;
+                    }
+                    return (((float) $b) / 100.0) * ((float) $v);
+                });
+                $rataNilai = number_format($sumBobotNilai, 2);
+            } else {
+                $rataNilai = number_format($nilaiValues->sum() / max(1, $jumlahDetail), 2);
+            }
+        } else {
+            $rataNilai = '';
+        }
 
         // Info penilai & tanggal (tanggal penilaian = tgl create penilaian)
         $firstRow    = $penilaianRows->first();
@@ -340,10 +403,9 @@ class CetakController extends Controller
             ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y')
             : '-';
 
-        // Template
-        // Form tipe teks (STATUS_CATATAN=y semua point): gunakan template tipe text
+        // Template: S1 Prodi 122/123/125 selalu pakai template khusus S1 (jangan tertimpa deteksi $isTextForm).
         $isTextForm = false;
-        if ($noForm && !$isSk && !$isSidangDoktor) {
+        if ($noForm && !$isSk && !$isSidangDoktor && !$isS1Form) {
             $pointsForForm = TPointPenilaian::where('tahapan_sidang', $tahapan)
                 ->where('no_form', $noForm)
                 ->whereIn('status_aktif', ['AKTIF', 'aktif', 'Aktif', 'y', 'Y', 't']);
@@ -390,8 +452,11 @@ class CetakController extends Controller
         // bukan template tipe text generik S3/Diskertasi.
         $isS2TextForm = $isS2 && !$isSk && !$isSidangDoktor && $isTextForm && ! $isS2Prodi222;
 
+        $isForm125Publikasi = $isS1Form && trim((string) $kodeProdi) === '125'
+            && (str_contains($jenisCetak, 'publikasi') || str_contains(strtolower((string) $noForm), 'publikasi'));
+
         if ($isS1Form) {
-            $templatePath = $this->getS1FormTemplate($kodeProdi);
+            $templatePath = $this->getS1FormTemplate($kodeProdi, (string) $jenisCetak, (string) ($noForm ?? ''));
         } elseif ($isS2Prodi222) {
             $templatePath = $this->getS2FormTemplate($kodeProdi, $tahapan, $jenisCetak);
         } elseif ($isS2 && !$isSk && !$isSidangDoktor && !$isTextForm) {
@@ -618,13 +683,113 @@ class CetakController extends Controller
                     $tp->setValue('catatan_1',            $rowSkripsi?->CATATAN      ?? '');
                     $tp->setValue('catatan_2',            $rowUmum?->CATATAN         ?? '');
                 } elseif ($kpS1 === '125') {
-                    $jenis125 = strtoupper(trim((string) $request->input('jenis', $noForm ?: 'SKRIPSI')));
-                    $tp->setValue('jenis_penilaian', $jenis125 !== '' ? $jenis125 : 'SKRIPSI');
-                    $rows125 = $penilaianRows->values();
-                    for ($i = 0; $i < 8; $i++) {
-                        $r = $rows125->get($i);
-                        $tp->setValue('param_' . ($i + 1), $r ? ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? '') : '');
-                        $tp->setValue('nilai_' . ($i + 1), $r && ($r->NILAI ?? '') !== '' ? (string) $r->NILAI : '');
+                    if ($isForm125Publikasi) {
+                        $masterPub125 = TPointPenilaian::where('KODE_PRODI', '125')
+                            ->where('TAHAPAN_SIDANG', $tahapan)
+                            ->whereIn('status_aktif', ['AKTIF', 'aktif', 'Aktif', 'y', 'Y', 't'])
+                            ->whereRaw("LOWER(COALESCE(NO_FORM, '')) LIKE '%publikasi%'")
+                            ->orderBy('id')
+                            ->get();
+
+                        $savedById125 = [];
+                        $savedByName125 = [];
+                        foreach ($penilaianRows as $sr) {
+                            $pid = $sr->ID_PENILAIAN ?? $sr->id_penilaian ?? null;
+                            if ($pid) {
+                                $savedById125[(int) $pid] = $sr;
+                            }
+                            $nmKey = strtolower(trim((string) ($sr->NAMA_PENILAIAN ?? $sr->PENILAIAN ?? '')));
+                            if ($nmKey !== '') {
+                                $savedByName125[$nmKey] = $sr;
+                            }
+                        }
+
+                        $kriteriaPub125 = [];
+                        $catatanPubList125 = [];
+
+                        if ($masterPub125->isNotEmpty()) {
+                            foreach ($masterPub125 as $mp) {
+                                $sc = strtolower(trim((string) ($mp->STATUS_CATATAN ?? $mp->status_catatan ?? '')));
+                                $nmLower = strtolower(trim((string) ($mp->PENILAIAN ?? '')));
+                                $savedRow = $savedById125[(int) $mp->id] ?? ($savedByName125[$nmLower] ?? null);
+                                if ($sc === 'y') {
+                                    $catTxt = trim((string) ($savedRow?->CATATAN ?? $savedRow?->catatan ?? ''));
+                                    if ($catTxt !== '' && strtolower($catTxt) !== 'terlampir') {
+                                        $catatanPubList125[] = $catTxt;
+                                    }
+                                } else {
+                                    $kriteriaPub125[] = [
+                                        'nama' => (string) ($mp->PENILAIAN ?? ''),
+                                        'cek'  => strtolower(trim((string) ($savedRow?->CEK_MAKALAH ?? $savedRow?->cek_makalah ?? ''))),
+                                    ];
+                                    $extraCat = trim((string) ($savedRow?->CATATAN ?? $savedRow?->catatan ?? ''));
+                                    if ($extraCat !== '' && strtolower($extraCat) !== 'terlampir') {
+                                        $catatanPubList125[] = $extraCat;
+                                    }
+                                }
+                            }
+                        } else {
+                            foreach ($penilaianRows as $sr) {
+                                $sc = strtolower(trim((string) ($sr->STATUS_CATATAN ?? $sr->status_catatan ?? '')));
+                                if ($sc === 'y') {
+                                    $catTxt = trim((string) ($sr->CATATAN ?? $sr->catatan ?? ''));
+                                    if ($catTxt !== '' && strtolower($catTxt) !== 'terlampir') {
+                                        $catatanPubList125[] = $catTxt;
+                                    }
+                                } else {
+                                    $kriteriaPub125[] = [
+                                        'nama' => (string) ($sr->NAMA_PENILAIAN ?? $sr->PENILAIAN ?? ''),
+                                        'cek'  => strtolower(trim((string) ($sr->CEK_MAKALAH ?? $sr->cek_makalah ?? ''))),
+                                    ];
+                                }
+                            }
+                        }
+
+                        for ($i = 0; $i < 6; $i++) {
+                            $itemPub = $kriteriaPub125[$i] ?? null;
+                            $isCek = $itemPub && in_array($itemPub['cek'], ['y', 'ya', '1', 'true', 'on'], true);
+                            $tp->setValue('nama_penilaian_' . ($i + 1), $itemPub['nama'] ?? '');
+                            $tp->setValue('cek_makalah_' . ($i + 1), $isCek ? '✓' : '');
+                        }
+                        $tp->setValue('catatan', !empty($catatanPubList125) ? implode('; ', array_unique($catatanPubList125)) : '-');
+
+                        $kaprodiPub125 = null;
+                        if (!empty($ajuan->ID_PRODI)) {
+                            $kapUid125 = DB::table('t_user_prodi')
+                                ->join('t_user', 't_user_prodi.ID_USER', '=', 't_user.id')
+                                ->where('t_user_prodi.ID_PRODI', $ajuan->ID_PRODI)
+                                ->where('t_user.STATUS_KAPRODI', 'y')
+                                ->value('t_user_prodi.ID_USER');
+                            if ($kapUid125) {
+                                $kaprodiPub125 = TUser::find($kapUid125);
+                            }
+                        }
+                        if (!$kaprodiPub125) {
+                            $kaprodiPub125 = TUser::where('KODE_PRODI', '125')->where('STATUS_KAPRODI', 'y')->first();
+                        }
+                        if (!$kaprodiPub125) {
+                            foreach (['225', '325'] as $serumpun125) {
+                                $kaprodiPub125 = TUser::where('KODE_PRODI', $serumpun125)->where('STATUS_KAPRODI', 'y')->first();
+                                if ($kaprodiPub125) {
+                                    break;
+                                }
+                            }
+                        }
+                        $tp->setValue('nama_kaprodi', $kaprodiPub125?->NAMA_LENGKAP ?? '-');
+                        $tp->setValue('nip_kaprodi',  $kaprodiPub125?->NIP_NIM ?? '-');
+                        $pub125Signatures = [
+                            'signature_kaprodi' => $this->signatureBinaryOfUser($kaprodiPub125?->id),
+                            'signature_penilai' => $this->signatureBinary($timSidangRecord),
+                        ];
+                    } else {
+                        $jenis125 = strtoupper(trim((string) $request->input('jenis', $noForm ?: 'SKRIPSI')));
+                        $tp->setValue('jenis_penilaian', $jenis125 !== '' ? $jenis125 : 'SKRIPSI');
+                        $rows125 = $penilaianRows->values();
+                        for ($i = 0; $i < 8; $i++) {
+                            $r = $rows125->get($i);
+                            $tp->setValue('param_' . ($i + 1), $r ? ($r->NAMA_PENILAIAN ?? $r->PENILAIAN ?? '') : '');
+                            $tp->setValue('nilai_' . ($i + 1), $r && ($r->NILAI ?? '') !== '' ? (string) $r->NILAI : '');
+                        }
                     }
                 }
             } else {
@@ -652,6 +817,14 @@ class CetakController extends Controller
             $this->postProcessForm225Header($docxPath, (string) ($kodeMk ?? ''));
         }
 
+        // S1 Prodi 125 Publikasi: pusatkan tanda centang di kotak cek_makalah & isi 2 tanda tangan (Kaprodi + Penilai)
+        if ($isForm125Publikasi) {
+            $this->centerPublikasi125CekMakalahDocx($docxPath);
+            if (!empty($pub125Signatures)) {
+                $this->fillBa221MkSignatures($docxPath, $pub125Signatures);
+            }
+        }
+
         // Isi baris penilaian via manipulasi XML
         if ($isSk) {
             // Template SK: isi nomor form, heading romawi, dan expand baris detail penilaian.
@@ -674,11 +847,12 @@ class CetakController extends Controller
         }
 
         // Sisipkan tanda tangan penilai (base64 dari t_user.SIGNATURE)
-        $this->embedSignature($docxPath, $timSidangRecord?->id_user_penilai, $penilaiNip, $penilaiNama, $isS2 ? 90 : 110, $isS2 ? 40 : 55);
-
-        // Bila penilai tidak punya tanda tangan tersimpan, buang sisa ${signature}
-        // agar tidak tampil sebagai teks literal di dokumen.
-        $this->removePlaceholderText($docxPath, 'signature');
+        if (!$isForm125Publikasi) {
+            $this->embedSignature($docxPath, $timSidangRecord?->id_user_penilai, $penilaiNip, $penilaiNama, $isS2 ? 90 : 110, $isS2 ? 40 : 55);
+            // Bila penilai tidak punya tanda tangan tersimpan, buang sisa ${signature}
+            // agar tidak tampil sebagai teks literal di dokumen.
+            $this->removePlaceholderText($docxPath, 'signature');
+        }
 
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
     }
@@ -692,16 +866,20 @@ class CetakController extends Controller
      */
     private function embedSignature(string $docxPath, $idUserPenilai, string $anchorNip = '', string $anchorNama = '', int $width = 110, int $height = 55): void
     {
-        $signature = null;
-        if ($idUserPenilai) {
-            $signature = TUser::where('id', (int) $idUserPenilai)->value('SIGNATURE');
+        $binary = $this->signatureBinaryOfUser($idUserPenilai);
+        if ($binary === null && trim($anchorNip) !== '' && trim($anchorNip) !== '-') {
+            $uidByNip = TUser::where('NIP_NIM', trim($anchorNip))->value('id');
+            if ($uidByNip) {
+                $binary = $this->signatureBinaryOfUser($uidByNip);
+            }
         }
-        if (empty($signature)) {
-            return;
+        if ($binary === null && trim($anchorNama) !== '' && trim($anchorNama) !== '-') {
+            $uidByNama = TUser::whereRaw('LOWER(TRIM(NAMA_LENGKAP)) = ?', [strtolower(trim($anchorNama))])->value('id');
+            if ($uidByNama) {
+                $binary = $this->signatureBinaryOfUser($uidByNama);
+            }
         }
-
-        $binary = base64_decode($signature, true);
-        if ($binary === false || strlen($binary) < 100) {
+        if ($binary === null) {
             return;
         }
 
@@ -716,6 +894,13 @@ class CetakController extends Controller
 
         $tmpPath = storage_path('app/uploads/ttd_' . uniqid() . '.' . $ext);
         file_put_contents($tmpPath, $binary);
+        if ($ext === 'png' && function_exists('imagecreatefrompng')) {
+            $tmpFixed = $this->addWhiteBackgroundToPng($tmpPath);
+            if ($tmpFixed && $tmpFixed !== $tmpPath) {
+                @unlink($tmpPath);
+                $tmpPath = $tmpFixed;
+            }
+        }
 
         try {
             // Pass 1: Cek apakah template sudah punya ${signature}
@@ -871,6 +1056,11 @@ class CetakController extends Controller
         $sigPara = $this->extractParagraph($xml, '${signature}');
         $nameStart = $this->findParagraphStart($xml, $namePos);
         if ($sigPara === false || $nameStart === false) {
+            return $xml;
+        }
+
+        // Jangan timpa perataan jika paragraf ${signature} sudah memiliki tab / spasi indentasi sendiri dari template
+        if (strpos($sigPara['xml'], '<w:tab') !== false || preg_match('/<w:t[^>]*>\s+\$\{signature\}/', $sigPara['xml'])) {
             return $xml;
         }
 
@@ -1044,21 +1234,29 @@ class CetakController extends Controller
      * ${signature_1}..${signature_4}, ${signature_ketua_sidang}, ${signature_kaprodi}.
      * Tanpa tanda tangan tersimpan, slot diisi titik-titik.
      */
-    private function fillBa221MkSignatures(string $docxPath, array $signatures): void
+    private function fillBa221MkSignatures(string $docxPath, array $signatures, array $emptyFallbacks = []): void
     {
         try {
             $tp = new TemplateProcessor($docxPath);
             $tmpFiles = [];
             foreach ($signatures as $name => $binary) {
                 if (empty($binary)) {
-                    $tp->setValue($name, '.............');
+                    $fallbackText = array_key_exists($name, $emptyFallbacks) ? $emptyFallbacks[$name] : '.............';
+                    $tp->setValue($name, $fallbackText);
                     continue;
                 }
                 $ext = substr($binary, 0, 4) === "\x89PNG" ? 'png' : 'jpg';
                 $tmp = storage_path('app/uploads/ttd_ba221mk_' . uniqid() . '.' . $ext);
                 file_put_contents($tmp, $binary);
+                if ($ext === 'png' && function_exists('imagecreatefrompng')) {
+                    $tmpFixed = $this->addWhiteBackgroundToPng($tmp);
+                    if ($tmpFixed && $tmpFixed !== $tmp) {
+                        @unlink($tmp);
+                        $tmp = $tmpFixed;
+                    }
+                }
                 $tmpFiles[] = $tmp;
-                $tp->setImageValue($name, ['path' => $tmp, 'width' => 90, 'height' => 40]);
+                $tp->setImageValue($name, ['path' => $tmp, 'width' => 110, 'height' => 50]);
             }
             $tp->saveAs($docxPath);
         } catch (\Exception $e) {
@@ -1359,8 +1557,32 @@ class CetakController extends Controller
         if (!$tim) {
             return null;
         }
-        $idUser = $tim->id_user_penilai ?? null;
-        return $this->signatureBinaryOfUser($idUser);
+        $idUser = $tim->id_user_penilai ?? $tim->ID_USER_PENILAI ?? null;
+        $bin = $this->signatureBinaryOfUser($idUser);
+        if ($bin !== null) {
+            return $bin;
+        }
+
+        $nip = trim((string) ($tim->NIP ?? $tim->nip ?? ''));
+        if ($nip !== '') {
+            $uidByNip = TUser::where('NIP_NIM', $nip)->value('id');
+            if ($uidByNip) {
+                $bin = $this->signatureBinaryOfUser($uidByNip);
+                if ($bin !== null) {
+                    return $bin;
+                }
+            }
+        }
+
+        $nama = trim((string) ($tim->NAMA ?? $tim->nama ?? ''));
+        if ($nama !== '') {
+            $uidByNama = TUser::whereRaw('LOWER(TRIM(NAMA_LENGKAP)) = ?', [strtolower($nama)])->value('id');
+            if ($uidByNama) {
+                return $this->signatureBinaryOfUser($uidByNama);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1443,12 +1665,41 @@ class CetakController extends Controller
         if (empty($sig)) {
             return null;
         }
-        $binary = base64_decode($sig, true);
+        if (str_contains($sig, ',')) {
+            $sig = substr($sig, strpos($sig, ',') + 1);
+        }
+        $binary = base64_decode(trim($sig), true);
         if ($binary === false || strlen($binary) < 100) {
             return null;
         }
         if (!(substr($binary, 0, 4) === "\x89PNG" || substr($binary, 0, 3) === "\xFF\xD8\xFF")) {
             return null;
+        }
+        // Abaikan kanvas putih/transparan kosong (belum ada goresan tanda tangan)
+        if (function_exists('imagecreatefromstring')) {
+            $im = @imagecreatefromstring($binary);
+            if ($im !== false) {
+                $w = imagesx($im);
+                $h = imagesy($im);
+                $hasInk = false;
+                for ($x = 0; $x < $w && !$hasInk; $x += 2) {
+                    for ($y = 0; $y < $h; $y += 2) {
+                        $rgba = imagecolorat($im, $x, $y);
+                        $alpha = ($rgba >> 24) & 0x7F;
+                        $r = ($rgba >> 16) & 0xFF;
+                        $g = ($rgba >> 8) & 0xFF;
+                        $b = $rgba & 0xFF;
+                        if ($alpha < 120 && ($r < 245 || $g < 245 || $b < 245)) {
+                            $hasInk = true;
+                            break;
+                        }
+                    }
+                }
+                imagedestroy($im);
+                if (!$hasInk) {
+                    return null;
+                }
+            }
         }
         return $binary;
     }
@@ -2148,8 +2399,34 @@ class CetakController extends Controller
             ?? $judul->KODE_PRODI ?? $judul->kode_prodi ?? null;
 
         // Semua tim sidang untuk header pembimbing
-        $allTimSidang = TTimSidang::where('id_judul', $idJudul)
-            ->where('tahapan_sidang', $tahapan)->get();
+        $allTimSidang = TTimSidang::with('userPenilai')
+            ->where('id_judul', $idJudul)
+            ->where('tahapan_sidang', $tahapan)
+            ->orderByRaw("CASE
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'II$' THEN 2
+                WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'I$' THEN 1
+                ELSE 0 END")
+            ->orderBy('URUTAN')
+            ->get();
+
+        // Fallback S1: bila Pembimbing hanya diinput di tahapan lain (mis. TA I saat cetak TA II), ambil dari judul yg sama
+        $hasPembCurrent = $allTimSidang->contains(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing'));
+        if (!$hasPembCurrent) {
+            $otherPemb = TTimSidang::with('userPenilai')
+                ->where('id_judul', $idJudul)
+                ->whereRaw("LOWER(COALESCE(STATUS_TIM_SIDANG, '')) LIKE '%pembimbing%'")
+                ->orderByRaw("CASE
+                    WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'III$' THEN 3
+                    WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'II$' THEN 2
+                    WHEN UPPER(STATUS_TIM_SIDANG) REGEXP 'I$' THEN 1
+                    ELSE 0 END")
+                ->orderBy('URUTAN')
+                ->get();
+            if ($otherPemb->isNotEmpty()) {
+                $allTimSidang = $otherPemb->concat($allTimSidang)->values();
+            }
+        }
 
         $ketuaPembimbing = $allTimSidang->first(fn($t) =>
             in_array(strtolower(trim($t->status_tim_sidang ?? '')), ['ketua pembimbing', 'pembimbing (ketua)'])
@@ -2264,17 +2541,18 @@ class CetakController extends Controller
             $p1BA = $ketuaPembimbing ?? $pembimbingsBA->get(0);
             $p2BA = $pembimbingsBA->first(fn($t) => $t->id !== ($p1BA?->id));
 
-            $namaP1BA = $isS2 ? ($p1BA?->NAMA ?? '-') : ($anggotaPembimbing->get(0)?->NAMA ?? '-');
-            $namaP2BA = $isS2 ? ($p2BA?->NAMA ?? '-') : ($anggotaPembimbing->get(1)?->NAMA ?? '-');
+            $namaTimS1S2 = fn($t) => $t ? (trim((string) ($t->NAMA ?? '')) ?: ($t->userPenilai?->NAMA_LENGKAP ?? '-')) : '-';
+            $namaP1BA = ($isS2 || $isS1Ba) ? $namaTimS1S2($p1BA) : ($anggotaPembimbing->get(0)?->NAMA ?? '-');
+            $namaP2BA = ($isS2 || $isS1Ba) ? $namaTimS1S2($p2BA) : ($anggotaPembimbing->get(1)?->NAMA ?? '-');
 
             // Set basic placeholders
             $tp->setValue('judul',                  $ajuan->JUDUL    ?? $judul->JUDUL ?? '');
             $tp->setValue('nama_mhs',                $ajuan->NAMA_MHS ?? '-');
             $tp->setValue('nim',                     $ajuan->NIM      ?? '-');
-            $tp->setValue('nama_ketua_pembimbing',   $ketuaPembimbing?->NAMA ?? '-');
+            $tp->setValue('nama_ketua_pembimbing',   $namaTimS1S2($ketuaPembimbing));
             $tp->setValue('nama_pembimbing_i',       $namaP1BA);
             $tp->setValue('nama_pembimbing_ii',      $namaP2BA);
-            $tp->setValue('nama ketua pembimbing',   $ketuaPembimbing?->NAMA ?? '-');
+            $tp->setValue('nama ketua pembimbing',   $namaTimS1S2($ketuaPembimbing));
             $tp->setValue('nama pembimbing I',       $namaP1BA);
             $tp->setValue('nama pembimbing II',      $namaP2BA);
             $tp->setValue('tgl_create_penilaian',   $tanggalFormat);
@@ -2282,7 +2560,7 @@ class CetakController extends Controller
             $tp->setValue('nip_ketua_pembimbing',   $ketuaPembimbing?->NIP ?? '-');
             $tp->setValue('nip ketua pembimbing',   $ketuaPembimbing?->NIP ?? '-');
             // Signature block: gunakan Ketua Sidang
-            $tp->setValue('nama_ketua_sidang',      $ketuaSidang?->NAMA ?? $ketuaPembimbing?->NAMA ?? '-');
+            $tp->setValue('nama_ketua_sidang',      $ketuaSidang ? $namaTimS1S2($ketuaSidang) : $namaTimS1S2($ketuaPembimbing));
             $tp->setValue('nip_ketua_sidang',       $ketuaSidang?->NIP ?? $ketuaPembimbing?->NIP ?? '-');
             
             // Hari sidang (Tesis I 223: "hari ${hari_sidang}")
@@ -2327,6 +2605,7 @@ class CetakController extends Controller
 
             // S1: set Berita Acara Sarjana placeholders (prodi 122, 123, 125)
             $s1TtdMap = [];
+            $s1TtdEmpty = [];
             if ($isS1Ba) {
                 $kpS1 = trim((string) $kodeProdi);
                 $isTa2S1 = in_array(strtolower(trim((string) $tahapan)), ['ta ii', 'ta 2', 'ta-2'], true);
@@ -2362,6 +2641,14 @@ class CetakController extends Controller
                 if (!$kaprodiS1 && $kpS1 !== '') {
                     $kaprodiS1 = TUser::where('KODE_PRODI', $kpS1)->where('STATUS_KAPRODI', 'y')->first();
                 }
+                if (!$kaprodiS1 && strlen($kpS1) === 3) {
+                    foreach (['2' . substr($kpS1, 1), '3' . substr($kpS1, 1)] as $serumpunKode) {
+                        $kaprodiS1 = TUser::where('KODE_PRODI', $serumpunKode)->where('STATUS_KAPRODI', 'y')->first();
+                        if ($kaprodiS1) {
+                            break;
+                        }
+                    }
+                }
 
                 $catatanRowsS1 = TPenilaian::where('ID_JUDUL', $idJudul)
                     ->where('TAHAPAN_SIDANG', $tahapan)
@@ -2396,14 +2683,20 @@ class CetakController extends Controller
                 $tp->setValue('status_lulus',   $statusLulusS1 !== '' ? $statusLulusS1 : '-');
                 $tp->setValue('nama_kaprodi',   $kaprodiS1?->NAMA_LENGKAP ?? '-');
                 $tp->setValue('nip_kaprodi',    $kaprodiS1?->NIP_NIM ?? '-');
-                $tp->setValue('nama_pembimbing_i',   $p1S1?->NAMA ?? '-');
+                $tp->setValue('nama_pembimbing_i',   $namaTimS1S2($p1S1));
                 $tp->setValue('nip_pembimbing_i',    $p1S1?->NIP ?? '-');
                 $tp->setValue('dh_nip_pembimbing_i', $p1S1?->NIP ?? '-');
-                $tp->setValue('nama_pembimbing_ii',  $p2S1?->NAMA ?? '-');
-                $tp->setValue('nama_pembimbing_iii', $p3S1?->NAMA ?? '-');
-                $tp->setValue('nama_penguji_i',      $pengS1->get(0)?->NAMA ?? '-');
-                $tp->setValue('nama_penguji_ii',     $pengS1->get(1)?->NAMA ?? '-');
-                $tp->setValue('nama_penguji_iii',    $pengS1->get(2)?->NAMA ?? '-');
+                $tp->setValue('nama_pembimbing_ii',  $namaTimS1S2($p2S1));
+                $tp->setValue('nama_pembimbing_iii', $namaTimS1S2($p3S1));
+                // Prodi 123 TA II: bila tidak ada tim berstatus "penguji", Penguji-1
+                // diisi Ketua Sidang (setValue hanya bisa dipanggil sekali per token).
+                $penguji1S1 = $namaTimS1S2($pengS1->get(0));
+                if ($kpS1 === '123' && $isTa2S1 && ($penguji1S1 === '' || $penguji1S1 === '-')) {
+                    $penguji1S1 = $ketuaSidang ? $namaTimS1S2($ketuaSidang) : $penguji1S1;
+                }
+                $tp->setValue('nama_penguji_i',      $penguji1S1);
+                $tp->setValue('nama_penguji_ii',     $namaTimS1S2($pengS1->get(1)));
+                $tp->setValue('nama_penguji_iii',    $namaTimS1S2($pengS1->get(2)));
 
                 if ($kpS1 === '122' && !$isTa2S1) {
                     $tp->setValue('semester',        $ajuan->SEMESTER ?? '-');
@@ -2415,8 +2708,27 @@ class CetakController extends Controller
                         $tp->setValue('nama_penilai_' . ($i + 1), $t?->NAMA ?? '-');
                         $tp->setValue('nip_penilai_' . ($i + 1),  $t?->NIP ?? '-');
                         $tp->setValue('status_tim_' . ($i + 1),   $t?->status_tim_sidang ?? '-');
+                        $s1TtdMap['ttd_penilai_' . ($i + 1)] = $this->signatureBinary($t);
+                        $s1TtdEmpty['ttd_penilai_' . ($i + 1)] = '';
                     }
-                    $s1TtdMap['signature'] = $this->signatureBinary($p1S1);
+                    $ttdKaprodi122 = $this->signatureBinaryOfUser($kaprodiS1?->id);
+                    $s1TtdMap['ttd_kaprodi_1']    = $ttdKaprodi122;
+                    $s1TtdMap['ttd_pembimbing_i'] = $this->signatureBinary($p1S1);
+                    $s1TtdMap['ttd_kaprodi_2']    = $ttdKaprodi122;
+                } elseif ($kpS1 === '122' && $isTa2S1) {
+                    $slots122 = [$p1S1, $p2S1, $p3S1, $ketuaSidang, $pengS1->get(0), $pengS1->get(1)];
+                    foreach ($slots122 as $idx => $slotTim) {
+                        $bin = $this->signatureBinary($slotTim);
+                        $k1 = 'ttd_' . ($idx + 1);
+                        $k2 = 'dh_ttd_' . ($idx + 1);
+                        $s1TtdMap[$k1] = $bin;
+                        $s1TtdMap[$k2] = $bin;
+                        $s1TtdEmpty[$k1] = '';
+                        $s1TtdEmpty[$k2] = '';
+                    }
+                    $ttdKetua122 = $this->signatureBinary($ketuaSidang ?? $p1S1);
+                    $s1TtdMap['ttd_ketua_ba'] = $ttdKetua122;
+                    $s1TtdMap['dh_ttd_ketua'] = $ttdKetua122;
                 } elseif ($kpS1 === '123' && !$isTa2S1) {
                     $huruf123 = TPenilaian::where('ID_JUDUL', $idJudul)
                         ->where('TAHAPAN_SIDANG', $tahapan)
@@ -2437,7 +2749,9 @@ class CetakController extends Controller
                         $s1TtdMap['ttd_' . ($i + 1)] = $bin;
                         $s1TtdMap['dh_ttd_' . ($i + 1)] = $bin;
                     }
-                    $s1TtdMap['dh_ttd_pembimbing'] = $this->signatureBinary($p1S1);
+                    $ttdPemb123 = $this->signatureBinary($p1S1);
+                    $s1TtdMap['ttd_pembimbing']    = $ttdPemb123;
+                    $s1TtdMap['dh_ttd_pembimbing'] = $ttdPemb123;
                     $catKeys = array_keys($catatanByNamaS1);
                     for ($i = 0; $i < 3; $i++) {
                         $nm = $catKeys[$i] ?? '';
@@ -2472,10 +2786,18 @@ class CetakController extends Controller
                                 $umL = $rUm->STATUS_LULUS ?? '-';
                             }
                         }
+                        // Kolom L/TL di tabel: ringkas status kelulusan jadi L atau TL.
+                        $ringkasLT = function ($v) {
+                            $s = strtoupper(trim((string) $v));
+                            if ($s === '') { return '-'; }
+                            if (str_contains($s, 'TIDAK') || str_contains($s, 'TL')) { return 'TL'; }
+                            if (str_contains($s, 'LULUS')) { return 'L'; }
+                            return $s === 'L' || $s === 'TL' ? $s : '-';
+                        };
                         $tp->setValue('skripsi_n_' . $num, $skN ?: '-');
-                        $tp->setValue('skripsi_l_' . $num, $skL ?: '-');
+                        $tp->setValue('skripsi_l_' . $num, $ringkasLT($skL));
                         $tp->setValue('umum_n_' . $num,    $umN ?: '-');
-                        $tp->setValue('umum_l_' . $num,    $umL ?: '-');
+                        $tp->setValue('umum_l_' . $num,    $ringkasLT($umL));
                     }
                     $ttdOrder123 = [$p1S1, $p2S1, $p3S1, $ketuaSidang, $pengS1->get(0), $pengS1->get(1)];
                     foreach ($ttdOrder123 as $idx => $t) {
@@ -2483,6 +2805,13 @@ class CetakController extends Controller
                         $s1TtdMap['ttd_' . ($idx + 1)] = $bin;
                         $s1TtdMap['dh_ttd_' . ($idx + 1)] = $bin;
                     }
+                    // Tanda tangan Ketua Sidang (blok bawah): cari dari Ketua Sidang,
+                    // fallback ke Pembimbing I lalu Penguji I bila ttd belum tersimpan.
+                    $ttdKetua123 = $this->signatureBinary($ketuaSidang)
+                        ?? $this->signatureBinary($p1S1)
+                        ?? $this->signatureBinary($pengS1->get(0));
+                    $s1TtdMap['ttd_ketua_ba'] = $ttdKetua123;
+                    $s1TtdMap['dh_ttd_ketua'] = $ttdKetua123;
                     $catKeys = array_keys($catatanByNamaS1);
                     for ($i = 0; $i < 5; $i++) {
                         $nm = $catKeys[$i] ?? '';
@@ -2490,13 +2819,26 @@ class CetakController extends Controller
                         $tp->setValue('catatan_' . ($i + 1),  $nm !== '' ? implode('; ', $catatanByNamaS1[$nm]) : '-');
                     }
                 } elseif ($kpS1 === '125') {
-                    $tp->setValue('tempat_lahir', '-');
-                    $tp->setValue('tgl_lahir',    '-');
-                    $nilaiTugasAkhir125 = trim((string) ($ajuan->NILAI_HURUF ?? $ajuan->nilai_huruf ?? ''));
-                    $nilaiUjianSarjana125 = trim((string) ($ajuan->NILAI_HURUF2 ?? $ajuan->nilai_huruf2 ?? ''));
-                    $tp->setValue('ip',            $ajuan->IP !== null && trim((string) $ajuan->IP) !== '' ? (string) $ajuan->IP : '-');
-                    $tp->setValue('nilai_skripsi', $nilaiTugasAkhir125 !== '' ? $nilaiTugasAkhir125 : $rataRataKeseluruhan);
-                    $tp->setValue('nilai_sidang',  $nilaiUjianSarjana125 !== '' ? $nilaiUjianSarjana125 : $rataRataKeseluruhan);
+                    $mhsUser125 = !empty($ajuan->ID_USER) ? TUser::find($ajuan->ID_USER) : null;
+                    $tempatLahir125 = trim((string) ($mhsUser125?->TEMPAT_LAHIR ?? $mhsUser125?->tempat_lahir ?? '')) ?: '-';
+                    $tglLahirRaw125 = $mhsUser125?->TGL_LAHIR ?? $mhsUser125?->tgl_lahir ?? null;
+                    $tglLahir125 = $tglLahirRaw125 ? \Carbon\Carbon::parse($tglLahirRaw125)->translatedFormat('d F Y') : '-';
+                    $tp->setValue('tempat_lahir', $tempatLahir125);
+                    $tp->setValue('tgl_lahir',    $tglLahir125);
+
+                    $rataSkripsi125 = $this->calcProdi125FormAverage($idJudul, $tahapan, 'skripsi');
+                    $rataSidang125  = $this->calcProdi125FormAverage($idJudul, $tahapan, 'sidang');
+                    $ipVal125 = trim((string) ($ajuan->IP ?? $ajuan->ip ?? ''));
+                    if ($ipVal125 === '') {
+                        $ipVal125 = trim((string) (\App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
+                            ->whereNotNull('IP')
+                            ->whereRaw("TRIM(CAST(IP AS CHAR)) <> ''")
+                            ->orderByDesc('id')
+                            ->value('IP') ?? ''));
+                    }
+                    $tp->setValue('ip',            $ipVal125 !== '' ? $ipVal125 : '-');
+                    $tp->setValue('nilai_skripsi', $rataSkripsi125 !== null ? $rataSkripsi125 : ($rataRataKeseluruhan !== '0.00' ? $rataRataKeseluruhan : '-'));
+                    $tp->setValue('nilai_sidang',  $rataSidang125 !== null ? $rataSidang125 : '-');
                     $firstCatNama = array_key_first($catatanByNamaS1) ?? '-';
                     $allCatStr = [];
                     foreach ($catatanByNamaS1 as $nm => $items) {
@@ -2504,6 +2846,7 @@ class CetakController extends Controller
                     }
                     $tp->setValue('cat_nama_1', $firstCatNama);
                     $tp->setValue('catatan',    !empty($allCatStr) ? implode("\n", $allCatStr) : '-');
+                    $s1TtdMap['ttd_ketua_125'] = $this->signatureBinary($ketuaSidang ?? $p1S1);
                 }
             }
 
@@ -2831,8 +3174,32 @@ class CetakController extends Controller
 
         // Sisipkan tanda tangan penilai ke BA
         if ($isS1Ba) {
+            if (trim((string) $kodeProdi) === '125') {
+                $nh1Ba125 = trim((string) ($ajuan->NILAI_HURUF ?? $ajuan->nilai_huruf ?? ''));
+                if ($nh1Ba125 === '') {
+                    $nh1Ba125 = trim((string) (\App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
+                        ->whereNotNull('NILAI_HURUF')
+                        ->whereRaw("TRIM(COALESCE(NILAI_HURUF, '')) <> ''")
+                        ->orderByDesc('id')
+                        ->value('NILAI_HURUF') ?? ''));
+                }
+                $nh2Ba125 = trim((string) ($ajuan->NILAI_HURUF2 ?? $ajuan->nilai_huruf2 ?? ''));
+                if ($nh2Ba125 === '') {
+                    $nh2Ba125 = trim((string) (\App\Models\TAjuanSidang::where('ID_JUDUL', $idJudul)
+                        ->whereNotNull('NILAI_HURUF2')
+                        ->whereRaw("TRIM(COALESCE(NILAI_HURUF2, '')) <> ''")
+                        ->orderByDesc('id')
+                        ->value('NILAI_HURUF2') ?? ''));
+                }
+                $this->postProcessS1Ba125(
+                    $docxPath,
+                    $nh1Ba125,
+                    $nh2Ba125,
+                    (string) ($ajuan->STATUS_LULUS ?? '')
+                );
+            }
             if (!empty($s1TtdMap)) {
-                $this->fillBa221MkSignatures($docxPath, $s1TtdMap);
+                $this->fillBa221MkSignatures($docxPath, $s1TtdMap, $s1TtdEmpty ?? []);
             }
             if (trim((string) $kodeProdi) === '122' && in_array(strtolower(trim((string) $tahapan)), ['ta ii', 'ta 2', 'ta-2'], true)) {
                 $this->postProcessS1Ba122Ta2(
@@ -5956,10 +6323,23 @@ class CetakController extends Controller
 
         $kodeProdi = $ajuan->KODE_PRODI ?? $ajuan->kode_prodi ?? $judul->KODE_PRODI ?? null;
         $prodi = \App\Models\TProdi::where('KODE_PRODI', $kodeProdi)->first();
-        $allTimSidang = TTimSidang::where('id_judul', $idJudul)
+        $allTimSidang = TTimSidang::with('userPenilai')
+            ->where('id_judul', $idJudul)
             ->where('tahapan_sidang', $tahapan)
+            ->orderBy('URUTAN')
             ->orderBy('id')
             ->get();
+        if (!$allTimSidang->contains(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing'))) {
+            $otherPembDh = TTimSidang::with('userPenilai')
+                ->where('id_judul', $idJudul)
+                ->whereRaw("LOWER(COALESCE(STATUS_TIM_SIDANG, '')) LIKE '%pembimbing%'")
+                ->orderBy('URUTAN')
+                ->orderBy('id')
+                ->get();
+            if ($otherPembDh->isNotEmpty()) {
+                $allTimSidang = $otherPembDh->concat($allTimSidang)->values();
+            }
+        }
         $ketuaSidang = $allTimSidang->first(fn($t) => strtolower(trim($t->status_tim_sidang ?? '')) === 'ketua sidang');
         $ketuaPembimbing = $allTimSidang->first(fn($t) => str_contains(strtolower($t->status_tim_sidang ?? ''), 'pembimbing'));
 
@@ -5968,7 +6348,9 @@ class CetakController extends Controller
         $tp->setValue('nama_prodi',   $prodi?->NAMA_PRODI ?? $ajuan->NAMA_PRODI ?? '-');
         $tp->setValue('alamat_prodi', $prodi?->ALAMAT ?? '-');
         $tp->setValue('tlp_prodi',    $prodi?->TLP ?? '-');
+        $tp->setValue('fax_prodi',    $prodi?->FAX ?? $prodi?->fax ?? '-');
         $tp->setValue('email_prodi',  $prodi?->EMAIL ?? '-');
+        $tp->setValue('web_prodi',    $prodi?->WEB ?? $prodi?->web ?? '-');
         $tp->setValue('nama_mhs',     $ajuan->NAMA_MHS ?? '-');
         $tp->setValue('nim',          $ajuan->NIM ?? '-');
         $tp->setValue('tgl_sidang',   $ajuan->tgl_sidang ? \Carbon\Carbon::parse($ajuan->tgl_sidang)->translatedFormat('l, d F Y') : '-');
@@ -5980,11 +6362,18 @@ class CetakController extends Controller
         $tp->setValue('nama_pembimbing_i', $ketuaPembimbing?->NAMA ?? '-');
         $tp->setValue('nip_pembimbing_i',  $ketuaPembimbing?->NIP ?? '-');
 
+        $dhTtdMap = [];
+        $dhTtdEmpty = [];
         for ($i = 0; $i < 6; $i++) {
             $t = $allTimSidang->get($i);
             $tp->setValue('nama_tim_' . ($i + 1),   $t?->NAMA ?? '-');
             $tp->setValue('status_tim_' . ($i + 1), $t?->status_tim_sidang ?? '-');
+            $dhTtdMap['ttd_tim_' . ($i + 1)] = $this->signatureBinary($t);
+            $dhTtdEmpty['ttd_tim_' . ($i + 1)] = '';
         }
+        $ttdKetuaDh = $this->signatureBinary($ketuaSidang ?? $ketuaPembimbing);
+        $dhTtdMap['ttd_ketua_sidang'] = $ttdKetuaDh;
+        $dhTtdMap['signature']        = $ttdKetuaDh;
 
         $filename = 'Daftar_Hadir_' . str_replace(' ', '_', $tahapan) . '_' . $idJudul . '_' . time() . '.docx';
         $docxPath = storage_path('app/uploads/' . $filename);
@@ -5993,6 +6382,587 @@ class CetakController extends Controller
         }
         $tp->saveAs($docxPath);
 
+        $this->fillBa221MkSignatures($docxPath, $dhTtdMap, $dhTtdEmpty);
+
         return response()->download($docxPath, $filename)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Hitung rata-rata nilai per jenis form (skripsi / sidang) untuk BA S1 Prodi 125.
+     * Memperhitungkan bobot parameter jika tersedia, lalu dirata-ratakan antar penilai.
+     */
+    private function calcProdi125FormAverage($idJudul, string $tahapan, string $formKeyword): ?string
+    {
+        $rows = TPenilaian::with('pointPenilaian')
+            ->where('ID_JUDUL', $idJudul)
+            ->where('TAHAPAN_SIDANG', $tahapan)
+            ->whereRaw("LOWER(COALESCE(NO_FORM, '')) LIKE ?", ['%' . strtolower($formKeyword) . '%'])
+            ->get();
+
+        // Fallback: bila cetak BA TA II dan nilai skripsi diinput pada TA I
+        if ($rows->isEmpty() && strtolower($formKeyword) === 'skripsi' && in_array(strtolower(trim($tahapan)), ['ta ii', 'ta 2', 'ta-2'], true)) {
+            $rows = TPenilaian::with('pointPenilaian')
+                ->where('ID_JUDUL', $idJudul)
+                ->whereRaw("LOWER(COALESCE(NO_FORM, '')) LIKE '%skripsi%'")
+                ->get();
+        }
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        $perTimScores = [];
+        foreach ($rows->groupBy('ID_TIM_SIDANG') as $timRows) {
+            $weightedSum = 0.0;
+            $weightTotal = 0.0;
+            $plainValues = [];
+
+            foreach ($timRows as $r) {
+                if ($r->NILAI === null || trim((string) $r->NILAI) === '' || !is_numeric($r->NILAI)) {
+                    continue;
+                }
+                $val = (float) $r->NILAI;
+                $plainValues[] = $val;
+                $bobot = $r->pointPenilaian?->BOBOT ?? $r->pointPenilaian?->bobot ?? null;
+                if ($bobot !== null && is_numeric($bobot) && (float) $bobot > 0) {
+                    $weightedSum += $val * ((float) $bobot);
+                    $weightTotal += (float) $bobot;
+                }
+            }
+
+            if ($weightTotal > 0) {
+                $perTimScores[] = $weightedSum / $weightTotal;
+            } elseif (!empty($plainValues)) {
+                $perTimScores[] = array_sum($plainValues) / count($plainValues);
+            }
+        }
+
+        if (empty($perTimScores)) {
+            return null;
+        }
+
+        return number_format(array_sum($perTimScores) / count($perTimScores), 2);
+    }
+
+    /**
+     * Post-process BA S1 Prodi 125:
+     * 1) Urutkan dua kotak abu (#C0C0C0 / silver) berdasarkan posisi X:
+     *    - Kotak kiri  -> Nilai Tugas Akhir huruf (t_ajuan_sidang.NILAI_HURUF)
+     *    - Kotak kanan -> Nilai Ujian Sarjana huruf (t_ajuan_sidang.NILAI_HURUF2)
+     *    pada baik <mc:Choice> (DrawingML wps:txbx) maupun <mc:Fallback> (VML v:textbox).
+     * 2) Sesuaikan coretan Lulus / Tidak Lulus sesuai STATUS_LULUS.
+     * 3) Rapikan posisi placeholder ${ttd_ketua_125} sejajar tab pos=4770 di bawah "Ketua Sidang :".
+     */
+    private function postProcessS1Ba125(string $docxPath, string $nilaiHuruf1, string $nilaiHuruf2, string $statusLulus): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+            return;
+        }
+
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        if (!@$dom->loadXML($xml)) {
+            $zip->close();
+            return;
+        }
+
+        $wNs   = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $mcNs  = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
+        $wpNs  = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing';
+        $wpsNs = 'http://schemas.microsoft.com/office/word/2010/wordprocessingShape';
+        $aNs   = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+        $vNs   = 'urn:schemas-microsoft-com:vml';
+        $oNs   = 'urn:schemas-microsoft-com:office:office';
+
+        $xp = new \DOMXPath($dom);
+        $xp->registerNamespace('w', $wNs);
+        $xp->registerNamespace('mc', $mcNs);
+        $xp->registerNamespace('wp', $wpNs);
+        $xp->registerNamespace('wps', $wpsNs);
+        $xp->registerNamespace('a', $aNs);
+        $xp->registerNamespace('v', $vNs);
+
+        $buildCenteredBoxPara = function (\DOMDocument $doc, string $val) use ($wNs): \DOMElement {
+            $p = $doc->createElementNS($wNs, 'w:p');
+            $pPr = $doc->createElementNS($wNs, 'w:pPr');
+            $sp = $doc->createElementNS($wNs, 'w:spacing');
+            $sp->setAttributeNS($wNs, 'w:before', '0');
+            $sp->setAttributeNS($wNs, 'w:after', '0');
+            $sp->setAttributeNS($wNs, 'w:line', '240');
+            $sp->setAttributeNS($wNs, 'w:lineRule', 'auto');
+            $pPr->appendChild($sp);
+            $jc = $doc->createElementNS($wNs, 'w:jc');
+            $jc->setAttributeNS($wNs, 'w:val', 'center');
+            $pPr->appendChild($jc);
+            $p->appendChild($pPr);
+
+            $trimmed = trim($val);
+            if ($trimmed !== '') {
+                $r = $doc->createElementNS($wNs, 'w:r');
+                $rPr = $doc->createElementNS($wNs, 'w:rPr');
+                $rf = $doc->createElementNS($wNs, 'w:rFonts');
+                $rf->setAttributeNS($wNs, 'w:ascii', 'Palatino Linotype');
+                $rf->setAttributeNS($wNs, 'w:hAnsi', 'Palatino Linotype');
+                $rPr->appendChild($rf);
+                $rPr->appendChild($doc->createElementNS($wNs, 'w:b'));
+                $clr = $doc->createElementNS($wNs, 'w:color');
+                $clr->setAttributeNS($wNs, 'w:val', '000000');
+                $rPr->appendChild($clr);
+                $sz = $doc->createElementNS($wNs, 'w:sz');
+                $sz->setAttributeNS($wNs, 'w:val', '22');
+                $rPr->appendChild($sz);
+                $szCs = $doc->createElementNS($wNs, 'w:szCs');
+                $szCs->setAttributeNS($wNs, 'w:val', '22');
+                $rPr->appendChild($szCs);
+                $r->appendChild($rPr);
+
+                $t = $doc->createElementNS($wNs, 'w:t');
+                $t->appendChild($doc->createTextNode($trimmed));
+                $r->appendChild($t);
+                $p->appendChild($r);
+            }
+
+            return $p;
+        };
+
+        // 1) Kumpulkan semua kotak abu (#C0C0C0 / silver) dan urutkan kiri -> kanan
+        $greyBoxes = [];
+        foreach ($xp->query('//mc:AlternateContent') as $ac) {
+            /** @var \DOMElement $ac */
+            $isGrey = $xp->query('.//wps:spPr//a:srgbClr[@val="C0C0C0" or @val="c0c0c0"]', $ac)->length > 0
+                || $xp->query('.//v:rect[@fillcolor="silver" or @fillcolor="#c0c0c0" or @fillcolor="#C0C0C0"]', $ac)->length > 0;
+            if (!$isGrey) {
+                continue;
+            }
+            $posNode = $xp->query('.//wp:positionH/wp:posOffset', $ac)->item(0);
+            $xPos = $posNode ? (float) trim($posNode->textContent) : 0.0;
+            if ($xPos <= 0) {
+                $vRect = $xp->query('.//v:rect', $ac)->item(0);
+                if ($vRect instanceof \DOMElement && preg_match('/margin-left\s*:\s*([\d.]+)pt/i', $vRect->getAttribute('style'), $m)) {
+                    $xPos = ((float) $m[1]) * 12700.0;
+                }
+            }
+            $greyBoxes[] = ['x' => $xPos, 'node' => $ac];
+        }
+
+        usort($greyBoxes, fn($a, $b) => $a['x'] <=> $b['x']);
+
+        $boxValues = [
+            0 => $nilaiHuruf1, // Kotak kiri  = Nilai Tugas Akhir (NILAI_HURUF)
+            1 => $nilaiHuruf2, // Kotak kanan = Nilai Ujian Sarjana (NILAI_HURUF2)
+        ];
+
+        foreach ($boxValues as $idx => $gradeVal) {
+            if (!isset($greyBoxes[$idx])) {
+                continue;
+            }
+            /** @var \DOMElement $ac */
+            $ac = $greyBoxes[$idx]['node'];
+
+            // Update DrawingML (<mc:Choice>)
+            foreach ($xp->query('.//wps:bodyPr', $ac) as $bodyPr) {
+                if ($bodyPr instanceof \DOMElement) {
+                    $bodyPr->setAttribute('lIns', '18000');
+                    $bodyPr->setAttribute('rIns', '18000');
+                    $bodyPr->setAttribute('tIns', '18000');
+                    $bodyPr->setAttribute('bIns', '18000');
+                    $bodyPr->setAttribute('anchor', 'ctr');
+                }
+            }
+            foreach ($xp->query('.//wps:txbx/w:txbxContent', $ac) as $txbxContent) {
+                while ($txbxContent->firstChild) {
+                    $txbxContent->removeChild($txbxContent->firstChild);
+                }
+                $txbxContent->appendChild($buildCenteredBoxPara($dom, $gradeVal));
+            }
+
+            // Update VML (<mc:Fallback>)
+            foreach ($xp->query('.//v:rect', $ac) as $vRect) {
+                if ($vRect instanceof \DOMElement) {
+                    if ($vRect->hasAttributeNS($oNs, 'gfxdata')) {
+                        $vRect->removeAttributeNS($oNs, 'gfxdata');
+                    }
+                    if ($vRect->hasAttribute('o:gfxdata')) {
+                        $vRect->removeAttribute('o:gfxdata');
+                    }
+                    $style = $vRect->getAttribute('style');
+                    if (str_contains($style, 'v-text-anchor:')) {
+                        $style = preg_replace('/v-text-anchor\s*:\s*[a-z]+/i', 'v-text-anchor:middle', $style) ?? $style;
+                    } else {
+                        $style = rtrim($style, ';') . ';v-text-anchor:middle';
+                    }
+                    $vRect->setAttribute('style', $style);
+                }
+            }
+            foreach ($xp->query('.//v:textbox', $ac) as $vTextbox) {
+                if ($vTextbox instanceof \DOMElement) {
+                    $vTextbox->setAttribute('inset', '1pt,1pt,1pt,1pt');
+                }
+            }
+            foreach ($xp->query('.//v:textbox/w:txbxContent', $ac) as $vContent) {
+                while ($vContent->firstChild) {
+                    $vContent->removeChild($vContent->firstChild);
+                }
+                $vContent->appendChild($buildCenteredBoxPara($dom, $gradeVal));
+            }
+        }
+
+        // 2) Coret Lulus / Tidak Lulus sesuai STATUS_LULUS di semua txbxContent yg memuatnya
+        $stNorm = strtolower(trim($statusLulus));
+        if (in_array($stNorm, ['lulus', 'tidak lulus'], true)) {
+            $strikeLulus = ($stNorm === 'tidak lulus');
+            $makeStatusPara = function (\DOMDocument $doc, string $label, bool $striked) use ($wNs): \DOMElement {
+                $p = $doc->createElementNS($wNs, 'w:p');
+                $pPr = $doc->createElementNS($wNs, 'w:pPr');
+                $jc = $doc->createElementNS($wNs, 'w:jc');
+                $jc->setAttributeNS($wNs, 'w:val', 'center');
+                $pPr->appendChild($jc);
+                $p->appendChild($pPr);
+
+                $r = $doc->createElementNS($wNs, 'w:r');
+                $rPr = $doc->createElementNS($wNs, 'w:rPr');
+                $rf = $doc->createElementNS($wNs, 'w:rFonts');
+                $rf->setAttributeNS($wNs, 'w:ascii', 'Palatino Linotype');
+                $rf->setAttributeNS($wNs, 'w:hAnsi', 'Palatino Linotype');
+                $rPr->appendChild($rf);
+                if ($striked) {
+                    $rPr->appendChild($doc->createElementNS($wNs, 'w:strike'));
+                }
+                $r->appendChild($rPr);
+                $t = $doc->createElementNS($wNs, 'w:t');
+                $t->appendChild($doc->createTextNode($label));
+                $r->appendChild($t);
+                $p->appendChild($r);
+                return $p;
+            };
+
+            foreach ($xp->query('//w:txbxContent') as $tc) {
+                $plain = strtolower(preg_replace('/\s+/', ' ', trim($tc->textContent)) ?? '');
+                if (str_contains($plain, 'lulus/') && str_contains($plain, 'tidak lulus')) {
+                    while ($tc->firstChild) {
+                        $tc->removeChild($tc->firstChild);
+                    }
+                    $tc->appendChild($makeStatusPara($dom, 'Lulus/', $strikeLulus));
+                    $tc->appendChild($makeStatusPara($dom, 'Tidak Lulus', !$strikeLulus));
+                }
+            }
+        }
+
+        // 3) Rapikan posisi placeholder ${ttd_ketua_125} di bawah "Ketua Sidang :"
+        $body = $xp->query('//w:body')->item(0);
+        if ($body instanceof \DOMElement) {
+            $bodyParas = [];
+            foreach ($xp->query('./w:p', $body) as $bp) {
+                $bodyParas[] = $bp;
+            }
+            $ketuaLabelIdx = null;
+            $ttdParaIdx = null;
+            foreach ($bodyParas as $i => $bp) {
+                $txt = trim($bp->textContent);
+                if ($ketuaLabelIdx === null && stripos($txt, 'Ketua Sidang') !== false) {
+                    $ketuaLabelIdx = $i;
+                }
+                if (str_contains($txt, '${ttd_ketua_125}')) {
+                    $ttdParaIdx = $i;
+                }
+            }
+
+            if ($ketuaLabelIdx !== null && $ttdParaIdx !== null && $ttdParaIdx > $ketuaLabelIdx) {
+                // Hapus paragraf spasi kosong berlebih di antara "Ketua Sidang :" dan "${ttd_ketua_125}"
+                for ($k = $ketuaLabelIdx + 1; $k < $ttdParaIdx; $k++) {
+                    if (trim($bodyParas[$k]->textContent) === '') {
+                        $body->removeChild($bodyParas[$k]);
+                    }
+                }
+                // Pastikan <w:tab/> berada di <w:r> terpisah dari <w:t>${ttd_ketua_125}</w:t>
+                // agar setImageValue tidak menghapus tab perataan pos=4770
+                /** @var \DOMElement $ttdP */
+                $ttdP = $bodyParas[$ttdParaIdx];
+                foreach ($xp->query('./w:r', $ttdP) as $oldRun) {
+                    $ttdP->removeChild($oldRun);
+                }
+                $pPr = $xp->query('./w:pPr', $ttdP)->item(0);
+                if (!$pPr instanceof \DOMElement) {
+                    $pPr = $dom->createElementNS($wNs, 'w:pPr');
+                    $ttdP->insertBefore($pPr, $ttdP->firstChild);
+                }
+                if ($xp->query('./w:tabs', $pPr)->length === 0) {
+                    $tabs = $dom->createElementNS($wNs, 'w:tabs');
+                    $tabDef = $dom->createElementNS($wNs, 'w:tab');
+                    $tabDef->setAttributeNS($wNs, 'w:val', 'left');
+                    $tabDef->setAttributeNS($wNs, 'w:pos', '4770');
+                    $tabs->appendChild($tabDef);
+                    $pPr->insertBefore($tabs, $pPr->firstChild);
+                }
+                $rTab = $dom->createElementNS($wNs, 'w:r');
+                $rTab->appendChild($dom->createElementNS($wNs, 'w:tab'));
+                $ttdP->appendChild($rTab);
+
+                $rTok = $dom->createElementNS($wNs, 'w:r');
+                $tTok = $dom->createElementNS($wNs, 'w:t');
+                $tTok->appendChild($dom->createTextNode('${ttd_ketua_125}'));
+                $rTok->appendChild($tTok);
+                $ttdP->appendChild($rTok);
+            } elseif ($ketuaLabelIdx !== null && $ttdParaIdx === null) {
+                // Fallback bila template belum memiliki ${ttd_ketua_125}
+                $refNode = $bodyParas[$ketuaLabelIdx + 1] ?? null;
+                $newP = $dom->createElementNS($wNs, 'w:p');
+                $pPr = $dom->createElementNS($wNs, 'w:pPr');
+                $tabs = $dom->createElementNS($wNs, 'w:tabs');
+                $tabDef = $dom->createElementNS($wNs, 'w:tab');
+                $tabDef->setAttributeNS($wNs, 'w:val', 'left');
+                $tabDef->setAttributeNS($wNs, 'w:pos', '4770');
+                $tabs->appendChild($tabDef);
+                $pPr->appendChild($tabs);
+                $newP->appendChild($pPr);
+
+                $rTab = $dom->createElementNS($wNs, 'w:r');
+                $rTab->appendChild($dom->createElementNS($wNs, 'w:tab'));
+                $newP->appendChild($rTab);
+
+                $rTok = $dom->createElementNS($wNs, 'w:r');
+                $tTok = $dom->createElementNS($wNs, 'w:t');
+                $tTok->appendChild($dom->createTextNode('${ttd_ketua_125}'));
+                $rTok->appendChild($tTok);
+                $newP->appendChild($rTok);
+
+                if ($refNode) {
+                    $body->insertBefore($newP, $refNode);
+                } else {
+                    $body->appendChild($newP);
+                }
+            }
+        }
+
+        $outXml = $dom->saveXML();
+        if ($outXml !== false) {
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $outXml);
+        }
+        $zip->close();
+    }
+
+    /**
+     * Ubah tabel kriteria pada template Lembar Penilaian Prodi 125 menjadi
+     * tabel Publikasi: NO | Parameter Penilaian | Cek Makalah | Catatan.
+     */
+    private function postProcessForm125PublikasiTable(string $docxPath, $penilaianRows): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+            return;
+        }
+
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        if (!@$dom->loadXML($xml)) {
+            $zip->close();
+            return;
+        }
+
+        $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('w', $wNs);
+
+        $tables = $xpath->query('//w:body/w:tbl');
+        if (!$tables || $tables->length < 2) {
+            $zip->close();
+            return;
+        }
+        $tbl = $tables->item(1);
+        $trs = $xpath->query('./w:tr', $tbl);
+        if (!$trs || $trs->length < 2) {
+            $zip->close();
+            return;
+        }
+
+        $setCellText = function (\DOMElement $tc, string $text, string $align = 'left', bool $bold = false) use ($dom, $xpath, $wNs): void {
+            $ps = $xpath->query('./w:p', $tc);
+            while ($ps && $ps->length > 1) {
+                $tc->removeChild($ps->item($ps->length - 1));
+                $ps = $xpath->query('./w:p', $tc);
+            }
+            $p = ($ps && $ps->length > 0) ? $ps->item(0) : $dom->createElementNS($wNs, 'w:p');
+            if (!$p->parentNode) {
+                $tc->appendChild($p);
+            }
+            foreach (iterator_to_array($xpath->query('./*[not(self::w:pPr)]', $p)) as $child) {
+                $p->removeChild($child);
+            }
+            $pPr = $xpath->query('./w:pPr', $p)->item(0);
+            if (!$pPr) {
+                $pPr = $dom->createElementNS($wNs, 'w:pPr');
+                $p->insertBefore($pPr, $p->firstChild);
+            }
+            foreach (iterator_to_array($xpath->query('./w:jc', $pPr)) as $jcOld) {
+                $pPr->removeChild($jcOld);
+            }
+            if ($align !== 'left') {
+                $jc = $dom->createElementNS($wNs, 'w:jc');
+                $jc->setAttributeNS($wNs, 'w:val', $align);
+                $pPr->appendChild($jc);
+            }
+
+            $r = $dom->createElementNS($wNs, 'w:r');
+            $rPr = $dom->createElementNS($wNs, 'w:rPr');
+            $rFonts = $dom->createElementNS($wNs, 'w:rFonts');
+            $rFonts->setAttributeNS($wNs, 'w:ascii', 'Times New Roman');
+            $rFonts->setAttributeNS($wNs, 'w:hAnsi', 'Times New Roman');
+            $rFonts->setAttributeNS($wNs, 'w:cs', 'Times New Roman');
+            $rPr->appendChild($rFonts);
+            if ($bold) {
+                $rPr->appendChild($dom->createElementNS($wNs, 'w:b'));
+            }
+            $sz = $dom->createElementNS($wNs, 'w:sz');
+            $sz->setAttributeNS($wNs, 'w:val', '22');
+            $rPr->appendChild($sz);
+            $r->appendChild($rPr);
+
+            $t = $dom->createElementNS($wNs, 'w:t');
+            $t->setAttribute('xml:space', 'preserve');
+            $t->appendChild($dom->createTextNode($text));
+            $r->appendChild($t);
+            $p->appendChild($r);
+        };
+
+        $colWidths = [670, 5200, 1650, 3298];
+        $headerTr = $trs->item(0);
+        $headerTcs = $xpath->query('./w:tc', $headerTr);
+        $headers = ['NO', 'Parameter Penilaian', 'Cek Makalah', 'Catatan'];
+        if ($headerTcs && $headerTcs->length >= 4) {
+            for ($c = 0; $c < 4; $c++) {
+                $tc = $headerTcs->item($c);
+                $tcW = $xpath->query('./w:tcPr/w:tcW', $tc)->item(0);
+                if ($tcW) {
+                    $tcW->setAttributeNS($wNs, 'w:w', (string) $colWidths[$c]);
+                }
+                $setCellText($tc, $headers[$c], 'center', true);
+            }
+        }
+
+        $templateTr = $trs->item(1)->cloneNode(true);
+        for ($rIdx = $trs->length - 1; $rIdx >= 1; $rIdx--) {
+            $tbl->removeChild($trs->item($rIdx));
+        }
+
+        $num = 0;
+        foreach ($penilaianRows as $row) {
+            $num++;
+            $tr = $templateTr->cloneNode(true);
+            $tcs = $xpath->query('./w:tc', $tr);
+            if ($tcs && $tcs->length >= 4) {
+                for ($c = 0; $c < 4; $c++) {
+                    $tcW = $xpath->query('./w:tcPr/w:tcW', $tcs->item($c))->item(0);
+                    if ($tcW) {
+                        $tcW->setAttributeNS($wNs, 'w:w', (string) $colWidths[$c]);
+                    }
+                }
+                $sc = strtolower(trim((string) ($row->STATUS_CATATAN ?? $row->status_catatan ?? '')));
+                $cm = strtoupper(trim((string) ($row->CEK_MAKALAH ?? $row->cek_makalah ?? '')));
+                $cekSymbol = $sc === 'y' ? '-' : (in_array($cm, ['Y', '1'], true) ? '☑' : '☐');
+
+                $setCellText($tcs->item(0), (string) $num, 'center', false);
+                $setCellText($tcs->item(1), (string) ($row->NAMA_PENILAIAN ?? $row->PENILAIAN ?? ''), 'left', false);
+                $setCellText($tcs->item(2), $cekSymbol, 'center', false);
+                $setCellText($tcs->item(3), (string) ($row->CATATAN ?? $row->catatan ?? ''), 'left', false);
+            }
+            $tbl->appendChild($tr);
+        }
+
+        $outXml = $dom->saveXML();
+        if ($outXml !== false) {
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $outXml);
+        }
+        $zip->close();
+    }
+
+    /**
+     * Pusatkan tanda centang pada sel kolom ke-3 (kotak Cek Makalah) di tabel
+     * kriteria Form Penilaian Publikasi TA 2 Prodi 125.
+     */
+    private function centerPublikasi125CekMakalahDocx(string $docxPath): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+            return;
+        }
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        if (!@$dom->loadXML($xml)) {
+            $zip->close();
+            return;
+        }
+        $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $xp = new \DOMXPath($dom);
+        $xp->registerNamespace('w', $wNs);
+
+        $tbl = $xp->query('//w:body/w:tbl')->item(1);
+        if ($tbl) {
+            foreach ($xp->query('./w:tr', $tbl) as $tr) {
+                $tc = $xp->query('./w:tc', $tr)->item(2);
+                if (!$tc) {
+                    continue;
+                }
+                foreach ($xp->query('./w:p', $tc) as $p) {
+                    $pPr = $xp->query('./w:pPr', $p)->item(0);
+                    if (!$pPr instanceof \DOMElement) {
+                        $pPr = $dom->createElementNS($wNs, 'w:pPr');
+                        $p->insertBefore($pPr, $p->firstChild);
+                    }
+                    $sp = $xp->query('./w:spacing', $pPr)->item(0);
+                    if (!$sp instanceof \DOMElement) {
+                        $sp = $dom->createElementNS($wNs, 'w:spacing');
+                        $pPr->appendChild($sp);
+                    }
+                    $sp->setAttributeNS($wNs, 'w:before', '0');
+                    $sp->setAttributeNS($wNs, 'w:after', '0');
+
+                    $jc = $xp->query('./w:jc', $pPr)->item(0);
+                    if (!$jc instanceof \DOMElement) {
+                        $jc = $dom->createElementNS($wNs, 'w:jc');
+                        $pPr->appendChild($jc);
+                    }
+                    $jc->setAttributeNS($wNs, 'w:val', 'center');
+
+                    foreach ($xp->query('./w:r/w:t', $p) as $tNode) {
+                        if (trim($tNode->textContent) !== '') {
+                            $rNode = $tNode->parentNode;
+                            if ($rNode instanceof \DOMElement && $xp->query('./w:rPr/w:b', $rNode)->length === 0) {
+                                $rPr = $xp->query('./w:rPr', $rNode)->item(0);
+                                if (!$rPr instanceof \DOMElement) {
+                                    $rPr = $dom->createElementNS($wNs, 'w:rPr');
+                                    $rNode->insertBefore($rPr, $rNode->firstChild);
+                                }
+                                $rPr->appendChild($dom->createElementNS($wNs, 'w:b'));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        $outXml = $dom->saveXML();
+        if ($outXml !== false) {
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $outXml);
+        }
+        $zip->close();
     }
 }

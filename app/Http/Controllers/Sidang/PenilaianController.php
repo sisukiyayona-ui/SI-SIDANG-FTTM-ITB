@@ -345,7 +345,7 @@ class PenilaianController extends Controller
         $allowedStatusLulus = self::STATUS_LULUS_ALLOWED;
         
         $request->validate([
-            'status_lulus' => 'required|in:' . implode(',', $allowedStatusLulus),
+            'status_lulus' => 'nullable|in:' . implode(',', $allowedStatusLulus),
             'ip' => 'nullable|numeric|min:0|max:4',
             'nilai_huruf' => 'nullable|in:A,AB,B,BC,C,CD,D',
             'nilai_huruf2' => 'nullable|in:A,AB,B,BC,C,CD,D',
@@ -383,9 +383,11 @@ class PenilaianController extends Controller
         }
 
         $ajuanUpdate = [
-            'STATUS_LULUS' => $request->input('status_lulus'),
             'TGL_UPDATE' => now(),
         ];
+        if ($request->filled('status_lulus')) {
+            $ajuanUpdate['STATUS_LULUS'] = $request->input('status_lulus');
+        }
         if ($request->filled('ip')) {
             $ajuanUpdate['IP'] = $request->input('ip');
         }
@@ -402,14 +404,16 @@ class PenilaianController extends Controller
             ->update($ajuanUpdate);
 
         // Status kelulusan adalah keputusan bersama seluruh tim, jadi seluruh
-        // baris nilai penilai pada judul + tahapan ini ikut diisi.
-        DB::table('t_penilaian')
-            ->where('ID_JUDUL', $id)
-            ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
-            ->update([
-                'STATUS_LULUS' => $request->input('status_lulus'),
-                'TGL_UPDATE' => now(),
-            ]);
+        // baris nilai penilai pada judul + tahapan ini ikut diisi bila status_lulus dikirim.
+        if ($request->filled('status_lulus')) {
+            DB::table('t_penilaian')
+                ->where('ID_JUDUL', $id)
+                ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                ->update([
+                    'STATUS_LULUS' => $request->input('status_lulus'),
+                    'TGL_UPDATE' => now(),
+                ]);
+        }
 
         return response()->json(['success' => true, 'message' => 'Status kelulusan berhasil diperbarui']);
     }
@@ -549,13 +553,38 @@ class PenilaianController extends Controller
             //      ikut terkunci: NILAI_TERKUNCI=1 dan STATUS_LULUS ikut terisi.
             //    - TU Prodi mengunci lewat baris Ketua Sidang ikut mengunci
             //      seluruh penilai; Admin/FS hanya baris penilai yang dipilih.
+            // Status kelulusan final dipakai untuk KEDUA tabel (t_penilaian &
+            // t_ajuan_sidang) supaya tidak ada kondisi ajuan terisi tetapi baris
+            // penilaian tetap kosong. Urutan sumber: request -> t_penilaian -> ajuan.
+            $statusValid = function ($v) {
+                $s = trim((string) $v);
+                return $s !== '' && in_array($s, self::STATUS_LULUS_ALLOWED, true) ? $s : null;
+            };
+            $statusLulusFinal = $statusValid($statusLulus);
+            if (! $statusLulusFinal) {
+                $statusLulusFinal = $statusValid(DB::table('t_penilaian')
+                    ->where('ID_JUDUL', $id)
+                    ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                    ->whereNotNull('STATUS_LULUS')
+                    ->where('STATUS_LULUS', '<>', '')
+                    ->value('STATUS_LULUS'));
+            }
+            if (! $statusLulusFinal) {
+                $statusLulusFinal = $statusValid(DB::table('t_ajuan_sidang')
+                    ->where('ID_JUDUL', $id)
+                    ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
+                    ->whereNotNull('STATUS_LULUS')
+                    ->where('STATUS_LULUS', '<>', '')
+                    ->value('STATUS_LULUS'));
+            }
+
             $nilaiTerkunciInt = $request->nilai_terkunci === 'y' ? 1 : 0;
             $updatePenilaian = [
                 'NILAI_TERKUNCI' => $nilaiTerkunciInt,
                 'TGL_UPDATE' => now(),
             ];
-            if ($statusLulus) {
-                $updatePenilaian['STATUS_LULUS'] = $statusLulus;
+            if ($statusLulusFinal) {
+                $updatePenilaian['STATUS_LULUS'] = $statusLulusFinal;
             }
 
             $isTuProdi = ($user['role'] ?? null) === 'TU Prodi';
@@ -605,15 +634,6 @@ class PenilaianController extends Controller
                     'NILAI_TERKUNCI' => $request->nilai_terkunci,
                     'TGL_UPDATE' => now(),
                 ];
-                $statusLulusFinal = null;
-
-                $statusLulusFinal = $statusLulus ?: DB::table('t_penilaian')
-                    ->where('ID_JUDUL', $id)
-                    ->where('TAHAPAN_SIDANG', $request->tahapan_sidang)
-                    ->whereNotNull('STATUS_LULUS')
-                    ->where('STATUS_LULUS', '<>', '')
-                    ->value('STATUS_LULUS');
-
                 if ($statusLulusFinal) {
                     $updateAjuan['STATUS_LULUS'] = $statusLulusFinal;
                 }

@@ -957,6 +957,12 @@ class PrepareTemplate extends Command
                 'replacements' => [
                     '(NAMA TAHAPAN)' => '${nama_tahapan}',
                     '(NAMA PRODI)' => '${nama_prodi}',
+                    '(nama prodi)' => '${nama_prodi}',
+                    '(alamat)' => '${alamat_prodi}',
+                    '(tlp)' => '${tlp_prodi}',
+                    '(fax)' => '${fax_prodi}',
+                    '(email)' => '${email_prodi}',
+                    '(web)' => '${web_prodi}',
                     '(nama)' => '${nama_mhs}',
                     '(nim)' => '${nim}',
                     '(tgl sidang)' => '${tgl_sidang}',
@@ -965,11 +971,13 @@ class PrepareTemplate extends Command
                     '(judul)' => '${judul}',
                     '(nama ketua sidang)' => '${nama_ketua_sidang}',
                     '(nip ketua sidang)' => '${nip_ketua_sidang}',
+                    '(ttd)' => '${ttd_ketua_sidang}',
                 ],
                 'sequenceReplacements' => [
                     ['search' => '(nama tim sidang)', 'tokens' => ['${nama_tim_1}', '${nama_tim_2}', '${nama_tim_3}', '${nama_tim_4}', '${nama_tim_5}', '${nama_tim_6}']],
                     ['search' => '(status tim)', 'tokens' => ['${status_tim_1}', '${status_tim_2}', '${status_tim_3}', '${status_tim_4}', '${status_tim_5}', '${status_tim_6}']],
                 ],
+                'fillDaftarHadirS1RowSignatures' => true,
             ],
             [
                 // Form Penilaian TA I & TA II Prodi 122 (Teknik Perminyakan) — S1
@@ -985,6 +993,7 @@ class PrepareTemplate extends Command
                     '(nilai rata2)' => '${nilai_rata2}',
                     '(tgl) sidang' => '${tgl_sidang}',
                     '(nip penilai)' => '${nip_penilai}',
+                    '(ttd)' => '${signature}',
                 ],
                 'sequenceReplacements' => [
                     [
@@ -1046,6 +1055,38 @@ class PrepareTemplate extends Command
                 ],
             ],
             [
+                // Form Penilaian Publikasi TA 2 Prodi 125 (Teknik Metalurgi) — S1.
+                // 6 kriteria makalah dengan kolom "Cek Makalah", plus catatan dan
+                // dua blok tanda tangan (Ketua Program Studi & Penilai).
+                'src' => base_path('template/S1/Form Penilaian Publikasi TA 2 prodi 125.docx'),
+                'dst' => base_path('template/S1/Form Penilaian Publikasi TA 2 prodi 125 TEMPLATE.docx'),
+                'replacements' => [
+                    '(nama mhs)'     => '${nama_mhs}',
+                    '(nim)'          => '${nim}',
+                    '(catatan)'      => '${catatan}',
+                    '(nama prodi)'   => '${nama_prodi}',
+                    '(nama kaprodi)' => '${nama_kaprodi}',
+                    '(nip)'          => '${nip_kaprodi}',
+                    '(tgl sidang)'   => '${tgl_sidang}',
+                    '(nama penilai)' => '${nama_penilai}',
+                ],
+                'sequenceReplacements' => [
+                    // 6 baris parameter penilaian.
+                    ['search' => '(parameter penilaian)', 'tokens' => array_map(
+                        fn($i) => '${nama_penilaian_' . $i . '}', range(1, 6)
+                    )],
+                    // 6 kolom "Cek Makalah" (centang makalah).
+                    ['search' => '(cek mklh)', 'tokens' => array_map(
+                        fn($i) => '${cek_makalah_' . $i . '}', range(1, 6)
+                    )],
+                    // Dua slot ttd: Ketua Program Studi lalu Penilai.
+                    ['search' => '(ttd)', 'tokens' => [
+                        '${signature_kaprodi}', '${signature_penilai}',
+                    ]],
+                ],
+                'centerPublikasi125CekCells' => true,
+            ],
+            [
                 // Form Penilaian TA I & II Prodi 123 (Teknik Geofisika) — S1
                 'src' => base_path('template/S1/penilaian TA I dan II prodi 123 TG.docx'),
                 'dst' => base_path('template/S1/penilaian TA I dan II prodi 123 TG TEMPLATE.docx'),
@@ -1094,13 +1135,14 @@ class PrepareTemplate extends Command
                     '(KODE MK)' => '${kode_mk}',
                     '(nip pembimbing I)' => '${nip_pembimbing_i}',
                     '(nama pembimbing I)' => '${nama_pembimbing_i}',
-                    '(ttd)' => '${signature}',
                 ],
                 'sequenceReplacements' => [
                     ['search' => '(nama penilai)', 'tokens' => ['${nama_penilai_1}', '${nama_penilai_2}', '${nama_penilai_3}']],
                     ['search' => '(nip)', 'tokens' => ['${nip_penilai_1}', '${nip_penilai_2}', '${nip_penilai_3}']],
                     ['search' => '(status tim sidang)', 'tokens' => ['${status_tim_1}', '${status_tim_2}', '${status_tim_3}']],
+                    ['search' => '(ttd)', 'tokens' => ['${ttd_kaprodi_1}', '${ttd_pembimbing_i}', '${ttd_kaprodi_2}']],
                 ],
+                'fillBa122Ta1TableSignatures' => true,
             ],
             [
                 // BA Sidang TA 2 Prodi 122 (Teknik Perminyakan) — S1
@@ -1119,6 +1161,7 @@ class PrepareTemplate extends Command
                     'Judul:' => 'Judul: ${judul}',
                     '____________________________ NIP. ........................' => '${nama_ketua_sidang} NIP. ${nip_ketua_sidang}',
                 ],
+                'fillBa122Ta2Signatures' => true,
             ],
             [
                 // BA TA-1 Prodi 123 (Teknik Geofisika) — S1
@@ -1171,6 +1214,7 @@ class PrepareTemplate extends Command
                         'search' => '(ttd)',
                         'tokens' => [
                             '${ttd_1}', '${ttd_2}', '${ttd_3}',
+                            '${ttd_pembimbing}',
                             '${dh_ttd_1}', '${dh_ttd_2}', '${dh_ttd_3}',
                             '${dh_ttd_pembimbing}',
                         ],
@@ -1242,7 +1286,9 @@ class PrepareTemplate extends Command
                         'search' => '(ttd)',
                         'tokens' => [
                             '${ttd_1}', '${ttd_2}', '${ttd_3}', '${ttd_4}', '${ttd_5}', '${ttd_6}',
+                            '${ttd_ketua_ba}',
                             '${dh_ttd_1}', '${dh_ttd_2}', '${dh_ttd_3}', '${dh_ttd_4}', '${dh_ttd_5}', '${dh_ttd_6}',
+                            '${dh_ttd_ketua}',
                         ],
                     ],
                 ],
@@ -1265,6 +1311,7 @@ class PrepareTemplate extends Command
                     '(nilai rata2 form sidang)' => '${nilai_sidang}',
                     '(nama penilai)' => '${cat_nama_1}',
                     '(catatan)' => '${catatan}',
+                    '(ttd)' => '${ttd_ketua_125}',
                     '(nama ketua sidang:' => '${nama_ketua_sidang}',
                     '(nama ketua sidang)' => '${nama_ketua_sidang}',
                 ],
@@ -1432,6 +1479,22 @@ class PrepareTemplate extends Command
 
             if (!empty($template['trimTrailingEmptyParagraphs'])) {
                 $xml = $this->trimTrailingEmptyParagraphs($xml);
+            }
+
+            if (!empty($template['fillDaftarHadirS1RowSignatures'])) {
+                $xml = $this->fillDaftarHadirS1RowSignatures($xml);
+            }
+
+            if (!empty($template['fillBa122Ta1TableSignatures'])) {
+                $xml = $this->fillBa122Ta1TableSignatures($xml);
+            }
+
+            if (!empty($template['fillBa122Ta2Signatures'])) {
+                $xml = $this->fillBa122Ta2Signatures($xml);
+            }
+
+            if (!empty($template['centerPublikasi125CekCells'])) {
+                $xml = $this->centerPublikasi125CekCells($xml);
             }
 
             // Proses juga file header dan footer jika memuat placeholder (alamat, tlp, email, dsb)
@@ -2309,5 +2372,229 @@ class PrepareTemplate extends Command
         }
 
         return $xml;
+    }
+
+    /**
+     * Daftar Hadir S1: sisipkan ${ttd_tim_1}..${ttd_tim_6} pada kolom "Tanda Tangan"
+     * (sel ke-4, indeks 3) di baris 1..6 tabel peserta hadir bila sel masih kosong.
+     */
+    private function fillDaftarHadirS1RowSignatures(string $xml): string
+    {
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        if (!@$dom->loadXML($xml)) {
+            return $xml;
+        }
+        $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $xp = new \DOMXPath($dom);
+        $xp->registerNamespace('w', $wNs);
+
+        $tbl = $xp->query('//w:body/w:tbl[1]')->item(0);
+        if (!$tbl) {
+            return $xml;
+        }
+        $rows = $xp->query('./w:tr', $tbl);
+        for ($i = 1; $i <= 6; $i++) {
+            $tr = $rows->item($i);
+            if (!$tr) {
+                continue;
+            }
+            $cells = $xp->query('./w:tc', $tr);
+            $tc = $cells->item(3);
+            if (!$tc || trim($tc->textContent) !== '') {
+                continue;
+            }
+            $p = $xp->query('./w:p', $tc)->item(0);
+            if (!$p) {
+                $p = $dom->createElementNS($wNs, 'w:p');
+                $tc->appendChild($p);
+            }
+            $r = $dom->createElementNS($wNs, 'w:r');
+            $t = $dom->createElementNS($wNs, 'w:t', '${ttd_tim_' . $i . '}');
+            $r->appendChild($t);
+            $p->appendChild($r);
+        }
+
+        return $dom->saveXML() ?: $xml;
+    }
+
+    /**
+     * BA TA 1 Prodi 122: sisipkan ${ttd_penilai_1}..${ttd_penilai_3} setelah angka
+     * "1.", "2.", "3." pada kolom "Tanda Tangan" (sel ke-3, indeks 2) tabel Tim Penguji.
+     */
+    private function fillBa122Ta1TableSignatures(string $xml): string
+    {
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        if (!@$dom->loadXML($xml)) {
+            return $xml;
+        }
+        $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $xp = new \DOMXPath($dom);
+        $xp->registerNamespace('w', $wNs);
+
+        $tbl = $xp->query('//w:body/w:tbl[1]')->item(0);
+        if (!$tbl) {
+            return $xml;
+        }
+        $rows = $xp->query('./w:tr', $tbl);
+        for ($i = 1; $i <= 3; $i++) {
+            $tr = $rows->item($i);
+            if (!$tr) {
+                continue;
+            }
+            $cells = $xp->query('./w:tc', $tr);
+            $tc = $cells->item(2);
+            if (!$tc || str_contains($tc->textContent, '${ttd_penilai_')) {
+                continue;
+            }
+            $paras = $xp->query('./w:p', $tc);
+            $targetP = $paras->item($paras->length - 1) ?: null;
+            if (!$targetP) {
+                $targetP = $dom->createElementNS($wNs, 'w:p');
+                $tc->appendChild($targetP);
+            }
+            $r = $dom->createElementNS($wNs, 'w:r');
+            $t = $dom->createElementNS($wNs, 'w:t');
+            $t->setAttribute('xml:space', 'preserve');
+            $t->appendChild($dom->createTextNode(' ${ttd_penilai_' . $i . '}'));
+            $r->appendChild($t);
+            $targetP->appendChild($r);
+        }
+
+        return $dom->saveXML() ?: $xml;
+    }
+
+    /**
+     * BA Sidang TA 2 Prodi 122: sisipkan placeholder tanda tangan pada
+     * tabel Tim Penguji (${ttd_1}..${ttd_6}), Ketua Sidang BA (${ttd_ketua_ba}),
+     * tabel Daftar Hadir (${dh_ttd_1}..${dh_ttd_6}), dan Ketua Sidang DH (${dh_ttd_ketua}).
+     */
+    private function fillBa122Ta2Signatures(string $xml): string
+    {
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        if (!@$dom->loadXML($xml)) {
+            return $xml;
+        }
+        $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $xp = new \DOMXPath($dom);
+        $xp->registerNamespace('w', $wNs);
+
+        $setCellToken = function (\DOMElement $tc, string $token) use ($dom, $xp, $wNs): void {
+            $p = $xp->query('./w:p', $tc)->item(0);
+            if (!$p) {
+                $p = $dom->createElementNS($wNs, 'w:p');
+                $tc->appendChild($p);
+            }
+            foreach (iterator_to_array($xp->query('./w:r', $p)) as $oldR) {
+                $p->removeChild($oldR);
+            }
+            $r = $dom->createElementNS($wNs, 'w:r');
+            $t = $dom->createElementNS($wNs, 'w:t', $token);
+            $r->appendChild($t);
+            $p->appendChild($r);
+        };
+
+        $tables = $xp->query('//w:body/w:tbl');
+        // Tabel 0: Tim Penguji (baris 2..7, sel terakhir = Tanda Tangan)
+        if ($tables->length > 0) {
+            $rows0 = $xp->query('./w:tr', $tables->item(0));
+            for ($i = 1; $i <= 6; $i++) {
+                $tr = $rows0->item($i + 1);
+                if (!$tr) {
+                    continue;
+                }
+                $cells = $xp->query('./w:tc', $tr);
+                $tc = $cells->item($cells->length - 1);
+                if ($tc instanceof \DOMElement) {
+                    $setCellToken($tc, '${ttd_' . $i . '}');
+                }
+            }
+        }
+
+        // Paragraf kosong sebelum ${nama_ketua_sidang} di BA halaman 1 -> ${ttd_ketua_ba}
+        $bodyParas = $xp->query('//w:body/w:p');
+        for ($pi = 1; $pi < $bodyParas->length; $pi++) {
+            $p = $bodyParas->item($pi);
+            if (str_contains($p->textContent, '${nama_ketua_sidang}')) {
+                $prevP = $bodyParas->item($pi - 1);
+                if ($prevP instanceof \DOMElement && trim($prevP->textContent) === '') {
+                    $r = $dom->createElementNS($wNs, 'w:r');
+                    $r->appendChild($dom->createElementNS($wNs, 'w:t', '${ttd_ketua_ba}'));
+                    $prevP->appendChild($r);
+                }
+                break;
+            }
+        }
+
+        // Tabel 2 (Daftar Hadir): baris 1..6 sel ke-4 (${dh_ttd_1}..${dh_ttd_6}) & baris 8 (${dh_ttd_ketua})
+        if ($tables->length > 2) {
+            $rows2 = $xp->query('./w:tr', $tables->item(2));
+            for ($i = 1; $i <= 6; $i++) {
+                $tr = $rows2->item($i);
+                if (!$tr) {
+                    continue;
+                }
+                $cells = $xp->query('./w:tc', $tr);
+                $tc = $cells->item(3);
+                if ($tc instanceof \DOMElement) {
+                    $setCellToken($tc, '${dh_ttd_' . $i . '}');
+                }
+            }
+            $trKetua = $rows2->item(8);
+            if ($trKetua) {
+                $cellsK = $xp->query('./w:tc', $trKetua);
+                $tcK = $cellsK->item($cellsK->length - 1);
+                if ($tcK instanceof \DOMElement) {
+                    $setCellToken($tcK, '${dh_ttd_ketua}');
+                }
+            }
+        }
+
+        return $dom->saveXML() ?: $xml;
+    }
+
+    /**
+     * Form Penilaian Publikasi TA 2 Prodi 125: pusatkan paragraf di dalam kotak
+     * centang ${cek_makalah_1}..${cek_makalah_6} agar tanda centang berada di tengah kotak.
+     */
+    private function centerPublikasi125CekCells(string $xml): string
+    {
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        if (!@$dom->loadXML($xml)) {
+            return $xml;
+        }
+        $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $xp = new \DOMXPath($dom);
+        $xp->registerNamespace('w', $wNs);
+
+        foreach ($xp->query('//w:tc/w:p') as $p) {
+            if (!str_contains($p->textContent, '${cek_makalah_')) {
+                continue;
+            }
+            $pPr = $xp->query('./w:pPr', $p)->item(0);
+            if (!$pPr instanceof \DOMElement) {
+                $pPr = $dom->createElementNS($wNs, 'w:pPr');
+                $p->insertBefore($pPr, $p->firstChild);
+            }
+            $sp = $xp->query('./w:spacing', $pPr)->item(0);
+            if (!$sp instanceof \DOMElement) {
+                $sp = $dom->createElementNS($wNs, 'w:spacing');
+                $pPr->appendChild($sp);
+            }
+            $sp->setAttributeNS($wNs, 'w:before', '0');
+            $sp->setAttributeNS($wNs, 'w:after', '0');
+
+            $jc = $xp->query('./w:jc', $pPr)->item(0);
+            if (!$jc instanceof \DOMElement) {
+                $jc = $dom->createElementNS($wNs, 'w:jc');
+                $pPr->appendChild($jc);
+            }
+            $jc->setAttributeNS($wNs, 'w:val', 'center');
+        }
+
+        return $dom->saveXML() ?: $xml;
     }
 }

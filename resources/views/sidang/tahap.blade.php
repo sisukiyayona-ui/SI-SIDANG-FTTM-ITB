@@ -644,6 +644,103 @@
 
                 {{-- TAB: JADWAL SIDANG & PENILAIAN --}}
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
+                    @if($isKetuaSidangTim)
+                    {{-- Ketua Sidang: hanya melihat rekap nilai seluruh penilai + Kunci Nilai --}}
+                    <div class="card mb-3">
+                        <div class="card-header py-2 d-flex align-items-center" style="background:#eef4fa;">
+                            <i class="fas fa-eye mr-2 text-primary"></i>
+                            <strong style="font-size: 13px;">Rekap Nilai Seluruh Penilai</strong>
+                            <span class="badge badge-secondary ml-2" style="font-size: 10px;">Hanya dilihat</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm mb-0" style="font-size: 12px;">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th style="width:40px;">No</th>
+                                            <th style="width:150px;">Nama Penilai</th>
+                                            <th style="width:130px;">Peran</th>
+                                            <th>Parameter Penilaian</th>
+                                            <th style="width:80px;">Nilai</th>
+                                            <th style="width:180px;">Catatan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php
+                                            $rekapPenilaian = ($penilaian ?? collect())->groupBy(function ($p) {
+                                                return $p->id_tim_sidang ?: ('nama:' . ($p->NAMA ?? '-'));
+                                            });
+                                            $rekapNo = 0;
+                                        @endphp
+                                        @forelse($rekapPenilaian as $timKey => $rowsPenilai)
+                                            @php
+                                                $timRow = $timSidang ? $timSidang->firstWhere('id', $timKey) : null;
+                                                $namaPenilai = $rowsPenilai->first()->NAMA ?? $timRow?->NAMA ?? '-';
+                                                $nipPenilai = $rowsPenilai->first()->NIP ?? $timRow?->nip ?? '-';
+                                                $peranPenilai = $rowsPenilai->first()->STATUS_TIM_SIDANG
+                                                    ?? $timRow?->keterangan
+                                                    ?? $timRow?->status_tim_sidang
+                                                    ?? '-';
+                                            @endphp
+                                            @foreach($rowsPenilai as $rp)
+                                                @php $rekapNo++; @endphp
+                                                <tr>
+                                                    <td class="text-center">{{ $rekapNo }}</td>
+                                                    <td>
+                                                        {{ $namaPenilai }}
+                                                        <div class="text-muted" style="font-size: 10px;">{{ $nipPenilai }}</div>
+                                                    </td>
+                                                    <td>{{ $peranPenilai }}</td>
+                                                    <td>{{ $rp->NAMA_PENILAIAN ?? optional($rp->pointPenilaian)->PENILAIAN ?? '-' }}</td>
+                                                    <td class="text-center font-weight-bold">
+                                                        @if($isProdi123)
+                                                            {{ strtoupper(trim((string) $rp->getAttribute('NILAI_HURUF'))) ?: '-' }}
+                                                        @else
+                                                            {{ $rp->NILAI === null ? '-' : str_replace('.', ',', (string) $rp->NILAI) }}
+                                                        @endif
+                                                    </td>
+                                                    <td>{{ $rp->CATATAN ?: '-' }}</td>
+                                                </tr>
+                                            @endforeach
+                                            @unless($isProdi123)
+                                                @foreach($rowsPenilai->groupBy(fn($r) => strtolower(trim((string) ($r->NO_FORM ?? $r->no_form ?? '')))) as $nfKey => $formRowsRekap)
+                                                    @php
+                                                        if (str_contains((string) $nfKey, 'publikasi')) { continue; }
+                                                        $validFormRows = $formRowsRekap->filter(function ($fr) {
+                                                            $sc = strtolower(trim((string) (optional($fr->pointPenilaian)->STATUS_CATATAN ?? optional($fr->pointPenilaian)->status_catatan ?? '')));
+                                                            return $sc !== 'y' && $fr->NILAI !== null && is_numeric($fr->NILAI);
+                                                        });
+                                                        if ($validFormRows->isEmpty()) { continue; }
+                                                        $hasBobotRekap = $validFormRows->contains(function ($fr) {
+                                                            $b = optional($fr->pointPenilaian)->BOBOT ?? optional($fr->pointPenilaian)->bobot ?? null;
+                                                            return $b !== null && (float) $b > 0;
+                                                        });
+                                                        if ($hasBobotRekap) {
+                                                            $avgRekapVal = $validFormRows->sum(function ($fr) {
+                                                                $b = (float) (optional($fr->pointPenilaian)->BOBOT ?? optional($fr->pointPenilaian)->bobot ?? 0);
+                                                                return ($b / 100.0) * ((float) $fr->NILAI);
+                                                            });
+                                                        } else {
+                                                            $avgRekapVal = $validFormRows->sum(fn($fr) => (float) $fr->NILAI) / max(1, $validFormRows->count());
+                                                        }
+                                                        $formLabelRekap = $nfKey !== '' && $rowsPenilai->pluck('NO_FORM')->filter()->unique()->count() > 1 ? ' (' . strtoupper($nfKey) . ')' : '';
+                                                    @endphp
+                                                    <tr style="background:#f1f5fb;">
+                                                        <td colspan="4" class="text-right font-weight-bold">Nilai Rata-rata — {{ $namaPenilai }}{{ $formLabelRekap }}</td>
+                                                        <td class="text-center font-weight-bold text-primary">{{ number_format($avgRekapVal, 2, ',', '.') }}</td>
+                                                        <td></td>
+                                                    </tr>
+                                                @endforeach
+                                            @endunless
+                                        @empty
+                                            <tr><td colspan="6" class="text-center text-muted py-3">Belum ada nilai yang diisi penilai.</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     <div class="penilaian-toolbar mb-2">
                         <div class="penilaian-filters">
                             <div class="penilaian-filter-field">
@@ -715,7 +812,7 @@
                                             @endphp
                                             @unless($penilaianSelesai && ! $isNilaiTerkunci)
                                             @php $rowNum++; @endphp
-                                             <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
+                                             <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}" data-bobot="{{ $point->bobot ?? '' }}">
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 @if($showKeterangan)
@@ -752,7 +849,7 @@
                                             @endunless
                                             @foreach($existingRecords as $existing)
                                                 @php $rowNum++; @endphp
-                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
+                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-data-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}" data-bobot="{{ $point->bobot ?? '' }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     @if($showKeterangan)
@@ -850,6 +947,12 @@
                             @endif
                             </div>
                         </div>
+                        @unless($isProdi123 || $isKetuaSidangTim)
+                        <div class="d-flex align-items-center flex-wrap" id="nilaiRataRataReportWrap" style="gap: 10px;">
+                            <span class="font-weight-bold" style="font-size: 13px;">Nilai Rata-rata</span>
+                            <input type="text" id="nilaiRataRataReport" class="form-control form-control-sm border-dark rounded-0 text-center font-weight-bold bg-light" style="width: 90px;" value="-" readonly>
+                        </div>
+                        @endunless
                         {{-- TU Prodi: tombol Kunci Nilai tersembunyi sampai penilai
                              terpilih ber-keterangan "Ketua Sidang" (data-lock-gate +
                              syncLockNilaiGate), lalu disabled sampai nilai seluruh
@@ -864,7 +967,10 @@
                             <span class="badge bg-success mr-2 px-2 py-1" style="font-size: 12px;"><i class="fas fa-lock mr-1"></i> Nilai Terkunci</span>
                             @endif
                             <span class="lock-nilai-wrap" id="lockNilaiBtnWrap" @if($isGateLockNilai) style="display:none;" @endif data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiBtn" class="btn btn-sm btn-success mr-2 px-2 py-0" onclick="lockNilai('{{ $tahapan }}', 'penilaianReportBody', 'statusLulusDisplay', 'lockNilaiBtn')" title="Kunci Nilai" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock"></i> Kunci Nilai</button></span>
+                            <button type="button" id="saveStatusKetuaBtn" class="btn btn-sm btn-outline-secondary px-3" style="display:none;" onclick="saveStatusLulusFrom('statusLulusDisplay')"><i class="fas fa-save mr-1"></i> Simpan Status</button>
+                            @unless($isKetuaSidangTim)
                             <button type="button" id="savePenilaianBtn" class="btn btn-primary" style="font-size: 14px;" onclick="savePenilaianTahap1()" {{ $isNilaiTerkunciUi ? 'disabled' : '' }}>Simpan</button>
+                            @endunless
                         </div>
                         @endif
                     </div>
@@ -1344,6 +1450,103 @@
                 </div>
                 @endif
                 <div class="tab-pane fade" id="jadwal" role="tabpanel">
+                    @if($isKetuaSidangTim)
+                    {{-- Ketua Sidang: rekap nilai seluruh penilai (hanya baca) + Kunci Nilai --}}
+                    <div class="card mb-3">
+                        <div class="card-header py-2 d-flex align-items-center" style="background:#eef4fa;">
+                            <i class="fas fa-eye mr-2 text-primary"></i>
+                            <strong style="font-size: 13px;">Rekap Nilai Seluruh Penilai</strong>
+                            <span class="badge badge-secondary ml-2" style="font-size: 10px;">Hanya dilihat</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm mb-0" style="font-size: 12px;">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th style="width:40px;">No</th>
+                                            <th style="width:150px;">Nama Penilai</th>
+                                            <th style="width:130px;">Peran</th>
+                                            <th>Parameter Penilaian</th>
+                                            <th style="width:80px;">Nilai</th>
+                                            <th style="width:180px;">Catatan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php
+                                            $rekapPenilaian2 = ($penilaian ?? collect())->groupBy(function ($p) {
+                                                return $p->id_tim_sidang ?: ('nama:' . ($p->NAMA ?? '-'));
+                                            });
+                                            $rekapNo2 = 0;
+                                        @endphp
+                                        @forelse($rekapPenilaian2 as $timKey2 => $rowsPenilai2)
+                                            @php
+                                                $timRow2 = $timSidang ? $timSidang->firstWhere('id', $timKey2) : null;
+                                                $namaPenilai2 = $rowsPenilai2->first()->NAMA ?? $timRow2?->NAMA ?? '-';
+                                                $nipPenilai2 = $rowsPenilai2->first()->NIP ?? $timRow2?->nip ?? '-';
+                                                $peranPenilai2 = $rowsPenilai2->first()->STATUS_TIM_SIDANG
+                                                    ?? $timRow2?->keterangan
+                                                    ?? $timRow2?->status_tim_sidang
+                                                    ?? '-';
+                                            @endphp
+                                            @foreach($rowsPenilai2 as $rp2)
+                                                @php $rekapNo2++; @endphp
+                                                <tr>
+                                                    <td class="text-center">{{ $rekapNo2 }}</td>
+                                                    <td>
+                                                        {{ $namaPenilai2 }}
+                                                        <div class="text-muted" style="font-size: 10px;">{{ $nipPenilai2 }}</div>
+                                                    </td>
+                                                    <td>{{ $peranPenilai2 }}</td>
+                                                    <td>{{ $rp2->NAMA_PENILAIAN ?? optional($rp2->pointPenilaian)->PENILAIAN ?? '-' }}</td>
+                                                    <td class="text-center font-weight-bold">
+                                                        @if($isProdi123)
+                                                            {{ strtoupper(trim((string) $rp2->getAttribute('NILAI_HURUF'))) ?: '-' }}
+                                                        @else
+                                                            {{ $rp2->NILAI === null ? '-' : str_replace('.', ',', (string) $rp2->NILAI) }}
+                                                        @endif
+                                                    </td>
+                                                    <td>{{ $rp2->CATATAN ?: '-' }}</td>
+                                                </tr>
+                                            @endforeach
+                                            @unless($isProdi123)
+                                                @foreach($rowsPenilai2->groupBy(fn($r) => strtolower(trim((string) ($r->NO_FORM ?? $r->no_form ?? '')))) as $nfKey2 => $formRowsRekap2)
+                                                    @php
+                                                        if (str_contains((string) $nfKey2, 'publikasi')) { continue; }
+                                                        $validFormRows2 = $formRowsRekap2->filter(function ($fr) {
+                                                            $sc = strtolower(trim((string) (optional($fr->pointPenilaian)->STATUS_CATATAN ?? optional($fr->pointPenilaian)->status_catatan ?? '')));
+                                                            return $sc !== 'y' && $fr->NILAI !== null && is_numeric($fr->NILAI);
+                                                        });
+                                                        if ($validFormRows2->isEmpty()) { continue; }
+                                                        $hasBobotRekap2 = $validFormRows2->contains(function ($fr) {
+                                                            $b = optional($fr->pointPenilaian)->BOBOT ?? optional($fr->pointPenilaian)->bobot ?? null;
+                                                            return $b !== null && (float) $b > 0;
+                                                        });
+                                                        if ($hasBobotRekap2) {
+                                                            $avgRekapVal2 = $validFormRows2->sum(function ($fr) {
+                                                                $b = (float) (optional($fr->pointPenilaian)->BOBOT ?? optional($fr->pointPenilaian)->bobot ?? 0);
+                                                                return ($b / 100.0) * ((float) $fr->NILAI);
+                                                            });
+                                                        } else {
+                                                            $avgRekapVal2 = $validFormRows2->sum(fn($fr) => (float) $fr->NILAI) / max(1, $validFormRows2->count());
+                                                        }
+                                                        $formLabelRekap2 = $nfKey2 !== '' && $rowsPenilai2->pluck('NO_FORM')->filter()->unique()->count() > 1 ? ' (' . strtoupper($nfKey2) . ')' : '';
+                                                    @endphp
+                                                    <tr style="background:#f1f5fb;">
+                                                        <td colspan="4" class="text-right font-weight-bold">Nilai Rata-rata — {{ $namaPenilai2 }}{{ $formLabelRekap2 }}</td>
+                                                        <td class="text-center font-weight-bold text-primary">{{ number_format($avgRekapVal2, 2, ',', '.') }}</td>
+                                                        <td></td>
+                                                    </tr>
+                                                @endforeach
+                                            @endunless
+                                        @empty
+                                            <tr><td colspan="6" class="text-center text-muted py-3">Belum ada nilai yang diisi penilai.</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     {{-- JADWAL & PENILAIAN --}}
                     <div id="jadwalListTahap2">
                         <div class="d-flex justify-content-between align-items-center mb-2 mx-1">
@@ -1382,9 +1585,9 @@
                                         @endphp
                                         <td>
                                             @if($disabledLink)
-                                                <span class="text-muted jadwal-date-link" style="cursor: default; white-space: nowrap;" data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span>
+                                                <span class="text-muted jadwal-date-link" style="cursor: default; white-space: nowrap;" data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}" data-semester="{{ $a->SEMESTER ?? '' }}" data-thn-akademik="{{ $a->THN_AKADEMIK ?? '' }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span>
                                             @else
-                                                <span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: pointer; white-space: nowrap;" onclick="openJadwalForm(this)" data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span>
+                                                <span class="text-primary text-decoration-underline jadwal-date-link" style="cursor: pointer; white-space: nowrap;" onclick="openJadwalForm(this)" data-id="{{ $a->id }}" data-tgl-sidang="{{ $a->tgl_sidang }}" data-waktu-sidang="{{ $a->waktu_sidang }}" data-waktu-selesai="{{ $a->waktu_selesai }}" data-ruang-sidang="{{ $a->ruang_sidang }}" data-tgl-surat-undangan="{{ $a->tgl_undangan }}" data-no-surat-undangan="{{ $a->NO_UNDANGAN }}" data-tgl-surat-penelaah="{{ $a->tgl_penelaah }}" data-no-surat-penelaah="{{ $a->no_surat_penelaah }}" data-tgl-hasil-penelahan="{{ $a->TGL_HASIL_PENELAHAN }}" data-email-surat="{{ $a->email_surat }}" data-no-sk-kelulusan="{{ $a->SK_LULUS }}" data-semester="{{ $a->SEMESTER ?? '' }}" data-thn-akademik="{{ $a->THN_AKADEMIK ?? '' }}">{{ \Carbon\Carbon::parse($a->tgl_sidang)->translatedFormat('l, d F Y') }}</span>
                                             @endif
                                         </td>
                                         @php
@@ -1559,7 +1762,7 @@
                                 </thead>
                                 <tbody id="penilaianTahap2Body">
                                     <tr id="penilaianTahap2EmptyRow" style="background-color: #dbe5f1;">
-                                        <td colspan="{{ $colCount }}" class="text-center text-muted">{{ $isKetuaSidangTim ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Form untuk melihat parameter penilaian' }}</td>
+                                        <td colspan="{{ $colCount }}" class="text-center text-muted">{{ $isKetuaSidangTim ? 'Anda Ketua Sidang. Lihat rekap nilai seluruh penilai di atas, pilih Status Kelulusan, lalu kunci nilai.' : 'Pilih Form untuk melihat parameter penilaian' }}</td>
                                     </tr>
                                     @unless($isKetuaSidangTim)
                                     @if(isset($allPointPenilaian) && $allPointPenilaian->count() > 0)
@@ -1570,7 +1773,7 @@
                                             @endphp
                                             @unless($penilaianSelesai && ! $isNilaiTerkunci)
                                             @php $rowNum++; @endphp
-                                             <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}">
+                                             <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}" data-bobot="{{ $point->bobot ?? '' }}">
                                                 <td>{{ $rowNum }}</td>
                                                 <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                 @if($showKeterangan)
@@ -1618,7 +1821,7 @@
                                             @endunless
                                             @foreach($existingRecords as $existing)
                                                 @php $rowNum++; @endphp
-                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}" data-nilai-huruf="{{ strtoupper(trim((string) $existing->getAttribute('NILAI_HURUF'))) }}" data-status-lulus-row="{{ strtoupper(trim((string) $existing->getAttribute('STATUS_LULUS'))) }}">
+                                                <tr style="background-color: {{ $rowNum % 2 == 0 ? '#e9eef6' : '#dbe5f1' }}; display: none;" class="penilaian-tahap2-row" data-id-penilai="{{ $existing->id_tim_sidang }}" data-no-form="{{ $point->no_form }}" data-point-id="{{ $point->id }}" data-status-catatan="{{ $point->status_catatan }}" data-bobot="{{ $point->bobot ?? '' }}" data-nilai-huruf="{{ strtoupper(trim((string) $existing->getAttribute('NILAI_HURUF'))) }}" data-status-lulus-row="{{ strtoupper(trim((string) $existing->getAttribute('STATUS_LULUS'))) }}">
                                                     <td>{{ $rowNum }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     @if($showKeterangan)
@@ -1763,6 +1966,12 @@
                                         </div>
                                     </div>
                                 </div>
+                                @unless($isProdi123 || $isKetuaSidangTim)
+                                <div class="d-flex align-items-center flex-wrap" id="nilaiRataRataTahap2Wrap" style="gap: 10px;">
+                                    <span class="font-weight-bold" style="font-size: 13px;">Nilai Rata-rata</span>
+                                    <input type="text" id="nilaiRataRataTahap2" class="form-control form-control-sm border-dark rounded-0 text-center font-weight-bold bg-light" style="width: 90px;" value="-" readonly>
+                                </div>
+                                @endunless
                                 {{-- Kunci Nilai: Ketua Sidang selalu tampil; Admin
                                      tampil (untuk koreksi); TU Prodi hanya tampil saat
                                      penilai terpilih = Ketua Sidang (data-lock-gate);
@@ -1775,13 +1984,16 @@
                                     @endif
                                     @if($isKetuaSidangTim)
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
+                                    @unless($isKetuaSidangTim)
                                     <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusTahap2()" @if($strataView === 'S2' && !$canEditS2Status) disabled title="Menunggu Approve TU Prodi dan kunci nilai oleh Ketua Sidang" @endif><i class="fas fa-save mr-1"></i> Simpan Status</button>
+                                    @endunless
                                     @elseif($isTuProdiAtauAdmin && $strataView === 'S2')
                                     {{-- S2 TU Prodi: Kunci Nilai muncul saat Ketua Sidang dipilih (via syncLockNilaiGate), Simpan untuk penilai lain --}}
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" data-lock-gate="1" style="display:none;"><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
                                     <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()"><i class="fas fa-save mr-1"></i> Simpan</button>
                                     @elseif($isTuProdiAtauAdmin)
                                     <span class="lock-nilai-wrap" id="lockNilaiTahap2BtnWrap" data-toggle="tooltip" data-placement="top" data-container="body" data-html="true" data-template='<div class="tooltip lock-nilai-tooltip" role="tooltip"><div class="tooltip-inner text-left">{0}</div></div>' tabindex="0" title="Kunci Nilai"><button type="button" id="lockNilaiTahap2Btn" class="btn btn-sm btn-success mr-2 px-3" onclick="lockNilai('{{ $tahapan }}', 'penilaianTahap2Body', 'statusLulusTahap2', 'lockNilaiTahap2Btn')" {{ $isKppsGateBlocking ? 'disabled' : '' }} title="{{ $isKppsGateBlocking ? e($pesanKppsGate) : 'Kunci Nilai' }}" @if($isGateLockNilai) data-lock-gate="1" style="display:none;" @endif><i class="fas fa-lock mr-1"></i> Kunci Nilai</button></span>
+                                    <button type="button" id="saveStatusKetuaTahap2Btn" class="btn btn-sm btn-outline-secondary px-3" style="display:none;" onclick="saveStatusLulusTahap2()"><i class="fas fa-save mr-1"></i> Simpan Status</button>
                                     <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()"><i class="fas fa-save mr-1"></i> Simpan</button>
                                     @else
                                     <button type="button" id="savePenilaianTahap2Btn" class="btn btn-sm btn-primary px-3" onclick="savePenilaianTahap2()" @if($isNilaiTerkunciUi || $isKppsGateBlocking) disabled @endif @if($isKppsGateBlocking) title="{{ $pesanKppsGate }}" @endif><i class="fas fa-save mr-1"></i> Simpan</button>
@@ -2006,8 +2218,8 @@
                                             <input type="date" class="form-control form-control-sm border-dark rounded-0" name="tgl_surat_undangan" value="{{ isset($ajuan) ? $ajuan->tgl_undangan : '' }}" {{ in_array(session('auth_user.role'), $jadwalReadonlyRoles) ? 'readonly' : '' }}>
                                         </div>
                                     </div>
-                                    @if($strataView === 'S2')
-                                    {{-- Semester & Tahun Akademik untuk S2 (di bawah Tgl Surat Undangan) --}}
+                                    @if(in_array($strataView, ['S1', 'S2'], true))
+                                    {{-- Semester & Tahun Akademik untuk S1 dan S2 (di bawah Tgl Surat Undangan) --}}
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">Semester</label>
                                         <div class="col-sm-6 px-2">
@@ -2025,7 +2237,7 @@
                                         </div>
                                     </div>
                                     @endif
-                                    @if(!in_array(strtolower($tahapan), ['ts1', 'ts2', 'tesis i', 'tesis ii']))
+                                    @if(!in_array($strataView, ['S1', 'S2'], true) && !in_array(strtolower($tahapan), ['ta i', 'ta ii', 'ts1', 'ts2', 'tesis i', 'tesis ii']))
                                     <div class="form-group row align-items-center mb-2 px-1">
                                         <label class="col-sm-6 mb-0" style="font-size: 13px; color: #555;">No Surat Penelaah</label>
                                         <div class="col-sm-6 px-2">
@@ -2136,10 +2348,12 @@
                                     </div>
                                     @endif
                                 <div class="text-right mt-4">
-                                    @if($canManageKelulusan)
+                                    @if($canManageKelulusan && ! $isKetuaSidangTim)
                                     <button type="button" class="btn btn-sm btn-outline-secondary mr-2" onclick="updateStatusLulus({{ $ajuan->id ?? 0 }})"><i class="fas fa-save mr-1"></i> Simpan Status</button>
                                     @endif
+                                    @unless($isKetuaSidangTim)
                                     <button type="button" class="btn btn-sm btn-primary"><i class="fas fa-save mr-1"></i> Simpan</button>
+                                    @endunless
                                 </div>
                             </div>
                             
@@ -2163,7 +2377,7 @@
                                 @if($isPenilaiPanel)
                                 @if($isViewOnlyPenilai)
                                 <div class="alert alert-secondary py-2 px-2 mb-2" style="font-size: 12px;">
-                                    <i class="fas fa-eye mr-1"></i> Anda Ketua Sidang. Nilai tidak diinput di sini — gunakan Status Kelulusan dan Kunci Nilai setelah seluruh penilai mengisi nilainya.
+                                    <i class="fas fa-eye mr-1"></i> Anda Ketua Sidang. Rekap nilai seluruh penilai tampil di atas (hanya dilihat). Pilih Status Kelulusan lalu kunci nilai setelah seluruh penilai mengisi.
                                 </div>
                                 @endif
                                 @if($isKppsGateBlocking)
@@ -2211,8 +2425,7 @@
                                         @endunless
                                         <div class="d-flex align-items-center">
                                             @if($isViewOnlyPenilai)
-                                            {{-- Ketua Sidang tidak menginput nilai: simpan keputusan kelulusan saja --}}
-                                            <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="saveStatusLulusPembimbing()"><i class="fas fa-save mr-1"></i> Simpan Status</button>
+                                            {{-- Ketua Sidang: tidak ada tombol Simpan, cukup Kunci Nilai --}}
                                             @elseif($isNilaiTerkunciUi)
                                             <button type="submit" class="btn btn-sm btn-primary px-3" disabled title="Nilai sudah dikunci oleh Ketua Sidang"><i class="fas fa-save mr-1"></i> Simpan</button>
                                             @elseif($isKppsGateBlocking)
@@ -2303,11 +2516,11 @@
                                         </thead>
                                         <tbody id="penilaianTableBody">
                                             <tr id="penilaianFormEmptyRow" style="background-color: #dbe5f1;">
-                                                <td colspan="{{ 5 + (($isProdi123 || $isProdi124) ? 1 : 0) + ($isProdi123 ? 1 : 0) }}" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
+                                                <td colspan="{{ 5 + (($isProdi123 || $isProdi124) ? 1 : 0) + ($isProdi123 ? 1 : 0) }}" class="text-center text-muted">{{ $isViewOnlyPenilai ? 'Anda Ketua Sidang. Lihat rekap nilai seluruh penilai di atas, pilih Status Kelulusan, lalu kunci nilai.' : 'Pilih Penilai dan Form untuk melihat parameter penilaian' }}</td>
                                             </tr>
                                             @if(!$isViewOnlyPenilai && isset($penilaian) && $penilaian->count() > 0)
                                                 @foreach($penilaian as $idx => $nilai)
-                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-tim="{{ $nilai->id_tim_sidang }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}">
+                                                 <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $nilai->id_penilaian }}" data-tim="{{ $nilai->id_tim_sidang }}" data-no-form="{{ $nilai->no_form }}" data-status-catatan="{{ $nilai->pointPenilaian->STATUS_CATATAN ?? null }}" data-bobot="{{ $nilai->pointPenilaian->bobot ?? '' }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $nilai->nama_penilaian }}</span></td>
                                                     <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $nilai->pointPenilaian->keterangan ?? '-' }}</span></td>
@@ -2351,7 +2564,7 @@
                                             @endforeach
                                         @elseif(isset($allPointPenilaian) && $allPointPenilaian->count() > 0 && (!$penilaianSelesai || $isNilaiTerkunci) && !$isViewOnlyPenilai)
                                                 @foreach($allPointPenilaian as $idx => $point)
-                                                <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}">
+                                                <tr style="background-color: {{ $idx % 2 == 0 ? '#dbe5f1' : '#e9eef6' }}; display: none;" data-id="{{ $point->id }}" data-no-form="{{ $point->no_form }}" data-status-catatan="{{ $point->status_catatan }}" data-bobot="{{ $point->bobot ?? '' }}">
                                                     <td>{{ $idx + 1 }}</td>
                                                     <td><span class="text-danger text-decoration-underline">{{ $point->penilaian }}</span></td>
                                                     <td class="text-left col-ket-reguler"><span class="text-muted" style="font-size: 13px;">{{ $point->keterangan ?? '-' }}</span></td>
@@ -2394,6 +2607,12 @@
                                         </tbody>
                                     </table>
                                     </div>
+                                    @unless($isProdi123 || $isViewOnlyPenilai)
+                                    <div class="d-flex justify-content-end align-items-center mt-2" id="nilaiRataRataTableWrap" style="gap: 10px;">
+                                        <span class="font-weight-bold" style="font-size: 13px;">Nilai Rata-rata</span>
+                                        <input type="text" id="nilaiRataRataTable" class="form-control form-control-sm border-dark rounded-0 text-center font-weight-bold bg-light" style="width: 90px;" value="-" readonly>
+                                    </div>
+                                    @endunless
                                 </form>
                                 @else
                                 <div class="penilaian-toolbar mb-2">
@@ -2701,7 +2920,7 @@ function togglePublikasiColumns(tbodyId, noForm) {
 var isViewOnlyPenilai = {{ ($isKetuaSidangTim ?? false) ? 'true' : 'false' }};
 var PESAN_KPPS_GATE = {!! json_encode($pesanKppsGate ?? '') !!};
 var PESAN_BELUM_DISIMPAN = 'Nilai Anda belum disimpan. Simpan terlebih dahulu sebelum mengunci nilai.';
-var PESAN_KETUA_SIDANG = 'Ketua Sidang tidak menginput nilai. Gunakan Status Kelulusan dan Kunci Nilai.';
+var PESAN_KETUA_SIDANG = 'Anda Ketua Sidang. Lihat rekap nilai seluruh penilai di atas, pilih Status Kelulusan, lalu kunci nilai.';
 
 // TU Prodi/Admin bisa memilih Ketua Sidang di dropdown Penilai, tapi Ketua
 // Sidang tidak punya baris nilai, jadi tabelnya harus langsung dikosongkan.
@@ -3233,6 +3452,7 @@ function filterPenilaianTahap2() {
     if (typeof restoreSavedPenilaianValues === 'function') {
         restoreSavedPenilaianValues();
     }
+    updateNilaiRataRataForTbody('penilaianTahap2Body');
 }
 
 function renumberColumn(tbodyId) {
@@ -3350,6 +3570,7 @@ function filterPenilaian() {
     renumberColumn('penilaianReportBody');
     toggleLockButton('penilaianReportBody', 'lockNilaiBtn');
     syncLockNilaiGate('penilaianSelect', 'lockNilaiBtn');
+    updateNilaiRataRataForTbody('penilaianReportBody');
 }
 
 function loadPenilaianForm() {
@@ -3423,6 +3644,88 @@ function loadPenilaianForm() {
     }
     renumberColumn('penilaianTableBody');
     toggleLockButton('penilaianTableBody', 'lockNilaiPembimbingBtn');
+    updateNilaiRataRataForTbody('penilaianTableBody');
+}
+
+/**
+ * Hitung dan tampilkan Nilai Rata-rata penilai aktif pada suatu tbody penilaian:
+ * - Bila parameter pada form memiliki BOBOT (> 0): sum((BOBOT / 100) * NILAI)
+ * - Bila parameter tidak memiliki BOBOT: sum(NILAI) / jml_parameter
+ */
+function updateNilaiRataRataForTbody(tbodyId) {
+    var mapCfg = {
+        penilaianTahap2Body: { wrap: 'nilaiRataRataTahap2Wrap', input: 'nilaiRataRataTahap2', formSel: 'formTahap2', penSel: 'penilaiTahap2' },
+        penilaianReportBody: { wrap: 'nilaiRataRataReportWrap', input: 'nilaiRataRataReport', formSel: 'formFilterSelect', penSel: 'penilaianSelect' },
+        penilaianTableBody:  { wrap: 'nilaiRataRataTableWrap',  input: 'nilaiRataRataTable',  formSel: 'formSelect',       penSel: 'penilaiSelect' }
+    };
+    var cfg = mapCfg[tbodyId];
+    if (!cfg) return;
+    var wrapEl = document.getElementById(cfg.wrap);
+    var outEl = document.getElementById(cfg.input);
+    if (!outEl) return;
+
+    var formEl = document.getElementById(cfg.formSel);
+    var penEl = document.getElementById(cfg.penSel);
+    var noFormVal = formEl ? formEl.value : '';
+    var isKetuaDipilih = penEl ? isPenilaiKetuaSidang(penEl) : false;
+
+    if (wrapEl) {
+        var hideBox = (typeof isProdi123 !== 'undefined' && isProdi123)
+            || isPublikasiFormNo(noFormVal)
+            || isKetuaDipilih;
+        wrapEl.style.display = hideBox ? 'none' : '';
+        if (hideBox) {
+            outEl.value = '-';
+            return;
+        }
+    }
+
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody) {
+        outEl.value = '-';
+        return;
+    }
+
+    var jmlParam = 0;
+    var filledCount = 0;
+    var hasBobot = false;
+    var sumPlain = 0;
+    var sumWeighted = 0;
+
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        if (/EmptyRow/.test(row.id || '')) return;
+        if (row.style.display === 'none') return;
+        var sc = String(row.getAttribute('data-status-catatan') || '').trim().toLowerCase();
+        if (sc === 'y') return;
+
+        var inp = row.querySelector('.nilai-input');
+        if (!inp || inp.tagName === 'SELECT') return;
+
+        jmlParam++;
+        var bobotRaw = String(row.getAttribute('data-bobot') || '').trim().replace(',', '.');
+        var bobotNum = bobotRaw !== '' && !isNaN(parseFloat(bobotRaw)) ? parseFloat(bobotRaw) : 0;
+        if (bobotNum > 0) {
+            hasBobot = true;
+        }
+
+        var valRaw = String(inp.value || '').trim().replace(',', '.');
+        if (valRaw !== '' && !isNaN(parseFloat(valRaw))) {
+            var v = parseFloat(valRaw);
+            filledCount++;
+            sumPlain += v;
+            if (bobotNum > 0) {
+                sumWeighted += (bobotNum / 100.0) * v;
+            }
+        }
+    });
+
+    if (jmlParam === 0 || filledCount === 0) {
+        outEl.value = '-';
+        return;
+    }
+
+    var result = hasBobot ? sumWeighted : (sumPlain / jmlParam);
+    outEl.value = result.toFixed(2).replace('.', ',');
 }
 
 function updateKelengkapan(idSyarat, isChecked) {
@@ -4213,11 +4516,16 @@ function syncLockNilaiGate(selectId, btnId) {
     if (wrap) wrap.style.display = tampil ? '' : 'none';
 
     // TU Prodi/Admin: sembunyikan tombol Simpan saat penilai terpilih = Ketua Sidang
-    // (Ketua Sidang tidak mengisi nilai, hanya mengunci).
+    // (Ketua Sidang tidak mengisi nilai parameter, melainkan status & nilai akhir).
     var simpanBtnIds = ['savePenilaianTahap2Btn', 'savePenilaianBtn'];
     simpanBtnIds.forEach(function(id) {
         var sb = document.getElementById(id);
         if (sb) sb.style.display = tampil ? 'none' : '';
+    });
+    var simpanKetuaIds = ['saveStatusKetuaTahap2Btn', 'saveStatusKetuaBtn'];
+    simpanKetuaIds.forEach(function(id) {
+        var sk = document.getElementById(id);
+        if (sk) sk.style.display = tampil ? '' : 'none';
     });
 
     // S2: aktifkan Status Kelulusan & Nilai Huruf saat TU Prodi memilih Ketua Sidang di dropdown
@@ -4640,7 +4948,7 @@ async function savePenilaianTahap2() {
     }
 }
 
-function saveStatusLulusFrom(selectId) {
+function saveStatusLulusFrom(selectId, silent) {
     const select = document.getElementById(selectId);
     const statusLulus = select ? select.value : '';
     const nilaiHurufEl = document.getElementById(nilaiHurufIdForStatus(selectId));
@@ -4654,8 +4962,17 @@ function saveStatusLulusFrom(selectId) {
     if (isProdi125 && ta125El) {
         nilaiHuruf = ta125El.value;
     }
-    if (!statusLulus) {
-        showToast('Pilih status kelulusan terlebih dahulu', 'error');
+    const hasAnyDecisionField = Boolean(statusLulus || ip125Val || nilaiHuruf || us125Val);
+    if (!hasAnyDecisionField) {
+        if (!silent) {
+            showToast('Pilih nilai atau status kelulusan terlebih dahulu', 'error');
+        }
+        return;
+    }
+    if (!isS1 && !statusLulus) {
+        if (!silent) {
+            showToast('Pilih status kelulusan terlebih dahulu', 'error');
+        }
         return;
     }
     const idJudul = '{{ $idJudul }}';
@@ -4669,7 +4986,7 @@ function saveStatusLulusFrom(selectId) {
             'Accept': 'application/json'
         },
         body: JSON.stringify({
-            status_lulus: statusLulus,
+            status_lulus: statusLulus || null,
             ip: ip125Val || null,
             nilai_huruf: nilaiHuruf || null,
             nilai_huruf2: us125Val || null,
@@ -4679,15 +4996,39 @@ function saveStatusLulusFrom(selectId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast('Status Lulus berhasil disimpan', 'success');
-        } else {
+            if (!silent) {
+                showToast('Keputusan Ketua Sidang berhasil disimpan', 'success');
+            }
+        } else if (!silent) {
             showToast('Error: ' + (data.error || 'Terjadi kesalahan'), 'error');
         }
     })
     .catch(error => {
-        showToast('Error: ' + error, 'error');
+        if (!silent) {
+            showToast('Error: ' + error, 'error');
+        }
     });
 }
+
+(function bindS1KetuaDecisionAutoSave() {
+    if (!isS1) return;
+    const groups = [
+        { status: 'statusLulusDisplay', ids: ['statusLulusDisplay', 'nilaiHurufDisplay', 'ip125Display', 'nilaiTa125Display', 'nilaiUs125Display'] },
+        { status: 'statusLulusTahap2', ids: ['statusLulusTahap2', 'nilaiHurufTahap2', 'ip125Tahap2', 'nilaiTa125Tahap2', 'nilaiUs125Tahap2'] },
+        { status: 'statusLulusPembimbing', ids: ['statusLulusPembimbing', 'nilaiHurufPembimbing', 'ip125Pembimbing', 'nilaiTa125Pembimbing', 'nilaiUs125Pembimbing'] }
+    ];
+    groups.forEach(function(g) {
+        g.ids.forEach(function(id) {
+            const el = document.getElementById(id);
+            if (!el || el.dataset.autoSaveBound) return;
+            el.dataset.autoSaveBound = '1';
+            el.addEventListener('change', function() {
+                if (el.disabled) return;
+                saveStatusLulusFrom(g.status, true);
+            });
+        });
+    });
+})();
 
 function saveStatusLulusTahap2() {
     saveStatusLulusFrom('statusLulusTahap2');
@@ -5275,16 +5616,21 @@ if (typeof window !== 'undefined') {
     window.restoreSavedPenilaianValues = restoreSavedPenilaianValues;
 }
 
-// Input listeners for dynamic lock button validation
-document.addEventListener('input', function(e) {
+// Input & change listeners for dynamic lock button validation + live Nilai Rata-rata
+function handlePenilaianBodyValueChange(e) {
     if (e.target.closest('#penilaianReportBody')) {
         toggleLockButton('penilaianReportBody', 'lockNilaiBtn');
+        updateNilaiRataRataForTbody('penilaianReportBody');
     } else if (e.target.closest('#penilaianTahap2Body')) {
         toggleLockButton('penilaianTahap2Body', 'lockNilaiTahap2Btn');
+        updateNilaiRataRataForTbody('penilaianTahap2Body');
     } else if (e.target.closest('#penilaianTableBody')) {
         toggleLockButton('penilaianTableBody', 'lockNilaiPembimbingBtn');
+        updateNilaiRataRataForTbody('penilaianTableBody');
     }
-});
+}
+document.addEventListener('input', handlePenilaianBodyValueChange);
+document.addEventListener('change', handlePenilaianBodyValueChange);
 
 // All ajuan data for jadwal edit
 var _allAjuanData = @json($allAjuanJson);
@@ -5292,7 +5638,7 @@ var _allAjuanData = @json($allAjuanJson);
 function openJadwalForm(el) {
     var form = document.getElementById('jadwalFormTahap2Form');
     if (!form) return;
-    var fields = ['tgl_sidang','waktu_sidang','waktu_selesai','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_hasil_penelahan','email_surat','no_sk_kelulusan'];
+    var fields = ['tgl_sidang','waktu_sidang','waktu_selesai','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_hasil_penelahan','email_surat','no_sk_kelulusan','semester','thn_akademik'];
     var idInput = document.getElementById('id_ajuan_tahap2');
 
     // Find record by id
@@ -5310,7 +5656,9 @@ function openJadwalForm(el) {
             'no_surat_penelaah': el.dataset.noSuratPenelaah || null,
             'tgl_hasil_penelahan': el.dataset.tglHasilPenelahan || null,
             'email_surat': el.dataset.emailSurat || null,
-            'no_sk_kelulusan': el.dataset.noSkKelulusan || null
+            'no_sk_kelulusan': el.dataset.noSkKelulusan || null,
+            'semester': el.dataset.semester || null,
+            'thn_akademik': el.dataset.thnAkademik || null
         };
     } else if (el) {
         if (typeof _allAjuanData !== 'undefined' && _allAjuanData) {
@@ -5372,8 +5720,15 @@ function cetakDaftarHadir(idJudul, tahapan) {
 function cetakForm() {
     var idTimSidang = document.getElementById('selectedTimSidangTahap2').value;
     if (!idTimSidang) { alert('Pilih penilai terlebih dahulu.'); return; }
-    // Deklarasi awal (dipakai pengecekan 221 Tesis II di bawah) — hindari undefined akibat hoisting.
+    // Deklarasi awal (dipakai pengecekan 221 Tesis II & 125 S1 di bawah) — hindari undefined akibat hoisting.
     var tahapan = document.querySelector('#penilaianFormTahap2Form [name="tahapan_sidang"]').value;
+
+    // S1 Prodi 125: buka modal pilihan jenis cetak (TA I: SKRIPSI/SIDANG, TA II: SKRIPSI/SIDANG/publikasi)
+    if (isS1 && String(kodeProdi).trim() === '125' && typeof window.openJenisCetak125Modal === 'function') {
+        window.openJenisCetak125Modal(tahapan);
+        return;
+    }
+
     var noForm = document.getElementById('selectedNoFormTahap2').value;
     if (!noForm) { alert('Pilih Form terlebih dahulu.'); return; }
 

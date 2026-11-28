@@ -67,6 +67,31 @@
         </div>
     </div>
 
+    {{-- Modal pilih jenis Cetak Penilaian khusus S1 Prodi 125 (TA I: SKRIPSI/SIDANG, TA II: SKRIPSI/SIDANG/publikasi) --}}
+    <div class="modal fade" id="jenisCetak125Modal" tabindex="-1" role="dialog" aria-labelledby="jenisCetak125ModalLabel" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jenisCetak125ModalLabel"><i class="fas fa-print mr-2"></i>Pilih Jenis Cetak Penilaian</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-0">
+                        <label for="jenisCetak125Select">Jenis Penilaian</label>
+                        <select id="jenisCetak125Select" class="form-control"></select>
+                        <small class="form-text text-muted mt-2">
+                            Judul dan kolom lembar penilaian akan menyesuaikan pilihan di atas.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="cetakDenganJenis125()"><i class="fas fa-print mr-1"></i> Cetak</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Tambah Judul (TU Prodi / FS) -->
     <div class="modal fade" id="tambahJudulModal" tabindex="-1" role="dialog" aria-labelledby="tambahJudulModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
@@ -147,6 +172,70 @@
 
 @push('scripts')
 <script>
+    window.openJenisCetak125Modal = function(tahapan) {
+        var sel = document.getElementById('jenisCetak125Select');
+        if (!sel) return;
+        var isTa2 = /^ta\s*(ii|2|-2)$/i.test(String(tahapan || '').trim());
+        var opts = isTa2
+            ? [
+                { value: 'SKRIPSI', label: 'SKRIPSI' },
+                { value: 'SIDANG', label: 'SIDANG' },
+                { value: 'PUBLIKASI', label: 'publikasi' }
+            ]
+            : [
+                { value: 'SKRIPSI', label: 'SKRIPSI' },
+                { value: 'SIDANG', label: 'SIDANG' }
+            ];
+        sel.innerHTML = '';
+        var currentForm = '';
+        var formEl = document.getElementById('formTahap2') || document.getElementById('selectedNoFormTahap2');
+        if (formEl && formEl.value) currentForm = String(formEl.value).trim().toLowerCase();
+
+        opts.forEach(function(o) {
+            var opt = document.createElement('option');
+            opt.value = o.value;
+            opt.textContent = o.label;
+            if (currentForm && currentForm.indexOf(o.value.toLowerCase()) !== -1) {
+                opt.selected = true;
+            }
+            sel.appendChild(opt);
+        });
+
+        $('#jenisCetak125Modal').modal('show');
+    };
+
+    window.cetakDenganJenis125 = function() {
+        var jenis = document.getElementById('jenisCetak125Select').value;
+        var f = document.querySelector('#tahapFormContent #penilaianFormTahap2Form')
+             || document.getElementById('penilaianFormTahap2Form');
+        if (!f) { alert('Form tahapan tidak ditemukan.'); return; }
+        var idJudul = f.querySelector('[name="id_judul"]').value;
+        var tahapan = f.querySelector('[name="tahapan_sidang"]').value;
+        var idTim = document.getElementById('selectedTimSidangTahap2');
+        if (!idTim || !idTim.value) { alert('Pilih penilai terlebih dahulu.'); return; }
+
+        // Cari no_form yang cocok di dropdown Form (case-insensitive), fallback ke lowercase jenis
+        var matchedNoForm = jenis.toLowerCase();
+        var formSelect = document.getElementById('formTahap2');
+        if (formSelect && formSelect.options) {
+            for (var i = 0; i < formSelect.options.length; i++) {
+                var val = String(formSelect.options[i].value || '').trim();
+                if (val && val.toLowerCase().indexOf(jenis.toLowerCase()) !== -1) {
+                    matchedNoForm = val;
+                    break;
+                }
+            }
+        }
+
+        var url = '{{ route("sidang.cetak-form", ["idJudul" => ":idJudul", "tahapan" => ":tahapan"]) }}';
+        url = url.replace(':idJudul', encodeURIComponent(idJudul)).replace(':tahapan', encodeURIComponent(tahapan));
+        url += '?id_tim_sidang=' + encodeURIComponent(idTim.value)
+             + '&no_form=' + encodeURIComponent(matchedNoForm)
+             + '&jenis=' + encodeURIComponent(jenis);
+        window.open(url, '_blank');
+        $('#jenisCetak125Modal').modal('hide');
+    };
+
     function getTahapLabelJS(tahapan) {
         var labels = {
             'TA I':  'TA I',
@@ -410,7 +499,7 @@
         window.openJadwalForm = function(el) {
             var form = document.getElementById('jadwalFormTahap2Form');
             if (!form) return;
-            var fields = ['tgl_sidang','waktu_sidang','waktu_selesai','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_hasil_penelahan','email_surat','no_sk_kelulusan'];
+            var fields = ['tgl_sidang','waktu_sidang','waktu_selesai','ruang_sidang','tgl_surat_undangan','no_surat_undangan','tgl_surat_penelaah','no_surat_penelaah','tgl_hasil_penelahan','email_surat','no_sk_kelulusan','semester','thn_akademik'];
             var idInput = document.getElementById('id_ajuan_tahap2');
             var data = null;
             if (el && el.dataset) {
@@ -426,7 +515,9 @@
                     no_surat_penelaah: el.dataset.noSuratPenelaah || null,
                     tgl_hasil_penelahan: el.dataset.tglHasilPenelahan || null,
                     email_surat: el.dataset.emailSurat || null,
-                    no_sk_kelulusan: el.dataset.noSkKelulusan || null
+                    no_sk_kelulusan: el.dataset.noSkKelulusan || null,
+                    semester: el.dataset.semester || null,
+                    thn_akademik: el.dataset.thnAkademik || null
                 };
             }
             if (data && data.id) {
