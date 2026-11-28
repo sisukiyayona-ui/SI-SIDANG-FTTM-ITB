@@ -5009,26 +5009,6 @@ function saveStatusLulusFrom(selectId, silent) {
     });
 }
 
-(function bindS1KetuaDecisionAutoSave() {
-    if (!isS1) return;
-    const groups = [
-        { status: 'statusLulusDisplay', ids: ['statusLulusDisplay', 'nilaiHurufDisplay', 'ip125Display', 'nilaiTa125Display', 'nilaiUs125Display'] },
-        { status: 'statusLulusTahap2', ids: ['statusLulusTahap2', 'nilaiHurufTahap2', 'ip125Tahap2', 'nilaiTa125Tahap2', 'nilaiUs125Tahap2'] },
-        { status: 'statusLulusPembimbing', ids: ['statusLulusPembimbing', 'nilaiHurufPembimbing', 'ip125Pembimbing', 'nilaiTa125Pembimbing', 'nilaiUs125Pembimbing'] }
-    ];
-    groups.forEach(function(g) {
-        g.ids.forEach(function(id) {
-            const el = document.getElementById(id);
-            if (!el || el.dataset.autoSaveBound) return;
-            el.dataset.autoSaveBound = '1';
-            el.addEventListener('change', function() {
-                if (el.disabled) return;
-                saveStatusLulusFrom(g.status, true);
-            });
-        });
-    });
-})();
-
 function saveStatusLulusTahap2() {
     saveStatusLulusFrom('statusLulusTahap2');
 }
